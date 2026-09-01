@@ -1,7 +1,7 @@
-/* UI integration test — requires jsdom:  npm i jsdom  (run from this folder or anywhere: node test/ui-test.mjs)
-   Boots the real index.html + scripts, then plays like a human: founds a studio, greenlights a film,
-   dates the release, rides the theatrical run, pitches a series, checks save/load. */
-// eslint-disable-next-line no-unused-vars
+/* UI integration test — requires jsdom: npm i jsdom, then: node test/ui-test.mjs
+   Boots the real index.html + scripts, then plays like a human: founds a studio, greenlights a film
+   (with distribution plan + pre-sales), dates the release, rides the theatrical run, shops a film to
+   streamers via the auction modal, builds the franchise empire, and checks save/load. */
 "use strict";
 import { JSDOM, VirtualConsole } from "jsdom";
 import fs from "fs"; import path from "path";
@@ -62,9 +62,19 @@ step("advance 3 weeks", ()=>{ for(let i=0;i<3;i++) click($("#btnWeek")); });
 
 step("open develop + start wizard", ()=>{
   click($(".tab[data-tab='develop']"));
-  const cards=$$("[data-dev]"); if(!cards.length) throw new Error("no idea cards");
-  // pick an affordable one like a real player (indie/mid)
-  let btn=cards.find(c => (g().ideas.find(i=>i.id===+c.dataset.dev)||{}).scale!=="tentpole") || cards[0];
+  // pick an affordable script like a real player (retry while the market rotates)
+  let btn=null;
+  for(let tries=0; tries<12 && !btn; tries++){
+    const cards=$$("[data-dev]");
+    btn=cards.find(c=>{
+      const i=g().ideas.find(x=>x.id===+c.dataset.dev);
+      if(!i || i.scale==="tentpole") return false;
+      const est=window.eval("neededBudget('"+i.genre+"','"+i.scale+"')");
+      return est <= g().studio.cash*0.45;
+    });
+    if(!btn) click($("#btnWeek"));
+  }
+  if(!btn) throw new Error("no affordable idea found");
   click(btn);
   if(!$$("[data-dir]").length) throw new Error("director picker empty");
 });
@@ -77,6 +87,11 @@ step("pick director + cast + confirm", ()=>{
   if($$("[data-cast]").length<3) errors.push("expected 3 cast picks possible");
   click($("#wzNext"));
   if(!$("#wzBudget")) throw new Error("budget slider missing");
+  if(!$$("[data-plan]").length) throw new Error("distribution plan picker missing");
+  click($$("[data-plan]").find(b=>b.dataset.plan==="later"));
+  if(!$("#wzPresale")) throw new Error("presales toggle missing");
+  click($("#wzPresale"));
+  click($$("[data-plan]").find(b=>b.dataset.plan==="theatrical"));
   click($("#wzGo"));
   if(!g() || g().projects.length<1) throw new Error("project not created");
 });
@@ -112,6 +127,36 @@ step("run to release + theatrical", ()=>{
 step("box office view shows film in theaters section", ()=>{
   click($(".tab[data-tab='boxoffice']"));
   if(!$("#view").innerHTML.includes("Your films in theaters")) throw new Error("section missing");
+});
+step("empire tab renders", ()=>{
+  click($(".tab[data-tab='empire']"));
+  if(!$("#view").innerHTML.includes("Franchises")) throw new Error("empire header missing");
+});
+step("finance shows live P&L", ()=>{
+  click($(".tab[data-tab='finance']"));
+  if(!$("#view").innerHTML.includes("This week") || !$("#view").innerHTML.includes("P&amp;L")) throw new Error("P&L card missing");
+});
+step("shop a finished film to streamers (auction modal)", ()=>{
+  window.eval(`G.projects.push({id:9871, kind:"film", title:"Neon X", genre:"scifi", scale:"mid", script:72, budget:40, spent:40, devCost:5, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, quality:{overall:78,critic:80,aud:82}, buzzBonus:0})`);
+  click($(".tab[data-tab='productions']"));
+  const btn=$$("[data-shop]").find(b=>+b.dataset.shop===9871);
+  if(!btn) throw new Error("shop button missing on ready film");
+  click(btn);
+  if(!$$("[data-bid]").length) throw new Error("auction bids missing");
+  click($$("[data-bid]")[0]);
+  const sold=window.eval("G.films.find(f=>f.id===9871)");
+  if(!sold || !sold.streamingOriginal || !sold.soldTo) throw new Error("auction sale failed");
+});
+step("empire actions (franchise + merch + game)", ()=>{
+  window.eval(`upsertFranchise({franchiseName:"Neon X Saga", title:"Neon X", genre:"scifi", ww:600})`);
+  click($(".tab[data-tab='empire']"));
+  if(!$$("[data-fr-merch]").length) throw new Error("merch button missing");
+  click($$("[data-fr-merch]")[0]);
+  const fr=window.eval("G.franchises[G.franchises.length-1]");
+  if(!fr || fr.merch<1) throw new Error("merch upgrade failed");
+  if(!$$("[data-fr-game]").length) throw new Error("game license button missing");
+  click($$("[data-fr-game]")[0]);
+  if(!$$("[data-fr-seq]").length) throw new Error("sequel button missing");
 });
 step("finance view + sliders", ()=>{
   click($(".tab[data-tab='finance']"));

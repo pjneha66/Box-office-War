@@ -20,25 +20,29 @@ Progress auto-saves to your browser's localStorage.
 | Opening weekend | star power × marketing (P&A) × release corridor × competition vs rival studios |
 | Legs (total ÷ opening) | driven by quality — horror opens big & dies fast; animation runs for months |
 | Revenue splits | studio keeps ≈53% domestic / ≈42% international (blended, incl. China's ~25%) |
-| Breakeven | ≈ (production budget + P&A) ÷ 0.48 worldwide gross |
-| Cash flow | productions burn cash *weekly* (pre → shoot → post); talent fees & dev costs upfront |
+| Weekly cash flow | **box office rentals (~53% of domestic gross) are paid into funds every week a film plays**; intl rentals settle at run end; every dollar itemized in a live P&L ledger |
+| Distribution choice | at greenlight: 🎥 theatrical, 📺 streaming original (platform auction on delivery), or decide later — finished films can be shopped to streamers anytime (3 platforms bid) |
 | Windows | theatrical run → PVOD → streaming licensing |
-| OTT deals | post-run licenses, pre-buys as "streaming originals", and bidding wars you can counter |
+| OTT deals | post-run licenses, pre-buys as "streaming originals", bidding wars you can counter |
 | Series | pitch → platform greenlight → license ≈115% of season budget → buzz → renewal (or cancellation) |
+| Franchise empire | hits unlock franchises: sequels, 🧸 merch lines (3 tiers, weekly income), 🎮 game licenses (cash per tier), 🎡 theme parks (tier 2+, expansion) — releases re-heat the brand |
+| Talent economics | A-list ensembles take 5% backend points off rentals; international pre-sales raise instant cash at greenlight (forfeits intl box office); productions earn filming rebates weekly |
 | Seasons | summer/holiday corridors multiply openings; January & September are graveyards |
 | Awards | year-end Golden Reel — Best Picture wins add re-release gross, reputation, catalog value |
-| Everything else | rival studios with their own slates, franchise/sequel economics, loans with weekly interest, studio upgrades, random events (strikes, piracy, pandemics, streaming wars) |
+| Everything else | rival studios with their own slates, loans with weekly interest, studio upgrades, random events (strikes, piracy, pandemics, streaming wars) |
 
 ### Screens
-🏛 Studio (feed + market share) · 📝 Develop (script market + talent) · 🎬 Productions (pipeline + release dating) · 📊 Box Office (weekly chart, runs, library) · 📺 OTT & Series (offers, renewals, platforms) · 💼 Finance (loans, upgrades, P&L)
+🏛 Studio (feed + market share) · 📝 Develop (script market + talent) · 🎬 Productions (pipeline + release dating) · 📊 Box Office (weekly chart, runs, library) · 📺 OTT & Series (offers, renewals, platforms) · 🏰 Empire (franchises, merch, parks) · 💼 Finance (live weekly P&L, loans, upgrades)
 
 ## 🕹 Quick strategy tips
 1. Start with an **indie or mid film** — tentpoles need ~$200M+ and a franchise to pay off.
-2. Never release a genre film into a rival tentpole's weekend — check the dating calendar.
-3. Horror is the best ROI per dollar; animation has the best legs; drama wins awards.
-4. A hit film (2× breakeven + good reviews) unlocks a **franchise** — sequels open ~35% bigger.
-5. Series are steady cash: deliver buzz above the platform's renewal line and margins grow each season.
-6. Loans bridge production gaps; net debt beyond your credit line for 3 weeks = the bank takes the lot.
+2. Pick your distribution: theatrical for upside, **streaming original** for guaranteed cash, or keep options open and shop it later.
+3. Never release a genre film into a rival tentpole's weekend — check the dating calendar.
+4. Horror is the best ROI per dollar; animation has the best legs (and the best merch); drama wins awards.
+5. A hit film (2× breakeven + good reviews) unlocks a **franchise** — sequels open ~35% bigger, merch & parks pay weekly, and each release re-heats the brand.
+6. Cash-strapped? **International pre-sales** pay ~22% of budget on day one (you give up intl box office), and filming rebates arrive weekly during the shoot.
+7. Watch **Finance → This week's P&L**: box office rentals land every week a film is in theaters.
+8. Loans bridge production gaps; net debt beyond your credit line for 3 weeks = the bank takes the lot.
 
 ## 🛠 Development
 

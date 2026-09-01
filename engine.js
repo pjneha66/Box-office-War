@@ -20,7 +20,8 @@ function newGame(archId, name){
              overhead: arch.overhead, archId: arch.id, flopPenalty: arch.flopPenalty, devBonus: arch.devBonus },
     week: 1, // absolute
     upgrades:{},
-    projects:[], films:[], series:[], offers:[], ideas:[],
+    projects:[], films:[], series:[], offers:[], ideas:[], franchises:[],
+    weekTx:{}, txHistory:[], pendingAuction:null,
     talent:[],
     rivals: DATA.RIVALS_DEF.map(r=>({ ...r, slate:[], ytd:0, filmsLive:[] })),
     news:[], flash:[],
@@ -47,6 +48,21 @@ function log(text, kind){
   if(G.news.length>140) G.news.length=140;
   if(kind) G.flash.push({t:text, k:kind});
 }
+
+/* ═══════════ P&L ledger: every dollar flows through here ═══════════ */
+function earn(cat, amt){
+  if(!G || !amt) return;
+  amt = Math.round(amt*10)/10;
+  G.studio.cash += amt;
+  G.weekTx[cat] = Math.round(((G.weekTx[cat]||0)+amt)*10)/10;
+}
+function spend(cat, amt){
+  if(!G || !amt) return;
+  amt = Math.round(amt*10)/10;
+  G.studio.cash -= amt;
+  G.weekTx[cat] = Math.round(((G.weekTx[cat]||0)-amt)*10)/10;
+}
+function weekNet(tx){ let n=0; for(const k in tx){ if(k!=="financing") n+=tx[k]; } return Math.round(n*10)/10; }
 
 /* ═══════════ save / load ═══════════ */
 function saveGame(){
@@ -215,12 +231,6 @@ function legsOf(film){
   if(film.piracyPenalty) legs -= film.piracyPenalty*8;
   return clamp(legs, 1.45, 4.1);
 }
-function studioShareRev(dom, genre){
-  const g=DATA.GENRES[genre];
-  const ww = dom/(1-g.intlShare);
-  const intl = ww-dom;
-  return { ww, rev: dom*0.53 + intl*0.42 };
-}
 function breakevenWW(p){ // worldwilde gross needed
   return (p.budget + (p.marketing||recMarketing(p))) / 0.48;
 }
@@ -250,14 +260,23 @@ function greenlight(cfg){
     strikePause:0,
   };
   if(cfg.sequelOf){ p.title = sequelTitle(cfg.sequelOf.title); p.franchiseName = cfg.sequelOf.franchiseName || cfg.sequelOf.title; }
-  G.studio.cash -= (dev + fees);
+  spend("development", dev);
+  spend("talent", fees);
+  p.plan = cfg.plan || "theatrical";
+  const starP = cfg.cast.reduce((s,c)=>s+c.power,0);
+  if(starP>=8){ p.backend = 0.05; }
+  if(cfg.presales && p.plan!=="streaming"){
+    p.presales = Math.round(p.budget*0.22);
+    earn("presales", p.presales);
+    log("🌍 International pre-sales on “"+p.title+"”: +"+fmtM(p.presales)+" (intl box office now goes to the buyers).","");
+  }
   // book talent
   const total = p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post;
   if(cfg.director){ cfg.director.bookedUntil = G.week+total; cfg.director.booked = p.title; }
   cfg.cast.forEach(c=>{ c.bookedUntil=G.week+total; c.booked=p.title; });
   G.projects.push(p);
   G.ideas = G.ideas.filter(i=>i.id!==idea.id);
-  log("🎬 Greenlit: “"+p.title+"” ("+DATA.GENRES[p.genre].name+", "+fmtM(cfg.budget)+" budget)","gold");
+  log("🎬 Greenlit: “"+p.title+"” ("+DATA.GENRES[p.genre].name+", "+fmtM(cfg.budget)+" budget) — "+({theatrical:"theatrical release",streaming:"streaming original",later:"decide distribution later"})[p.plan],"gold");
   return p;
 }
 function sequelTitle(t){
@@ -280,7 +299,8 @@ function tickProjects(){
     if(p.phase==="shoot"){ burn = p.budget*0.70/L.shoot * (G.upgrades.backlot?0.88:1); }
     if(p.phase==="post") burn = p.budget*0.20/L.post * (G.upgrades.vfx?0.75:1);
     burn = Math.round(burn*10)/10;
-    G.studio.cash -= burn; p.spent += burn;
+    spend("production", burn); p.spent += burn;
+    if(p.phase==="shoot") earn("incentives", burn*0.08);
     if(p.phaseWeek >= L[p.phase]){
       p.phaseWeek=0;
       if(p.phase==="pre") p.phase="shoot";
@@ -289,9 +309,13 @@ function tickProjects(){
         p.quality = computeQuality(p);
         if(p.prebuyAccepted){
           finishStreamingOriginal(p);
+        }else if(p.plan==="streaming"){
+          p.phase="ready";
+          log("🎞 “"+p.title+"” is finished! Score: "+p.quality.overall+"/100. Shopping it to the streamers…","good");
+          G.pendingAuction = { projectId:p.id, bids:makeAuctionBids(p), manual:false };
         }else{
           p.phase="ready";
-          log("🎞 “"+p.title+"” is finished! Score: "+p.quality.overall+"/100. Schedule its release.","good");
+          log("🎞 “"+p.title+"” is finished! Score: "+p.quality.overall+"/100. Date it theatrically or shop it to streamers.","good");
           maybePrebuyOffer(p);
         }
       }
@@ -301,7 +325,7 @@ function tickProjects(){
 function finishStreamingOriginal(p){
   const plat = DATA.platform(p.prebuyPlatform);
   const pay = p.prebuyValue;
-  G.studio.cash += pay;
+  earn("streaming", pay);
   if(p.director){ p.director.bookedUntil=0; p.director.booked=null; }
   p.cast.forEach(c=>{ c.bookedUntil=0; c.booked=null; });
   const f = { id:p.id, title:p.title, genre:p.genre, scale:p.scale, budget:p.budget,
@@ -326,7 +350,8 @@ function releaseFilm(p){
     budget:p.budget, marketing:p.marketing, devCost:p.devCost,
     director:p.director, cast:p.cast, quality:q,
     releaseWeek:G.week, opening, weekly:[{w:G.week, gross:opening}],
-    dom:opening, ww:0, studioRev:0, legs:0, decay:0,
+    dom:opening, ww:0, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
+    presales:p.presales||0, backend:p.backend||0,
     inTheaters:true, weeksOut:1, franchiseable:false, soldTo:null,
     piracyPenalty:0, awardsEligible:true, year:yearOf(G.week),
     franchiseName:p.franchiseName||null, sequelOf:p.sequelOf,
@@ -338,9 +363,12 @@ function releaseFilm(p){
   if(p.director){ p.director.bookedUntil=0; p.director.booked=null; }
   p.cast.forEach(c=>{ c.bookedUntil=0; c.booked=null; });
   G.stats.films++;
+  const fr0 = film.franchiseName && G.franchises.find(x=>x.name===film.franchiseName);
+  if(fr0) fr0.decay = 1;
   if(opening>G.stats.bestOpen){ G.stats.bestOpen=opening; G.stats.bestFilm=film.title; }
+  earn("theatrical", opening*0.53);
   const label = opening>=100? "💥 MASSIVE opening": opening>=40? "🔥 Strong opening": opening>=12? "▶ Solid opening":"🎪 Limited release";
-  log(label+": “"+film.title+"” opens to "+fmtG(opening)+" domestic.","gold");
+  log(label+": “"+film.title+"” opens to "+fmtG(opening)+" domestic (+"+fmtM(opening*0.53)+" rentals this week).","gold");
   // talent heat on big opens
   if(opening>=60) p.cast.forEach(c=>{ c.heat=Math.min(3,c.heat+1); });
   return film;
@@ -359,28 +387,36 @@ function tickTheatrical(){
     }
     f.weekly.push({w:G.week, gross});
     f.dom += gross;
+    const rentals = gross*0.53;
+    earn("theatrical", rentals);
+    f.rentalsDom = (f.rentalsDom||0) + rentals;
   }
 }
 function endTheatrical(f){
   f.inTheaters=false;
-  const { ww, rev } = studioShareRev(f.dom, f.genre);
-  f.ww = ww; f.studioRev = rev;
-  const pvod = Math.round(ww*0.055*clamp(f.quality.overall/70,0.7,1.4));
-  f.pvod = pvod; G.studio.cash += pvod;
-  f.profit = rev + pvod - f.budget - f.marketing - (f.devCost||0);
-  G.stats.totalWW += ww; G.stats.totalProfit += f.profit;
+  const intlGross = f.dom/(1-DATA.GENRES[f.genre].intlShare) - f.dom;
+  f.ww = f.dom + intlGross;
+  let intlRentals = 0;
+  if(!f.presales){ intlRentals = intlGross*0.42; earn("theatrical", intlRentals); }
+  const pvod = Math.round(f.ww*0.055*clamp(f.quality.overall/70,0.7,1.4));
+  f.pvod = pvod; earn("pvod", pvod);
+  let backendPay = 0;
+  if(f.backend){ backendPay = (f.rentalsDom + intlRentals)*f.backend; spend("talent", backendPay); }
+  f.backendPaid = backendPay;
+  f.studioRev = f.rentalsDom + intlRentals + pvod - backendPay;
+  f.profit = f.studioRev + f.presales - f.budget - f.marketing - (f.devCost||0);
+  G.stats.totalWW += f.ww; G.stats.totalProfit += f.profit;
   const be = breakevenWW(f);
-  const verdict = ww>=be*1.6? "SMASH HIT": ww>=be? "HIT": ww>=be*0.75? "disappointment": "FLOP";
-  if(ww>=be) G.stats.hits++; else G.stats.flops++;
-  // reputation
-  const dRep = ww>=be*1.6? 6: ww>=be? 3: ww>=be*0.75? -2: -4;
+  const verdict = f.ww>=be*1.6? "SMASH HIT": f.ww>=be? "HIT": f.ww>=be*0.75? "disappointment": "FLOP";
+  if(f.ww>=be) G.stats.hits++; else G.stats.flops++;
+  const dRep = f.ww>=be*1.6? 6: f.ww>=be? 3: f.ww>=be*0.75? -2: -4;
   G.studio.rep = clamp(G.studio.rep + dRep*(G.studio.flopPenalty||1), 5, 99);
-  // franchise potential
-  if(f.quality.overall>=66 && ww>=be*1.9){
+  if(f.quality.overall>=66 && f.ww>=be*1.9){
     f.franchiseable=true;
-    log("🏆 “"+f.title+"” final: "+fmtG(ww)+" WW — "+verdict+". Franchise potential!","gold");
+    upsertFranchise(f);
+    log("🏆 “"+f.title+"” final: "+fmtG(f.ww)+" WW — "+verdict+". Franchise unlocked — see 🏰 Empire!","gold");
   }else{
-    log("🏁 “"+f.title+"” ends its run: "+fmtG(ww)+" WW — "+verdict+" ("+(f.profit>=0?"+":"")+fmtM(f.profit)+" net).", f.profit>=0?"good":"bad");
+    log("🏁 “"+f.title+"” ends its run: "+fmtG(f.ww)+" WW — "+verdict+" ("+(f.profit>=0?"+":"")+fmtM(f.profit)+" net; "+fmtM(f.studioRev)+" rentals received).", f.profit>=0?"good":"bad");
   }
   scheduleOttOffer(f, rint(2,5));
 }
@@ -421,10 +457,54 @@ function maybePrebuyOffer(p){
     value, countered:false, expires:G.week+4 });
   log("📨 "+chosen.x.name+" offers to buy “"+p.title+"” as a streaming original: "+fmtM(value)+" (no theatrical run).","");
 }
+/* ═══ OTT auction: shop a finished film to streamers ═══ */
+function makeAuctionBids(p){
+  const q=p.quality.overall, g=DATA.GENRES[p.genre];
+  const hype=1+(p.buzzBonus||0);
+  const cand=DATA.PLATFORMS.map(pl=>({pl,s:pl.generosity*(pl.taste[p.genre]||1)})).sort((a,b)=>b.s-a.s).slice(0,3);
+  return cand.map(({pl,s})=>({ platform:pl.id,
+    value:Math.max(3, Math.round(p.budget*(0.85+q/160)*g.otta*s*hype*(0.95+rnd()*0.22)*(G.streamWar>0?1.3:1)*(G.upgrades.ottrel?1.12:1)))
+  })).sort((a,b)=>b.value-a.value);
+}
+function shopToStreamers(pid){
+  const p=G.projects.find(x=>x.id===pid);
+  if(!p || p.phase!=="ready") return;
+  G.pendingAuction={ projectId:pid, bids:makeAuctionBids(p), manual:true };
+}
+function acceptAuction(i){
+  const a=G.pendingAuction; if(!a) return;
+  const bid=a.bids[i]; const p=G.projects.find(x=>x.id===a.projectId);
+  G.pendingAuction=null;
+  if(!p||!bid) return;
+  earn("streaming", bid.value);
+  const plat=DATA.platform(bid.platform);
+  const f={ id:p.id, title:p.title, genre:p.genre, scale:p.scale, budget:p.budget,
+    marketing:p.marketingPaid||0, devCost:p.devCost||0, quality:p.quality,
+    streamingOriginal:true, platform:plat.name, soldTo:plat.name,
+    releaseWeek:G.week, weekly:[], dom:0, ww:0, rentalsDom:0, studioRev:bid.value,
+    profit:bid.value-p.budget-(p.devCost||0)-(p.marketingPaid||0),
+    inTheaters:false, awardsEligible:true, year:yearOf(G.week) };
+  G.films.push(f);
+  G.projects=G.projects.filter(x=>x!==p);
+  G.stats.films++; G.stats.totalProfit+=f.profit;
+  if(p.director){ p.director.bookedUntil=0; p.director.booked=null; }
+  p.cast.forEach(c=>{ c.bookedUntil=0; c.booked=null; });
+  log("🤝 Sold “"+p.title+"” to "+plat.name+" as a streaming original for "+fmtM(bid.value)+" (no theatrical run).","gold");
+  saveGame();
+}
+function declineAuction(){
+  const a=G.pendingAuction; if(!a) return;
+  if(!a.manual){
+    const p=G.projects.find(x=>x.id===a.projectId);
+    if(p && p.phase==="ready") log("🎥 Keeping “"+p.title+"” — date it theatrically whenever you're ready.","");
+  }
+  G.pendingAuction=null; saveGame();
+}
+
 function acceptOffer(o){
   if(o.type==="film_ott"){
     const f = G.films.find(x=>x.id===o.filmId); if(!f) return;
-    G.studio.cash += o.value; f.soldTo = DATA.platform(o.platform).name; f.soldValue=o.value;
+    earn("streaming", o.value); f.soldTo = DATA.platform(o.platform).name; f.soldValue=o.value;
     f.profit += o.value; G.stats.totalProfit += o.value;
     log("🤝 “"+f.title+"” licensed to "+f.soldTo+" for "+fmtM(o.value),"gold");
   }else if(o.type==="prebuy"){
@@ -484,7 +564,7 @@ function pitchSeries(cfg){
   };
   if(chance(clamp(p,0.12,0.9))){
     G.series.push(s);
-    G.studio.cash -= (cfg.showrunner?actorFee(cfg.showrunner):0) + (cfg.cast||[]).reduce((a,c)=>a+actorFee(c),0);
+    spend("talent", (cfg.showrunner?actorFee(cfg.showrunner):0) + (cfg.cast||[]).reduce((a,c)=>a+actorFee(c),0));
     if(cfg.showrunner){cfg.showrunner.bookedUntil=G.week+s.weeksLeft; cfg.showrunner.booked=s.title;}
     (cfg.cast||[]).forEach(c=>{c.bookedUntil=G.week+s.weeksLeft; c.booked=s.title;});
     log("📺 "+plat.name+" greenlit “"+s.title+"” — "+cfg.eps+" eps × "+fmtM(cfg.perEp)+" ("+fmtM(budget)+" season budget).","gold");
@@ -503,7 +583,8 @@ function tickSeries(){
   for(const s of G.series){
     if(s.phase==="shoot"){
       const burn = s.budget/(s.weeksLeft0||s.weeksLeft||1);
-      s.spent += burn; G.studio.cash -= burn;
+      s.spent += burn; spend("production", burn);
+      earn("incentives", burn*0.06);
       s.weeksLeft--;
       if(s.weeksLeft<=0) deliverSeason(s);
     }else if(s.phase==="airing"){
@@ -518,7 +599,7 @@ function deliverSeason(s){
   const num=s.seasons.length+1;
   const margin = 1.15 + G.studio.rep/500 + (G.upgrades.ottrel?0.05:0);
   const license = Math.round(s.budget*margin);
-  G.studio.cash += license;
+  earn("series", license);
   s.seasons.push({num, quality:q, license, viewership:0});
   // talent free
   if(s.showrunner){s.showrunner.bookedUntil=0;}
@@ -659,6 +740,7 @@ function catalogValue(){
     base += (f.awards||[]).length*8;
     v+=base;
   }
+  for(const fr of G.franchises){ v += fr.tier*15 + fr.merch*10 + fr.park*45; }
   return v;
 }
 function maxDebt(){
@@ -668,29 +750,28 @@ function maxDebt(){
 function takeLoan(amount){
   amount=Math.min(Math.round(amount), Math.round(maxDebt()-G.studio.debt));
   if(amount<=0) return false;
-  G.studio.debt+=amount; G.studio.cash+=amount;
+  G.studio.debt+=amount; earn("financing", amount);
   log("🏦 Borrowed "+fmtM(amount)+". Weekly interest accrues.","");
   saveGame(); return true;
 }
 function repayDebt(amount){
   amount=Math.min(Math.round(amount), G.studio.debt, Math.max(0,Math.floor(G.studio.cash)));
   if(amount<=0) return false;
-  G.studio.debt-=amount; G.studio.cash-=amount;
+  G.studio.debt-=amount; spend("financing", amount);
   log("🏦 Repaid "+fmtM(amount)+" of debt.","good");
   saveGame(); return true;
 }
 function tickFinance(){
   const st=G.studio;
   const overhead = st.overhead + G.projects.length*0.12 + (G.series.filter(s=>s.phase==="shoot").length*0.15);
-  st.cash -= overhead;
-  if(st.debt>0){ const int=Math.round(st.debt*0.0018*10)/10; st.cash-=int; st.debt+=int; }
+  spend("overhead", overhead);
+  if(st.debt>0){ const int=Math.round(st.debt*0.0018*10)/10; spend("interest", int); st.debt+=int; }
   if(G.investorDebt>0){
     const pay=Math.min(G.investorDebt, 2.5);
-    G.investorDebt-=pay; st.cash-=pay; G.investorPaid=(G.investorPaid||0)+pay;
+    G.investorDebt-=pay; spend("financing", pay); G.investorPaid=(G.investorPaid||0)+pay;
     if(G.investorDebt<=0) log("🕴 Investor buyout fully repaid.","good");
   }
-  const cat = catalogValue()*0.0045;
-  st.cash += cat;
+  earn("library", catalogValue()*0.0045);
   // negative cash becomes debt
   if(st.cash<0){ st.debt += -st.cash; st.cash=0; }
   // bankruptcy check: net debt (debt minus cash) deep beyond the credit line for 3 straight weeks
@@ -701,9 +782,62 @@ function tickFinance(){
 function buyUpgrade(id){
   const u=DATA.UPGRADES.find(x=>x.id===id); if(!u||G.upgrades[id]) return;
   if(G.studio.cash<u.cost) return;
-  G.studio.cash-=u.cost; G.upgrades[id]=true;
+  spend("studio", u.cost); G.upgrades[id]=true;
   log(u.icon+" Built: "+u.name+" ("+fmtM(u.cost)+")","gold");
   saveGame();
+}
+
+/* ═══════════ franchise empire (merch · games · parks) ═══════════ */
+function upsertFranchise(f){
+  let fr = G.franchises.find(x=>x.name===(f.franchiseName||f.title));
+  if(!fr){
+    fr = { id:nid(), name:f.franchiseName||f.title, tier:0, entries:[], ww:0,
+           merch:0, park:0, gameSold:0, decay:1, genre:f.genre, earned:0, built:G.week };
+    G.franchises.push(fr);
+  }
+  fr.tier++; fr.ww += f.ww||0;
+  fr.entries.push({ filmId:f.id, title:f.title, ww:f.ww, week:G.week });
+  fr.decay = 1;
+  G.studio.rep = clamp(G.studio.rep+1, 5, 99);
+}
+function frById(id){ return G.franchises.find(x=>x.id===id); }
+function merchCost(fr){ return [30+fr.tier*15, 80+fr.tier*20, 160+fr.tier*30][fr.merch] || 0; }
+function parkCost(fr){ return fr.park===0? 180+fr.tier*50 : 350; }
+function frWeeklyIncome(fr){
+  const g=DATA.GENRES[fr.genre]||{merch:1};
+  return ( fr.merch? fr.merch*(0.9+fr.tier*0.55)*g.merch*fr.decay : 0 )
+       + ( fr.park ? fr.park*(2.5+fr.tier*1.2)*fr.decay : 0 );
+}
+function upgradeMerch(id){
+  const fr=frById(id); if(!fr || fr.merch>=3) return;
+  const c=merchCost(fr); if(G.studio.cash<c) return;
+  spend("studio", c); fr.merch++;
+  G.studio.rep=clamp(G.studio.rep+1,5,99);
+  const label=["","toy & apparel line","global merch program","full consumer-products empire"][fr.merch];
+  log("🧸 “"+fr.name+"”: launched "+label+" (−"+fmtM(c)+", +weekly income).","gold");
+  saveGame();
+}
+function buildPark(id){
+  const fr=frById(id); if(!fr || fr.park>=2 || fr.tier<2) return;
+  const c=parkCost(fr); if(G.studio.cash<c) return;
+  spend("studio", c); fr.park++;
+  G.studio.rep=clamp(G.studio.rep+3,5,99);
+  log("🎡 “"+fr.name+"”: "+(fr.park===1? "theme-park attraction built":"park expansion opened")+" (−"+fmtM(c)+"). A landmark for the studio.","gold");
+  saveGame();
+}
+function sellGameRights(id){
+  const fr=frById(id); if(!fr || fr.gameSold===fr.tier) return;
+  const v=Math.round(20 + fr.tier*12 + Math.min(40, fr.ww/50));
+  earn("empire", v); fr.gameSold=fr.tier;
+  log("🎮 “"+fr.name+"” game rights licensed for "+fmtM(v)+".","gold");
+  saveGame();
+}
+function tickEmpire(){
+  for(const fr of G.franchises){
+    const inc=frWeeklyIncome(fr);
+    if(inc>=0.1){ earn("empire", inc); fr.earned=(fr.earned||0)+inc; }
+    fr.decay=Math.max(0.25, fr.decay*(fr.park? 0.996 : 0.982));
+  }
 }
 
 /* ═══════════ awards (year end) ═══════════ */
@@ -737,7 +871,7 @@ function runAwards(){
     if(winner.mine){
       const f=winner.f;
       f.awards=f.awards||[]; f.awards.push("Best Picture");
-      f.dom+=15; f.ww+=20; f.studioRev+=15; G.studio.cash+=15;
+      f.dom+=15; f.ww+=20; f.studioRev+=15; earn("theatrical", 15);
       G.studio.rep=clamp(G.studio.rep+7,5,99);
       G.stats.awards.push({year:yr, cat:"Best Picture", film:f.title});
       log("🏆 BEST PICTURE: “"+f.title+"”! +7 reputation, re-release bump.","gold");
@@ -813,19 +947,21 @@ function advanceWeek(){
   if(!G||G.over) return [];
   G.week++;
   G.flash=[];
+  G.weekTx={};
   tickFinance();
   tickProjects();
   // releases due (or overdue — safety net)
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
       const rest = p.marketing - p.marketingPaid;
-      G.studio.cash -= Math.max(0,rest);
+      spend("marketing", Math.max(0,rest));
       releaseFilm(p);
     }
   }
   tickTheatrical();
   tickSeries();
   tickRivals();
+  tickEmpire();
   maybeOttOffers();
   // offer expiry
   G.offers=G.offers.filter(o=>o.expires>=G.week || o.type==="renewal");
@@ -836,12 +972,15 @@ function advanceWeek(){
   if(G.streamWar>0)G.streamWar--;
   if(G.theaterCap>0)G.theaterCap--;
   if(woyOf(G.week)===1 && G.week>1) yearWrap();
+  const snap={ week:G.week, cats:{...G.weekTx}, net:weekNet(G.weekTx) };
+  G.txHistory.push(snap);
+  if(G.txHistory.length>12) G.txHistory.shift();
   saveGame();
   return G.flash;
 }
 function advanceWeeks(n){
   for(let i=0;i<n;i++){
-    if(G.over||G.pendingChoice||G.pendingReport) break;
+    if(G.over||G.pendingChoice||G.pendingReport||G.pendingAuction) break;
     advanceWeek();
   }
 }

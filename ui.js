@@ -119,6 +119,7 @@ function afterTick(){
   flashes(G.flash);
   render();
   if(G.pendingChoice) choiceModal();
+  else if(G.pendingAuction) auctionModal();
   else if(G.pendingReport) reportModal();
   else if(G.over) gameOverModal();
 }
@@ -138,6 +139,7 @@ function render(){
   else if(TAB==="productions") v.innerHTML=viewProductions();
   else if(TAB==="boxoffice") v.innerHTML=viewBoxOffice();
   else if(TAB==="ott") v.innerHTML=viewOTT();
+  else if(TAB==="empire") v.innerHTML=viewEmpire();
   else if(TAB==="finance") v.innerHTML=viewFinance();
   bindView();
 }
@@ -148,8 +150,10 @@ function viewStudio(){
   const yr=yearOf(G.week);
   const myYtd=G.films.filter(f=>f.year===yr).reduce((a,f)=>a+(f.ww||0),0);
   const live=activeFilms().length, inProd=inProdProjects().length;
+  const lastNet=G.txHistory && G.txHistory.length? G.txHistory[G.txHistory.length-1].net : 0;
   let h="<div class='stat-hero'>"+
     statCard(fmtM(st.cash),"Cash on hand")+
+    statCard((lastNet>=0?"+":"")+fmtM(lastNet),"Last week net", lastNet>=0?"var(--green)":"var(--red)")+
     statCard(fmtM(st.debt),"Debt","var(--red)")+
     statCard(Math.round(st.rep)+"/100","Reputation","var(--gold2)")+
     statCard(fmtM(catalogValue()),"Catalog value")+
@@ -225,7 +229,7 @@ function talentCard(t){
 
 /* ── greenlight wizard (film & sequel) ── */
 function startWizard(idea){
-  WZ={mode:"film", idea, director:null, cast:[], sub:2, budget:Math.round(neededBudget(idea.genre,idea.scale))};
+  WZ={mode:"film", idea, director:null, cast:[], sub:2, budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false};
   wizardModal();
 }
 function startSequel(film){
@@ -266,12 +270,25 @@ function wizardModal(){
     const dev=devCostOf(WZ.idea);
     const S2=DATA.SCALES[WZ.idea.scale];
     const weeks=S2.pre[1]+S2.shoot[1]+S2.post[1];
-    h+="<div class='card'><div class='slider-row'><span class='small muted'>Production budget</span>"+
+    const starP=WZ.cast.reduce((s,c)=>s+c.power,0);
+    h+="<div class='small muted' style='margin:4px 0 6px'><b>Distribution plan</b> — commit now or keep options open</div><div class='plan-pick'>"+
+      "<div class='plan-opt"+(WZ.plan==="theatrical"?" sel":"")+"' data-plan='theatrical'><h5>🎥 Theatrical release</h5><div class='p-sub'>Full box office upside (and risk). You set the date & P&A when it's finished.</div></div>"+
+      "<div class='plan-opt"+(WZ.plan==="streaming"?" sel":"")+"' data-plan='streaming'><h5>📺 Streaming original</h5><div class='p-sub'>Platforms bid on delivery — guaranteed cash ≈ budget × quality, zero box office.</div></div>"+
+      "<div class='plan-opt"+(WZ.plan==="later"?" sel":"")+"' data-plan='later'><h5>🤔 Decide later</h5><div class='p-sub'>Keep every door open: date it, shop it, or take incoming pre-buy offers.</div></div>"+
+      "</div>";
+    if(WZ.plan!=="streaming"){
+      const pv=Math.round(WZ.budget*0.22);
+      h+="<div class='card' style='margin-top:8px;cursor:pointer' id='wzPresale'><div class='spread'><span class='small'>"+(WZ.presales?"✅ ":"⬜ ")+"<b>International pre-sales</b> — take "+fmtM(pv)+" cash today</span><span class='tag "+(WZ.presales?"gold":"")+"'>"+(WZ.presales?"sold":"available")+"</span></div>"+
+        "<div class='tiny muted'>Buyers take the international box office (~"+Math.round(DATA.GENRES[WZ.idea.genre].intlShare*100)+"% of gross). Great for cash flow; costs you upside on hits.</div></div>";
+    }
+    if(starP>=8) h+="<div class='tiny' style='margin-top:8px'>🌟 A-list ensemble: the stars demand <b>5% of rentals</b> as backend points.</div>";
+    h+="<div class='card' style='margin-top:10px'><div class='slider-row'><span class='small muted'>Production budget</span>"+
       "<input type='range' id='wzBudget' min='"+S2.bMin+"' max='"+(S2.bMax*1.4)+"' step='"+(S2.bMin>=100?5:2)+"' value='"+WZ.budget+"'><span class='slider-val' id='wzBudgetV'>"+fmtM(WZ.budget)+"</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>Typical "+S2.name+" range: "+fmtM(S2.bMin)+"–"+fmtM(S2.bMax)+" · genre needs ≈ "+fmtM(neededBudget(WZ.idea.genre,WZ.idea.scale))+" (underfunding hurts quality)</div></div>";
     h+="<div class='card'><div class='cost-line'><span>Rights + development</span><b>"+fmtM(dev)+"</b></div>"+
       "<div class='cost-line'><span>Talent fees (upfront)</span><b>"+fmtM(fees)+"</b></div>"+
       "<div class='cost-line'><span>Production (paid weekly over ~"+weeks+" wks)</span><b>"+fmtM(WZ.budget)+"</b></div>"+
+      (WZ.presales&&WZ.plan!=="streaming"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
       "<div class='cost-line'><span>Suggested marketing (at release)</span><b id='wzMkt'>"+fmtM(recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}))+"</b></div>"+
       "<div class='cost-total'><span>Total commitment</span><span class='gold' id='wzTot'>"+fmtM(dev+fees+WZ.budget)+"</span></div></div>";
     h+="<div class='tiny muted'>💡 Rule of thumb: a film needs ≈ <b id='wzBe'>"+fmtM(breakevenWW({budget:WZ.budget, marketing:recMarketing({budget:WZ.budget,scale:WZ.idea.scale,genre:WZ.idea.genre})}))+"</b> worldwide gross to break even (theaters keep ~half).</div>";
@@ -289,6 +306,8 @@ function wizardModal(){
   const nx=v.querySelector("#wzNext"); if(nx) nx.onclick=()=>{ WZ.sub=4; wizardModal(); };
   const sk=v.querySelector("#wzSkipCast"); if(sk) sk.onclick=()=>{ WZ.sub=4; wizardModal(); };
   const bk=v.querySelector("#wzBack"); if(bk) bk.onclick=()=>{ WZ.sub=3; wizardModal(); };
+  v.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{ WZ.plan=b.dataset.plan; if(WZ.plan==="streaming") WZ.presales=false; beep("click"); wizardModal(); });
+  const ps=v.querySelector("#wzPresale"); if(ps) ps.onclick=()=>{ WZ.presales=!WZ.presales; beep("click"); wizardModal(); };
   const rg=v.querySelector("#wzBudget");
   if(rg){ rg.oninput=()=>{
     WZ.budget=+rg.value; $("#wzBudgetV").textContent=fmtM(WZ.budget);
@@ -303,7 +322,7 @@ function wizardModal(){
     const fees=(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0);
     const dev=devCostOf(WZ.idea);
     if(G.studio.cash < dev+fees+WZ.budget*0.2){ toast("Not enough cash for upfront costs — visit Finance for a loan.","bad"); beep("bad"); return; }
-    const p=greenlight({ idea:WZ.idea, director:WZ.director, cast:WZ.cast, budget:WZ.budget, sequelOf:WZ.idea.sequelOf });
+    const p=greenlight({ idea:WZ.idea, director:WZ.director, cast:WZ.cast, budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales });
     beep("gold"); WZ=null; closeModal(); render();
   };
 }
@@ -392,7 +411,7 @@ function viewProductions(){
     h+="<div class='card'><div class='spread'><div><b>🎞 "+esc(p.title)+"</b> "+scoreBadge(p.quality.overall)+
       (p.prebuyAccepted?"<div class='tiny gold'>Sold to "+DATA.platform(p.prebuyPlatform).name+" — payable on delivery</div>":"")+"</div></div>"+
       "<div class='tiny muted' style='margin-top:6px'>Critics "+p.quality.critic+" · Audience "+p.quality.aud+" · budget "+fmtM(p.budget)+" · breakeven "+fmtM(breakevenWW(p))+" WW</div>"+
-      (p.prebuyAccepted?"":"<button class='btn btn-primary' style='margin-top:10px' data-sched='"+p.id+"'>📅 Schedule Release</button>")+"</div>";
+      (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button></div>")+"</div>";
   }
   h+="<div class='section-title'>Franchise opportunities</div>";
   const fr=G.films.filter(f=>f.franchiseable);
@@ -489,7 +508,8 @@ function viewBoxOffice(){
       "<div style='text-align:right'><b class='gold'>"+fmtG(f.dom)+"</b><div class='tiny muted'>domestic</div></div></div>"+
       "<div class='weekly-gross-chart'>"+f.weekly.slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
       "<div class='spread small' style='margin-top:6px'><span class='muted'>Tracking ≈ "+fmtG(projWW)+" WW vs "+fmtG(be)+" breakeven</span>"+
-      "<span class='"+(projWW>=be?"pos":"neg")+"'>"+(projWW>=be?"on pace to profit":"below breakeven")+"</span></div></div>";
+      "<span class='"+(projWW>=be?"pos":"neg")+"'>"+(projWW>=be?"on pace to profit":"below breakeven")+"</span></div>"+
+      "<div class='tiny' style='margin-top:4px'>💰 Rentals received to date: <b class='gold'>"+fmtM(f.rentalsDom||0)+"</b> <span class='muted'>(~53% of domestic gross, paid weekly)</span>"+(f.presales?" · <span class='muted'>intl pre-sold</span>":"")+"</div></div>";
   }
   const lib=G.films.slice().sort((a,b)=>(b.ww||0)-(a.ww||0));
   h+="<div class='section-title'>Library ("+lib.length+")</div>";
@@ -561,6 +581,7 @@ function viewFinance(){
     statCard(fmtM(overhead)+"/wk","Overhead")+
     statCard(fmtM(catalogValue()*0.0035)+"/wk","Library income")+
   "</div>";
+  h+=plCard();
   h+="<div class='grid g2'><div class='card'><h4>🏦 Credit facility</h4>"+
     "<p class='tiny muted'>Weekly interest 0.18% (≈9%/yr). Borrow to bridge production, but breakevens don't care about your loans.</p>"+
     "<div class='loan-row'><div class='small muted' style='margin:8px 0 4px'>Borrow</div><input type='range' id='fnLoan' min='10' max='"+Math.max(10,Math.round(maxDebt()-st.debt))+"' step='10' value='"+Math.round(Math.max(10,(maxDebt()-st.debt)/2))+"'><div class='spread'><b id='fnLoanV'></b><button class='btn btn-sm btn-primary' id='fnLoanGo'>Take loan</button></div></div>"+
@@ -585,6 +606,28 @@ function viewFinance(){
   return h;
 }
 
+const PL_LABELS={theatrical:"🎬 Box office rentals", pvod:"🏠 Premium VOD", streaming:"📺 Streaming deals", series:"📺 Series licenses", empire:"🏰 Franchise & parks", library:"📚 Library licensing", presales:"🌍 Intl pre-sales", incentives:"🧾 Production incentives", production:"🎬 Production spend", marketing:"📣 Marketing (P&A)", talent:"🌟 Talent & fees", development:"📝 Development", overhead:"🏛 Overhead", interest:"🏦 Interest", studio:"🏗 Studio investment", other:"❓ Other"};
+function plCard(){
+  const tx=G.weekTx||{};
+  const cats=Object.keys(tx).filter(k=>Math.abs(tx[k])>=0.05);
+  if(!cats.length && !G.txHistory.length) return "";
+  const net=weekNet(tx);
+  let h="<div class='card'><div class='spread'><h4 style='margin:0'>📊 This week's P&L <span class='tiny muted'>(live)</span></h4>"+
+    "<b class='"+(net>=0?"pos":"neg")+"'>"+(net>=0?"+":"")+fmtM(net)+" net</b></div>";
+  const inc=cats.filter(k=>tx[k]>0), cost=cats.filter(k=>tx[k]<0);
+  if(inc.length){ h+="<div style='margin-top:8px'>"; inc.forEach(k=>h+="<div class='cost-line'><span>"+(PL_LABELS[k]||k)+"</span><b class='pos'>+"+fmtM(tx[k])+"</b></div>"); h+="</div>"; }
+  if(cost.length){ h+="<div style='margin-top:6px'>"; cost.forEach(k=>h+="<div class='cost-line'><span>"+(PL_LABELS[k]||k)+"</span><b class='neg'>"+fmtM(tx[k])+"</b></div>"); h+="</div>"; }
+  if((tx.financing||0)!==0) h+="<div class='tiny muted' style='margin-top:4px'>🏦 Financing (loans/investors, not P&L): "+fmtM(tx.financing)+"</div>";
+  if(G.txHistory.length>1){
+    const mx=Math.max(1,...G.txHistory.map(x=>Math.abs(x.net)));
+    h+="<div class='tiny muted' style='margin-top:10px'>Net by week</div><div class='pl-bars'>"+
+      G.txHistory.slice(-10).map(x=>"<div class='pb "+(x.net>=0?"up":"down")+"' style='height:"+Math.max(5,Math.abs(x.net)/mx*100)+"%' title='"+(x.net>=0?"+":"")+fmtM(x.net)+"'></div>").join("")+
+      "</div>";
+  }
+  h+="</div>";
+  return h;
+}
+
 /* ═══════════ view bindings ═══════════ */
 function bindView(){
   $$("[data-dev]").forEach(b=>b.onclick=()=>{
@@ -593,6 +636,19 @@ function bindView(){
   });
   const ps=$("#btnPitchSeries"); if(ps) ps.onclick=()=>{ beep("click"); startSeriesWizard(); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
+  $$("[data-shop]").forEach(b=>b.onclick=()=>{
+    shopToStreamers(+b.dataset.shop); beep("click");
+    if(G.pendingAuction){ render(); auctionModal(); }
+  });
+  $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
+  $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
+  $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
+  $$("[data-fr-seq]").forEach(b=>b.onclick=()=>{
+    const fr=frById(+b.dataset.frSeq);
+    const ent=fr && fr.entries[fr.entries.length-1];
+    const f=ent && G.films.find(x=>x.id===ent.filmId);
+    if(f){ beep("click"); startSequel(f); } else toast("Original film record not found.","bad");
+  });
   $$("[data-cancel]").forEach(b=>b.onclick=()=>{
     const p=G.projects.find(x=>x.id===+b.dataset.cancel); if(!p)return;
     G.projects=G.projects.filter(x=>x!==p);
@@ -618,6 +674,69 @@ function bindView(){
   if(fr){ const upd=()=>$("#fnRepayV").textContent=fmtM(+fr.value); upd(); fr.oninput=upd;
     $("#fnRepayGo").onclick=()=>{ if(repayDebt(+fr.value)){beep("good"); flashes(G.flash); render();} }; }
 }
+
+/* ═══════════ streaming auction modal ═══════════ */
+function auctionModal(){
+  const a=G.pendingAuction; if(!a) return;
+  const p=G.projects.find(x=>x.id===a.projectId);
+  let h="<h3>📺 Streaming auction — “"+esc(p?p.title:"?")+"”</h3>";
+  if(p) h+="<div class='tiny muted' style='margin-bottom:4px'>"+DATA.GENRES[p.genre].name+" · score "+p.quality.overall+"/100 · budget "+fmtM(p.budget)+" · selling means <b>no theatrical run</b></div>";
+  a.bids.forEach((b,i)=>{
+    const pl=DATA.platform(b.platform);
+    h+="<div class='bid-card'><div class='platform-logo' style='background:"+pl.color+"'>"+pl.logo+"</div>"+
+      "<div style='flex:1'><b>"+pl.name+"</b><div class='tiny muted'>"+pl.blurb+"</div></div>"+
+      "<b class='modal-offer-val'>"+fmtM(b.value)+"</b>"+
+      "<button class='btn btn-primary btn-sm' data-bid='"+i+"'>Accept</button></div>";
+  });
+  h+="<div class='modal-actions'><button class='btn btn-ghost' id='aucNo'>"+(a.manual? "Not now":"🎥 Keep it for theaters")+"</button></div>";
+  const v=openModal(h,{locked:!a.manual, onClose:()=>{ if(G.pendingAuction && G.pendingAuction.manual) G.pendingAuction=null; }});
+  v.querySelectorAll("[data-bid]").forEach(b=>b.onclick=()=>{
+    acceptAuction(+b.dataset.bid); beep("gold"); flashes(G.flash); closeModal(); render();
+  });
+  const no=v.querySelector("#aucNo");
+  if(no) no.onclick=()=>{ declineAuction(); beep("click"); closeModal(); render(); };
+}
+
+/* ═══════════ EMPIRE view ═══════════ */
+function viewEmpire(){
+  let h="";
+  const weekly=G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0);
+  const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
+  const ww=G.franchises.reduce((a,f)=>a+f.ww,0);
+  h+="<div class='stat-hero'>"+
+    statCard(G.franchises.length,"Franchises")+
+    statCard("+"+fmtM(weekly)+"/wk","Empire income","var(--green)")+
+    statCard(fmtM(earned),"Empire earnings")+
+    statCard(fmtG(ww),"Franchise WW gross")+
+  "</div>";
+  if(!G.franchises.length){
+    h+="<div class='card muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
+  }
+  for(const fr of G.franchises){
+    const g=DATA.GENRES[fr.genre];
+    const inc=frWeeklyIncome(fr);
+    h+="<div class='card'><div class='fr-head'><div class='fr-emblem'>"+g.emoji+"</div>"+
+      "<div style='flex:1;min-width:180px'><b>"+esc(fr.name)+"</b> <span class='tag gold'>tier "+fr.tier+"</span>"+
+      "<div class='tiny muted'>"+fr.entries.length+" franchise hit"+(fr.entries.length>1?"s":"")+" · "+fmtG(fr.ww)+" WW · merch potential "+Math.round(g.merch*100)+"%</div></div>"+
+      "<div style='text-align:right'><b class='"+(inc>=0.1?"pos":"muted")+"'>"+(inc>=0.1?"+"+fmtM(inc)+"/wk":"—")+"</b>"+
+      "<div class='tiny muted'>"+(fr.decay<0.95? "cooling · "+Math.round(fr.decay*100)+"%":"hot")+"</div></div></div>"+
+      "<div class='fr-meters'>"+
+        frMeter("🧸 Merchandise", pips(fr.merch,3))+
+        frMeter("🎡 Theme park", fr.tier>=2? pips(fr.park,2) : "<span class='tiny muted'>needs tier 2</span>")+
+        frMeter("🎮 Game rights", fr.gameSold===fr.tier? "<span class='tiny pos'>licensed</span>":"<span class='tiny muted'>available</span>")+
+        frMeter("💰 Earned", fmtM(fr.earned||0))+
+      "</div><div class='fr-actions'>"+
+      "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ Greenlight Sequel</button>"+
+      (fr.merch<3? "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'>🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(merchCost(fr))+"</button>" : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
+      (fr.park<2? (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'>🎡 "+(fr.park?"Expand park":"Build attraction")+" · "+fmtM(parkCost(fr))+"</button>" : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
+      (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights</button>":"")+
+      "</div></div>";
+  }
+  h+="<div class='card'><b>How the empire works</b><div class='small muted' style='margin-top:4px'>Merch & parks pay every week and spike again whenever a franchise film hits theaters (decay resets). Game rights are one-time cash per tier. Franchise equity raises your catalog value and credit limit.</div></div>";
+  return h;
+}
+function frMeter(l,v){ return "<div class='fr-meter'><div class='fm-v'>"+v+"</div><div class='fm-l'>"+l+"</div></div>"; }
+function pips(n,max){ let s="<span class='pips'>"; for(let i=1;i<=max;i++) s+= i<=n? "●":"<span class='off'>●</span>"; return s+"</span>"; }
 
 /* ═══════════ choice / report / gameover modals ═══════════ */
 function choiceModal(){
@@ -669,7 +788,9 @@ function helpModal(){
   "<div class='card'><b>1. 📝 Develop</b><p class='small muted'>Buy a script, attach a director (quality) and stars (opening weekend), set a budget. Production burns cash weekly through pre-production → shoot → post.</p></div>"+
   "<div class='card'><b>2. 📅 Date it like a pro</b><p class='small muted'>Summer & holidays multiply openings; January and September are graveyards. Check the calendar for rival tentpoles — head-to-head weekends split the audience.</p></div>"+
   "<div class='card'><b>3. 📊 Box office math (real Hollywood rules)</b><p class='small muted'>Opening weekend = star power × marketing × season × competition. Legs (total ÷ opening) come from quality — horrors die fast, animation runs for months. The studio keeps ≈53% domestic / ≈42% international, so <b>breakeven ≈ (budget + P&A) ÷ 0.48</b> worldwide.</p></div>"+
-  "<div class='card'><b>4. 📺 OTT & series</b><p class='small muted'>After the theatrical run, platforms license your films. Or sell mid-production as a streaming original for instant cash (no box office). Series pay a ~115% license per season — good buzz unlocks richer renewals.</p></div>"+
+  "<div class='card'><b>4. 📺 Distribution: theaters or OTT</b><p class='small muted'>At greenlight pick a plan: 🎥 theatrical (full upside + risk), 📺 streaming original (platforms bid on delivery — guaranteed cash, no box office), or decide later. Finished films can be shopped to streamers anytime — 3 platforms bid, pick one. After the run, films earn PVOD + streaming licenses.</p></div>"+
+  "<div class='card'><b>5. 💰 Weekly cash & P&L</b><p class='small muted'>Box office rentals (~53% of domestic gross) arrive <b>every week a film is playing</b>, intl rentals settle at end of run, and every dollar is itemized in Finance → This week's P&L. A-list ensembles take 5% backend; pre-sales & tax incentives smooth cash flow.</p></div>"+
+  "<div class='card'><b>6. 🏰 Franchise empire</b><p class='small muted'>Big hits (≈2× breakeven + good reviews) unlock a franchise: sequels, 🧸 merch lines (weekly income), 🎮 game licenses (one-time cash), and 🎡 theme parks (tier 2+, big steady income). New releases re-heat the brand.</p></div>"+
   "<div class='card'><b>5. 💼 Survive</b><p class='small muted'>Overhead, interest and P&A never sleep. Loans bridge gaps; the credit line has limits. Hits build reputation, franchises and a valuable catalog. Flops build character.</p></div>"+
   "<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Lights down, head rolled 🎬</button></div>";
   openModal(h,{noX:true});

@@ -241,6 +241,30 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 .gameover-wrap .go-i{font-size:56px}
 .gameover-wrap h2{font-size:26px}
 
+/* ─────────── empire / franchises ─────────── */
+.fr-head{display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap}
+.fr-emblem{width:46px; height:46px; border-radius:12px; background:linear-gradient(135deg,#2a2416,#4a3a12); border:1px solid var(--goldDim); display:flex; align-items:center; justify-content:center; font-size:23px; flex:none}
+.fr-actions{display:flex; gap:6px; flex-wrap:wrap; margin-top:10px}
+.fr-meters{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin-top:10px}
+.fr-meter{background:#101522; border:1px solid var(--line); border-radius:10px; padding:8px}
+.fr-meter .fm-v{font-weight:900; font-size:15px}
+.fr-meter .fm-l{font-size:10.5px; color:var(--dim2); text-transform:uppercase; letter-spacing:.08em}
+.pips{letter-spacing:2px; font-size:13px}
+.pips .off{color:#333c50}
+.bid-card{display:flex; gap:10px; align-items:center; border:1px solid var(--line2); border-radius:12px; padding:10px; margin-top:8px; background:#101522}
+.bid-card:hover{border-color:var(--purple)}
+.plan-pick{display:grid; gap:8px; margin-top:6px}
+.plan-opt{border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; background:#101522}
+.plan-opt:hover{border-color:var(--line2)}
+.plan-opt.sel{border-color:var(--gold); background:#1d1a10}
+.plan-opt h5{margin:0 0 2px; font-size:14px}
+.plan-opt .p-sub{font-size:12px; color:var(--dim)}
+.pl-bars{display:flex; align-items:flex-end; gap:3px; height:64px; margin-top:8px}
+.pl-bars .pb{flex:1; border-radius:4px 4px 0 0; min-height:3px; position:relative}
+.pl-bars .pb.up{background:linear-gradient(180deg,#3ddc84,#1d7a4c)}
+.pl-bars .pb.down{background:linear-gradient(180deg,#ff5d6c,#8a2a34)}
+.pl-bars .pb span{position:absolute; bottom:-15px; left:50%; transform:translateX(-50%); font-size:9px; color:var(--dim2)}
+
 /* ─────────── responsive: phone ─────────── */
 @media(max-width:760px){
   body{font-size:14.5px}
