@@ -79,6 +79,27 @@ Progress auto-saves to your browser's localStorage — into **3 save slots**, wi
 | 📸 Studio card | generate a shareable PNG snapshot of your studio (or copy the summary) |
 | 💾 Save safety | versioned save schema with **validation + forward migrations**; corrupt saves are quarantined instead of crashing the game |
 
+### The v5 Global Studio update
+
+- **🤖 AI & synthetic media** — greenlight with a SynthScribe (free writer, flat page) or licensed digital doubles (no cast fees, audience can smell it); weekly backlash rolls, and a **deepfake spot-the-fake mini-game** when a fake clip of your star goes viral (2-week deadline before the internet decides for you)
+- **🌍 Global markets v2** — China's import quota rolls weekly, EU local-content quotas can freeze your OTT slate, India loves long legs & prestige, and a censor board can insist on cuts for R/horror titles
+- **🤝 Co-productions** — pick a co-financing partner in the greenlight wizard: they wire budget share at greenlight and keep a slice of net forever; foreign partners unlock treaty rebates
+- **🕴 Talent agencies** — three named agencies (Meridian/Crown/Sterling) with exclusive rosters, packaging fees when you stack their clients, poaching friction, signable first-look deals, and a town-wide truce
+- **🗳 Awards overhaul** — precursor awards (Guilds, Critics Circle, Indies) stack momentum into Oscar night, campaigns run on a **$2–20M FYC slider**, and Best Picture triggers a +25%-of-P&A re-release bump
+- **🎪 Festival circuit** — four named festivals with distinct genre tastes & prestige, foreign-language bonuses, and an acquisitions frenzy (streamers bid on festival winners)
+- **📣 Marketing campaigns** — Super Bowl spots, influencer junkets and review-embargo plans in the release scheduler; timeline clutter (holidays, rival tentpoles) priced into every week
+- **🏴‍☠️ Piracy & windowing** — a studio piracy meter that bleeds live runs, an anti-piracy upgrade, and windowing choices that trade OTT speed for theatrical protection
+- **🧸 Merch & parks depth** — toy lines, brand collabs, park expansion to a resort district, seasonal spikes, DTV sequels, publishing arms, licensing-out, crossover films and a one-time shared-universe weave (+15% franchise income forever)
+- **🏟 Live events** — esports joins the rights auctions alongside wrestling and the rest of the sports slate
+- **🏦 M&A desk** — quarterly rotating deal book in Finance: acquire rival slates, IP libraries and mini-streamers
+- **🧾 Tax credits v2 & guilds** — jurisdiction rebates with caps and audit risk, plus a guild strike meter you can buy peace from with guild contracts
+- **📈 Inflation v2 & trends** — wage inflation compounds with market inflation; the trend board now keeps sparkline history per genre
+- **🎭 Spin-off risk** — TV spin-offs can flop and ding the parent brand; franchise fatigue now has visible timeline management in the scheduler
+- **🎯 New scenarios** — *Indie Darling* and *Franchise Machine* join Standard / Turnaround / Golden Age
+- **🏆 Unified achievements** — one list (30+) covering box-office, streamer, awards, empire and v5 feats like Synthetic Dreams, The Dealmaker and Guild Diplomat
+- **📱 Feel** — haptic rumbles on hits/flops (toggleable), reduced-motion respect everywhere (Auto/On/Off), swipe between tabs on mobile, pull-down at the top of the feed to advance a week
+- **🎓 Interactive tutorial** — a skippable 5-step banner that walks your first film from script market to box-office receipts and pays +1 rep when it pans out
+
 ### Screens
 🏛 Studio (feed, market share, festivals/FYC, achievements, share card) · 📝 Develop (genre trend board + script market + IP market + writers/producers/directors/cast + talent-business) · 🎬 Productions (pipeline, rewrites, test screenings & reshoots, release dating) · 📊 Box Office (weekly chart, runs, critic/audience split & reviews, library, re-releases/reboots) · 📺 OTT & Series (your streamer + tiers, sports, offers, platforms) · 🏰 Empire (franchises, merch, parks, lifecycle) · 💼 Finance (live weekly P&L, 12-week forecast, loans, mezzanine, IPO + stock price, execs, upgrades)
 
@@ -119,10 +140,13 @@ Progress auto-saves to your browser's localStorage — into **3 save slots**, wi
 ```
 index.html      shell (start screen + app)
 style.css       dark cinematic theme, responsive (mobile bottom-nav / desktop tabs)
-data.js         genres, scales, calendar, OTT platforms, talent pools, critics, trends, tiers, events, scenarios, achievements
+data.js         genres, scales, calendar, OTT platforms, talent pools, critics, trends, tiers, events, scenarios, achievements,
+                agencies, AI/co-production/piracy/guild/M&A configs, festival circuit, tutorial steps
                 save schema version (DATA.SAVE_VERSION) — bump it and add a migration step
-engine.js       the simulation (quality, hype, legs, splits, offers, rivals, awards, finance, streamer, sports, lifecycle, stock, trends)
-ui.js           rendering, wizards, modals, toasts, WebAudio stings, confetti, studio card, i18n, achievements
+engine.js       the simulation (quality, hype, legs, splits, offers, rivals, awards + precursors, finance, streamer, sports,
+                lifecycle, stock, trends, piracy, guilds, M&A, AI scandals, empire/licensing)
+ui.js           rendering, wizards, modals (auction/deepfake/FYC/empire/settings), toasts, WebAudio stings + haptics,
+                confetti (motion-aware), studio card, i18n, achievements, tutorial, touch gestures
 i18n.js         Hindi/English dictionary + chrome translation
 icon.svg /      PWA icon + manifest + service worker (offline cache-first)
 manifest.webmanifest / sw.js

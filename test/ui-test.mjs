@@ -35,6 +35,13 @@ const $ = s => window.document.querySelector(s);
 const $$ = s => [...window.document.querySelectorAll(s)];
 const click = el => { if(!el) { errors.push("click target missing"); return; } el.dispatchEvent(new window.Event("click", {bubbles:true})); };
 
+const dismissSideModals = () => {
+  // like a focused player mid-sprint: decline passively raised auctions, stall deepfakes, skip sports auctions
+  if(g().pendingAuction){ const nb=$("#aucNo"); if(nb) click(nb); }
+  if(g().pendingDeepfake){ const df=$("#dfDefer"); if(df) click(df); }
+  if(g().pendingSports){ const sk=$("#sportsSkip"); if(sk) click(sk); }
+};
+
 function step(name, fn){ try{ fn(); console.log("✓", name); }catch(e){ errors.push(name+": "+e.message); console.log("✗", name, e.message); } }
 
 step("start screen renders archetypes", ()=>{
@@ -113,6 +120,7 @@ step("fast-forward to ready", ()=>{
     click($("#btnFast"));
     if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
     if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
+    dismissSideModals();
     if(g().projects.some(p=>p.phase==="ready") || g().films.length>0) break;
   }
   if(!g().projects.some(p=>p.phase==="ready") && !g().films.length) throw new Error("never ready");
@@ -134,6 +142,7 @@ step("run to release + theatrical", ()=>{
     click($("#btnFast"));
     if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
     if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
+    dismissSideModals();
     if(g().films.some(f=>f.inTheaters)) break;
   }
   if(!g().films.some(f=>f.inTheaters)) throw new Error("never hit theaters");
@@ -331,6 +340,7 @@ step("run 30 more weeks stays stable", ()=>{
     click($("#btnFast"));
     if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
     if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
+    dismissSideModals();
   }
   if(!g() || !Number.isFinite(g().studio.cash)) throw new Error("cash not finite");
 });
