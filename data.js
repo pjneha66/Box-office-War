@@ -184,6 +184,23 @@ DATA.EVENTS = [
      {label:"Sign them (−$4M, new hot writer-director added)", run(G){spend("talent",4); spawnDirectorHot(); G.log("🎪 Hot new director joined the market","good");}},
      {label:"Pass", run(G){}},
    ]},
+  {id:"genre_fad", w:5, icon:"📈", title:"Genre wave",
+   text:"Audience taste is shifting — a genre is suddenly surging (or souring).",
+   run(G){
+     const ks=Object.keys(DATA.GENRES);
+     const hot=chance(0.68);
+     if(hot){
+       const cands=ks.filter(k=>(G.trends[k]||1)<1.28);
+       const k=pick(cands.length?cands:ks);
+       G.trends[k]=clamp((G.trends[k]||1)+0.24+rnd()*0.12, 0.55, 1.5);
+       G.log("📈 "+DATA.GENRES[k].name+" fever! Audiences can't get enough — "+DATA.GENRES[k].name.toLowerCase()+" openings boosted while the wave lasts.","good");
+     }else{
+       const cands=ks.filter(k=>(G.trends[k]||1)>0.78);
+       const k=pick(cands.length?cands:ks);
+       G.trends[k]=clamp((G.trends[k]||1)-0.2-rnd()*0.12, 0.55, 1.5);
+       G.log("📉 The market is cooling on "+DATA.GENRES[k].name.toLowerCase()+" — openings will suffer until taste swings back.","bad");
+     }
+   }},
   {id:"investor", w:3, icon:"🕴", title:"Investor circles",
    text:"Private money offers $50M for a slice of future profits (pay back $70M over time).",
    when(G){ return true; }, kind:"choice",
@@ -206,4 +223,10 @@ DATA.FLAVOR = [
   "Analysts warn the mid-budget theatrical film is 'endangered'.",
   "MoviePass 2.0 shuts down after 6 weeks.",
   "A24-style marketing becomes the new textbook case.",
+  "Studio chiefs insist the Western is back. (It is not back.)",
+  "A veteran producer retires to 'spend time with the money'.",
+  "Trade paper: 'The spec script market is alive again.'",
+  "Analyst: superhero fatigue is real, until the next one opens.",
+  "A faded star's comeback role has the town talking.",
+  "Everyone in Hollywood is 'this close' to cracking the formula.",
 ];

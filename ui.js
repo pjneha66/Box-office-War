@@ -8,22 +8,87 @@ let WZ = null;          // greenlight/pitch wizard state
 let SCHEDULE = null;    // release scheduling state
 let SOUND = true;
 
-/* ═══════════ tiny sound ═══════════ */
+/* ═══════════ tiny sound synth (WebAudio, no assets) ═══════════ */
 let AC = null;
-function beep(kind){
-  if(!SOUND) return;
+function ac(){
   try{
     AC = AC || new (window.AudioContext||window.webkitAudioContext)();
-    const seq = {click:[[660,.05]], cash:[[520,.06],[780,.09]], good:[[520,.05],[660,.05],[880,.12]],
-                 bad:[[220,.14],[160,.18]], gold:[[660,.06],[880,.06],[1100,.14]]}[kind]||[[600,.05]];
-    let t=AC.currentTime;
-    for(const [f,d] of seq){
-      const o=AC.createOscillator(), g=AC.createGain();
-      o.type="sine"; o.frequency.value=f;
-      g.gain.setValueAtTime(.08,t); g.gain.exponentialRampToValueAtTime(.001,t+d);
-      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d+.02); t+=d;
-    }
+    if(AC.state==="suspended") AC.resume();
+    return AC;
+  }catch(e){ return null; }
+}
+function toneAt(c,f,when,dur,type,vol,slide){
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type||"sine";
+  o.frequency.setValueAtTime(Math.max(30,f),when);
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),when+dur);
+  g.gain.setValueAtTime(0.0001,when);
+  g.gain.linearRampToValueAtTime(vol,when+0.009);
+  g.gain.exponentialRampToValueAtTime(0.001,when+dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(when); o.stop(when+dur+0.05);
+}
+function noiseAt(c,when,dur,vol,freq){
+  const len=Math.max(1,Math.floor(c.sampleRate*dur));
+  const buf=c.createBuffer(1,len,c.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=c.createBufferSource(); src.buffer=buf;
+  const f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=freq||2400; f.Q.value=0.8;
+  const g=c.createGain(); g.gain.value=vol;
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start(when);
+}
+const SFX = {
+  click(c,t){ toneAt(c,660,t,0.05,"sine",0.07); },
+  good(c,t){ [523,659,784].forEach((f,i)=>toneAt(c,f,t+i*0.055,0.1,"sine",0.07)); },
+  gold(c,t){ [659,880,1109,1319].forEach((f,i)=>toneAt(c,f,t+i*0.06,0.12,"triangle",0.075)); },
+  bad(c,t){ toneAt(c,220,t,0.16,"sawtooth",0.05,160); toneAt(c,160,t+0.13,0.2,"sawtooth",0.045,110); },
+  /* ka-ching: drawer click + two bright bell notes */
+  cashreg(c,t){ noiseAt(c,t,0.045,0.13,3400); toneAt(c,988,t+0.05,0.09,"square",0.04); toneAt(c,1319,t+0.13,0.24,"triangle",0.085); toneAt(c,1976,t+0.13,0.18,"sine",0.05); },
+  /* opening-weekend fanfare: rising triad + held top note + fifth underlay */
+  fanfare(c,t){
+    const seq=[[392,0,.12],[523,.12,.12],[659,.24,.12],[784,.36,.28],[1047,.66,.42]];
+    seq.forEach(([f,dt,d])=>{ toneAt(c,f,t+dt,d,"triangle",0.09); toneAt(c,f/2,t+dt,d,"sine",0.045); });
+    toneAt(c,1568,t+0.98,0.35,"sine",0.045);
+    noiseAt(c,t+0.66,0.16,0.05,5200);
+  },
+  /* award-show drum roll into a hit */
+  drums(c,t){
+    [220,196,175,165,147,131].forEach((f,i)=>toneAt(c,f,t+i*0.09,0.1,"triangle",0.13,f*0.55));
+    toneAt(c,110,t+0.58,0.42,"triangle",0.16,55);
+    noiseAt(c,t+0.58,0.5,0.08,1100);
+  },
+  /* slate clap for greenlights */
+  clap(c,t){ noiseAt(c,t,0.05,0.15,1700); toneAt(c,130,t,0.1,"sine",0.12,60); },
+};
+function beep(kind){
+  if(!SOUND) return;
+  const c=ac(); if(!c) return;
+  try{ (SFX[kind==="cash"?"cashreg":kind]||SFX.click)(c, c.currentTime+0.01); }catch(e){}
+}
+
+/* ═══════════ confetti (DOM, respects reduced-motion) ═══════════ */
+function confetti(n){
+  try{
+    if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   }catch(e){}
+  const root=document.createElement("div");
+  root.className="confetti-root";
+  const colors=["#f5b942","#ffd479","#ff5d6c","#4dd6e8","#b48bff","#3ddc84","#ffffff"];
+  for(let i=0;i<(n||110);i++){
+    const s=document.createElement("span");
+    s.className="cf";
+    s.style.left=(Math.random()*100)+"vw";
+    s.style.background=colors[i%colors.length];
+    const sz=6+Math.random()*7;
+    s.style.width=sz+"px"; s.style.height=(sz*(Math.random()<0.5?1:0.5))+"px";
+    if(Math.random()<0.3) s.style.borderRadius="50%";
+    s.style.animationDuration=(1.7+Math.random()*1.5)+"s";
+    s.style.animationDelay=(Math.random()*0.35)+"s";
+    root.appendChild(s);
+  }
+  document.body.appendChild(root);
+  setTimeout(()=>root.remove(), 3800);
 }
 
 /* ═══════════ helpers ═══════════ */
@@ -39,11 +104,18 @@ function scoreBadge(q){
   if(q>=40) return "<span class='tag'>"+q+" · Mixed</span>";
   return "<span class='tag red'>"+q+" · Panned</span>";
 }
-function toast(t,k){ 
+function toast(t,k){
   const d=document.createElement("div"); d.className="toast "+(k||""); d.textContent=t;
   $("#toasts").appendChild(d); setTimeout(()=>d.remove(), 5200);
 }
-function flashes(list){ (list||[]).forEach(f=>toast(f.t, f.k)); }
+/* toasts + the feel-good layer: stingers & confetti driven by log kinds */
+function flashes(list){
+  const kinds=new Set();
+  (list||[]).forEach(f=>{ toast(f.t,f.k); if(f.k) kinds.add(f.k); });
+  if(kinds.has("smash")){ beep("fanfare"); confetti(140); }
+  else if(kinds.has("award")){ beep("drums"); confetti(110); }
+  else if(kinds.has("fanfare")){ beep("fanfare"); }
+}
 
 /* ═══════════ modal ═══════════ */
 function openModal(html, opts){
@@ -76,7 +148,11 @@ window.addEventListener("DOMContentLoaded", ()=>{
     al.appendChild(d);
   });
   if(hasSave()) $("#btnContinue").style.display="block";
-  $("#btnContinue").onclick=()=>{ const g=loadGame(); if(g){ enterApp(); } };
+  $("#btnContinue").onclick=()=>{
+    const g=loadGame();
+    if(g){ enterApp(); }
+    else{ toast("That save file was corrupted or too old to migrate — start a fresh studio.","bad"); beep("bad"); }
+  };
   $("#btnStart").onclick=()=>{
     const nm=($("#studioName").value||"Parallax Pictures").trim().slice(0,26);
     newGame(archSel, nm); enterApp(true);
@@ -170,12 +246,24 @@ function viewStudio(){
   }
   if(G.streamWar>0) h+="<div class='card' style='border-left:3px solid var(--purple)'><b>⚔️ Streaming war</b> — offers +30% for "+G.streamWar+" more weeks.</div>";
   if(G.theaterCap>0) h+="<div class='card' style='border-left:3px solid var(--red)'><b>🦠 Theater capacity limits</b> — box office −45% for "+G.theaterCap+" more weeks.</div>";
+  // ── Market pulse: genre demand cycle ──
+  const trows=Object.keys(DATA.GENRES).map(k=>({k,h:trendOf(k)})).sort((a,b)=>b.h-a.h);
+  h+="<div class='section-title'>Market pulse — what audiences crave <span class='tiny' style='text-transform:none;letter-spacing:0'>(drives every opening)</span></div><div class='card'>";
+  trows.slice(0,3).concat(trows.slice(-2)).forEach((r,i)=>{
+    const g=DATA.GENRES[r.k];
+    const hot=r.h>=1.12, cold=r.h<=0.88;
+    const pct=Math.round((r.h-0.5)/1.0*100);
+    h+="<div class='pulse-row'><div class='pulse-name'>"+g.emoji+" "+g.name+"</div>"+
+      "<div class='cb-track'><div class='cb-fill pulse-fill' style='width:"+clamp(pct,8,100)+"%;background:"+(hot?"linear-gradient(90deg,#ff9f43,#ff5d6c)":cold?"linear-gradient(90deg,#4a6a9e,#5aa2ff)":"#4a5570")+";animation-delay:"+(i*60)+"ms'>×"+r.h.toFixed(2)+"</div></div>"+
+      "<div class='pulse-tag'>"+(hot?"<span class='tag hot'>hot</span>":cold?"<span class='tag cold'>cold</span>":"<span class='tag'>steady</span>")+"</div></div>";
+  });
+  h+="</div>";
   h+="<div class='section-title'>Market share — Year "+yr+" (worldwide gross)</div><div class='card'>";
   const rows=[{name:G.studio.name, ww:myYtd, me:true}].concat(G.rivals.map(r=>({name:r.name, ww:r.ytd})));
   const max=Math.max(1,...rows.map(r=>r.ww));
   rows.sort((a,b)=>b.ww-a.ww).forEach((r,i)=>{
     h+="<div class='chart-bar' style='margin:5px 0'><div class='cb-rank'>"+(i+1)+"</div><div><div class='cb-name'>"+(r.me?"⭐ ":"")+esc(r.name)+"</div></div>"+
-       "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(6,r.ww/max*100)+"%;background:"+(r.me?"linear-gradient(90deg,#f5b942,#ffd479)":"#4a5570")+"'>"+fmtM(r.ww)+"</div></div></div>";
+       "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(6,r.ww/max*100)+"%;background:"+(r.me?"linear-gradient(90deg,#f5b942,#ffd479)":"#4a5570")+" ;animation-delay:"+(i*70)+"ms'>"+fmtM(r.ww)+"</div></div></div>";
   });
   h+="</div>";
   h+="<div class='section-title'>Industry feed</div><div class='newsfeed'>";
@@ -200,50 +288,103 @@ function viewDevelop(){
       (i.hot?"<span class='tag red'>🔥 Hot spec</span>":"")+"</div>"+
       "<div class='idea-blurb'>“"+esc(i.blurb)+"”</div>"+
       "<div class='idea-meta'>"+gTag(i.genre)+"<span class='tag'>"+S.emoji+" "+S.name+"</span>"+
-      "<span class='tag "+(i.script>=75?"green":i.script>=60?"gold":"")+"'>📝 Script "+i.script+"</span></div>"+
+      "<span class='tag "+(i.script>=75?"green":i.script>=60?"gold":"")+"'>📝 Script "+i.script+"</span>"+
+      trendTag(i.genre)+"</div>"+
       "<div class='row' style='margin-top:10px'><span class='small muted'>Est. budget "+fmtM(neededBudget(i.genre,i.scale))+" · dev rights "+fmtM(devCostOf(i))+"</span></div>"+
       "<button class='btn btn-primary' style='margin-top:10px;width:100%' data-dev='"+i.id+"'>🎬 Develop this</button></div>";
   }
   h+="</div>";
   h+="<div class='section-title'>Talent — available now</div>";
-  const freeA=G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil).sort((a,b)=>b.power-a.power||b.skill-a.skill);
-  const freeD=G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil).sort((a,b)=>b.power-a.power||b.skill-a.skill);
-  h+="<div class='grid g3'>";
-  for(const d of freeD.slice(0,6)) h+=talentCard(d);
-  h+="</div><div class='grid g3' style='margin-top:8px'>";
+  const free=t=>!t.bookedUntil;
+  const rank=(a,b)=>b.power-a.power||b.skill-a.skill;
+  const freeD=G.talent.filter(t=>t.kind==="director"&&free(t)).sort(rank);
+  const freeW=G.talent.filter(t=>t.kind==="writer"&&free(t)).sort(rank);
+  const freeP=G.talent.filter(t=>t.kind==="producer"&&free(t)).sort(rank);
+  const freeA=G.talent.filter(t=>t.kind==="actor"&&free(t)).sort(rank);
+  h+="<div class='tiny muted' style='margin:0 0 6px'>🎬 Directors <span class='dim2'>· quality</span></div><div class='grid g3'>";
+  for(const d of freeD.slice(0,3)) h+=talentCard(d);
+  h+="</div>";
+  h+="<div class='tiny muted' style='margin:10px 0 6px'>✍️ Screenwriters <span class='dim2'>· rewrite the script in pre-production (skill + genre fit drive the boost)</span></div><div class='grid g3'>";
+  for(const w of freeW.slice(0,3)) h+=talentCard(w);
+  h+="</div>";
+  h+="<div class='tiny muted' style='margin:10px 0 6px'>🎞 Producers <span class='dim2'>· keep shoots on budget (overruns ♦ logistics) · top organizers trim a week of shooting</span></div><div class='grid g3'>";
+  for(const p of freeP.slice(0,3)) h+=talentCard(p);
+  h+="</div>";
+  h+="<div class='tiny muted' style='margin:10px 0 6px'>🌟 Actors <span class='dim2'>· star power opens, skill sustains · faded stars are comeback bets</span></div><div class='grid g3'>";
   for(const a of freeA.slice(0,9)) h+=talentCard(a);
-  const hidden=freeA.length+freeD.length-15;
+  const hidden=freeA.length+freeD.length+freeW.length+freeP.length-18;
   if(hidden>0)h+="<div class='card muted small' style='display:flex;align-items:center;justify-content:center'>+ "+hidden+" more on the market → refreshed weekly</div>";
   h+="</div>";
   return h;
 }
+function trendTag(genre){
+  const t=trendOf(genre);
+  if(t>=1.15) return "<span class='tag hot'>🔥 trending ×"+t.toFixed(2)+"</span>";
+  if(t<=0.85) return "<span class='tag cold'>🧊 cooling ×"+t.toFixed(2)+"</span>";
+  return "";
+}
+const KIND_ICON={actor:"🌟",director:"🎬",writer:"✍️",producer:"🎞"};
 function talentCard(t){
   const fee=actorFee(t);
-  return "<div class='card talent-card'><div class='t-avatar'>"+(t.kind==="director"?"🎬":t.power>=4?"🌟":"🙂")+"</div><div style='flex:1'>"+
+  const icon = t.kind==="actor"? (t.power>=4?"🌟":"🙂") : KIND_ICON[t.kind]||"🙂";
+  let stats;
+  if(t.kind==="director") stats="Skill "+t.skill+" · fits "+DATA.GENRES[t.genreFit].name;
+  else if(t.kind==="writer") stats="Skill "+t.skill+" · writes "+DATA.GENRES[t.genreFit].name+" · rewrite ≈ "+(writerDeltaHint(t));
+  else if(t.kind==="producer") stats="Skill "+t.skill+" · logistics "+t.logi+" · overrun risk ≈ "+overrunHint(t)+"/wk";
+  else stats="Skill "+t.skill+" · acting";
+  return "<div class='card talent-card'><div class='t-avatar'>"+icon+"</div><div style='flex:1'>"+
     "<div class='t-name'>"+esc(t.name)+"</div>"+
-    "<div>"+stars(t.power)+"</div>"+
-    "<div class='t-stats'>"+(t.kind==="director"?"Skill "+t.skill+" · fits "+DATA.GENRES[t.genreFit].name:"Skill "+t.skill+" · acting")+
+    "<div>"+stars(t.power)+(t.faded?" <span class='tag cold'>❄ faded</span>":"")+"</div>"+
+    "<div class='t-stats'>"+stats+
     (t.heat?" · <span class='gold'>heat ×"+t.heat+"</span>":"")+"</div>"+
-    "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(fee)+" fee</span></div></div></div>";
+    "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(fee)+" fee</span>"+
+    (t.faded?"<span class='tag green'>comeback bet</span>":"")+"</div></div></div>";
+}
+function writerDeltaHint(w){
+  const d=Math.round((w.skill-64)*0.45);
+  return (d>=0?"+":"")+d+" script";
+}
+function overrunHint(p){
+  const ch=clamp(0.05*(1.3-p.logi/100),0.008,0.09);
+  return (ch*100).toFixed(1)+"%";
 }
 
 /* ── greenlight wizard (film & sequel) ── */
 function startWizard(idea){
-  WZ={mode:"film", idea, director:null, cast:[], sub:2, budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false};
+  WZ={mode:"film", idea, writer:null, producer:null, director:null, cast:[], sub:2, budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false};
   wizardModal();
 }
 function startSequel(film){
   const idea={ id:nid(), genre:film.genre, scale:film.scale, title:"(sequel)", blurb:"The saga continues…",
     script:clamp((film.quality?film.quality.overall:65)+5,55,95), hot:true, sequelOf:film };
-  WZ={mode:"film", idea, director:null, cast:[], sub:2, seqBudgetFixed:true, budget:Math.round(film.budget*1.3)};
+  WZ={mode:"film", idea, writer:null, producer:null, director:null, cast:[], sub:2, seqBudgetFixed:true, budget:Math.round(film.budget*1.3)};
   wizardModal();
+}
+/* the sequel-boost chip shown in the wizard header */
+function wzBoostTag(){
+  if(!WZ.idea.sequelOf) return "";
+  const fr=G.franchises.find(x=>x.name===(WZ.idea.sequelOf.franchiseName||WZ.idea.sequelOf.title));
+  const b=sequelBoostFor(fr||null);
+  return "<span class='tag "+(b<1.2?"red":"purple")+"' title='Franchise fatigue: quick follow-ups open softer. Rest the brand 18+ months to recharge.'>boost ×"+b.toFixed(2)+(b<1.2?" · 🥱 fatigue":"")+"</span>";
 }
 function wizardModal(){
   const S=DATA.SCALES[WZ.idea.scale];
   const step = WZ.sub;
-  let h="<h3>🎬 Greenlight: “"+esc(WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title)+"”</h3>"+
-    "<div class='wiz-step'><span class='done'>1 · Script</span><span class='"+(step===2?"on":WZ.director?"done":"")+"'>2 · Director</span><span class='"+(step===3?"on":WZ.cast.length?"done":"")+"'>3 · Cast</span><span class='"+(step===4?"on":"")+"'>4 · Budget</span></div>";
+  let h="<h3>🎬 Greenlight: “"+esc(WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title)+"”</h3>";
+  const tr=trendOf(WZ.idea.genre);
+  h+="<div class='row' style='margin:-2px 0 8px'>"+gTag(WZ.idea.genre)+
+     "<span class='tag "+(tr>=1.15?"hot":tr<=0.85?"cold":"")+"' title='Genre demand drives opening weekend'>market ×"+tr.toFixed(2)+(tr>=1.15?" 🔥 hot":tr<=0.85?" 🧊 cold":"")+"</span>"+
+     wzBoostTag()+"</div>";
+  h+="<div class='wiz-step'><span class='done'>1 · Script</span>"+
+    "<span class='"+(step===2?"on":(WZ.writer||WZ.producer)?"done":"")+"'>2 · Crew</span>"+
+    "<span class='"+(step===3?"on":WZ.director?"done":"")+"'>3 · Director</span>"+
+    "<span class='"+(step===4?"on":WZ.cast.length?"done":"")+"'>4 · Cast</span>"+
+    "<span class='"+(step===5?"on":"")+"'>5 · Budget</span></div>";
   if(step===2){
+    renderWizardCrew();
+    return;
+  }
+  if(step===3){
     const dirs=G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil).sort((a,b)=>(b.power*20+b.skill)-(a.power*20+a.skill));
     h+="<p class='small muted'>A director shapes ~25% of quality. Genre fit adds a bonus. Bigger names also lift buzz.</p><div class='pick-list'>";
     dirs.slice(0,10).forEach(d=>{
@@ -254,7 +395,7 @@ function wizardModal(){
         "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(actorFee(d))+"</span></div></div></div>";
     });
     h+="</div>";
-  }else if(step===3){
+  }else if(step===4){
     const acts=G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil).sort((a,b)=>(b.power*20+b.skill)-(a.power*20+a.skill));
     h+="<p class='small muted'>Pick 1–3 leads. Star power (★) drives opening weekend; skill drives reviews.</p><div class='pick-list'>";
     acts.slice(0,12).forEach(a=>{
@@ -266,7 +407,8 @@ function wizardModal(){
     });
     h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='wzSkipCast'>Continue with "+WZ.cast.length+" →</button><button class='btn btn-primary' id='wzNext'>To Budget →</button></div>";
   }else{
-    const fees=(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0);
+    const fees=(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)
+      +(WZ.writer?actorFee(WZ.writer):0)+(WZ.producer?actorFee(WZ.producer):0);
     const dev=devCostOf(WZ.idea);
     const S2=DATA.SCALES[WZ.idea.scale];
     const weeks=S2.pre[1]+S2.shoot[1]+S2.post[1];
@@ -285,8 +427,15 @@ function wizardModal(){
     h+="<div class='card' style='margin-top:10px'><div class='slider-row'><span class='small muted'>Production budget</span>"+
       "<input type='range' id='wzBudget' min='"+S2.bMin+"' max='"+(S2.bMax*1.4)+"' step='"+(S2.bMin>=100?5:2)+"' value='"+WZ.budget+"'><span class='slider-val' id='wzBudgetV'>"+fmtM(WZ.budget)+"</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>Typical "+S2.name+" range: "+fmtM(S2.bMin)+"–"+fmtM(S2.bMax)+" · genre needs ≈ "+fmtM(neededBudget(WZ.idea.genre,WZ.idea.scale))+" (underfunding hurts quality)</div></div>";
+    const crewBits=[];
+    if(WZ.writer) crewBits.push("✍️ "+WZ.writer.name);
+    if(WZ.producer) crewBits.push("🎞 "+WZ.producer.name);
+    if(WZ.director) crewBits.push("🎬 "+WZ.director.name);
+    crewBits.push("🌟 ×"+WZ.cast.length);
     h+="<div class='card'><div class='cost-line'><span>Rights + development</span><b>"+fmtM(dev)+"</b></div>"+
-      "<div class='cost-line'><span>Talent fees (upfront)</span><b>"+fmtM(fees)+"</b></div>"+
+      "<div class='cost-line'><span>Talent fees (upfront) <span class='tiny muted'>"+esc(crewBits.join(" · "))+"</span></span><b>"+fmtM(fees)+"</b></div>"+
+      (WZ.producer? "<div class='cost-line'><span>Producer protection <span class='tiny muted'>overrun risk → ~"+overrunHint(WZ.producer)+"/wk"+(WZ.producer.logi>=85?" · shoot −1 wk":"")+"</span></span><b class='pos'>on</b></div>"
+                  : "<div class='cost-line'><span>No producer <span class='tiny muted'>weekly overrun risk 5%/wk during the shoot</span></span><b class='neg'>exposed</b></div>")+
       "<div class='cost-line'><span>Production (paid weekly over ~"+weeks+" wks)</span><b>"+fmtM(WZ.budget)+"</b></div>"+
       (WZ.presales&&WZ.plan!=="streaming"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
       "<div class='cost-line'><span>Suggested marketing (at release)</span><b id='wzMkt'>"+fmtM(recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}))+"</b></div>"+
@@ -295,7 +444,7 @@ function wizardModal(){
     h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzBack'>← Cast</button><button class='btn btn-primary' id='wzGo'>🎥 Greenlight</button></div>";
   }
   const v=openModal(h, {onClose:()=>{WZ=null;}});
-  v.querySelectorAll("[data-dir]").forEach(el=>el.onclick=()=>{ WZ.director=talentById(+el.dataset.dir); WZ.sub=3; beep("click"); wizardModal(); });
+  v.querySelectorAll("[data-dir]").forEach(el=>el.onclick=()=>{ WZ.director=talentById(+el.dataset.dir); WZ.sub=4; beep("click"); wizardModal(); });
   v.querySelectorAll("[data-cast]").forEach(el=>el.onclick=()=>{
     const t=talentById(+el.dataset.cast);
     const i=WZ.cast.findIndex(c=>c.id===t.id);
@@ -303,9 +452,9 @@ function wizardModal(){
     else if(WZ.cast.length<3) WZ.cast.push(t);
     beep("click"); wizardModal();
   });
-  const nx=v.querySelector("#wzNext"); if(nx) nx.onclick=()=>{ WZ.sub=4; wizardModal(); };
-  const sk=v.querySelector("#wzSkipCast"); if(sk) sk.onclick=()=>{ WZ.sub=4; wizardModal(); };
-  const bk=v.querySelector("#wzBack"); if(bk) bk.onclick=()=>{ WZ.sub=3; wizardModal(); };
+  const nx=v.querySelector("#wzNext"); if(nx) nx.onclick=()=>{ WZ.sub=5; wizardModal(); };
+  const sk=v.querySelector("#wzSkipCast"); if(sk) sk.onclick=()=>{ WZ.sub=5; wizardModal(); };
+  const bk=v.querySelector("#wzBack"); if(bk) bk.onclick=()=>{ WZ.sub=4; wizardModal(); };
   v.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{ WZ.plan=b.dataset.plan; if(WZ.plan==="streaming") WZ.presales=false; beep("click"); wizardModal(); });
   const ps=v.querySelector("#wzPresale"); if(ps) ps.onclick=()=>{ WZ.presales=!WZ.presales; beep("click"); wizardModal(); };
   const rg=v.querySelector("#wzBudget");
@@ -319,12 +468,56 @@ function wizardModal(){
   }; }
   const go=v.querySelector("#wzGo");
   if(go) go.onclick=()=>{
-    const fees=(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0);
+    const fees=(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)
+      +(WZ.writer?actorFee(WZ.writer):0)+(WZ.producer?actorFee(WZ.producer):0);
     const dev=devCostOf(WZ.idea);
     if(G.studio.cash < dev+fees+WZ.budget*0.2){ toast("Not enough cash for upfront costs — visit Finance for a loan.","bad"); beep("bad"); return; }
-    const p=greenlight({ idea:WZ.idea, director:WZ.director, cast:WZ.cast, budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales });
-    beep("gold"); WZ=null; closeModal(); render();
+    const p=greenlight({ idea:WZ.idea, director:WZ.director, cast:WZ.cast, writer:WZ.writer, producer:WZ.producer, budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales });
+    beep("clap"); WZ=null; closeModal(); flashes(G.flash); render();
   };
+}
+/* ── wizard step 2: crew (writer & producer, both optional) ── */
+function renderWizardCrew(){
+  const tr=trendOf(WZ.idea.genre);
+  let h="<h3>🎬 Greenlight: “"+esc(WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title)+"”</h3>";
+  h+="<div class='row' style='margin:-2px 0 8px'>"+gTag(WZ.idea.genre)+
+     "<span class='tag "+(tr>=1.15?"hot":tr<=0.85?"cold":"")+"'>market ×"+tr.toFixed(2)+(tr>=1.15?" 🔥 hot":tr<=0.85?" 🧊 cold":"")+"</span>"+wzBoostTag()+"</div>";
+  h+="<div class='wiz-step'><span class='done'>1 · Script</span><span class='on'>2 · Crew</span><span>3 · Director</span><span>4 · Cast</span><span>5 · Budget</span></div>";
+  const wrs=G.talent.filter(x=>x.kind==="writer"&&!x.bookedUntil).sort((a,b)=>(b.power*20+b.skill)-(a.power*20+a.skill));
+  const prs=G.talent.filter(x=>x.kind==="producer"&&!x.bookedUntil).sort((a,b)=>(b.power*20+b.logi)-(a.power*20+a.logi));
+  h+="<p class='small muted'>Optional, but real: a <b>✍️ screenwriter</b> rewrites the script during pre-production (the script is ~30% of quality), and a <b>🎞 producer's</b> logistics shrink the weekly overrun risk on set.</p>";
+  h+="<div class='small' style='margin:6px 0'>✍️ Screenwriter — the shooting draft lands when cameras roll</div><div class='pick-list'>";
+  if(!wrs.length) h+="<div class='card muted small'>No writers free this week — the pool refreshes over time.</div>";
+  wrs.slice(0,6).forEach(w=>{
+    const fit=w.genreFit===WZ.idea.genre;
+    const delta=Math.round((w.skill-64)*0.45+(fit?6:0));
+    h+="<div class='card talent-card"+(WZ.writer&&WZ.writer.id===w.id?" sel-card":"")+"' data-wr='"+w.id+"'><div class='t-avatar'>✍️</div><div style='flex:1'>"+
+      "<div class='t-name'>"+esc(w.name)+"</div>"+stars(w.power)+
+      "<div class='t-stats'>Skill "+w.skill+" · rewrite ≈ <span class='"+(delta>=0?"pos":"neg")+"'>"+(delta>=0?"+":"")+delta+" script</span>"+(fit?" · <span class='pos'>"+DATA.GENRES[WZ.idea.genre].name+" specialist</span>":"")+"</div>"+
+      "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(actorFee(w))+"</span>"+(WZ.writer&&WZ.writer.id===w.id?"<span class='tag green'>✓ hired</span>":"")+"</div></div></div>";
+  });
+  h+="</div><div class='small' style='margin:12px 0 6px'>🎞 Producer — logistics vs. overruns (no producer = 5%/wk overrun risk)</div><div class='pick-list'>";
+  if(!prs.length) h+="<div class='card muted small'>No producers free this week — the pool refreshes over time.</div>";
+  prs.slice(0,5).forEach(p=>{
+    h+="<div class='card talent-card"+(WZ.producer&&WZ.producer.id===p.id?" sel-card":"")+"' data-pd='"+p.id+"'><div class='t-avatar'>🎞</div><div style='flex:1'>"+
+      "<div class='t-name'>"+esc(p.name)+"</div>"+stars(p.power)+
+      "<div class='t-stats'>Skill "+p.skill+" · logistics "+p.logi+" · overrun risk ≈ "+overrunHint(p)+"/wk"+(p.logi>=85?" · <span class='pos'>trims shoot by 1 wk</span>":"")+"</div>"+
+      "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(actorFee(p))+"</span>"+(WZ.producer&&WZ.producer.id===p.id?"<span class='tag green'>✓ hired</span>":"")+"</div></div></div>";
+  });
+  h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='wzSkipCrew'>Run lean — no crew →</button><button class='btn btn-primary' id='wzNext2'>To Director →</button></div>";
+  const v=openModal(h, {onClose:()=>{WZ=null;}});
+  v.querySelectorAll("[data-wr]").forEach(el=>el.onclick=()=>{
+    const t=talentById(+el.dataset.wr);
+    WZ.writer = (WZ.writer && WZ.writer.id===t.id)? null : t;
+    beep("click"); renderWizardCrew();
+  });
+  v.querySelectorAll("[data-pd]").forEach(el=>el.onclick=()=>{
+    const t=talentById(+el.dataset.pd);
+    WZ.producer = (WZ.producer && WZ.producer.id===t.id)? null : t;
+    beep("click"); renderWizardCrew();
+  });
+  v.querySelector("#wzNext2").onclick=()=>{ WZ.sub=3; beep("click"); wizardModal(); };
+  v.querySelector("#wzSkipCrew").onclick=()=>{ WZ.writer=null; WZ.producer=null; WZ.sub=3; beep("click"); wizardModal(); };
 }
 function sequelTitle0(wz){ return wz.idea.sequelOf? sequelTitle(wz.idea.sequelOf.title) : "Sequel"; }
 function pick0(a){ return a[Math.floor(Math.random()*a.length)]; }
@@ -393,9 +586,11 @@ function viewProductions(){
     const totalWk=L.pre+L.shoot+L.post, doneWk=(curIdx>0?L.pre:0)+(curIdx>1?L.shoot:0)+p.phaseWeek;
     const burn = ph==="pre"? p.budget*0.10/L.pre : ph==="shoot"? p.budget*0.70/L.shoot*(G.upgrades.backlot?0.88:1) : p.budget*0.20/L.post*(G.upgrades.vfx?0.75:1);
     h+="<div class='card prod-card'><div class='spread'><div><b>"+DATA.GENRES[p.genre].emoji+" "+esc(p.title)+"</b>"+(p.franchiseName?" <span class='tag purple'>franchise</span>":"")+
-      "<div class='tiny muted'>"+gTag(p.genre)+" <span class='tag'>"+S.emoji+" "+S.name+"</span> · budget "+fmtM(p.budget)+" · dir "+(p.director?esc(p.director.name):"—")+" · "+(p.cast?p.cast.length:0)+" leads</div></div>"+
+      "<div class='tiny muted'>"+gTag(p.genre)+" <span class='tag'>"+S.emoji+" "+S.name+"</span> · budget "+fmtM(p.budget)+" · dir "+(p.director?esc(p.director.name):"—")+" · "+(p.cast?p.cast.length:0)+" leads"+
+      (p.writer?" · ✍️ "+esc(p.writer.name)+(p.rewritten?" ✓":""):"")+(p.producer?" · 🎞 "+esc(p.producer.name):" · <span class='neg'>no producer (overruns!)</span>")+"</div></div>"+
       "<div style='text-align:right'><div class='tag "+(ph==="shoot"?"gold":"blue")+"'>"+({pre:"Pre-production",shoot:"Shooting",post:"Post-production"}[ph])+"</div>"+
-      (p.strikePause>0?"<div class='tag red' style='margin-top:4px'>✊ strike "+p.strikePause+"wks</div>":"")+"</div></div>"+
+      (p.strikePause>0?"<div class='tag red' style='margin-top:4px'>✊ strike "+p.strikePause+"wks</div>":"")+
+      ((p.overruns||0)>0?"<div class='tag red' style='margin-top:4px'>⚠️ overruns +"+fmtM(p.overruns)+"</div>":"")+"</div></div>"+
       "<div class='phases'>"+["pre","shoot","post"].map((x,i)=>{
         const st= i<curIdx? "done": i===curIdx? "cur":"";
         const w = i<curIdx? 100 : i===curIdx? Math.round(p.phaseWeek/L[x]*100):0;
@@ -495,7 +690,7 @@ function viewBoxOffice(){
   chart.forEach((c,i)=>{
     h+="<div class='chart-bar'><div class='cb-rank'>"+(i+1)+"</div><div><div class='cb-name'>"+(c.mine?"🎬 ":"")+esc(c.title)+(c.mine?"":" <span class='tiny muted'>— "+esc(c.studio||"")+"</span>")+"</div>"+
       "<div class='cb-sub'>"+DATA.GENRES[c.genre].name+" · wk "+c.weeksOut+"</div></div>"+
-      "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(7,c.gross/max*100)+"%;background:"+(c.mine?"linear-gradient(90deg,#f5b942,#ffd479)":(c.color||"#4a5570"))+"'>"+fmtG(c.gross)+"</div></div></div>";
+      "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(7,c.gross/max*100)+"%;background:"+(c.mine?"linear-gradient(90deg,#f5b942,#ffd479)":(c.color||"#4a5570"))+" ;animation-delay:"+(i*55)+"ms'>"+fmtG(c.gross)+"</div></div></div>";
   });
   h+="</div>";
   const live=activeFilms();
@@ -506,7 +701,7 @@ function viewBoxOffice(){
     const projWW=(f.dom/(1-DATA.GENRES[f.genre].intlShare));
     h+="<div class='card'><div class='spread'><div><b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b><div class='tiny muted'>wk "+f.weeksOut+" out · opened "+fmtG(f.opening)+" · "+scoreBadge(f.quality.overall)+"</div></div>"+
       "<div style='text-align:right'><b class='gold'>"+fmtG(f.dom)+"</b><div class='tiny muted'>domestic</div></div></div>"+
-      "<div class='weekly-gross-chart'>"+f.weekly.slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
+      "<div class='weekly-gross-chart'>"+f.weekly.slice(-12).map((x,xi)=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%;animation-delay:"+(xi*45)+"ms' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
       "<div class='spread small' style='margin-top:6px'><span class='muted'>Tracking ≈ "+fmtG(projWW)+" WW vs "+fmtG(be)+" breakeven</span>"+
       "<span class='"+(projWW>=be?"pos":"neg")+"'>"+(projWW>=be?"on pace to profit":"below breakeven")+"</span></div>"+
       "<div class='tiny' style='margin-top:4px'>💰 Rentals received to date: <b class='gold'>"+fmtM(f.rentalsDom||0)+"</b> <span class='muted'>(~53% of domestic gross, paid weekly)</span>"+(f.presales?" · <span class='muted'>intl pre-sold</span>":"")+"</div></div>";
@@ -621,7 +816,7 @@ function plCard(){
   if(G.txHistory.length>1){
     const mx=Math.max(1,...G.txHistory.map(x=>Math.abs(x.net)));
     h+="<div class='tiny muted' style='margin-top:10px'>Net by week</div><div class='pl-bars'>"+
-      G.txHistory.slice(-10).map(x=>"<div class='pb "+(x.net>=0?"up":"down")+"' style='height:"+Math.max(5,Math.abs(x.net)/mx*100)+"%' title='"+(x.net>=0?"+":"")+fmtM(x.net)+"'></div>").join("")+
+      G.txHistory.slice(-10).map((x,xi)=>"<div class='pb "+(x.net>=0?"up":"down")+"' style='height:"+Math.max(5,Math.abs(x.net)/mx*100)+"%;animation-delay:"+(xi*50)+"ms' title='"+(x.net>=0?"+":"")+fmtM(x.net)+"'></div>").join("")+
       "</div>";
   }
   h+="</div>";
@@ -653,6 +848,8 @@ function bindView(){
     const p=G.projects.find(x=>x.id===+b.dataset.cancel); if(!p)return;
     G.projects=G.projects.filter(x=>x!==p);
     if(p.director){p.director.bookedUntil=0;p.director.booked=null;}
+    if(p.producer){p.producer.bookedUntil=0;p.producer.booked=null;}
+    if(p.writer){p.writer.bookedUntil=0;p.writer.booked=null;}
     p.cast.forEach(c=>{c.bookedUntil=0;c.booked=null;});
     G.studio.rep=clamp(G.studio.rep-2,5,99);
     log("🗑 Shelved “"+p.title+"”. Talent freed. Rep −2.","bad");
@@ -724,6 +921,7 @@ function viewEmpire(){
         frMeter("🧸 Merchandise", pips(fr.merch,3))+
         frMeter("🎡 Theme park", fr.tier>=2? pips(fr.park,2) : "<span class='tiny muted'>needs tier 2</span>")+
         frMeter("🎮 Game rights", fr.gameSold===fr.tier? "<span class='tiny pos'>licensed</span>":"<span class='tiny muted'>available</span>")+
+        frMeter("⚡ Sequel boost", (function(){ const b=sequelBoostFor(fr); return "<span class='"+(b<1.2?"neg":"pos")+"'>×"+b.toFixed(2)+"</span><span class='tiny muted'>"+(b<1.2?" 🥱 fatigue":" fresh")+"</span>"; })())+
         frMeter("💰 Earned", fmtM(fr.earned||0))+
       "</div><div class='fr-actions'>"+
       "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ Greenlight Sequel</button>"+
@@ -732,7 +930,7 @@ function viewEmpire(){
       (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights</button>":"")+
       "</div></div>";
   }
-  h+="<div class='card'><b>How the empire works</b><div class='small muted' style='margin-top:4px'>Merch & parks pay every week and spike again whenever a franchise film hits theaters (decay resets). Game rights are one-time cash per tier. Franchise equity raises your catalog value and credit limit.</div></div>";
+  h+="<div class='card'><b>How the empire works</b><div class='small muted' style='margin-top:4px'>Merch & parks pay every week and spike again whenever a franchise film hits theaters (decay resets). Game rights are one-time cash per tier. Franchise equity raises your catalog value and credit limit. <b>Franchise fatigue</b>: quick follow-ups open softer (boost ×1.35 → down to ×1.05) — let a brand rest ~18 months and nostalgia recharges it.</div></div>";
   return h;
 }
 function frMeter(l,v){ return "<div class='fr-meter'><div class='fm-v'>"+v+"</div><div class='fm-l'>"+l+"</div></div>"; }
@@ -758,6 +956,13 @@ function reportModal(){
   h+="<div class='section-title'>Market share</div><div class='card'>";
   r.standings.forEach((s,i)=>{ h+="<div class='cost-line'><span>"+(i+1)+". "+(s.me?"⭐ ":"")+esc(s.name)+"</span><b>"+fmtM(s.ww)+"</b></div>"; });
   h+="</div>";
+  if(r.trendShift){
+    const gHot=DATA.GENRES[r.trendShift.hot.k], gCold=DATA.GENRES[r.trendShift.cold.k];
+    h+="<div class='section-title'>Year "+(r.year+1)+" market outlook</div><div class='card'>"+
+      "<div class='cost-line'><span>"+gHot.emoji+" Genre of the moment</span><b class='pos'>"+gHot.name+" ×"+r.trendShift.hot.h.toFixed(2)+"</b></div>"+
+      "<div class='cost-line'><span>"+gCold.emoji+" Cooling off</span><b class='neg'>"+gCold.name+" ×"+r.trendShift.cold.h.toFixed(2)+"</b></div>"+
+      "<div class='tiny muted' style='margin-top:4px'>Taste re-rolled for the new year — greenlight into the wave, date before it breaks.</div></div>";
+  }
   h+="<div class='section-title'>Nominations & wins</div><div class='card'>";
   if(r.awards.noms.length){
     r.awards.noms.forEach(n=>{ h+="<div class='cost-line'><span>"+(n.mine?"🎬 ":"🎞 ")+esc(n.title)+(n.mine?"":" <span class='tiny muted'>— "+esc(n.studio||"")+"</span>")+"</span>"+(n.mine?"<span class='tag gold'>nominee</span>":"")+"</div>"; });
@@ -765,7 +970,7 @@ function reportModal(){
   }else h+="<div class='muted small'>No nominations.</div>";
   h+="</div><div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Roll credits → Year "+(r.year+1)+"</button></div>";
   openModal(h,{noX:true});
-  beep("gold");
+  beep("drums");
 }
 function gameOverModal(){
   const o=G.over; if(!o) return;
@@ -785,13 +990,15 @@ function gameOverModal(){
 /* ═══════════ help ═══════════ */
 function helpModal(){
   let h="<h3>❓ How the movie business works here</h3>"+
-  "<div class='card'><b>1. 📝 Develop</b><p class='small muted'>Buy a script, attach a director (quality) and stars (opening weekend), set a budget. Production burns cash weekly through pre-production → shoot → post.</p></div>"+
-  "<div class='card'><b>2. 📅 Date it like a pro</b><p class='small muted'>Summer & holidays multiply openings; January and September are graveyards. Check the calendar for rival tentpoles — head-to-head weekends split the audience.</p></div>"+
-  "<div class='card'><b>3. 📊 Box office math (real Hollywood rules)</b><p class='small muted'>Opening weekend = star power × marketing × season × competition. Legs (total ÷ opening) come from quality — horrors die fast, animation runs for months. The studio keeps ≈53% domestic / ≈42% international, so <b>breakeven ≈ (budget + P&A) ÷ 0.48</b> worldwide.</p></div>"+
-  "<div class='card'><b>4. 📺 Distribution: theaters or OTT</b><p class='small muted'>At greenlight pick a plan: 🎥 theatrical (full upside + risk), 📺 streaming original (platforms bid on delivery — guaranteed cash, no box office), or decide later. Finished films can be shopped to streamers anytime — 3 platforms bid, pick one. After the run, films earn PVOD + streaming licenses.</p></div>"+
-  "<div class='card'><b>5. 💰 Weekly cash & P&L</b><p class='small muted'>Box office rentals (~53% of domestic gross) arrive <b>every week a film is playing</b>, intl rentals settle at end of run, and every dollar is itemized in Finance → This week's P&L. A-list ensembles take 5% backend; pre-sales & tax incentives smooth cash flow.</p></div>"+
-  "<div class='card'><b>6. 🏰 Franchise empire</b><p class='small muted'>Big hits (≈2× breakeven + good reviews) unlock a franchise: sequels, 🧸 merch lines (weekly income), 🎮 game licenses (one-time cash), and 🎡 theme parks (tier 2+, big steady income). New releases re-heat the brand.</p></div>"+
-  "<div class='card'><b>5. 💼 Survive</b><p class='small muted'>Overhead, interest and P&A never sleep. Loans bridge gaps; the credit line has limits. Hits build reputation, franchises and a valuable catalog. Flops build character.</p></div>"+
+  "<div class='card'><b>1. 📝 Develop — scripts & crew</b><p class='small muted'>Buy a script, then build the package: a ✍️ <b>screenwriter</b> rewrites it during pre-production (skill + genre fit drive the boost), a 🎞 <b>producer's</b> logistics guard against weekly overruns, a 🎬 director shapes quality, and 🌟 stars open the film. Production burns cash weekly through pre → shoot → post.</p></div>"+
+  "<div class='card'><b>2. 🌊 Ride the market</b><p class='small muted'>Genre taste cycles (see Market pulse on 🏛 Studio): horror gets hot, musicals cool off. Hot genres multiply your opening weekend; cold ones drag it. Greenlight into a rising wave — and date before it breaks.</p></div>"+
+  "<div class='card'><b>3. 📅 Date it like a pro</b><p class='small muted'>Summer & holidays multiply openings; January and September are graveyards. Check the calendar for rival tentpoles — head-to-head weekends split the audience.</p></div>"+
+  "<div class='card'><b>4. 📊 Box office math (real Hollywood rules)</b><p class='small muted'>Opening weekend = star power × marketing × season × <b>genre trend</b> × competition. Legs (total ÷ opening) come from quality — horrors die fast, animation runs for months. The studio keeps ≈53% domestic / ≈42% international, so <b>breakeven ≈ (budget + P&A) ÷ 0.48</b> worldwide.</p></div>"+
+  "<div class='card'><b>5. 📺 Distribution: theaters or OTT</b><p class='small muted'>At greenlight pick a plan: 🎥 theatrical (full upside + risk), 📺 streaming original (platforms bid on delivery — guaranteed cash, no box office), or decide later. Finished films can be shopped to streamers anytime — 3 platforms bid, pick one. After the run, films earn PVOD + streaming licenses.</p></div>"+
+  "<div class='card'><b>6. 💰 Weekly cash & P&L</b><p class='small muted'>Box office rentals (~53% of domestic gross) arrive <b>every week a film is playing</b>, intl rentals settle at end of run, and every dollar is itemized in Finance → This week's P&L. A-list ensembles take 5% backend; pre-sales & tax incentives smooth cash flow.</p></div>"+
+  "<div class='card'><b>7. 🏰 Franchise empire (and fatigue)</b><p class='small muted'>Big hits (≈2× breakeven + good reviews) unlock a franchise: sequels, 🧸 merch lines (weekly income), 🎮 game licenses (one-time cash), and 🎡 theme parks (tier 2+). Milk the brand too fast and audiences tire (sequel boost ×1.35 → ×1.05); rest it ~18 months and nostalgia recharges.</p></div>"+
+  "<div class='card'><b>8. 🎭 Talent careers</b><p class='small muted'>Stars fade when idle (cheaper fees — cast them in a good film to engineer a comeback), veterans retire, and new names arrive weekly. Your booking choices write Hollywood history.</p></div>"+
+  "<div class='card'><b>9. 💼 Survive</b><p class='small muted'>Overhead, interest and P&A never sleep. Loans bridge gaps; the credit line has limits. Hits build reputation, franchises and a valuable catalog. Flops build character.</p></div>"+
   "<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Lights down, head rolled 🎬</button></div>";
   openModal(h,{noX:true});
 }

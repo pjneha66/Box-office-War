@@ -70,21 +70,39 @@ step("open develop + start wizard", ()=>{
       const i=g().ideas.find(x=>x.id===+c.dataset.dev);
       if(!i || i.scale==="tentpole") return false;
       const est=window.eval("neededBudget('"+i.genre+"','"+i.scale+"')");
-      return est <= g().studio.cash*0.45;
+      return est <= g().studio.cash*0.35; // room for crew fees + production burn
     });
     if(!btn) click($("#btnWeek"));
   }
   if(!btn) throw new Error("no affordable idea found");
   click(btn);
-  if(!$$("[data-dir]").length) throw new Error("director picker empty");
+  if(!$$("[data-dir]").length && !window.document.querySelector("#wzNext2")) throw new Error("neither crew step nor director picker appeared");
 });
-step("pick director + cast + confirm", ()=>{
-  click($$("[data-dir]")[0]);
+step("pick crew (writer + producer), director, cast + confirm", ()=>{
+  // crew step: writers/producers are optional but the buttons must exist
+  const next2=$("#wzNext2");
+  if(!next2) throw new Error("crew step missing (no #wzNext2)");
+  // like a sane player: pick affordable cards, not the priciest names on the market
+  const byFee = els => els.slice().sort((a,b)=>{
+    const f=id=>window.eval("actorFee(G.talent.find(t=>t.id==="+id+"))");
+    return f(+a.dataset.wr||+a.dataset.pd||+a.dataset.dir||+a.dataset.cast)-f(+b.dataset.wr||+b.dataset.pd||+b.dataset.dir||+b.dataset.cast);
+  });
+  const cash=g().studio.cash;
+  const wrs=byFee($$("[data-wr]")); if(wrs.length && window.eval("actorFee(G.talent.find(t=>t.id==="+(+wrs[0].dataset.wr)+"))") < cash*0.06) click(wrs[0]);
+  const pds=byFee($$("[data-pd]")); if(pds.length && window.eval("actorFee(G.talent.find(t=>t.id==="+(+pds[0].dataset.pd)+"))") < cash*0.08) click(pds[0]);
+  click($("#wzNext2"));
+  if(!$$("[data-dir]").length) throw new Error("director picker empty");
+  const dirs=byFee($$("[data-dir]"));
+  click(dirs[0]);
   if(!$$("[data-cast]").length) throw new Error("cast picker empty");
-  click($$("[data-cast]")[0]);
-  click($$("[data-cast]")[1]||$$("[data-cast]")[0]);
-  click($$("[data-cast]")[2]||$$("[data-cast]")[0]);
-  if($$("[data-cast]").length<3) errors.push("expected 3 cast picks possible");
+  const casts=byFee($$("[data-cast]"));
+  if(casts.length<3) errors.push("expected 3 cast picks possible");
+  let spent=0; for(let i=0;i<Math.min(3,casts.length);i++){
+    const id=casts[i].dataset.cast;
+    const fee=window.eval("actorFee(G.talent.find(t=>t.id==="+id+"))");
+    if(spent+fee > g().studio.cash*0.25) break; // don't blow the down payment on stars
+    spent+=fee; click(casts[i]);
+  }
   click($("#wzNext"));
   if(!$("#wzBudget")) throw new Error("budget slider missing");
   if(!$$("[data-plan]").length) throw new Error("distribution plan picker missing");
@@ -94,6 +112,14 @@ step("pick director + cast + confirm", ()=>{
   click($$("[data-plan]").find(b=>b.dataset.plan==="theatrical"));
   click($("#wzGo"));
   if(!g() || g().projects.length<1) throw new Error("project not created");
+  const pr=g().projects[0];
+  if(!("writer" in pr) || !("producer" in pr)) throw new Error("crew fields missing on project");
+});
+step("genre trends exist and are sane", ()=>{
+  const G2=g();
+  if(!G2.trends) throw new Error("no trends on state");
+  const vals=Object.values(G2.trends);
+  if(!vals.length || !vals.every(v=>Number.isFinite(v) && v>0.3 && v<1.8)) throw new Error("trend values broken");
 });
 
 step("fast-forward to ready", ()=>{
@@ -106,6 +132,8 @@ step("fast-forward to ready", ()=>{
   if(!g().projects.some(p=>p.phase==="ready") && !g().films.length) throw new Error("never ready");
 });
 step("schedule release via modal", ()=>{
+  // a real player bridges the P&A down payment with the credit facility if needed
+  window.eval("if(G.studio.cash < 30 && G.studio.debt < maxDebt()-100) takeLoan(120)");
   click($(".tab[data-tab='productions']"));
   const btn=$$("[data-sched]")[0];
   if(!btn) throw new Error("no sched button (maybe already released)");
@@ -184,6 +212,30 @@ step("save exists in localStorage", ()=>{
 step("loadGame roundtrip", ()=>{
   const g = window.eval("loadGame()");
   if(!g || g.studio.name!=="Test Studio") throw new Error("loadGame failed");
+});
+step("v1 save migrates without breaking", ()=>{
+  // simulate an old (v1) save: no trends, no careers, no crew fields
+  const j = JSON.parse(window.localStorage.getItem("bow_save"));
+  delete j.v; delete j.trends;
+  j.talent.forEach(t=>{ delete t.careerWeeks; delete t.retireAt; delete t.faded; delete t.lastWork; delete t.spawnWeek; });
+  (j.projects||[]).forEach(p=>{ delete p.writer; delete p.producer; delete p.overruns; delete p.franchiseBoost; });
+  window.localStorage.setItem("bow_save", JSON.stringify(j));
+  const g = window.eval("loadGame()");
+  if(!g) throw new Error("migration returned null");
+  if(g.v<2) throw new Error("not upgraded to v2");
+  if(!g.trends || !Number.isFinite(Object.values(g.trends)[0])) throw new Error("trends not initialized by migration");
+  if(g.talent.some(t=>!Number.isFinite(t.careerWeeks)||!Number.isFinite(t.retireAt))) throw new Error("careers not backfilled");
+  if((g.projects||[]).some(p=>p.overruns===undefined)) throw new Error("project fields not backfilled");
+  window.eval("saveGame()");
+});
+step("corrupt save is rejected cleanly", ()=>{
+  window.localStorage.setItem("bow_save", "{not json !!");
+  const g = window.eval("loadGame()");
+  if(g) throw new Error("corrupt save should return null");
+  window.localStorage.setItem("bow_save", JSON.stringify({hello:1}));
+  const g2 = window.eval("loadGame()");
+  if(g2) throw new Error("foreign blob should return null");
+  window.eval("saveGame()"); // restore the good save
 });
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){

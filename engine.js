@@ -10,12 +10,13 @@
 "use strict";
 
 let G = null; // global game state
+const SAVE_VERSION = 2;
 
 /* ═══════════ state ═══════════ */
 function newGame(archId, name){
   const arch = DATA.ARCHETYPES.find(a=>a.id===archId) || DATA.ARCHETYPES[1];
   G = {
-    v:1,
+    v:SAVE_VERSION,
     studio:{ name: name || "Parallax Pictures", cash: arch.cash, debt: 0, rep: arch.rep,
              overhead: arch.overhead, archId: arch.id, flopPenalty: arch.flopPenalty, devBonus: arch.devBonus },
     week: 1, // absolute
@@ -25,8 +26,9 @@ function newGame(archId, name){
     talent:[],
     rivals: DATA.RIVALS_DEF.map(r=>({ ...r, slate:[], ytd:0, filmsLive:[] })),
     news:[], flash:[],
+    trends: initTrends(),
     stats:{ films:0, seriesSeasons:0, totalWW:0, totalProfit:0, hits:0, flops:0, awards:[],
-            bestOpen:0, bestFilm:null, shareHistory:[] },
+            bestOpen:0, bestFilm:null, shareHistory:[], comebacks:0 },
     investorDebt:0, investorPaid:0,
     streamWar:0, theaterCap:0,
     over:null, pendingReport:null, pendingChoice:null,
@@ -75,10 +77,48 @@ function loadGame(){
   try{
     const raw = (typeof localStorage!=="undefined") && localStorage.getItem("bow_save");
     if(!raw) return null;
-    G = JSON.parse(raw);
+    let g = JSON.parse(raw);
+    g = validateSave(g);
+    if(!g) return null;
+    G = migrateSave(g);
     G.log = log;
     return G;
   }catch(e){ return null; }
+}
+/* Guard against corrupt/foreign blobs before touching them */
+function validateSave(g){
+  if(!g || typeof g!=="object") return null;
+  if(!g.studio || typeof g.studio!=="object") return null;
+  if(!Number.isFinite(g.week) || g.week<1) return null;
+  if(!Number.isFinite(g.studio.cash) || !Number.isFinite(g.studio.debt)) return null;
+  ["projects","films","series","offers","ideas","franchises","news","talent","rivals","txHistory","flash"].forEach(k=>{
+    if(!Array.isArray(g[k])) g[k]=[];
+  });
+  if(!g.stats || typeof g.stats!=="object") g.stats={films:0,seriesSeasons:0,totalWW:0,totalProfit:0,hits:0,flops:0,awards:[],bestOpen:0,bestFilm:null,shareHistory:[]};
+  if(!Array.isArray(g.stats.awards)) g.stats.awards=[];
+  if(!Array.isArray(g.stats.shareHistory)) g.stats.shareHistory=[];
+  if(!g.upgrades || typeof g.upgrades!=="object") g.upgrades={};
+  return g;
+}
+/* Versioned migrations: bring any older save up to SAVE_VERSION */
+function migrateSave(g){
+  const v = g.v||1;
+  if(v<2){
+    // v2: genre trends, writer/producer talent, careers, overruns, franchise fatigue
+    if(!g.trends || typeof g.trends!=="object") g.trends = initTrends();
+    g.talent.forEach(t=>backfillCareer(t));
+    g.projects.forEach(p=>{
+      if(p.writer===undefined)p.writer=null;
+      if(p.producer===undefined)p.producer=null;
+      if(p.overruns===undefined)p.overruns=0;
+      if(p.franchiseBoost===undefined)p.franchiseBoost = p.franchise? 1.35 : 1;
+    });
+    g.films.forEach(f=>{ if(f.overruns===undefined) f.overruns=0; });
+    if(g.stats.comebacks===undefined) g.stats.comebacks=0;
+    g.v=2;
+  }
+  g.v = SAVE_VERSION;
+  return g;
 }
 
 /* ═══════════ calendar helpers ═══════════ */
@@ -86,6 +126,45 @@ function yearOf(w){ return Math.floor((w-1)/52)+1; }
 function woyOf(w){ return ((w-1)%52)+1; }
 function dateLabel(w){ return "Y"+yearOf(w)+" · W"+woyOf(w); }
 function seasonOfW(w){ return DATA.seasonOf(woyOf(w)); }
+
+/* ═══════════ genre trends: what the market is hungry for ═══════════
+   heat per genre, 1.0 = neutral. Hot genres open bigger, cold ones struggle.
+   Drifts weekly (slow mean reversion), spiked by events, reshuffled each year. */
+function initTrends(){
+  const t={};
+  for(const k of Object.keys(DATA.GENRES)) t[k]=1;
+  // every market starts with one hot & one cold genre (distinct)
+  const ks=Object.keys(DATA.GENRES);
+  const hotK=pick(ks);
+  const coldK=pick(ks.filter(k=>k!==hotK));
+  t[hotK]=1.18+rnd()*0.1;
+  t[coldK]=0.86-rnd()*0.08;
+  for(const k of ks) t[k]=Math.round(clamp(t[k],0.55,1.5)*100)/100;
+  return t;
+}
+function trendOf(genre){ return (G && G.trends && Number.isFinite(G.trends[genre]))? G.trends[genre] : 1; }
+function tickTrends(){
+  for(const k of Object.keys(DATA.GENRES)){
+    const h=trendOf(k);
+    G.trends[k]=clamp(h + gauss()*0.013 + (1-h)*0.016, 0.55, 1.5);
+  }
+  if(G.week%13===0){ // quarterly trade-paper temperature check
+    const rows=Object.keys(DATA.GENRES).map(k=>({k,h:trendOf(k)})).sort((a,b)=>b.h-a.h);
+    const top=rows[0], bot=rows[rows.length-1];
+    if(top.h>=1.14) log("🔥 Trades: "+DATA.GENRES[top.k].name+" is the hot genre (audience demand ×"+top.h.toFixed(2)+").","");
+    if(bot.h<=0.88) log("🧊 Trades: "+DATA.GENRES[bot.k].name+" is ice cold right now (demand ×"+bot.h.toFixed(2)+").","");
+    for(const k of Object.keys(DATA.GENRES)) G.trends[k]=Math.round(G.trends[k]*100)/100; // tidy saves
+  }
+}
+function yearTrendReset(){
+  // the calendar turns, tastes re-roll with continuity
+  for(const k of Object.keys(DATA.GENRES)){
+    const target=0.7+rnd()*0.65;
+    G.trends[k]=Math.round(clamp(trendOf(k)+(target-trendOf(k))*0.45, 0.55, 1.5)*100)/100;
+  }
+  const rows=Object.keys(DATA.GENRES).map(k=>({k,h:trendOf(k)})).sort((a,b)=>b.h-a.h);
+  return { hot:rows[0], cold:rows[rows.length-1] };
+}
 
 /* ═══════════ money format ═══════════ */
 function fmtM(v){
@@ -109,32 +188,103 @@ function talentName(kind){
   const f = chance(.5)? pick(DATA.FIRST_M) : pick(DATA.FIRST_F);
   return f+" "+pick(DATA.LAST);
 }
+/* careers: everyone is careerWeeks into the business and retires at retireAt */
+function careerFields(){
+  const careerWeeks = rint(0, 9)*52;
+  return { careerWeeks, retireAt: careerWeeks + rint(11, 22)*52, lastWork:0, spawnWeek:G? G.week:1, faded:0 };
+}
+function backfillCareer(t){
+  if(!Number.isFinite(t.careerWeeks)) t.careerWeeks = rint(0,9)*52;
+  if(!Number.isFinite(t.retireAt))    t.retireAt = t.careerWeeks + rint(11,22)*52;
+  if(!Number.isFinite(t.lastWork))    t.lastWork = 0;
+  if(!Number.isFinite(t.spawnWeek))   t.spawnWeek = 1;
+  if(!Number.isFinite(t.faded))       t.faded = 0;
+  if(!Number.isFinite(t.heat))        t.heat = 0;
+  return t;
+}
 function genActor(hot){
   const power = hot? rint(3,5) : rint(1,5);
   const skill = clamp(rint(45,88)+power*3+rint(-6,6), 40, 96);
   const fee = [0.3,1.2,4,12,25][power-1] * (hot? 1.2:1);
-  return { id:nid(), kind:"actor", name:talentName(), power, skill,
-           fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null };
+  return Object.assign({ id:nid(), kind:"actor", name:talentName(), power, skill,
+           fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null }, careerFields());
 }
 function genDirector(hot, fitGenre){
   const power = hot? rint(3,5) : rint(1,5);
   const skill = clamp(rint(50,90)+power*2+rint(-5,5), 45, 97);
   const fee = [0.8,2,5,10,18][power-1]*(hot?1.15:1);
   const fits = Object.keys(DATA.GENRES);
-  return { id:nid(), kind:"director", name:pick(DATA.DIR_FIRST)+" "+pick(DATA.LAST),
+  return Object.assign({ id:nid(), kind:"director", name:pick(DATA.DIR_FIRST)+" "+pick(DATA.LAST),
            power, skill, fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0,
-           genreFit: fitGenre || pick(fits) };
+           genreFit: fitGenre || pick(fits) }, careerFields());
+}
+function genWriter(hot){
+  const power = hot? rint(3,5) : rint(1,5);
+  const skill = clamp(rint(48,90)+power*2+rint(-5,5), 42, 96);
+  const fee = [0.2,0.7,1.8,4.5,9][power-1]*(hot?1.2:1);
+  return Object.assign({ id:nid(), kind:"writer", name:talentName(), power, skill,
+           fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0,
+           genreFit: pick(Object.keys(DATA.GENRES)) }, careerFields());
+}
+function genProducer(hot){
+  const power = hot? rint(3,5) : rint(1,5);
+  const skill = clamp(rint(45,88)+power*2+rint(-5,5), 42, 95);
+  const logi  = clamp(rint(48,92)+power*2+rint(-6,6), 42, 97);
+  const fee = [0.4,1,2.5,6,11][power-1]*(hot?1.15:1);
+  return Object.assign({ id:nid(), kind:"producer", name:talentName(), power, skill, logi,
+           fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null }, careerFields());
 }
 function genTalentPool(){
   G.talent = [];
-  for(let i=0;i<22;i++) G.talent.push(genActor(false));
+  for(let i=0;i<20;i++) G.talent.push(genActor(false));
   for(let i=0;i<9;i++)  G.talent.push(genDirector(false));
+  for(let i=0;i<7;i++)  G.talent.push(genWriter(false));
+  for(let i=0;i<5;i++)  G.talent.push(genProducer(false));
   G.talent.push(genActor(true));
   G.talent.push(genDirector(true));
+  G.talent.push(genWriter(true));
 }
 function spawnDirectorHot(){ G.talent.push(genDirector(true)); }
 function talentById(id){ return G.talent.find(t=>t.id===id); }
-function actorFee(t){ return t.fee * (1+0.25*t.heat) * (G.upgrades.agency?0.85:1); }
+function actorFee(t){ return t.fee * (1+0.25*t.heat) * (t.faded?0.55:1) * (G.upgrades.agency?0.85:1); }
+
+/* ═══ weekly talent careers: skill drift, fading stars, retirements ═══ */
+function tickTalent(){
+  let retired=0;
+  for(const t of G.talent){
+    t.careerWeeks=(t.careerWeeks||0)+1;
+    if(!t.bookedUntil || t.bookedUntil<G.week){
+      if(chance(0.05)) t.skill=clamp(t.skill+rint(-1,1), 40, 97); // experience & rust
+      // stars fade when idle
+      const idleFor = G.week - Math.max(t.lastWork||0, t.spawnWeek||1);
+      if(t.kind==="actor" && idleFor>42 && !t.faded && t.power>1 && chance(0.022)){
+        t.faded=1; t.power--; t.heat=0;
+        log("📉 "+t.name+" is drifting off the radar — power ★"+t.power+", fee cut. Cast them well and engineer a comeback.","");
+      }
+      // retirement (one headline per week, max)
+      if(t.careerWeeks>=t.retireAt && !retired){
+        retired++;
+        const yrs=Math.round(t.careerWeeks/52);
+        log("🎖 After "+yrs+" years in the business, "+t.name+" ("+({actor:"actor",director:"director",writer:"screenwriter",producer:"producer"}[t.kind])+") announces their retirement.","");
+        G.talent=G.talent.filter(x=>x!==t);
+      }
+    }
+  }
+}
+/* a comeback arc: cast a faded star in a well-reviewed film */
+function maybeComebacks(f){
+  if(!f.quality || f.quality.overall<70) return;
+  for(const c of (f.cast||[])){
+    const t=G.talent.find(x=>x.id===c.id) || c;
+    if(t && t.faded && chance(0.72)){
+      t.faded=0; t.power=Math.min(5,t.power+1); t.heat=Math.min(3,(t.heat||0)+1); t.skill=Math.min(97,t.skill+2);
+      t.lastWork=G.week;
+      G.stats.comebacks=(G.stats.comebacks||0)+1;
+      G.studio.rep=clamp(G.studio.rep+2,5,99);
+      log("🌟 COMEBACK OF THE YEAR: "+t.name+"'s turn in “"+f.title+"” has the town buzzing — power ★"+t.power+" and red-hot again. (+2 rep)","gold");
+    }
+  }
+}
 
 /* ═══════════ script ideas ═══════════ */
 function makeTitle(genre){
@@ -175,6 +325,7 @@ function computeQuality(p){
   const pv = clamp(p.budget/neededBudget(p.genre,p.scale), .55, 1.12);
   const prodScore = 52 + 48*pv;
   let craft = 0.30*p.script + 0.24*dirScore + 0.22*castScore + 0.24*prodScore;
+  if(p.producer) craft += (p.producer.skill-72)*0.06; // seasoned producers keep quality on the rails
   if(G.upgrades.vfx && p.scale==="tentpole") craft += 3;
   craft += gauss()*5.5;
   const overall = clamp(Math.round(craft), 8, 97);
@@ -191,10 +342,11 @@ function expectedOpening(p, weekAbs){
   const rec = recMarketing(p);
   const mktF = clamp(Math.pow(Math.max(p.marketing,1)/rec, 0.45), 0.5, 1.55) * (G.upgrades.marketing?1.10:1);
   const season = seasonOfW(weekAbs).season;
-  const fr = p.franchise? 1.35 : 1;
+  const fr = p.franchise? (p.franchiseBoost||1.35) : 1;
   const repF = 0.92 + G.studio.rep/600;
   const comp = competitionFactor(p, weekAbs);
-  const hype = base*starF*mktF*season*fr*repF*comp*(1+(p.buzzBonus||0));
+  const trend = trendOf(p.genre);
+  const hype = base*starF*mktF*season*fr*repF*comp*trend*(1+(p.buzzBonus||0));
   return hype; // expected opening before noise
 }
 function competitionFactor(p, weekAbs){
@@ -209,7 +361,18 @@ function competitionFactor(p, weekAbs){
 }
 function expectedWeightOf(p){
   const S=DATA.SCALES[p.scale];
-  return S.openBase * DATA.GENRES[p.genre].mass * (p.franchise?1.35:1) * clamp(Math.pow(Math.max(p.marketing,1)/Math.max(recMarketing(p),1),0.45),0.6,1.5);
+  return S.openBase * DATA.GENRES[p.genre].mass * (p.franchise?(p.franchiseBoost||1.35):1) * clamp(Math.pow(Math.max(p.marketing,1)/Math.max(recMarketing(p),1),0.45),0.6,1.5) * trendOf(p.genre);
+}
+/* Franchise fatigue: sequels open bigger, but each quick follow-up milks the brand.
+   Let it rest 18+ months and the nostalgia cycle resets some of the boost. */
+function sequelBoostFor(fr){
+  if(!fr || !fr.entries || !fr.entries.length) return 1.35;
+  const last = fr.entries[fr.entries.length-1].week || G.week;
+  const gap = G.week - last;
+  let over = Math.max(0, fr.entries.length-2); // original + first sequel ride free
+  if(gap>78) over=Math.ceil(over/2);
+  const boost = 1.35 - over*0.07 - (gap<26? 0.06 : 0);
+  return Math.round(clamp(boost, 1.05, 1.35)*100)/100;
 }
 function weekendCompetitors(p, weekAbs){
   const list = [];
@@ -241,25 +404,38 @@ function devCostOf(idea){
   return base + (idea.hot? rint(2,6):0);
 }
 function greenlight(cfg){
-  // cfg: {idea, director, cast[], budget, sequelOf}
+  // cfg: {idea, director, cast[], writer, producer, budget, sequelOf, plan, presales}
   const idea = cfg.idea;
   const S = DATA.SCALES[idea.scale];
-  const fees = (cfg.director? actorFee(cfg.director):0) + cfg.cast.reduce((s,c)=>s+actorFee(c),0);
+  const fees = (cfg.director? actorFee(cfg.director):0) + cfg.cast.reduce((s,c)=>s+actorFee(c),0)
+             + (cfg.writer? actorFee(cfg.writer):0) + (cfg.producer? actorFee(cfg.producer):0);
   const dev = devCostOf(idea);
   const p = {
     id:nid(), kind:"film", title:idea.title, genre:idea.genre, scale:idea.scale,
     script: idea.script, blurb: idea.blurb, hot:idea.hot,
     budget: cfg.budget, spent:0, devCost:dev,
     director: cfg.director, cast: cfg.cast,
+    writer: cfg.writer||null, producer: cfg.producer||null,
     phase:"pre", phaseWeek:0,
     phaseLen:{ pre:rint(...S.pre), shoot:rint(...S.shoot), post:rint(...S.post) },
     releaseWeek:0, marketing:0, marketingPaid:0,
     franchise: !!(cfg.sequelOf && cfg.sequelOf.franchiseable) || !!(cfg.sequelOf),
     sequelOf: cfg.sequelOf? cfg.sequelOf.id : null,
     buzzBonus: cfg.sequelOf? 0.15 : 0,
-    strikePause:0,
+    strikePause:0, overruns:0, franchiseBoost:1,
   };
-  if(cfg.sequelOf){ p.title = sequelTitle(cfg.sequelOf.title); p.franchiseName = cfg.sequelOf.franchiseName || cfg.sequelOf.title; }
+  if(cfg.sequelOf){
+    p.title = sequelTitle(cfg.sequelOf.title); p.franchiseName = cfg.sequelOf.franchiseName || cfg.sequelOf.title;
+    const fr = G.franchises.find(x=>x.name===p.franchiseName);
+    p.franchiseBoost = sequelBoostFor(fr||null);
+    if(p.franchiseBoost<1.2) log("🥱 Franchise fatigue is setting in on “"+p.franchiseName+"” — sequel boost only ×"+p.franchiseBoost.toFixed(2)+". Give the brand a rest.","bad");
+  }
+  // a well-organized producer trims the shoot
+  if(p.producer && p.producer.logi>=85){
+    const before=p.phaseLen.shoot;
+    p.phaseLen.shoot=Math.max(3, p.phaseLen.shoot-1);
+    if(p.phaseLen.shoot<before) p.logiTrim=true;
+  }
   spend("development", dev);
   spend("talent", fees);
   p.plan = cfg.plan || "theatrical";
@@ -270,13 +446,18 @@ function greenlight(cfg){
     earn("presales", p.presales);
     log("🌍 International pre-sales on “"+p.title+"”: +"+fmtM(p.presales)+" (intl box office now goes to the buyers).","");
   }
-  // book talent
+  // book talent — writer hands in the shooting draft at the end of pre-production,
+  // producer & cast & director ride the whole production
   const total = p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post;
-  if(cfg.director){ cfg.director.bookedUntil = G.week+total; cfg.director.booked = p.title; }
-  cfg.cast.forEach(c=>{ c.bookedUntil=G.week+total; c.booked=p.title; });
+  if(cfg.director){ cfg.director.bookedUntil = G.week+total; cfg.director.booked = p.title; cfg.director.lastWork=G.week; }
+  cfg.cast.forEach(c=>{ c.bookedUntil=G.week+total; c.booked=p.title; c.lastWork=G.week; });
+  if(p.producer){ p.producer.bookedUntil=G.week+total; p.producer.booked=p.title; p.producer.lastWork=G.week; }
+  if(p.writer){ p.writer.bookedUntil=G.week+p.phaseLen.pre; p.writer.booked=p.title; p.writer.lastWork=G.week; }
   G.projects.push(p);
   G.ideas = G.ideas.filter(i=>i.id!==idea.id);
   log("🎬 Greenlit: “"+p.title+"” ("+DATA.GENRES[p.genre].name+", "+fmtM(cfg.budget)+" budget) — "+({theatrical:"theatrical release",streaming:"streaming original",later:"decide distribution later"})[p.plan],"gold");
+  if(p.writer) log("✍️ "+p.writer.name+" is rewriting the script during pre-production.","");
+  if(p.producer) log("🎞 "+p.producer.name+" will line-produce (overrun risk down"+(p.logiTrim?", shoot trimmed 1 wk":"")+ ").","");
   return p;
 }
 function sequelTitle(t){
@@ -301,9 +482,23 @@ function tickProjects(){
     burn = Math.round(burn*10)/10;
     spend("production", burn); p.spent += burn;
     if(p.phase==="shoot") earn("incentives", burn*0.08);
+    // ── overruns: the weekly production gamble a producer keeps in check ──
+    if(p.phase==="shoot"){
+      const baseCh=0.05;
+      const ch=p.producer? baseCh*(1.3-p.producer.logi/100) : baseCh;
+      if(chance(clamp(ch,0.008,0.09))){
+        let mag=p.budget*rint(2,5)/100*(p.producer? (1-p.producer.logi/280) : 1);
+        mag=Math.round(mag*10)/10;
+        if(mag>0){
+          spend("production",mag); p.spent+=mag; p.overruns=(p.overruns||0)+mag;
+          const why=pick(["VFX plate reshoots","a storm wrecked the exterior sets","the lead came down with the flu","permit delays at the location","second unit went over schedule","the practical effect exploded early. Twice"]);
+          log("⚠️ Overrun on “"+p.title+"” ("+why+") — extra "+fmtM(mag)+(p.producer?"; "+p.producer.name+" contained the damage":" — no producer on this one")+".","bad");
+        }
+      }
+    }
     if(p.phaseWeek >= L[p.phase]){
       p.phaseWeek=0;
-      if(p.phase==="pre") p.phase="shoot";
+      if(p.phase==="pre"){ p.phase="shoot"; writerRewrite(p); }
       else if(p.phase==="shoot") p.phase="post";
       else if(p.phase==="post"){
         p.quality = computeQuality(p);
@@ -322,15 +517,33 @@ function tickProjects(){
     }
   }
 }
+/* the writer's shooting draft lands when cameras roll */
+function writerRewrite(p){
+  if(!p.writer) return;
+  const w=p.writer;
+  const fit=w.genreFit===p.genre;
+  const delta=Math.round((w.skill-64)*0.45 + (fit?6:0) + gauss()*2.5);
+  const old=p.script;
+  p.script=clamp(p.script+delta, 30, 98);
+  p.rewritten=true;
+  w.bookedUntil=0; w.booked=null; // draft delivered, writer moves on
+  if(delta>0) log("✍️ "+w.name+" delivered the shooting draft of “"+p.title+"” — script "+old+" → "+p.script+(fit?" (genre specialist!)":"")+"","good");
+  else if(delta===0) log("✍️ "+w.name+"'s polish on “"+p.title+"” kept the script at "+p.script+".","");
+  else log("✍️ "+w.name+"'s page-one rewrite of “"+p.title+"” stumbled — script "+old+" → "+p.script+".","bad");
+}
+
 function finishStreamingOriginal(p){
   const plat = DATA.platform(p.prebuyPlatform);
   const pay = p.prebuyValue;
   earn("streaming", pay);
   if(p.director){ p.director.bookedUntil=0; p.director.booked=null; }
+  if(p.producer){ p.producer.bookedUntil=0; p.producer.booked=null; }
+  if(p.writer && p.writer.booked===p.title){ p.writer.bookedUntil=0; p.writer.booked=null; }
   p.cast.forEach(c=>{ c.bookedUntil=0; c.booked=null; });
   const f = { id:p.id, title:p.title, genre:p.genre, scale:p.scale, budget:p.budget,
     marketing:0, quality:p.quality, streamingOriginal:true, platform:plat.name,
-    releaseWeek:G.week, weekly:[], dom:0, ww:0, studioRev:pay, profit:pay-p.budget-p.devCost,
+    releaseWeek:G.week, weekly:[], dom:0, ww:0, studioRev:pay, overruns:p.overruns||0,
+    profit:pay-p.budget-p.devCost-(p.overruns||0),
     inTheaters:false, soldTo:plat.name, awardsEligible:true, year:yearOf(G.week) };
   G.films.push(f);
   G.projects = G.projects.filter(x=>x!==p);
@@ -351,7 +564,7 @@ function releaseFilm(p){
     director:p.director, cast:p.cast, quality:q,
     releaseWeek:G.week, opening, weekly:[{w:G.week, gross:opening}],
     dom:opening, ww:0, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
-    presales:p.presales||0, backend:p.backend||0,
+    presales:p.presales||0, backend:p.backend||0, overruns:p.overruns||0,
     inTheaters:true, weeksOut:1, franchiseable:false, soldTo:null,
     piracyPenalty:0, awardsEligible:true, year:yearOf(G.week),
     franchiseName:p.franchiseName||null, sequelOf:p.sequelOf,
@@ -361,6 +574,8 @@ function releaseFilm(p){
   G.projects = G.projects.filter(x=>x!==p);
   // free talent
   if(p.director){ p.director.bookedUntil=0; p.director.booked=null; }
+  if(p.producer){ p.producer.bookedUntil=0; p.producer.booked=null; }
+  if(p.writer && p.writer.booked===p.title){ p.writer.bookedUntil=0; p.writer.booked=null; }
   p.cast.forEach(c=>{ c.bookedUntil=0; c.booked=null; });
   G.stats.films++;
   const fr0 = film.franchiseName && G.franchises.find(x=>x.name===film.franchiseName);
@@ -368,7 +583,8 @@ function releaseFilm(p){
   if(opening>G.stats.bestOpen){ G.stats.bestOpen=opening; G.stats.bestFilm=film.title; }
   earn("theatrical", opening*0.53);
   const label = opening>=100? "💥 MASSIVE opening": opening>=40? "🔥 Strong opening": opening>=12? "▶ Solid opening":"🎪 Limited release";
-  log(label+": “"+film.title+"” opens to "+fmtG(opening)+" domestic (+"+fmtM(opening*0.53)+" rentals this week).","gold");
+  const trendNote = trendOf(p.genre)>=1.15? " Riding the "+DATA.GENRES[p.genre].name.toLowerCase()+" wave!" : trendOf(p.genre)<=0.85? " Into a cold market, no less." : "";
+  log(label+": “"+film.title+"” opens to "+fmtG(opening)+" domestic (+"+fmtM(opening*0.53)+" rentals this week)."+trendNote, opening>=100?"smash":"fanfare");
   // talent heat on big opens
   if(opening>=60) p.cast.forEach(c=>{ c.heat=Math.min(3,c.heat+1); });
   return film;
@@ -404,19 +620,20 @@ function endTheatrical(f){
   if(f.backend){ backendPay = (f.rentalsDom + intlRentals)*f.backend; spend("talent", backendPay); }
   f.backendPaid = backendPay;
   f.studioRev = f.rentalsDom + intlRentals + pvod - backendPay;
-  f.profit = f.studioRev + f.presales - f.budget - f.marketing - (f.devCost||0);
+  f.profit = f.studioRev + f.presales - f.budget - f.marketing - (f.devCost||0) - (f.overruns||0);
   G.stats.totalWW += f.ww; G.stats.totalProfit += f.profit;
   const be = breakevenWW(f);
   const verdict = f.ww>=be*1.6? "SMASH HIT": f.ww>=be? "HIT": f.ww>=be*0.75? "disappointment": "FLOP";
   if(f.ww>=be) G.stats.hits++; else G.stats.flops++;
   const dRep = f.ww>=be*1.6? 6: f.ww>=be? 3: f.ww>=be*0.75? -2: -4;
   G.studio.rep = clamp(G.studio.rep + dRep*(G.studio.flopPenalty||1), 5, 99);
+  maybeComebacks(f);
   if(f.quality.overall>=66 && f.ww>=be*1.9){
     f.franchiseable=true;
     upsertFranchise(f);
-    log("🏆 “"+f.title+"” final: "+fmtG(f.ww)+" WW — "+verdict+". Franchise unlocked — see 🏰 Empire!","gold");
+    log("🏆 “"+f.title+"” final: "+fmtG(f.ww)+" WW — "+verdict+". Franchise unlocked — see 🏰 Empire!", verdict==="SMASH HIT"?"smash":"gold");
   }else{
-    log("🏁 “"+f.title+"” ends its run: "+fmtG(f.ww)+" WW — "+verdict+" ("+(f.profit>=0?"+":"")+fmtM(f.profit)+" net; "+fmtM(f.studioRev)+" rentals received).", f.profit>=0?"good":"bad");
+    log("🏁 “"+f.title+"” ends its run: "+fmtG(f.ww)+" WW — "+verdict+" ("+(f.profit>=0?"+":"")+fmtM(f.profit)+" net; "+fmtM(f.studioRev)+" rentals received).", verdict==="SMASH HIT"?"smash":f.profit>=0?"good":"bad");
   }
   scheduleOttOffer(f, rint(2,5));
 }
@@ -482,12 +699,15 @@ function acceptAuction(i){
     marketing:p.marketingPaid||0, devCost:p.devCost||0, quality:p.quality,
     streamingOriginal:true, platform:plat.name, soldTo:plat.name,
     releaseWeek:G.week, weekly:[], dom:0, ww:0, rentalsDom:0, studioRev:bid.value,
-    profit:bid.value-p.budget-(p.devCost||0)-(p.marketingPaid||0),
+    overruns:p.overruns||0,
+    profit:bid.value-p.budget-(p.devCost||0)-(p.marketingPaid||0)-(p.overruns||0),
     inTheaters:false, awardsEligible:true, year:yearOf(G.week) };
   G.films.push(f);
   G.projects=G.projects.filter(x=>x!==p);
   G.stats.films++; G.stats.totalProfit+=f.profit;
   if(p.director){ p.director.bookedUntil=0; p.director.booked=null; }
+  if(p.producer){ p.producer.bookedUntil=0; p.producer.booked=null; }
+  if(p.writer && p.writer.booked===p.title){ p.writer.bookedUntil=0; p.writer.booked=null; }
   p.cast.forEach(c=>{ c.bookedUntil=0; c.booked=null; });
   log("🤝 Sold “"+p.title+"” to "+plat.name+" as a streaming original for "+fmtM(bid.value)+" (no theatrical run).","gold");
   saveGame();
@@ -511,6 +731,8 @@ function acceptOffer(o){
     const p = G.projects.find(x=>x.id===o.projectId); if(!p) return;
     p.prebuyAccepted=true; p.prebuyPlatform=o.platform; p.prebuyValue=o.value;
     log("🤝 “"+p.title+"” sold to "+DATA.platform(o.platform).name+" — "+fmtM(o.value)+" payable on delivery.","gold");
+    // post-production is already done → deliver immediately (previously this stranded the film)
+    if(p.phase==="ready") finishStreamingOriginal(p);
   }else if(o.type==="renewal"){
     acceptRenewal(o);
   }
@@ -660,13 +882,20 @@ function seedRivalYear(){
     }
     r.slate = weeks.map(wk=>{
       let scale = r.style==="tentpole"? pick(["tentpole","tentpole","mid"]) : r.style==="prestige"? pick(["mid","indie","mid"]) : pick(["mid","mid","indie","tentpole"]);
+      // rivals chase what's hot when they lock their slates — a year ahead, so tastes may drift
+      const trendPick = (pool)=>{
+        const ws = pool.map(g=>Math.max(0.1, trendOf(g)));
+        const tot=ws.reduce((a,b)=>a+b,0); let rr=rnd()*tot;
+        for(let i=0;i<pool.length;i++){ rr-=ws[i]; if(rr<=0) return pool[i]; }
+        return pool[0];
+      };
       let genre;
-      if(r.style==="tentpole") genre = pick(["action","action","scifi","fantasy","animation"]);
-      else if(r.style==="prestige") genre = pick(["drama","drama","musical","thriller","romance"]);
-      else genre = pick(Object.keys(DATA.GENRES));
+      if(r.style==="tentpole") genre = trendPick(["action","action","scifi","fantasy","animation"]);
+      else if(r.style==="prestige") genre = trendPick(["drama","drama","musical","thriller","romance"]);
+      else genre = trendPick(Object.keys(DATA.GENRES));
       const S=DATA.SCALES[scale];
       const q = clamp(rint(40,90) + gauss()*8, 20, 96);
-      const weight = S.openBase*DATA.GENRES[genre].mass;
+      const weight = S.openBase*DATA.GENRES[genre].mass*clamp(trendOf(genre),0.8,1.25);
       return { week: (yr-1)*52+wk, title:makeTitle(genre), genre, scale, quality:q, weight,
                opening:0, dom:0, decay:0, weeksOut:0, live:false, dead:false, ytdGross:0 };
     });
@@ -874,7 +1103,7 @@ function runAwards(){
       f.dom+=15; f.ww+=20; f.studioRev+=15; earn("theatrical", 15);
       G.studio.rep=clamp(G.studio.rep+7,5,99);
       G.stats.awards.push({year:yr, cat:"Best Picture", film:f.title});
-      log("🏆 BEST PICTURE: “"+f.title+"”! +7 reputation, re-release bump.","gold");
+      log("🏆 BEST PICTURE: “"+f.title+"”! +7 reputation, re-release bump.","award");
       results.wins.push({cat:"Best Picture", film:f.title, mine:true});
     }else{
       results.wins.push({cat:"Best Picture", film:winner.title, mine:false, studio:winner.studio});
@@ -906,7 +1135,9 @@ function yearWrap(){
   standings.sort((a,b)=>b.ww-a.ww);
   G.stats.shareHistory.push({year:yr, standings:standings.map(s=>({name:s.name, ww:Math.round(s.ww), me:s.me}))});
   const awards=runAwards();
-  G.pendingReport={ year:yr, myWW, standings, awards,
+  const trendShift=yearTrendReset();
+  log("🗓 Year "+(yr+1)+" outlook: audiences are craving "+DATA.GENRES[trendShift.hot.k].name.toLowerCase()+" (×"+trendShift.hot.h.toFixed(2)+") and drifting away from "+DATA.GENRES[trendShift.cold.k].name.toLowerCase()+" (×"+trendShift.cold.h.toFixed(2)+").","");
+  G.pendingReport={ year:yr, myWW, standings, awards, trendShift,
     filmsReleased:G.films.filter(f=>f.year===yr).length,
     profit:G.films.filter(f=>f.year===yr).reduce((a,f)=>a+(f.profit||0),0) };
   seedRivalYear();
@@ -950,8 +1181,9 @@ function advanceWeek(){
   G.weekTx={};
   tickFinance();
   tickProjects();
-  // releases due (or overdue — safety net)
+  // releases due (or overdue — safety net); also deliver any stranded pre-sold films
   for(const p of [...G.projects]){
+    if(p.phase==="ready" && p.prebuyAccepted){ finishStreamingOriginal(p); continue; }
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
       const rest = p.marketing - p.marketingPaid;
       spend("marketing", Math.max(0,rest));
@@ -966,8 +1198,13 @@ function advanceWeek(){
   // offer expiry
   G.offers=G.offers.filter(o=>o.expires>=G.week || o.type==="renewal");
   refreshIdeas();
-  if(chance(.18)) G.talent.push(chance(.6)?genActor(chance(.2)):genDirector(chance(.2)));
-  G.talent=G.talent.filter(t=>!t.bookedUntil||t.bookedUntil>=G.week-30).slice(-46);
+  tickTrends();
+  tickTalent();
+  if(chance(.18)){
+    const r=rnd();
+    G.talent.push(r<0.38?genActor(chance(.2)): r<0.58?genDirector(chance(.2)): r<0.79?genWriter(chance(.2)): genProducer(chance(.2)));
+  }
+  G.talent=G.talent.filter(t=>!t.bookedUntil||t.bookedUntil>=G.week-30).slice(-52);
   tickEvents();
   if(G.streamWar>0)G.streamWar--;
   if(G.theaterCap>0)G.theaterCap--;
