@@ -30,6 +30,7 @@ function newGame(archId, name){
     investorDebt:0, investorPaid:0,
     streamWar:0, theaterCap:0,
     infl:1, execs:{}, lastClass:yearOf(1),
+    streamer:null, pendingSports:null, sportsAuction:null, sportsWon:[], exhibitor:50, achv:[],
     over:null, pendingReport:null, pendingChoice:null,
     weeksInDebt:0,
   };
@@ -200,6 +201,8 @@ function expectedOpening(p, weekAbs){
   let hype = base*starF*mktF*season*fr*repF*comp*(1+(p.buzzBonus||0));
   hype *= (1 + (rate?rate.open:0));         // R = −12% opening
   if(p.premium) hype *= 1.12;               // IMAX/premium = +12% opening
+  hype *= (0.95 + (G.exhibitor||50)/1000);  // exhibitor relations ±5%
+  if(p.dayAndDate) hype *= 0.65;            // day-and-date = −35% opening
   return hype; // expected opening before noise
 }
 function competitionFactor(p, weekAbs){
@@ -217,6 +220,8 @@ function expectedWeightOf(p){
   const rate = DATA.rating(p.rating);
   let w = S.openBase * DATA.GENRES[p.genre].mass * (G.infl||1) * (p.franchise?1.35:1)
     * (1+(rate?rate.open:0)) * (p.premium?1.12:1)
+    * (0.95 + (G.exhibitor||50)/1000)
+    * (p.dayAndDate?0.65:1)
     * clamp(Math.pow(Math.max(p.marketing,1)/Math.max(recMarketing(p),1),0.45),0.6,1.5);
   return w;
 }
@@ -263,7 +268,7 @@ function greenlight(cfg){
     budget: cfg.budget, spent:0, devCost:dev,
     director: cfg.director, cast: cfg.cast,
     rating: cfg.rating || "PG-13", location: cfg.location || "la",
-    premium: !!cfg.premium, scriptPolish: polish,
+    premium: !!cfg.premium, scriptPolish: polish, window: cfg.window || "45", dayAndDate: !!cfg.dayAndDate,
     phase:"pre", phaseWeek:0,
     phaseLen:{ pre:rint(...S.pre)+(polish?1:0), shoot:rint(...S.shoot), post:rint(...S.post) },
     releaseWeek:0, marketing:0, marketingPaid:0,
@@ -396,6 +401,7 @@ function releaseFilm(p){
     releaseWeek:G.week, opening, weekly:[{w:G.week, gross:opening}],
     dom:opening, ww:0, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
     presales:p.presales||0, backend:p.backend||0,
+    window:p.window||"45", dayAndDate:!!p.dayAndDate, onOwn:!!p.dayAndDate,
     inTheaters:true, weeksOut:1, franchiseable:false, soldTo:null,
     piracyPenalty:0, awardsEligible:true, year:yearOf(G.week),
     franchiseName:p.franchiseName||null, sequelOf:p.sequelOf,
@@ -415,6 +421,9 @@ function releaseFilm(p){
   log(label+": “"+film.title+"” opens to "+fmtG(opening)+" domestic (+"+fmtM(opening*0.53)+" rentals this week).","gold");
   // talent heat on big opens
   if(opening>=60) p.cast.forEach(c=>{ c.heat=Math.min(3,c.heat+1); });
+  // exhibitor relations swing with the theatrical window you chose
+  const win = DATA.window(film.window||"45");
+  if(win && win.exh){ G.exhibitor = clamp((G.exhibitor||50) + win.exh, 0, 100); }
   return film;
 }
 function tickTheatrical(){
@@ -442,8 +451,12 @@ function endTheatrical(f){
   f.ww = f.dom + intlGross;
   let intlRentals = 0;
   if(!f.presales){ intlRentals = intlGross*0.42; earn("theatrical", intlRentals); }
-  const pvod = Math.round(f.ww*0.055*clamp(f.quality.overall/70,0.7,1.4));
+  const win = DATA.window(f.window||"45");
+  const pvod = Math.round(f.ww*0.055*clamp(f.quality.overall/70,0.7,1.4)*(win?win.pvod:1));
   f.pvod = pvod; earn("pvod", pvod);
+  if(!f.streamingOriginal && !f.onOwn){ f.pay1Rate=0.06; f.pay1At=G.week+6; }  // PVOD → pay-1 ladder
+  // day-and-date also boosts your streamer once the run ends
+  if(f.dayAndDate && G.streamer){ G.streamer.subs = Math.round((G.streamer.subs + 0.2 + (f.quality.overall/100))*100)/100; }
   let backendPay = 0;
   if(f.backend){ backendPay = (f.rentalsDom + intlRentals)*f.backend; spend("talent", backendPay); }
   f.backendPaid = backendPay;
@@ -825,6 +838,8 @@ function forecastProject(){
     }
     // franchise income
     for(const fr of G.franchises) net += frWeeklyIncome(fr);
+    // streamer subs + pay-1
+    if(G.streamer) net += G.streamer.subs*0.5;
     // mezzanine / debt interest
     if(st.debt>0) net -= st.debt*0.0018*(G.execs&&G.execs.cfo?0.70:1);
     if(st.mezzDebt>0) net -= st.mezzDebt*0.005;
@@ -929,6 +944,111 @@ function tickPublic(){
     G.studio.rep = clamp(G.studio.rep-3,5,99);
     log("📉 Shareholders punish a weak quarter — rep −3. Fix the P&L.","bad");
     G.public.strikes=0;
+  }
+}
+
+/* ═══════════ achievements (v3 meta) ═══════════ */
+function unlockAchv(id, title, desc){
+  G.achv = G.achv||[];
+  if(G.achv.some(a=>a.id===id)) return;
+  G.achv.push({id, title, desc, week:G.week});
+  log("🏅 Achievement unlocked: "+title+" — "+desc,"gold");
+}
+
+/* ═══════════ your own streamer (v3) ═══════════ */
+function launchStreamer(){
+  if(G.streamer || G.studio.rep < 40) return false;
+  if(G.studio.cash < 250) return false;
+  spend("studio", 250);
+  G.streamer = { name:(G.studio.name+"+").slice(0,20), launchedWeek:G.week, subs:2.5, sportsPower:0, churn:0.008, income:0 };
+  log("📱 You launched "+G.streamer.name+" — $250M, "+G.streamer.subs+"M subs, $0.5/sub/wk. Build content (films, franchises, shows, sports) to raise your ceiling.","gold");
+  unlockAchv("launch", "Streamer Barons", "Launch your own streaming platform.");
+  saveGame();
+  return true;
+}
+function streamerCeiling(){
+  if(!G.streamer) return 0;
+  const lib = G.films.length;
+  const frw = G.franchises.reduce((a,f)=>a+f.tier,0);
+  const showBuzz = G.series.reduce((a,s)=>a+(s.seasons.length? s.seasons.reduce((x,y)=>x+(y.viewership||0),0)/10:0),0);
+  const sport = G.streamer.sportsPower||0;
+  const base = 3 + lib*1.1 + frw*2.2 + showBuzz + sport*1.5;
+  return Math.min(60, Math.round(base));
+}
+function tickStreamer(){
+  if(!G.streamer) return;
+  const st=G.streamer;
+  const ce=streamerCeiling();
+  // subs pull toward the content ceiling; starve the service and they bleed (churn)
+  let growth = (ce - st.subs)*0.05 - st.subs*(st.churn||0.008);
+  st.subs = clamp(st.subs + growth, 0, Math.ceil(ce*1.05));
+  st.subs = Math.round(st.subs*100)/100;
+  const income = st.subs*0.5;
+  st.income = Math.round(income*10)/10;
+  if(income>=0.05) earn("streamer", income);
+  // sports power decays ~1.5%/wk
+  if(st.sportsPower>0) st.sportsPower = Math.max(0, st.sportsPower - st.sportsPower*0.015 - 0.02);
+  if(st.subs>=25) unlockAchv("subs25", "The Empire Hits 25M", "Reach 25M subscribers on your platform.");
+}
+function moveToStreamer(fid){
+  if(!G.streamer) return false;
+  const f=G.films.find(x=>x.id===fid);
+  if(!f || f.streamingOriginal || f.soldTo || f.onOwn || f.inTheaters) return false;
+  f.onOwn = true; f.soldTo = G.streamer.name;
+  G.streamer.subs = Math.round((G.streamer.subs + 0.3 + (f.quality?f.quality.overall/60:0))*100)/100;
+  log("📺 “"+f.title+"” moved to your platform "+G.streamer.name+" — exclusive. Content ceiling +.","gold");
+  saveGame();
+  return true;
+}
+function tickPay1(){
+  for(const f of G.films){
+    if(f.pay1At && G.week>=f.pay1At && !f.pay1Paid && !f.streamingOriginal && !f.onOwn){
+      f.pay1Paid=true;
+      const pay = Math.round((f.ww||0)*(f.pay1Rate||0.06));
+      if(pay>0){ earn("pay1", pay); log("📺 Pay-1 TV window: “"+f.title+"” lands "+fmtM(pay)+" (6% of WW).","good"); }
+    }
+  }
+}
+
+/* ═══════════ live sports rights (v3) — quarterly sealed-bid auctions ═══════════ */
+function makeSportsAuction(){
+  const pool = DATA.SPORTS.filter(s=>!((G.sportsWon||[]).includes(s.id)));
+  const sport = pool.length? pool[rint(0,pool.length-1)] : pick(DATA.SPORTS);
+  const base = rint(70,170);
+  return { pkg:{ id:sport.id, name:sport.name, icon:sport.icon, blurb:sport.blurb, base,
+      rivalBid: Math.round(base*(0.95+rnd()*0.5)),
+      sportPower: Math.round(base/12), subBump: Math.round((2.5+base/60)*10)/10 },
+    week:G.week, expires:G.week+2 };
+}
+function resolveSports(bid, pkgId){
+  const a=G.pendingSports; if(!a) return;
+  const pkg=a.pkg;
+  bid = Math.round(bid||0);
+  G.pendingSports=null;
+  if(bid>=pkg.rivalBid && bid>0){
+    spend("studio", bid);
+    G.streamer.sportsPower += pkg.sportPower;
+    G.streamer.subs = Math.round((G.streamer.subs + pkg.subBump)*100)/100;
+    G.sportsWon.push(pkg.id);
+    unlockAchv("sports", "Live & Buzzing", "Win a live sports rights package.");
+    log(pkg.icon+" Won "+pkg.name+" rights for "+fmtM(bid)+" — sports power +"+pkg.sportPower+", +"+pkg.subBump+"M subs.","gold");
+  }else{
+    log(pkg.icon+" Lost the "+pkg.name+" rights — a rival outbid your "+fmtM(bid)+".","bad");
+  }
+  saveGame();
+}
+function passSports(){
+  const a=G.pendingSports; if(!a) return;
+  G.pendingSports=null;
+  log("🚫 You passed on "+a.pkg.name+" rights — a rival took them.","");
+  saveGame();
+}
+function tickSportsAuctions(){
+  if(!G.streamer) return;
+  if(G.pendingSports) return;
+  const woy = woyOf(G.week);
+  if(woy===13||woy===26||woy===39||woy===52){
+    G.pendingSports = makeSportsAuction();
   }
 }
 
@@ -1103,6 +1223,9 @@ function advanceWeek(){
   G.weekTx={};
   tickFinance();
   tickPublic();
+  tickStreamer();
+  tickSportsAuctions();
+  tickPay1();
   tickProjects();
   // releases due (or overdue — safety net)
   for(const p of [...G.projects]){

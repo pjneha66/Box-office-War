@@ -101,6 +101,8 @@ function enterApp(fresh){
   if(fresh) setTimeout(helpModal, 400);
   render();
   if(G.pendingChoice) choiceModal();
+  else if(G.pendingAuction) auctionModal();
+  else if(G.pendingSports) sportsModal();
   else if(G.pendingReport) reportModal();
   else if(G.over) gameOverModal();
 }
@@ -120,6 +122,7 @@ function afterTick(){
   render();
   if(G.pendingChoice) choiceModal();
   else if(G.pendingAuction) auctionModal();
+  else if(G.pendingSports) sportsModal();
   else if(G.pendingReport) reportModal();
   else if(G.over) gameOverModal();
 }
@@ -170,6 +173,8 @@ function viewStudio(){
   }
   if(G.streamWar>0) h+="<div class='card' style='border-left:3px solid var(--purple)'><b>⚔️ Streaming war</b> — offers +30% for "+G.streamWar+" more weeks.</div>";
   if(G.theaterCap>0) h+="<div class='card' style='border-left:3px solid var(--red)'><b>🦠 Theater capacity limits</b> — box office −45% for "+G.theaterCap+" more weeks.</div>";
+  if(G.streamer) h+="<div class='card' style='border-left:3px solid var(--purple)'><b>📱 "+esc(G.streamer.name)+"</b> — "+G.streamer.subs.toFixed(1)+"M subs · +"+fmtM(G.streamer.income)+"/wk · ceiling "+streamerCeiling()+"M</div>";
+  h+="<div class='card' style='border-left:3px solid var(--line)'><div class='spread'><span class='small muted'>🎞 Exhibitor relations</span><b class='"+(G.exhibitor>=50?"pos":"neg")+"'>"+Math.round(G.exhibitor||50)+"/100</b></div>"+meter(G.exhibitor||50,100)+"<div class='tiny muted'>Short windows anger exhibitors and swing openings ±5%.</div></div>";
   h+="<div class='section-title'>Market share — Year "+yr+" (worldwide gross)</div><div class='card'>";
   const rows=[{name:G.studio.name, ww:myYtd, me:true}].concat(G.rivals.map(r=>({name:r.name, ww:r.ytd})));
   const max=Math.max(1,...rows.map(r=>r.ww));
@@ -468,7 +473,7 @@ function viewProductions(){
 /* ── release scheduling modal ── */
 function startScheduling(pid){
   const p=G.projects.find(x=>x.id===pid); if(!p) return;
-  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium};
+  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium, window:p.window||"45", dayAndDate:!!p.dayAndDate};
   schedModal();
 }
 function schedModal(){
@@ -481,6 +486,12 @@ function schedModal(){
     "<div class='tiny muted'>Recommended "+fmtM(rec)+" ("+Math.round(DATA.SCALES[p.scale].mktRate*100)+"% of budget). 30% paid now, 70% on release.</div></div>";
   h+="<div class='card' style='margin-top:8px;cursor:pointer' id='scPremium'><div class='spread'><span class='small'>"+(SCHEDULE.premium?"✅ ":"⬜ ")+"<b>Premium/IMAX format</b> — +12% opening</span><span class='tag "+(SCHEDULE.premium?"gold":"")+"'>+"+fmtM(Math.round(SCHEDULE.marketing*0.08))+" P&A</span></div>"+
     "<div class='tiny muted'>Premium screens (IMAX, 4DX) draw the big-open crowd but cost more to platform. +8% P&A for +12% opening.</div></div>";
+  h+="<div class='small muted' style='margin:10px 0 6px'>🎞 Theatrical windowing</div><div class='row' id='scWin'>";
+  DATA.WINDOWS.forEach(w=>{ h+="<button class='btn btn-sm "+(SCHEDULE.window===w.id?"btn-primary":"")+"' data-win='"+w.id+"'>"+w.name+"</button>"; });
+  h+="</div><div class='tiny muted' style='margin:2px 0 4px'>"+DATA.window(SCHEDULE.window||"45").desc+" <span class='muted'>(exhibitor mood: "+Math.round(G.exhibitor||50)+"/100)</span></div>";
+  h+="<div class='row' id='scDay'>";
+  h+="<div class='card' style='margin-top:4px;cursor:pointer;flex:1' id='scDayToggle'><div class='spread'><span class='small'>"+(SCHEDULE.dayAndDate?"✅ ":"⬜ ")+"<b>Day-and-date</b> — theater + your platform</span></div>"+
+    "<div class='tiny muted'>−35% opening, but pushes your streamers' subscribers. Only if you own a platform.</div></div></div>";
   h+="<div class='small muted' style='margin:10px 0 6px'>Pick a weekend (next 30 weeks):</div><div style='max-height:300px;overflow-y:auto;display:grid;gap:6px'>";
   for(let w=G.week+2; w<=G.week+30; w++){
     const s=DATA.seasonOf(woyOf(w));
@@ -515,15 +526,18 @@ function schedModal(){
   };
   v.querySelectorAll("[data-w]").forEach(el=>el.onclick=()=>{ SCHEDULE.week=+el.dataset.w; beep("click"); schedModal(); });
   const pm=v.querySelector("#scPremium"); if(pm) pm.onclick=()=>{ SCHEDULE.premium=!SCHEDULE.premium; beep("click"); schedModal(); };
+  v.querySelectorAll("[data-win]").forEach(b=>b.onclick=()=>{ SCHEDULE.window=b.dataset.win; beep("click"); schedModal(); });
+  const dt=v.querySelector("#scDayToggle"); if(dt) dt.onclick=()=>{ SCHEDULE.dayAndDate=!SCHEDULE.dayAndDate; beep("click"); schedModal(); };
   v.querySelector("#scGo").onclick=()=>{
     const mkt = SCHEDULE.premium? Math.round(SCHEDULE.marketing*1.08) : SCHEDULE.marketing;
     const want=Math.round(mkt*0.3);
     // pay what you can now; the rest is due at release (advanceWeek collects it)
     const now=Math.min(want, Math.max(0, Math.floor(G.studio.cash)));
     p.releaseWeek=SCHEDULE.week; p.marketing=mkt; p.marketingPaid=now; p.premium=SCHEDULE.premium;
+    p.window=SCHEDULE.window; p.dayAndDate=SCHEDULE.dayAndDate;
     G.studio.cash-=now;
     if(now<want) log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(mkt)+" P&A — "+fmtM(now)+" paid now, "+fmtM(want-now)+" due at release (fees continue to accrue).","gold");
-    else log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(mkt)+" P&A"+(SCHEDULE.premium?" (+Premium/IMAX)":"")+".","gold");
+    else log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(mkt)+" P&A"+(SCHEDULE.premium?" (+Premium/IMAX)":"")+" · "+(DATA.window(SCHEDULE.window).name)+(SCHEDULE.dayAndDate?" · day-and-date":"")+".","gold");
     beep("gold"); SCHEDULE=null; closeModal(); render();
   };
 }
@@ -574,8 +588,10 @@ function viewBoxOffice(){
     h+="<div class='film-row'><div><b>"+esc(f.title)+"</b> "+verdict+" "+
       ((f.awards&&f.awards.length)?"🏆 "+f.awards.join(" · "):"")+
       "<div class='tiny muted'>"+DATA.GENRES[f.genre].name+" · "+fmtM(f.budget)+" budget · "+fmtG(f.ww||0)+" WW"+
-      (f.soldTo?" · licensed to "+f.soldTo:"")+"</div></div>"+
-      "<div style='text-align:right'><b class='"+(f.profit>=0?"pos":"neg")+"'>"+(f.profit>=0?"+":"")+fmtM(f.profit||0)+"</b><div class='tiny muted'>net</div></div></div>";
+      (f.soldTo?" · licensed to "+f.soldTo:"")+(f.onOwn?" · on your platform":"")+(f.dayAndDate?" · 🎞 day-and-date":"")+" · "+(DATA.window(f.window||"45").name)+"</div></div>"+
+      "<div style='text-align:right'><b class='"+(f.profit>=0?"pos":"neg")+"'>"+(f.profit>=0?"+":"")+fmtM(f.profit||0)+"</b><div class='tiny muted'>net</div>"+
+      (G.streamer && !f.streamingOriginal && !f.soldTo && !f.onOwn && !f.inTheaters? "<button class='btn btn-sm btn-alt' style='margin-top:4px' data-movestr='"+f.id+"'>📱 → your platform</button>":"")+
+      "</div></div>";
   });
   h+="</div>";
   return h;
@@ -610,6 +626,32 @@ function viewOTT(){
     else h+="<div class='small muted' style='margin-top:6px'>"+(s.status==="ended"?"Ended":"Between seasons")+(last?" · last season buzz "+last.viewership+"/100":"")+"</div>";
     if(last) h+="<div style='margin-top:6px'>"+meter(last.viewership,100)+"</div>";
     h+="</div>";
+  }
+  // YOUR OWN STREAMER (v3)
+  h+="<div class='section-title'>✨ Your platform</div>";
+  if(!G.streamer){
+    h+="<div class='card'><h4>📱 Launch your own streamer</h4>"+
+      "<p class='small muted'>Build a direct-to-consumer platform: $250M at reputation ≥40. Subscribers pay $0.5/sub/wk, but your subscriber ceiling is built from your library, franchises, shows and sports rights. Starve it and subs bleed (0.8%/wk churn).</p>"+
+      "<button class='btn btn-sm "+(G.studio.rep>=40&&G.studio.cash>=250?"btn-primary":"btn-ghost")+"' id='launchStreamer'>"+(G.studio.rep>=40? "🚀 Launch for $250M":"Launch (needs rep 40+ · current "+Math.round(G.studio.rep)+")")+"</button></div>";
+  }else{
+    const st=G.streamer;
+    const ceil=streamerCeiling();
+    h+="<div class='card' style='border-left:3px solid var(--purple)'><div class='spread'><div><b>📱 "+esc(st.name)+"</b> <span class='tag purple'>your platform</span></div>"+
+      "<div style='text-align:right'><b class='gold'>"+st.subs.toFixed(1)+"M subs</b><div class='tiny muted'>+$"+st.income+"/wk</div></div></div>"+
+      "<div class='tiny muted' style='margin-top:6px'>Content ceiling: <b>"+ceil+"M</b> · churn 0.8%/wk · sport power "+st.sportsPower.toFixed(1)+"</div>"+
+      "<div style='margin-top:6px'>"+meter(st.subs, Math.max(ceil,1))+"</div>"+
+      "<div class='tiny muted' style='margin-top:6px'>Feed it: move finished films onto the platform, or win live sports rights. Subscribers pay $0.5/sub/wk.</div></div>";
+  }
+  // LIVE SPORTS (v3)
+  const won=G.sportsWon||[];
+  h+="<div class='section-title'>🏆 Live sports rights"+(won.length? " · "+won.length+" held":"")+"</div>";
+  if(!G.streamer){ h+="<div class='card muted small'>You need a live platform to carry sports. Launch a streamer first.</div>"; }
+  else if(G.pendingSports){ /* handled by the modal opened after tick */ }
+  else {
+    h+="<div class='card'><div class='tiny muted' style='margin-bottom:6px'>Quarterly sealed-bid auctions (weeks 13/26/39/52) for soccer, hoops, racing and fights ($70–170M). Winning bumps subscribers and raises your content ceiling; the sport power decays ~1.5%/wk.</div>";
+    const held=DATA.SPORTS.filter(s=>won.includes(s.id));
+    if(held.length){ h+="<div class='row'>"; held.forEach(s=>{ h+="<span class='tag gold'>"+s.icon+" "+s.name+"</span>"; }); h+="</div>"; }
+    else h+="<div class='tiny muted'>No sports rights yet. An auction will arrive near week 13, 26, 39 or 52.</div></div>";
   }
   h+="<div class='section-title'>The platforms</div><div class='grid g3'>";
   DATA.PLATFORMS.forEach(p=>{
@@ -684,7 +726,7 @@ function viewFinance(){
   return h;
 }
 
-const PL_LABELS={theatrical:"🎬 Box office rentals", pvod:"🏠 Premium VOD", streaming:"📺 Streaming deals", series:"📺 Series licenses", empire:"🏰 Franchise & parks", library:"📚 Library licensing", presales:"🌍 Intl pre-sales", incentives:"🧾 Production incentives", production:"🎬 Production spend", marketing:"📣 Marketing (P&A)", talent:"🌟 Talent & fees", development:"📝 Development", overhead:"🏛 Overhead", interest:"🏦 Interest", studio:"🏗 Studio investment", other:"❓ Other"};
+const PL_LABELS={theatrical:"🎬 Box office rentals", pvod:"🏠 Premium VOD", streaming:"📺 Streaming deals", series:"📺 Series licenses", empire:"🏰 Franchise & parks", library:"📚 Library licensing", presales:"🌍 Intl pre-sales", incentives:"🧾 Production incentives", production:"🎬 Production spend", marketing:"📣 Marketing (P&A)", talent:"🌟 Talent & fees", development:"📝 Development", overhead:"🏛 Overhead", interest:"🏦 Interest", studio:"🏗 Studio investment", streamer:"📱 Platform subs", pay1:"📺 Pay-1 TV", other:"❓ Other"};
 function plCard(){
   const tx=G.weekTx||{};
   const cats=Object.keys(tx).filter(k=>Math.abs(tx[k])>=0.05);
@@ -713,12 +755,14 @@ function bindView(){
     if(idea){ beep("click"); startWizard(idea); }
   });
   const ps=$("#btnPitchSeries"); if(ps) ps.onclick=()=>{ beep("click"); startSeriesWizard(); };
+  const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
   $$("[data-shop]").forEach(b=>b.onclick=()=>{
     shopToStreamers(+b.dataset.shop); beep("click");
     if(G.pendingAuction){ render(); auctionModal(); }
   });
   $$("[data-test]").forEach(b=>b.onclick=()=>{ beep("click"); testScreenModal(+b.dataset.test); });
+  $$("[data-movestr]").forEach(b=>b.onclick=()=>{ if(moveToStreamer(+b.dataset.movestr)){beep("gold"); flashes(G.flash); render();} else toast("That film can't move to your platform.","bad"); });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
@@ -784,6 +828,30 @@ function auctionModal(){
   });
   const no=v.querySelector("#aucNo");
   if(no) no.onclick=()=>{ declineAuction(); beep("click"); closeModal(); render(); };
+}
+
+/* ═══════════ live sports rights auction modal (v3) ═══════════ */
+function sportsModal(){
+  const a=G.pendingSports; if(!a) return;
+  const pkg=a.pkg;
+  const bid=pkg.rivalBid;
+  let h="<h3>"+pkg.icon+" Live sports rights — "+esc(pkg.name)+"</h3>"+
+    "<p class='small muted'>"+esc(pkg.blurb)+" A sealed-bid auction. Winning adds <b>+"+pkg.subBump+"M subs</b> and <b>+"+pkg.sportPower+" sports power</b> (raises your content ceiling, decays ~1.5%/wk). Rivals are in play.</p>"+
+    "<div class='card'><div class='cost-line'><span>Package value</span><b>"+fmtM(pkg.base)+"</b></div>"+
+    "<div class='cost-line'><span>Suggested winning bid</span><b>"+fmtM(bid)+"</b></div>"+
+    "<div class='cost-line'><span>Your cash</span><b>"+fmtM(G.studio.cash)+"</b></div></div>"+
+    "<div class='card'><div class='spread'><span class='small muted'>Your bid</span><input type='range' id='spBid' min='"+Math.max(5,Math.round(pkg.base*0.5))+"' max='"+Math.max(20,Math.round(pkg.base*2))+"' step='5' value='"+bid+"' style='flex:1'><b id='spBidV'>"+fmtM(bid)+"</b></div></div>"+
+    "<div class='modal-actions'><button class='btn btn-ghost' id='spPass'>Pass</button><button class='btn btn-primary' id='spGo'>🔒 Sealed bid</button></div>";
+  const v=openModal(h,{noX:true,locked:true});
+  const rg=v.querySelector("#spBid");
+  if(rg){ const upd=()=>$("#spBidV").textContent=fmtM(+rg.value); rg.oninput=upd; }
+  const pass=v.querySelector("#spPass"); if(pass) pass.onclick=()=>{ passSports(); beep("click"); closeModal(); render(); };
+  const go=v.querySelector("#spGo");
+  if(go) go.onclick=()=>{
+    const b=+v.querySelector("#spBid").value;
+    if(b>G.studio.cash){ toast("Not enough cash for that bid.","bad"); return; }
+    resolveSports(b, pkg.id); beep(b>0?"gold":"bad"); flashes(G.flash); closeModal(); render();
+  };
 }
 
 /* ═══════════ test screen & reshoot modal (v2) ═══════════ */

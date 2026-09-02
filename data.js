@@ -166,6 +166,23 @@ DATA.rating = (id)=> DATA.RATINGS.find(r=>r.id===id) || DATA.RATINGS[0];
 /* ── Economy: yearly inflation compounding across the whole market (v3) ── */
 DATA.INFLATION = 0.02;   // 2%/year
 
+/* ── Live sports rights packages (v3) ── */
+DATA.SPORTS = [
+  {id:"soccer", name:"Premier Football League", icon:"⚽", blurb:"Global reach, weekend juggernaut."},
+  {id:"hoops",  name:"National Basketball Circuit", icon:"🏀", blurb:"Year-round live appointment viewing."},
+  {id:"racing", name:"Grand Prix Racing",        icon:"🏎️", blurb:"Season-long drama, big PPV bumps."},
+  {id:"fights", name:"Combat Championship",      icon:"🥊", blurb:"Event-driven spikes, loyal PPV base."},
+];
+DATA.sport = (id)=> DATA.SPORTS.find(s=>s.id===id);
+
+/* ── Theatrical windows (v3): 17/45/90-day ── */
+DATA.WINDOWS = [
+  {id:"17", name:"Short (17-day)", days:17, pvod:1.15, exh:-8,  desc:"+15% PVOD, but angers exhibitors (openings swing ±5%)."},
+  {id:"45", name:"Standard (45-day)", days:45, pvod:1.00, exh:0, desc:"The usual compromise."},
+  {id:"90", name:"Long (90-day)",  days:90, pvod:0.85, exh:5,  desc:"−15% PVOD, exhibitors love the exclusivity."},
+];
+DATA.window = (id)=> DATA.WINDOWS.find(w=>w.id===id) || DATA.WINDOWS[1];
+
 /* ── Random events (weekly pool) ── */
 /* kinds: 'cash' instant | 'choice' modal (choices[{label,effect}]) — effects are fn(G) */
 DATA.EVENTS = [

@@ -46,6 +46,18 @@ Progress auto-saves to your browser's localStorage.
 | 2% yearly inflation | the whole market compounds ~2%/yr (budgets, offers & gross all scale) |
 | 12-week cash-flow forecast | 📈 Finance shows a rough 12-week projection of income vs commitments |
 
+### The v3 Studio-as-Empire update
+| Mechanic | Real-world rule used |
+|---|---|
+| Your own streamer | 📱 build a platform ($250M, rep ≥40). Subs pay $0.5/sub/wk; **subscriber ceiling** grows from your library, franchises, shows & sports |
+| Churn | starve the service and subs bleed (0.8%/wk) |
+| Day-and-date releases | 🎞 in theaters *and* on your streamer: −35% opening, +subs |
+| Library moves | push any unsold film onto your platform |
+| Live sports rights | 🏆 quarterly sealed-bid auctions (weeks 13/26/39/52) for soccer/hoops/racing/fights ($70–170M); instant sub bumps + sports power that raises your ceiling (decays ~1.5%/wk) |
+| Theatrical windows | 17 / 45 / 90-day: short = +15% PVOD, long = −15% PVOD |
+| Exhibitor relations meter | 🎞 short windows anger exhibitors; the meter swings openings ±5% |
+| PVOD → pay-1 TV ladder | pay-1 lands 6% of WW at week +6 after the run |
+
 ### Screens
 🏛 Studio (feed + market share) · 📝 Develop (script market + talent + craft choices) · 🎬 Productions (pipeline, test screenings & reshoots, release dating) · 📊 Box Office (weekly chart, runs, library) · 📺 OTT & Series (offers, renewals, platforms) · 🏰 Empire (franchises, merch, parks) · 💼 Finance (live weekly P&L, 12-week forecast, loans, mezzanine, IPO, execs, upgrades)
 
