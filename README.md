@@ -31,8 +31,23 @@ Progress auto-saves to your browser's localStorage.
 | Awards | year-end Golden Reel — Best Picture wins add re-release gross, reputation, catalog value |
 | Everything else | rival studios with their own slates, loans with weekly interest, studio upgrades, random events (strikes, piracy, pandemics, streaming wars) |
 
+### The v2 production & release craft update
+| Mechanic | Real-world rule used |
+|---|---|
+| Script rewrites | pay for extra polish in pre-production (+6 script score, +1 wk pre-prod, ~40% of dev rights) |
+| MPAA rating choice | 🎬 PG-13 for the masses vs **R** (−12% opening, critics +5) |
+| Test screenings & reshoots | screen a finished film, then reshoot weak spots (~12% of budget, +2–4 wks, big quality jump) |
+| Premium/IMAX formats | +12% opening for +8% P&A — pick it when you set the release date |
+| Shoot locations | 🌍 Los Angeles (0%), Atlanta (14%), London (18%) — the rebate offsets the weekly burn |
+| Executive hires | 👔 CMO (+12% hype), Head of Casting (−10% fees), CFO (−30% interest) |
+| Mezzanine debt | 🪜 emergency money at 0.5%/wk (≈26%/yr), no credit-line cap |
+| IPO | 📊 raise $400M at reputation ≥60; shareholders punish loss-making quarters |
+| Yearly talent class | 🌟 fresh faces hit the market every year ("New Faces of Year N") |
+| 2% yearly inflation | the whole market compounds ~2%/yr (budgets, offers & gross all scale) |
+| 12-week cash-flow forecast | 📈 Finance shows a rough 12-week projection of income vs commitments |
+
 ### Screens
-🏛 Studio (feed + market share) · 📝 Develop (script market + talent) · 🎬 Productions (pipeline + release dating) · 📊 Box Office (weekly chart, runs, library) · 📺 OTT & Series (offers, renewals, platforms) · 🏰 Empire (franchises, merch, parks) · 💼 Finance (live weekly P&L, loans, upgrades)
+🏛 Studio (feed + market share) · 📝 Develop (script market + talent + craft choices) · 🎬 Productions (pipeline, test screenings & reshoots, release dating) · 📊 Box Office (weekly chart, runs, library) · 📺 OTT & Series (offers, renewals, platforms) · 🏰 Empire (franchises, merch, parks) · 💼 Finance (live weekly P&L, 12-week forecast, loans, mezzanine, IPO, execs, upgrades)
 
 ## 🕹 Quick strategy tips
 1. Start with an **indie or mid film** — tentpoles need ~$200M+ and a franchise to pay off.

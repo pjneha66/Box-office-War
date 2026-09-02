@@ -229,13 +229,15 @@ function talentCard(t){
 
 /* ── greenlight wizard (film & sequel) ── */
 function startWizard(idea){
-  WZ={mode:"film", idea, director:null, cast:[], sub:2, budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false};
+  WZ={mode:"film", idea, director:null, cast:[], sub:2, budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false,
+      rating:"PG-13", location:"la", scriptPolish:false, premium:false};
   wizardModal();
 }
 function startSequel(film){
   const idea={ id:nid(), genre:film.genre, scale:film.scale, title:"(sequel)", blurb:"The saga continues…",
     script:clamp((film.quality?film.quality.overall:65)+5,55,95), hot:true, sequelOf:film };
-  WZ={mode:"film", idea, director:null, cast:[], sub:2, seqBudgetFixed:true, budget:Math.round(film.budget*1.3)};
+  WZ={mode:"film", idea, director:null, cast:[], sub:2, seqBudgetFixed:true, budget:Math.round(film.budget*1.3),
+      rating:"PG-13", location:"la", scriptPolish:false, premium:false};
   wizardModal();
 }
 function wizardModal(){
@@ -271,6 +273,19 @@ function wizardModal(){
     const S2=DATA.SCALES[WZ.idea.scale];
     const weeks=S2.pre[1]+S2.shoot[1]+S2.post[1];
     const starP=WZ.cast.reduce((s,c)=>s+c.power,0);
+    const devBase=devCostOf(WZ.idea);
+    const polishCost = WZ.scriptPolish? Math.round(devBase*0.4):0;
+    h+="<div class='small muted' style='margin:4px 0 6px'><b>Production craft</b> — creative & logistics (v2)</div>";
+    h+="<div class='craft-block'>";
+    h+="<div class='tiny muted' style='margin:2px 0 4px'>🎬 MPAA rating</div><div class='row' id='wzRating'>";
+    DATA.RATINGS.forEach(rt=>{ h+="<button class='btn btn-sm "+(WZ.rating===rt.id?"btn-primary":"")+"' data-rate='"+rt.id+"'>"+rt.name+"</button>"; });
+    h+="</div><div class='tiny muted' style='margin-top:2px'>"+DATA.rating(WZ.rating).desc+"</div>";
+    h+="<div class='tiny muted' style='margin:8px 0 4px'>🌍 Shoot location (filming rebate)</div><div class='row' id='wzLoc'>";
+    DATA.LOCATIONS.forEach(lo=>{ h+="<button class='btn btn-sm "+(WZ.location===lo.id?"btn-primary":"")+"' data-loc='"+lo.id+"'>"+lo.name+" ("+Math.round(lo.rebate*100)+"%)</button>"; });
+    h+="</div><div class='tiny muted' style='margin-top:2px'>"+DATA.location(WZ.location).blurb+"</div>";
+    h+="<div class='card' style='margin-top:8px;cursor:pointer' id='wzPolish'><div class='spread'><span class='small'>"+(WZ.scriptPolish?"✅ ":"⬜ ")+"<b>Script polish</b> — +6 script, +1 wk pre-prod</span><span class='tag "+(WZ.scriptPolish?"gold":"")+"'>"+fmtM(polishCost)+"</span></div>"+
+      "<div class='tiny muted'>A fresh-eyes rewrite pass lifts the writing (quality) but adds pre-production time. Worth it on weak scripts.</div></div>";
+    h+="</div>";
     h+="<div class='small muted' style='margin:4px 0 6px'><b>Distribution plan</b> — commit now or keep options open</div><div class='plan-pick'>"+
       "<div class='plan-opt"+(WZ.plan==="theatrical"?" sel":"")+"' data-plan='theatrical'><h5>🎥 Theatrical release</h5><div class='p-sub'>Full box office upside (and risk). You set the date & P&A when it's finished.</div></div>"+
       "<div class='plan-opt"+(WZ.plan==="streaming"?" sel":"")+"' data-plan='streaming'><h5>📺 Streaming original</h5><div class='p-sub'>Platforms bid on delivery — guaranteed cash ≈ budget × quality, zero box office.</div></div>"+
@@ -285,12 +300,13 @@ function wizardModal(){
     h+="<div class='card' style='margin-top:10px'><div class='slider-row'><span class='small muted'>Production budget</span>"+
       "<input type='range' id='wzBudget' min='"+S2.bMin+"' max='"+(S2.bMax*1.4)+"' step='"+(S2.bMin>=100?5:2)+"' value='"+WZ.budget+"'><span class='slider-val' id='wzBudgetV'>"+fmtM(WZ.budget)+"</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>Typical "+S2.name+" range: "+fmtM(S2.bMin)+"–"+fmtM(S2.bMax)+" · genre needs ≈ "+fmtM(neededBudget(WZ.idea.genre,WZ.idea.scale))+" (underfunding hurts quality)</div></div>";
-    h+="<div class='card'><div class='cost-line'><span>Rights + development</span><b>"+fmtM(dev)+"</b></div>"+
+    h+="<div class='card'><div class='cost-line'><span>Rights + development"+(WZ.scriptPolish?" (+script polish)":"")+"</span><b>"+fmtM(dev+polishCost)+"</b></div>"+
       "<div class='cost-line'><span>Talent fees (upfront)</span><b>"+fmtM(fees)+"</b></div>"+
       "<div class='cost-line'><span>Production (paid weekly over ~"+weeks+" wks)</span><b>"+fmtM(WZ.budget)+"</b></div>"+
       (WZ.presales&&WZ.plan!=="streaming"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
       "<div class='cost-line'><span>Suggested marketing (at release)</span><b id='wzMkt'>"+fmtM(recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}))+"</b></div>"+
-      "<div class='cost-total'><span>Total commitment</span><span class='gold' id='wzTot'>"+fmtM(dev+fees+WZ.budget)+"</span></div></div>";
+      (WZ.scriptPolish? "<div class='cost-line'><span>Script polish fee</span><b>"+fmtM(polishCost)+"</b></div>":"")+
+      "<div class='cost-total'><span>Total commitment</span><span class='gold' id='wzTot'>"+fmtM(dev+polishCost+fees+WZ.budget)+"</span></div></div>";
     h+="<div class='tiny muted'>💡 Rule of thumb: a film needs ≈ <b id='wzBe'>"+fmtM(breakevenWW({budget:WZ.budget, marketing:recMarketing({budget:WZ.budget,scale:WZ.idea.scale,genre:WZ.idea.genre})}))+"</b> worldwide gross to break even (theaters keep ~half).</div>";
     h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzBack'>← Cast</button><button class='btn btn-primary' id='wzGo'>🎥 Greenlight</button></div>";
   }
@@ -308,21 +324,25 @@ function wizardModal(){
   const bk=v.querySelector("#wzBack"); if(bk) bk.onclick=()=>{ WZ.sub=3; wizardModal(); };
   v.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{ WZ.plan=b.dataset.plan; if(WZ.plan==="streaming") WZ.presales=false; beep("click"); wizardModal(); });
   const ps=v.querySelector("#wzPresale"); if(ps) ps.onclick=()=>{ WZ.presales=!WZ.presales; beep("click"); wizardModal(); };
+  v.querySelectorAll("[data-rate]").forEach(b=>b.onclick=()=>{ WZ.rating=b.dataset.rate; beep("click"); wizardModal(); });
+  v.querySelectorAll("[data-loc]").forEach(b=>b.onclick=()=>{ WZ.location=b.dataset.loc; beep("click"); wizardModal(); });
+  const pls=v.querySelector("#wzPolish"); if(pls) pls.onclick=()=>{ WZ.scriptPolish=!WZ.scriptPolish; beep("click"); wizardModal(); };
   const rg=v.querySelector("#wzBudget");
   if(rg){ rg.oninput=()=>{
     WZ.budget=+rg.value; $("#wzBudgetV").textContent=fmtM(WZ.budget);
     const mkt=recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre});
     const mEl=$("#wzMkt"), tEl=$("#wzTot"), bEl=$("#wzBe");
     if(mEl) mEl.textContent=fmtM(mkt);
-    if(tEl) tEl.textContent=fmtM(devCostOf(WZ.idea)+(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+WZ.budget);
+    if(tEl) tEl.textContent=fmtM(devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0)+(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+WZ.budget);
     if(bEl) bEl.textContent=fmtM(breakevenWW({budget:WZ.budget, marketing:mkt}));
   }; }
   const go=v.querySelector("#wzGo");
   if(go) go.onclick=()=>{
     const fees=(WZ.director?actorFee(WZ.director):0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0);
-    const dev=devCostOf(WZ.idea);
+    const dev=devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0);
     if(G.studio.cash < dev+fees+WZ.budget*0.2){ toast("Not enough cash for upfront costs — visit Finance for a loan.","bad"); beep("bad"); return; }
-    const p=greenlight({ idea:WZ.idea, director:WZ.director, cast:WZ.cast, budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales });
+    const p=greenlight({ idea:WZ.idea, director:WZ.director, cast:WZ.cast, budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales,
+      rating:WZ.rating, location:WZ.location, scriptPolish:WZ.scriptPolish, premium:WZ.premium });
     beep("gold"); WZ=null; closeModal(); render();
   };
 }
@@ -389,18 +409,35 @@ function viewProductions(){
   for(const p of prod){
     const S=DATA.SCALES[p.scale];
     const ph=p.phase; const L=p.phaseLen;
+    let phaseLabel = {pre:"Pre-production",shoot:"Shooting",post:"Post-production",reshoot:"🎬 Reshooting"}[ph]||ph;
+    let progress;
+    if(ph==="reshoot"){
+      const weeks=L.reshoot||3, done=(p.phaseWeek*L.pre)||0;
+      const pc=clamp(Math.round(p.phaseWeek/weeks*100),0,100);
+      progress="<div class='phases'><div class='ph cur'><i style='width:"+pc+"%'></i></div></div><div class='ph-labels'><span>Reshoot</span></div>";
+      const burn = p.budget*0.08/Math.max(1,weeks);
+      h+="<div class='card prod-card'><div class='spread'><div><b>"+DATA.GENRES[p.genre].emoji+" "+esc(p.title)+"</b>"+(p.franchiseName?" <span class='tag purple'>franchise</span>":"")+
+        "<div class='tiny muted'>"+gTag(p.genre)+" <span class='tag'>"+S.emoji+" "+S.name+"</span> · budget "+fmtM(p.budget)+" · dir "+(p.director?esc(p.director.name):"—")+"</div></div>"+
+        "<div style='text-align:right'><div class='tag gold'>"+phaseLabel+"</div></div></div>"+
+        progress+
+        "<div class='spread small' style='margin-top:8px'><span class='muted'>Reshoot week "+Math.min(p.phaseWeek+1,weeks)+" of ~"+weeks+" · burn "+fmtM(burn)+"/wk</span>"+
+        "<span class='muted'>spent "+fmtM(p.spent)+"</span></div>"+
+        "<button class='btn btn-sm btn-danger' style='margin-top:8px' data-cancel='"+p.id+"'>✕ Shelve (lose spend)</button></div>";
+      continue;
+    }
     const curIdx={pre:0,shoot:1,post:2}[ph];
     const totalWk=L.pre+L.shoot+L.post, doneWk=(curIdx>0?L.pre:0)+(curIdx>1?L.shoot:0)+p.phaseWeek;
     const burn = ph==="pre"? p.budget*0.10/L.pre : ph==="shoot"? p.budget*0.70/L.shoot*(G.upgrades.backlot?0.88:1) : p.budget*0.20/L.post*(G.upgrades.vfx?0.75:1);
+    progress="<div class='phases'>"+["pre","shoot","post"].map((x,i)=>{
+      const st= i<curIdx? "done": i===curIdx? "cur":"";
+      const w = i<curIdx? 100 : i===curIdx? Math.round(p.phaseWeek/L[x]*100):0;
+      return "<div class='ph "+st+"'><i style='width:"+w+"%'></i></div>"; }).join("")+
+      "</div><div class='ph-labels'><span>Pre</span><span>Shoot</span><span>Post</span></div>";
     h+="<div class='card prod-card'><div class='spread'><div><b>"+DATA.GENRES[p.genre].emoji+" "+esc(p.title)+"</b>"+(p.franchiseName?" <span class='tag purple'>franchise</span>":"")+
       "<div class='tiny muted'>"+gTag(p.genre)+" <span class='tag'>"+S.emoji+" "+S.name+"</span> · budget "+fmtM(p.budget)+" · dir "+(p.director?esc(p.director.name):"—")+" · "+(p.cast?p.cast.length:0)+" leads</div></div>"+
-      "<div style='text-align:right'><div class='tag "+(ph==="shoot"?"gold":"blue")+"'>"+({pre:"Pre-production",shoot:"Shooting",post:"Post-production"}[ph])+"</div>"+
+      "<div style='text-align:right'><div class='tag "+(ph==="shoot"?"gold":"blue")+"'>"+phaseLabel+"</div>"+
       (p.strikePause>0?"<div class='tag red' style='margin-top:4px'>✊ strike "+p.strikePause+"wks</div>":"")+"</div></div>"+
-      "<div class='phases'>"+["pre","shoot","post"].map((x,i)=>{
-        const st= i<curIdx? "done": i===curIdx? "cur":"";
-        const w = i<curIdx? 100 : i===curIdx? Math.round(p.phaseWeek/L[x]*100):0;
-        return "<div class='ph "+st+"'><i style='width:"+w+"%'></i></div>"; }).join("")+
-      "</div><div class='ph-labels'><span>Pre</span><span>Shoot</span><span>Post</span></div>"+
+      progress+
       "<div class='spread small' style='margin-top:8px'><span class='muted'>Week "+(doneWk+1)+" of ~"+totalWk+" · burn "+fmtM(burn)+"/wk</span>"+
       "<span class='muted'>spent "+fmtM(p.spent)+" of "+fmtM(p.budget)+"</span></div>"+
       "<button class='btn btn-sm btn-danger' style='margin-top:8px' data-cancel='"+p.id+"'>✕ Shelve (lose spend)</button></div>";
@@ -408,10 +445,15 @@ function viewProductions(){
   h+="<div class='section-title'>Ready for release ("+ready.length+")</div>";
   if(!ready.length) h+="<div class='card muted small'>Nothing in the can yet.</div>";
   for(const p of ready){
+    const rl=DATA.rating(p.rating), lo=DATA.location(p.location);
     h+="<div class='card'><div class='spread'><div><b>🎞 "+esc(p.title)+"</b> "+scoreBadge(p.quality.overall)+
       (p.prebuyAccepted?"<div class='tiny gold'>Sold to "+DATA.platform(p.prebuyPlatform).name+" — payable on delivery</div>":"")+"</div></div>"+
       "<div class='tiny muted' style='margin-top:6px'>Critics "+p.quality.critic+" · Audience "+p.quality.aud+" · budget "+fmtM(p.budget)+" · breakeven "+fmtM(breakevenWW(p))+" WW</div>"+
-      (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button></div>")+"</div>";
+      "<div class='row' style='margin-top:6px'><span class='tag "+(p.rating==="R"?"red":"blue")+"'>"+p.rating+"</span><span class='tag'>"+lo.name+" ("+Math.round(lo.rebate*100)+"%)</span>"+
+        (p.premium?"<span class='tag gold'>🍿 IMAX/Premium</span>":"")+
+        (p.scriptPolish?"<span class='tag green'>✍️ polish</span>":"")+"</div>"+
+      (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button>"+
+        "<button class='btn btn-ghost' data-test='"+p.id+"'>🎬 Test screen &amp; reshoot</button></div>")+"</div>";
   }
   h+="<div class='section-title'>Franchise opportunities</div>";
   const fr=G.films.filter(f=>f.franchiseable);
@@ -426,7 +468,7 @@ function viewProductions(){
 /* ── release scheduling modal ── */
 function startScheduling(pid){
   const p=G.projects.find(x=>x.id===pid); if(!p) return;
-  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false};
+  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium};
   schedModal();
 }
 function schedModal(){
@@ -437,6 +479,8 @@ function schedModal(){
     "<input type='range' id='scMkt' min='"+Math.round(rec*0.25)+"' max='"+Math.round(rec*2)+"' step='1' value='"+SCHEDULE.marketing+"'>"+
     "<span class='slider-val' id='scMktV'>"+fmtM(SCHEDULE.marketing)+"</span></div>"+
     "<div class='tiny muted'>Recommended "+fmtM(rec)+" ("+Math.round(DATA.SCALES[p.scale].mktRate*100)+"% of budget). 30% paid now, 70% on release.</div></div>";
+  h+="<div class='card' style='margin-top:8px;cursor:pointer' id='scPremium'><div class='spread'><span class='small'>"+(SCHEDULE.premium?"✅ ":"⬜ ")+"<b>Premium/IMAX format</b> — +12% opening</span><span class='tag "+(SCHEDULE.premium?"gold":"")+"'>+"+fmtM(Math.round(SCHEDULE.marketing*0.08))+" P&A</span></div>"+
+    "<div class='tiny muted'>Premium screens (IMAX, 4DX) draw the big-open crowd but cost more to platform. +8% P&A for +12% opening.</div></div>";
   h+="<div class='small muted' style='margin:10px 0 6px'>Pick a weekend (next 30 weeks):</div><div style='max-height:300px;overflow-y:auto;display:grid;gap:6px'>";
   for(let w=G.week+2; w<=G.week+30; w++){
     const s=DATA.seasonOf(woyOf(w));
@@ -451,10 +495,11 @@ function schedModal(){
   h+="</div>";
   // summary
   const exp=previewOpen(p,SCHEDULE.week);
-  const be=breakevenWW({budget:p.budget, marketing:SCHEDULE.marketing});
+  const effMkt = SCHEDULE.premium? Math.round(SCHEDULE.marketing*1.08) : SCHEDULE.marketing;
+  const be=breakevenWW({budget:p.budget, marketing:effMkt});
   h+="<div class='card' style='margin-top:10px'><div class='cost-line'><span>Expected opening (est.)</span><b id='scExp'>"+fmtG(exp)+" dom</b></div>"+
     "<div class='cost-line'><span>Breakeven</span><b id='scBe'>"+fmtG(be)+" WW</b></div>"+
-    "<div class='cost-line'><span>Pay now (30% P&A)</span><b id='scPay'>"+fmtM(SCHEDULE.marketing*0.3)+"</b></div></div>";
+    "<div class='cost-line'><span>Pay now (30% P&A)</span><b id='scPay'>"+fmtM(effMkt*0.3)+"</b></div></div>";
   h+="<div class='modal-actions'><button class='btn btn-primary' id='scGo'>📅 Lock the date</button></div>";
   const v=openModal(h,{onClose:()=>{SCHEDULE=null;}});
   const rg=v.querySelector("#scMkt");
@@ -462,26 +507,32 @@ function schedModal(){
     SCHEDULE.marketing=+rg.value;
     $("#scMktV").textContent=fmtM(SCHEDULE.marketing);
     const e2=previewOpen(p,SCHEDULE.week);
+    const effMkt = SCHEDULE.premium? Math.round(SCHEDULE.marketing*1.08) : SCHEDULE.marketing;
     const eEl=$("#scExp"), bEl=$("#scBe"), pEl=$("#scPay");
     if(eEl) eEl.textContent=fmtG(e2)+" dom";
-    if(bEl) bEl.textContent=fmtG(breakevenWW({budget:p.budget, marketing:SCHEDULE.marketing}))+" WW";
-    if(pEl) pEl.textContent=fmtM(SCHEDULE.marketing*0.3);
+    if(bEl) bEl.textContent=fmtG(breakevenWW({budget:p.budget, marketing:effMkt}))+" WW";
+    if(pEl) pEl.textContent=fmtM(effMkt*0.3);
   };
   v.querySelectorAll("[data-w]").forEach(el=>el.onclick=()=>{ SCHEDULE.week=+el.dataset.w; beep("click"); schedModal(); });
+  const pm=v.querySelector("#scPremium"); if(pm) pm.onclick=()=>{ SCHEDULE.premium=!SCHEDULE.premium; beep("click"); schedModal(); };
   v.querySelector("#scGo").onclick=()=>{
-    const now=Math.round(SCHEDULE.marketing*0.3);
-    if(G.studio.cash<now){ toast("Not enough cash for the P&A down payment.","bad"); return; }
-    p.releaseWeek=SCHEDULE.week; p.marketing=SCHEDULE.marketing; p.marketingPaid=now;
+    const mkt = SCHEDULE.premium? Math.round(SCHEDULE.marketing*1.08) : SCHEDULE.marketing;
+    const want=Math.round(mkt*0.3);
+    // pay what you can now; the rest is due at release (advanceWeek collects it)
+    const now=Math.min(want, Math.max(0, Math.floor(G.studio.cash)));
+    p.releaseWeek=SCHEDULE.week; p.marketing=mkt; p.marketingPaid=now; p.premium=SCHEDULE.premium;
     G.studio.cash-=now;
-    log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(p.marketing)+" P&A.","gold");
+    if(now<want) log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(mkt)+" P&A — "+fmtM(now)+" paid now, "+fmtM(want-now)+" due at release (fees continue to accrue).","gold");
+    else log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(mkt)+" P&A"+(SCHEDULE.premium?" (+Premium/IMAX)":"")+".","gold");
     beep("gold"); SCHEDULE=null; closeModal(); render();
   };
 }
 function previewOpen(p,w){
-  const saved={m:p.marketing, r:p.releaseWeek};
+  const saved={m:p.marketing, r:p.releaseWeek, pr:p.premium};
   p.marketing=SCHEDULE?SCHEDULE.marketing:p.marketing; p.releaseWeek=w;
+  if(SCHEDULE) p.premium=SCHEDULE.premium;
   const v=expectedOpening(p,w);
-  p.marketing=saved.m; p.releaseWeek=saved.r;
+  p.marketing=saved.m; p.releaseWeek=saved.r; p.premium=saved.pr;
   return v;
 }
 
@@ -596,6 +647,33 @@ function viewFinance(){
     "<div class='cost-line'><span>Biggest opening</span><b>"+(G.stats.bestOpen?fmtG(G.stats.bestOpen)+" — "+esc(G.stats.bestFilm||""):"-")+"</b></div>"+
     "<div class='cost-line'><span>Net career profit (films)</span><b class='"+(G.stats.totalProfit>=0?"pos":"neg")+"'>"+(G.stats.totalProfit>=0?"+":"")+fmtM(G.stats.totalProfit)+"</b></div>"+
     "</div></div></div>";
+  // 12-week cash-flow forecast
+  const fc=forecastProject();
+  h+="<div class='section-title'>📈 12-week cash-flow forecast</div><div class='card'><div class='tiny muted' style='margin-bottom:6px'>Rough projection of income vs commitments over the next 12 weeks.</div><div class='forecast-bars'>"+
+    fc.rows.map(r=>"<div class='fg' title='"+dateLabel(r.week)+": "+(r.net>=0?"+":"")+fmtM(r.net)+" → "+fmtM(r.cash)+"'><i style='height:"+Math.max(4,clamp((fc.start? r.cash/fc.start:1),0,1)*100)+"%'></i><span>"+woyOf(r.week)+"</span></div>").join("")+
+    "</div><div class='tiny muted' style='margin-top:4px'>Projected cash in 12 wks: <b class='"+(fc.rows.length&&fc.rows[fc.rows.length-1].cash>=0?"pos":"neg")+"'>"+fmtM(fc.rows.length?fc.rows[fc.rows.length-1].cash:st.cash)+"</b></div></div>";
+  // mezzanine + IPO
+  const md=st.mezzDebt||0;
+  h+="<div class='section-title'>🪜 Mezzanine & IPO</div><div class='grid g2'>";
+  h+="<div class='card'><h4>🪜 Mezzanine debt</h4><p class='tiny muted'>Emergency money at 0.5%/wk interest (≈26%/yr) — expensive, but no credit-line cap. Only for a real crunch.</p>"+
+     "<div class='loan-row'><div class='small muted' style='margin:8px 0 4px'>Borrow</div><input type='range' id='fnMezz' min='10' max='200' step='10' value='50'><div class='spread'><b id='fnMezzV'></b><button class='btn btn-sm btn-alt' id='fnMezzGo'>Take mezzanine</button></div></div>"+
+     (md>0.5?"<div class='loan-row'><div class='small muted' style='margin:10px 0 4px'>Repay ("+fmtM(md)+" owed)</div><input type='range' id='fnMezzRepay' min='1' max='"+Math.max(1,Math.min(Math.round(md),Math.floor(st.cash)))+"' value='"+Math.max(1,Math.min(Math.round(md/2),Math.floor(st.cash)))+"'><div class='spread'><b id='fnMezzRepayV'></b><button class='btn btn-sm btn-primary' id='fnMezzRepayGo'>Repay</button></div></div>":"")+
+     "</div>";
+  if(G.public){
+    h+="<div class='card'><h4>📊 Public company</h4><div class='tiny muted'>IPO raised $400M at rep ≥60. Weak quarters build shareholder anger (rep −3 per punished streak).</div><div class='tiny muted' style='margin-top:6px'>Financial pressure: <b class='"+(G.public.strikes>=3?"neg":"pos")+"'>"+G.public.strikes+"/4</b></div></div>";
+  }else{
+    h+="<div class='card'><h4>📊 IPO</h4><p class='tiny muted'>Raise $400M by going public. Requires reputation ≥60. Shareholders punish loss-making quarters.</p>"+
+      "<button class='btn btn-sm "+(st.rep>=60?"btn-primary":"btn-ghost")+"' id='fnIpo'>"+(st.rep>=60?"Go public — $400M":"Go public (needs rep 60+ · current "+Math.round(st.rep)+")")+"</button></div>";
+  }
+  h+="</div>";
+  // executives
+  h+="<div class='section-title'>👔 Executive hires</div><div class='grid g3'>";
+  DATA.EXECS.forEach(e=>{
+    const owned=!!G.execs[e.id];
+    h+="<div class='card upg-card'><div class='u-i'>"+e.icon+"</div><div style='flex:1'><b>"+e.name+"</b><div class='tiny muted' style='margin:3px 0 8px'>"+e.blurb+"</div>"+
+      (owned? "<span class='tag green'>✓ hired</span>" : "<button class='btn btn-sm "+(st.cash>=e.cost?"btn-primary":"")+"' data-exec='"+e.id+"'>"+fmtM(e.cost)+"</button>")+"</div></div>";
+  });
+  h+="</div>";
   h+="<div class='section-title'>Studio investments</div><div class='grid g3'>";
   DATA.UPGRADES.forEach(u=>{
     const owned=!!G.upgrades[u.id];
@@ -640,6 +718,7 @@ function bindView(){
     shopToStreamers(+b.dataset.shop); beep("click");
     if(G.pendingAuction){ render(); auctionModal(); }
   });
+  $$("[data-test]").forEach(b=>b.onclick=()=>{ beep("click"); testScreenModal(+b.dataset.test); });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
@@ -673,6 +752,16 @@ function bindView(){
   const fr=$("#fnRepay");
   if(fr){ const upd=()=>$("#fnRepayV").textContent=fmtM(+fr.value); upd(); fr.oninput=upd;
     $("#fnRepayGo").onclick=()=>{ if(repayDebt(+fr.value)){beep("good"); flashes(G.flash); render();} }; }
+  // mezzanine
+  const mz=$("#fnMezz");
+  if(mz){ const upd=()=>$("#fnMezzV").textContent=fmtM(+mz.value); upd(); mz.oninput=upd;
+    $("#fnMezzGo").onclick=()=>{ if(mezzanineLoan(+mz.value)){beep("cash"); flashes(G.flash); render();} }; }
+  const mzr=$("#fnMezzRepay");
+  if(mzr){ const upd=()=>$("#fnMezzRepayV").textContent=fmtM(+mzr.value); upd(); mzr.oninput=upd;
+    $("#fnMezzRepayGo").onclick=()=>{ if(repayMezzanine(+mzr.value)){beep("good"); flashes(G.flash); render();} }; }
+  // IPO + execs
+  const ipo=$("#fnIpo"); if(ipo) ipo.onclick=()=>{ if(goPublic()){beep("gold"); flashes(G.flash); render();} else toast("IPO needs reputation 60+, and you can only ever IPO once.","bad"); };
+  $$("[data-exec]").forEach(b=>b.onclick=()=>{ if(hireExec(b.dataset.exec)){beep("gold"); flashes(G.flash); render();} else toast("Not enough cash for that hire.","bad"); });
 }
 
 /* ═══════════ streaming auction modal ═══════════ */
@@ -695,6 +784,31 @@ function auctionModal(){
   });
   const no=v.querySelector("#aucNo");
   if(no) no.onclick=()=>{ declineAuction(); beep("click"); closeModal(); render(); };
+}
+
+/* ═══════════ test screen & reshoot modal (v2) ═══════════ */
+function testScreenModal(pid){
+  const p=G.projects.find(x=>x.id===pid); if(!p || p.phase!=="ready") return;
+  const r=testScreenResult(p);
+  const flag = r.flagged;
+  const fee = Math.round(p.budget*0.12);
+  let h="<h3>🎬 Test screening — “"+esc(p.title)+"”</h3>"+
+    "<div class='small muted' style='margin-bottom:8px'>Your finished film screens for a preview audience.</div>"+
+    "<div class='card'><div class='cost-line'><span>Critics (initial)</span><b>"+r.crit+"/100</b></div>"+
+    "<div class='cost-line'><span>Test audience</span><b class='"+(r.screen>=60?"pos":"neg")+"'>"+r.screen+"/100</b></div>"+
+    (flag? "<div class='tiny neg' style='margin-top:4px'>🚨 Test audiences flagged weak spots — a reshoot could fix them.</div>":
+           "<div class='tiny pos' style='margin-top:4px'>🙌 Test audiences are on board with this cut.</div>")+"</div>";
+  h+="<div class='modal-actions'>"+
+    "<button class='btn btn-ghost' id='tsNo'>🎥 Release as-is</button>"+
+    (p.prebuyAccepted? "":"<button class='btn btn-alt' data-reshoot='"+p.id+"'>🎬 Reshoot ("+fmtM(fee)+", ~"+rint(2,4)+" wks)</button>")+
+    "</div>";
+  const v=openModal(h,{onClose:()=>{} });
+  const no=v.querySelector("#tsNo"); if(no) no.onclick=()=>{ closeModal(); render(); };
+  const rs=v.querySelector("[data-reshoot]");
+  if(rs) rs.onclick=()=>{
+    if(beginReshoot(+rs.dataset.reshoot)){ beep("gold"); flashes(G.flash); closeModal(); render(); }
+    else { toast("Not enough to reshoot now.","bad"); }
+  };
 }
 
 /* ═══════════ EMPIRE view ═══════════ */

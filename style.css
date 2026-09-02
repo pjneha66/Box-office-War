@@ -264,6 +264,13 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 .pl-bars .pb.up{background:linear-gradient(180deg,#3ddc84,#1d7a4c)}
 .pl-bars .pb.down{background:linear-gradient(180deg,#ff5d6c,#8a2a34)}
 .pl-bars .pb span{position:absolute; bottom:-15px; left:50%; transform:translateX(-50%); font-size:9px; color:var(--dim2)}
+/* v2: production craft picker + cash-flow forecast */
+.craft-block{border:1px solid var(--line); border-radius:12px; padding:10px 12px; background:#101522; margin-bottom:10px}
+.craft-block .row{display:flex; flex-wrap:wrap; gap:6px}
+.forecast-bars{display:flex; align-items:flex-end; gap:3px; height:70px; margin-top:6px}
+.forecast-bars .fg{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%}
+.forecast-bars .fg i{width:100%; background:linear-gradient(180deg,#f5b942,#c78a1f); border-radius:4px 4px 0 0; min-height:3px}
+.forecast-bars .fg span{font-size:9px; color:var(--dim2); margin-top:4px}
 
 /* ─────────── responsive: phone ─────────── */
 @media(max-width:760px){

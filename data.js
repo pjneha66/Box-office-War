@@ -141,6 +141,31 @@ DATA.UPGRADES = [
   {id:"ottrel",    name:"Streaming Relations",     icon:"🛰", cost:70,  desc:"All OTT offers +12%. Better renewal odds."},
 ];
 
+/* ── Executive hires (v2) ── */
+DATA.EXECS = [
+  {id:"cmo",  name:"Chief Marketing Officer", icon:"📣", cost:90,  blurb:"+12% hype on every release.", key:"cmo"},
+  {id:"cast", name:"Head of Casting",         icon:"🤝", cost:70,  blurb:"−10% on all talent fees.", key:"cast"},
+  {id:"cfo",  name:"Chief Financial Officer", icon:"💼", cost:110, blurb:"−30% interest on all debt.", key:"cfo"},
+];
+
+/* ── Shoot locations: filming rebate % off the shoot burn (v2) ── */
+DATA.LOCATIONS = [
+  {id:"la",      name:"Los Angeles", rebate:0.00, blurb:"The home lot. No rebate, zero risk."},
+  {id:"atlanta", name:"Atlanta",     rebate:0.14, blurb:"Georgia. 14% filming rebate on shoot spend.", win:"THE PRIDE OF THE PECACH"},
+  {id:"london",  name:"London",      rebate:0.18, blurb:"UK. 18% filming rebate on shoot spend.", win:"A LONDON SOUNDSTAGE"},
+];
+DATA.location = (id)=> DATA.LOCATIONS.find(l=>l.id===id) || DATA.LOCATIONS[0];
+
+/* ── MPAA rating choice (v2): PG-13 for the masses vs R (critics like it darker) ── */
+DATA.RATINGS = [
+  {id:"PG-13", name:"PG-13", open:0.00,   critic:0,  mass:1.00, desc:"The masses. Wide, four-quadrant, safest opening."},
+  {id:"R",     name:"R",     open:-0.12,  critic:5,  mass:0.94, desc:"Darker. −12% opening, critics like the edge."},
+];
+DATA.rating = (id)=> DATA.RATINGS.find(r=>r.id===id) || DATA.RATINGS[0];
+
+/* ── Economy: yearly inflation compounding across the whole market (v3) ── */
+DATA.INFLATION = 0.02;   // 2%/year
+
 /* ── Random events (weekly pool) ── */
 /* kinds: 'cash' instant | 'choice' modal (choices[{label,effect}]) — effects are fn(G) */
 DATA.EVENTS = [
