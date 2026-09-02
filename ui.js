@@ -184,6 +184,12 @@ function viewStudio(){
     h+="<div class='news-item "+n.k+"'><span class='n-i'>"+n.t.split(" ")[0]+"</span><span>"+esc(n.t.slice(n.t.split(" ")[0].length))+"</span><span class='n-w'>"+dateLabel(n.w)+"</span></div>";
   });
   h+="</div>";
+  h+="<div class='section-title'>🆕 Empire expansion controls</div><div class='card'><div class='grid g3'>"+
+    "<div><b>📡 Your streamer</b><div class='tiny muted'>Launch at reputation 40+ for $250M. Subscribers earn $0.50/week.</div>"+
+    (G.streamer?"<div class='tag purple' style='margin-top:8px'>"+Math.round(G.streamer.subs)+"M subscribers · cap "+G.streamer.cap+"M</div>":"<button class='btn btn-sm btn-primary' data-launch-streamer>Launch · $250M</button>")+"</div>"+
+    "<div><b>📈 Capital &amp; planning</b><div class='tiny muted'>IPO, mezzanine bridge, executives and a 12-week forecast.</div><button class='btn btn-sm btn-alt' data-forecast>12-week forecast</button> <button class='btn btn-sm btn-alt' data-ipo>IPO · $400M</button></div>"+
+    "<div><b>⚙️ Game settings</b><div class='tiny muted'>Difficulty, language and accessibility persist with your save.</div><select id='gameLang'><option value='en'>English</option><option value='hi'>हिन्दी</option></select> <button class='btn btn-sm' data-export>Export save</button></div>"+
+    "</div></div>";
   return h;
 }
 function statCard(v,l,c){ return "<div class='stat'><div class='s-v' style='"+(c?"color:"+c:"")+"'>"+v+"</div><div class='s-l'>"+l+"</div></div>"; }
@@ -411,7 +417,7 @@ function viewProductions(){
     h+="<div class='card'><div class='spread'><div><b>🎞 "+esc(p.title)+"</b> "+scoreBadge(p.quality.overall)+
       (p.prebuyAccepted?"<div class='tiny gold'>Sold to "+DATA.platform(p.prebuyPlatform).name+" — payable on delivery</div>":"")+"</div></div>"+
       "<div class='tiny muted' style='margin-top:6px'>Critics "+p.quality.critic+" · Audience "+p.quality.aud+" · budget "+fmtM(p.budget)+" · breakeven "+fmtM(breakevenWW(p))+" WW</div>"+
-      (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button></div>")+"</div>";
+      (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button><button class='btn btn-sm' data-screen='"+p.id+"'>🎞 Test screen</button></div>")+"</div>";
   }
   h+="<div class='section-title'>Franchise opportunities</div>";
   const fr=G.films.filter(f=>f.franchiseable);
@@ -636,6 +642,7 @@ function bindView(){
   });
   const ps=$("#btnPitchSeries"); if(ps) ps.onclick=()=>{ beep("click"); startSeriesWizard(); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
+  $$("[data-screen]").forEach(b=>b.onclick=()=>{if(testScreening(+b.dataset.screen)){toast("Test screening complete — reshoots are available if needed.","good");render();}else toast("Test screening costs $2M and requires a finished film.","bad");});
   $$("[data-shop]").forEach(b=>b.onclick=()=>{
     shopToStreamers(+b.dataset.shop); beep("click");
     if(G.pendingAuction){ render(); auctionModal(); }
@@ -666,6 +673,12 @@ function bindView(){
   $$("[data-cnt]").forEach(b=>b.onclick=()=>{ counterOffer(G.offers.find(o=>o.id===+b.dataset.cnt)); beep("click"); flashes(G.flash); render(); });
   $$("[data-dec]").forEach(b=>b.onclick=()=>{ declineOffer(G.offers.find(o=>o.id===+b.dataset.dec)); beep("click"); render(); });
   $$("[data-upg]").forEach(b=>b.onclick=()=>{ buyUpgrade(b.dataset.upg); beep("gold"); render(); });
+  const ls=$("[data-launch-streamer]"); if(ls) ls.onclick=()=>{if(!launchStreamer()) toast("Need reputation 40+ and $250M cash.","bad"); else {beep("gold");render();}};
+  const ipo=$("[data-ipo]"); if(ipo) ipo.onclick=()=>{if(!launchIPO()) toast("IPO requires reputation 60+.","bad"); else {beep("gold");render();}};
+  const fc=$("[data-forecast]"); if(fc) fc.onclick=()=>{const f=cashForecast();toast("12-week forecast: "+fmtM(f.cash)+" cash · "+fmtM(f.weeklyBurn)+" weekly burn · "+f.runway+" weeks runway",f.runway>8?"good":"bad");};
+  const ex=$("[data-export]"); if(ex) ex.onclick=()=>{const code=exportSaveCode(); navigator.clipboard?.writeText(code); toast("Save export copied to clipboard.","good");};
+  const lang=$("#gameLang"); if(lang) lang.value=G.settings?.language||"en";
+  if(lang) lang.onchange=()=>{G.settings=G.settings||{};G.settings.language=lang.value;saveGame();toast(lang.value==="hi"?"हिन्दी mode selected (core labels remain available).":"English mode selected","good");};
   // finance sliders
   const fl=$("#fnLoan");
   if(fl){ const upd=()=>$("#fnLoanV").textContent=fmtM(+fl.value); upd(); fl.oninput=upd;

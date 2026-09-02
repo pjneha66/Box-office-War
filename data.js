@@ -43,6 +43,8 @@ DATA.GENRES = {
   thriller: {name:"Thriller",    emoji:"🔪", mass:0.90, legsAdj:+0.05, intlShare:0.42, china:0.04, critic:+2, aud:+1,  otta:1.15, awards:0.6, budgetBias:0.85, merch:0.50},
   drama:    {name:"Drama",       emoji:"🎭", mass:0.70, legsAdj:+0.25, intlShare:0.42, china:0.03, critic:+7, aud:-3,  otta:1.05, awards:1.6, budgetBias:0.75, merch:0.25},
   romance:  {name:"Romance",     emoji:"💘", mass:0.80, legsAdj:+0.15, intlShare:0.35, china:0.02, critic:+2, aud:+2,  otta:1.10, awards:0.7, budgetBias:0.70, merch:0.40},
+  reality:  {name:"Reality", emoji:"📡", mass:0.95, legsAdj:+0.10, intlShare:0.25, china:0, critic:-1, aud:+3, otta:1.35, awards:0.2, budgetBias:0.45, merch:0.35},
+  documentary:{name:"Documentary", emoji:"🎥", mass:0.55, legsAdj:+0.35, intlShare:0.38, china:0, critic:+8, aud:+1, otta:1.3, awards:1.1, budgetBias:0.4, merch:0.2},
   musical:  {name:"Musical",     emoji:"🎵", mass:0.95, legsAdj:+0.30, intlShare:0.40, china:0.02, critic:+4, aud:+2,  otta:1.00, awards:1.3, budgetBias:0.90, merch:0.80},
 };
 
@@ -102,6 +104,8 @@ DATA.DIR_TRAITS = ["the visionary","the perfectionist","the provocateur","the cr
 
 /* ── Title generators per genre ── */
 DATA.TITLES = {
+  reality:{a:["House","Island","Kitchen","Survivor","The Big"],b:["Makers","Challenge","Files","House","Experiment"],p:["The"]},
+  documentary:{a:["The Last","Inside","Chasing","A Portrait of","Unknown"],b:["Frontier","Truth","Earth","Voices","Light"],p:["The"]},
   action:   {a:["Iron","Crimson","Final","Steel","Savage","Last","Broken","Blood","Rogue","Zero"],b:["Protocol","Horizon","Reckoning","Vengeance","Directive","Sanction","Kingdom","Legacy","Impact","Line"],p:["The"]},
   scifi:    {a:["Neon","Stellar","Quantum","Silent","Orbital","Chrome","Event","Parallax","Void","Genesis"],b:["Horizon","Cascade","Protocol","Entity","Frontier","Signal","Apex","Drift","Codex","Rift"],p:["The","Beyond","After"]},
   fantasy:  {a:["The Ember","The Hollow","The Silver","The Ashen","The Verdant","The Shattered","The Gilded","The Crimson"],b:["Crown","Throne","Blade","Kingdom","Covenant","Sorrows","Road","Gates","Saga","Ring"]},
