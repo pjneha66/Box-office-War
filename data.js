@@ -44,6 +44,12 @@ DATA.GENRES = {
   drama:    {name:"Drama",       emoji:"🎭", mass:0.70, legsAdj:+0.25, intlShare:0.42, china:0.03, critic:+7, aud:-3,  otta:1.05, awards:1.6, budgetBias:0.75, merch:0.25},
   romance:  {name:"Romance",     emoji:"💘", mass:0.80, legsAdj:+0.15, intlShare:0.35, china:0.02, critic:+2, aud:+2,  otta:1.10, awards:0.7, budgetBias:0.70, merch:0.40},
   musical:  {name:"Musical",     emoji:"🎵", mass:0.95, legsAdj:+0.30, intlShare:0.40, china:0.02, critic:+4, aud:+2,  otta:1.00, awards:1.3, budgetBias:0.90, merch:0.80},
+  /* ── v4 genres ── */
+  western:  {name:"Western",     emoji:"🤠", mass:0.82, legsAdj:+0.12, intlShare:0.34, china:0.02, critic:+3, aud:+1,  otta:1.00, awards:1.1, budgetBias:0.90, merch:0.45},
+  war:      {name:"War",         emoji:"🎖", mass:0.95, legsAdj:+0.14, intlShare:0.50, china:0.07, critic:+4, aud:+3,  otta:1.05, awards:1.35,budgetBias:1.10, merch:0.35},
+  sports:   {name:"Sports",      emoji:"🏟", mass:0.90, legsAdj:+0.22, intlShare:0.28, china:0.02, critic:+2, aud:+6,  otta:1.10, awards:0.9, budgetBias:0.80, merch:0.60},
+  concert:  {name:"Concert Film",emoji:"🎤", mass:1.00, legsAdj:-0.45, intlShare:0.45, china:0.01, critic:+1, aud:+7,  otta:1.35, awards:0.2, budgetBias:0.35, openBoost:1.40, merch:0.95},
+  truecrime:{name:"True Crime",  emoji:"🔎", mass:0.78, legsAdj:+0.06, intlShare:0.32, china:0.00, critic:+2, aud:+2,  otta:1.45, awards:0.7, budgetBias:0.60, merch:0.20},
 };
 
 /* ── Production scales ── */
@@ -112,6 +118,11 @@ DATA.TITLES = {
   drama:    {a:["The Weight","A Gentle","Fields of","The Last","Ordinary","Paper","Somebody's","The Long","Bitter"],b:["of Water","December","Grace","Goodbye","Men","Stars","Son","Way Home","Harvest","Symphony"]},
   romance:  {a:["Love &","The Summer","Letters to","Two Weeks","Almost","Meet Me","Every","Falling"],b:["Other Words","We Fell","Berlin","in Lisbon","Perfect","at Midnight","Little Lie","for You","Again"]},
   musical:  {a:["Sing!","The Rhythm","Dance","Voices","Encore","Beat","The Melody"],b:["Street","of the Night","Machine","Carry Us","& Encore","of the City","Club","Society"]},
+  western:  {a:["The Dust","Red","The Last","Blood on the","Hard","The Pale","Six","Dry"],b:["Riders","Territory","Outlaw","Mesa","Country","Rider","Bullets","Creek","Frontier"],p:["The"]},
+  war:      {a:["The Long","Iron","Cold","The Last","Silent","Broken","November","Ashes of"],b:["Retreat","Ridge","Convoy","Battalion","Harbor","Winter","Crossing","Sky","Front"],p:["The"]},
+  sports:   {a:["The Underdogs","Final","Overtime","The Comeback","Ninety","Full","The Long"],b:["Season","Whistle","Round","Court","Minutes","Count","Shot","Run","Mile"]},
+  concert:  {a:["Live at","One Night","The","Stadium","Unplugged:","Encore:","World Tour:"],b:["the Forum","Only","Farewell Tour","Lights","The Reunion","Midnight Set","Homecoming"]},
+  truecrime:{a:["The","Case File:","The Vanishing of","Dial","The","Cold Case:","The Long"],b:["Confession","Room 12","Marisol Vega","M for Murder","Lakeside Killer","Silence","Investigation"]},
 };
 DATA.SHARED_TITLES = ["Echoes","The Long Goodbye","Midnight Sun","Paper Kingdoms","Glass Hearts","The Ninth Life","Sugar & Salt","Wildfire","The Understudy","Ghost Season"];
 
@@ -130,6 +141,11 @@ DATA.BLURBS = {
   drama:["A jailed pianist gets one weekend of freedom to play for his dying mother.","Three generations of women run the last lighthouse on the coast.","A factory town's final shift, and the manager who must lay off everyone — including himself."],
   romance:["Two rival food-truck owners get stuck catering the same wedding.","A widowed beekeeper and a runaway violinist share a train across Eastern Europe.","A second-chance romance at a school reunion neither wanted to attend."],
   musical:["A shuttered theater puts on one final show with the neighborhood's misfits.","A rapper's detour into musical theater becomes the story of the block.","A once-famous dance crew reunites for a televised wedding."],
+  western:["A widowed rancher rides three states to bury a man who wronged her.","The last marshal of a dying town makes one final, terrible bargain.","Two brothers on opposite sides of a range war meet at the same river crossing."],
+  war:["A field surgeon's unit is cut off for eleven days behind the line.","A radio operator must relay orders she knows will kill her brother's battalion.","Three soldiers carry a wounded stranger across sixty miles of occupied country."],
+  sports:["A disgraced coach takes over the worst youth team in the league.","A sprinter with one season left in her knees chases a record nobody believes in.","A small-town squad plays the national champions and refuses to lose politely."],
+  concert:["Three sold-out nights, one farewell tour, and a band that hates each other.","A pop icon's stadium show, filmed the week her label dropped her.","A legendary reunion set, recorded in one take, in the rain."],
+  truecrime:["Twelve tapes, one confession, and a detective who never believed it.","A cold case reopens when a podcast listener recognizes the wallpaper.","The dramatized story of the fraudster who bought an entire town."],
 };
 
 /* ── Studio upgrades ── */
@@ -200,7 +216,12 @@ DATA.EVENTS = [
    when(G){ return G.talent.some(t=>t.booked&&t.kind==="actor"); },
    choices:(G)=>[
      {label:"Publicly back them (−$8M PR, keep talent)", run(G){G.studio.cash-=8; G.log("📰 You stood by your star","good");}},
-     {label:"Distance the studio (rep +1, talent cold)", run(G){G.studio.rep=clamp(G.studio.rep+1,5,99); const t=G._evtT; if(t)t.grudge=(t.grudge||0)+1; G.log("📰 Statement issued. Talent noticed.","bad");}},
+     {label:"Distance the studio (rep +1, talent goes radioactive)", run(G){
+        G.studio.rep=clamp(G.studio.rep+1,5,99);
+        const t=G._evtT;
+        if(t){ t.grudge=(t.grudge||0)+1; if(typeof scandalHit==="function") scandalHit(t); }
+        G.log("📰 Statement issued. "+(t? t.name+" is radioactive for a while — and cheap.":"Talent noticed."),"bad");
+     }},
    ]},
   {id:"strike", w:3, icon:"✊", title:"Crew strike threat",
    text:"Below-the-line crews are demanding better rates. Productions pause for 2 weeks unless you pay up.",
@@ -249,3 +270,175 @@ DATA.FLAVOR = [
   "MoviePass 2.0 shuts down after 6 weeks.",
   "A24-style marketing becomes the new textbook case.",
 ];
+
+/* ═══════════════════════════════════════════════════════════
+   v4 — WRITERS & PRODUCERS · GENRE CYCLES · NAMED CRITICS ·
+        TALENT CAREERS · FRANCHISE FATIGUE · STOCK & TIERS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Save schema version (see migrateSave in engine.js) ── */
+DATA.SAVE_VERSION = 4;
+
+/* ── Writer & producer flavor ── */
+DATA.WRITER_TRAITS  = ["the structuralist","the dialogue surgeon","the world-builder","the punch-up king",
+                       "the character miner","the twist merchant","the wounded romantic","the joke machine"];
+DATA.PROD_TRAITS    = ["the fixer","the line-item hawk","the schedule tyrant","the union whisperer",
+                       "the logistics savant","the crisis manager","the deal closer","the set diplomat"];
+DATA.PROD_FIRST     = ["Marla","Desmond","Hattie","Bruno","Yolanda","Peter","Ines","Gus","Ada","Toshiro",
+                       "Bev","Reggie","Sunita","Colm","Margit","Ozzy","Lena","Hank"];
+
+/* ── Named critics (v4): each has an outlet, harshness and genre bias ── */
+DATA.CRITICS = [
+  {id:"holloway", name:"Ruth Holloway",  outlet:"The Ledger",      harsh:+6, loves:["drama","war","western"],           hates:["horror","concert"]},
+  {id:"okonjo",   name:"Femi Okonjo",    outlet:"Reel Culture",    harsh:-2, loves:["action","scifi","sports"],         hates:["musical"]},
+  {id:"varga",    name:"Petra Varga",    outlet:"Cine Quarterly",  harsh:+9, loves:["drama","thriller","truecrime"],    hates:["animation","comedy"]},
+  {id:"delaney",  name:"Sean Delaney",   outlet:"The Marquee",     harsh:-4, loves:["comedy","romance","concert"],      hates:["war"]},
+  {id:"ishida",   name:"Kaori Ishida",   outlet:"Frame By Frame",  harsh:+2, loves:["animation","fantasy","musical"],   hates:["truecrime"]},
+  {id:"brooks",   name:"Dante Brooks",   outlet:"Popcorn Report",  harsh:-7, loves:["horror","action","sports"],        hates:["drama"]},
+  {id:"lindgren", name:"Astrid Lindgren",outlet:"Northern Screen",  harsh:+4, loves:["scifi","thriller","western"],      hates:["romance"]},
+  {id:"mercado",  name:"Julio Mercado",  outlet:"Butaca",          harsh:0,  loves:["romance","musical","truecrime"],   hates:["scifi"]},
+];
+DATA.CRITIC_QUOTES = {
+  rave:  ["a triumph of pure cinema.","the year's most alive picture.","hands you your heart back, bruised.",
+          "big, brave and beautifully made.","the rare crowd-pleaser with a soul."],
+  good:  ["confident, generous filmmaking.","works far better than it should.","sturdy, satisfying craft.",
+          "a couple of scenes will follow you home."],
+  mixed: ["handsome, hollow, harmless.","half a great film, twice too long.","competent and completely weightless.",
+          "keeps promising a movie it never makes."],
+  bad:   ["an expensive shrug.","loud, lazy and endless.","a rough week for everyone involved.",
+          "the algorithm dreamed this and no one woke up."],
+};
+
+/* ── Genre trends / market cycles (v4) ──
+   Each genre carries a heat value that drifts every quarter.
+   heat ≈ 1.0 neutral · >1.10 hot · <0.90 cooling. It multiplies opening weekend and OTT appetite. */
+DATA.TREND = {
+  min: 0.78, max: 1.28, drift: 0.10, revertPull: 0.18, shiftWeeks: 13,
+  labels: [
+    {at:1.18, tag:"🔥 red hot",  cls:"green"},
+    {at:1.07, tag:"📈 rising",   cls:"gold"},
+    {at:0.94, tag:"➖ steady",   cls:""},
+    {at:0.85, tag:"📉 cooling",  cls:"red"},
+    {at:0.00, tag:"🥶 ice cold", cls:"red"},
+  ],
+  headlines: {
+    hot:  ["{g} is the hottest thing in town — every studio wants one.",
+           "Analysts: the {g} boom shows no sign of slowing.",
+           "A surprise {g} smash has buyers scrambling for scripts."],
+    cold: ["Buyers say the {g} bubble has burst.",
+           "Exhibitors report {g} fatigue at the multiplex.",
+           "Three {g} flops in a row have the town spooked."],
+  },
+};
+
+/* ── Franchise fatigue (v4): milk a brand and audiences check out ── */
+DATA.FATIGUE = {
+  perEntry: 0.14,        // fatigue added per franchise entry released
+  recentWindow: 78,      // weeks — entries inside this window hurt most
+  recoverPerWeek: 0.004, // rest the brand and it heals
+  max: 0.62,             // caps the opening penalty
+  qualityHit: 10,        // max quality points lost at full fatigue
+};
+
+/* ── Talent careers (v4): ages, retirement, scandal, comeback ── */
+DATA.CAREER = {
+  minAge: 22, maxStartAge: 58,
+  retireFrom: 62,           // retirement rolls start here
+  retireChancePerYear: 0.22,
+  primeLow: 30, primeHigh: 48,
+  scandalCooldown: 40,      // weeks radioactive
+};
+
+/* ── Streamer tiers (v4): ad-supported vs premium ── */
+DATA.TIERS = [
+  {id:"premium", name:"Premium only",  arpu:0.50, ceil:1.00, churn:0.008, cost:0,
+   desc:"One clean ad-free tier. Highest revenue per sub, smallest addressable market."},
+  {id:"ads",     name:"Ad tier + premium", arpu:0.38, ceil:1.32, churn:0.006, cost:60,
+   desc:"Cheap ad-supported tier: −24% revenue per sub, but +32% ceiling and stickier subs. $60M to build ad tech."},
+];
+DATA.tier = (id)=> DATA.TIERS.find(t=>t.id===id) || DATA.TIERS[0];
+
+/* ── Public markets (v4): stock price, earnings calls, analysts ── */
+DATA.MARKET = {
+  ipoPrice: 20, shares: 40,      // 40M shares × $20 = $800M cap at IPO
+  callWeeks: [13,26,39,52],
+  driftPerNetM: 0.011,           // $ per share per $M weekly net
+  repInfluence: 0.004,
+  analysts: ["Kestrel Capital","Ridgeline Partners","Vontier Research","Harbourstone","Blue Axis Equity"],
+};
+
+/* ── v4 random events (appended to the weekly pool) ── */
+DATA.EVENTS.push(
+  {id:"review_bomb", w:4, icon:"🍅", title:"Review bombing",
+   text:"An organised pile-on is tanking the audience score of one of your releases.",
+   when(G){ return G.films.some(f=>f.inTheaters); },
+   run(G){
+     const f=pick(G.films.filter(x=>x.inTheaters)); if(!f) return;
+     const hit=rint(8,20);
+     f.quality.aud=clamp(f.quality.aud-hit,5,99);
+     f.reviewBombed=(f.reviewBombed||0)+hit;
+     f.piracyPenalty=(f.piracyPenalty||0)+0.02;
+     G.log("🍅 Review bombing hits “"+f.title+"” — audience score −"+hit+".","bad");
+   }},
+  {id:"awards_campaign", w:3, icon:"🏆", title:"Awards campaign", kind:"choice",
+   text:"Your consultants want a full-blown Golden Reel campaign for your best-reviewed film of the year.",
+   when(G){ return G.films.some(f=>f.year===yearOfW(G.week) && f.quality && f.quality.critic>=70); },
+   choices:(G)=>[
+     {label:"Fund the campaign (−$14M, prestige +)", run(G){
+        const pool=G.films.filter(f=>f.year===yearOfW(G.week)&&f.quality&&f.quality.critic>=70)
+                          .sort((a,b)=>b.quality.critic-a.quality.critic);
+        spend("marketing",14);
+        if(pool[0]){ pool[0].campaign=(pool[0].campaign||0)+8; G.log("🏆 Awards campaign launched for “"+pool[0].title+"”.","gold"); }
+     }},
+     {label:"Skip it — save the money", run(G){ G.log("🏆 You skipped awards season. Bold.",""); }},
+   ]},
+  {id:"password_crackdown", w:3, icon:"🔐", title:"Password sharing crackdown", kind:"choice",
+   text:"Your platform's data team says a third of households are sharing logins. Crack down?",
+   when(G){ return !!G.streamer && G.streamer.subs>4; },
+   choices:(G)=>[
+     {label:"Crack down (+subs now, churn spikes 12 wks)", run(G){
+        const bump=Math.round(G.streamer.subs*0.16*100)/100;
+        G.streamer.subs=Math.round((G.streamer.subs+bump)*100)/100;
+        G.streamer.crackdown=12;
+        G.log("🔐 Crackdown: +"+bump+"M paid accounts, but churn doubles for 12 weeks.","gold");
+     }},
+     {label:"Leave it alone", run(G){ G.log("🔐 You let the freeloaders stream in peace.",""); }},
+   ]},
+  {id:"writer_room", w:4, icon:"✍️", title:"Spec script bidding war", kind:"choice",
+   text:"A red-hot spec is going out wide tomorrow morning. Pre-empt it?",
+   choices:(G)=>[
+     {label:"Pre-empt (−$6M, hot script + hot writer)", run(G){
+        spend("development",6);
+        if(typeof spawnWriterHot==="function") spawnWriterHot();
+        if(G.ideas){ const i=genIdea(); i.hot=true; i.script=clamp(i.script+10,60,96); G.ideas.push(i); }
+        G.log("✍️ You pre-empted the town's hottest spec.","good");
+     }},
+     {label:"Let it go wide", run(G){ G.log("✍️ A rival pre-empted the spec.",""); }},
+   ]},
+  {id:"comeback", w:3, icon:"🎭", title:"Comeback offer", kind:"choice",
+   text:"A once-huge star, currently radioactive, wants a comeback vehicle with you — cheap.",
+   when(G){ return G.talent.some(t=>t.scandal>0 && t.power>=3); },
+   choices:(G)=>[
+     {label:"Rehabilitate them (−$3M PR, scandal cleared)", run(G){
+        const t=pick(G.talent.filter(x=>x.scandal>0&&x.power>=3)); if(!t) return;
+        spend("talent",3); t.scandal=0; t.heat=Math.min(3,(t.heat||0)+1); t.comeback=true;
+        G.log("🎭 Comeback arc: "+t.name+" is back in business with you.","gold");
+     }},
+     {label:"Not our problem", run(G){ G.log("🎭 You passed on the comeback story.",""); }},
+   ]},
+  {id:"cofinance", w:4, icon:"🤝", title:"Co-financing offer", kind:"choice",
+   text:"A finance partner offers to cover 30% of one production in exchange for 35% of its upside.",
+   when(G){ return G.projects.some(p=>p.phase==="pre"||p.phase==="shoot"); },
+   choices:(G)=>[
+     {label:"Take the partner (cash now, share the upside)", run(G){
+        const p=pick(G.projects.filter(x=>x.phase==="pre"||x.phase==="shoot")); if(!p) return;
+        const cash=Math.round(p.budget*0.30);
+        earn("financing",cash); p.coFinance=0.35;
+        G.log("🤝 Co-financing on “"+p.title+"”: +"+fmtM(cash)+" now, partner keeps 35% of net.","good");
+     }},
+     {label:"Keep 100%", run(G){ G.log("🤝 You kept the whole picture.",""); }},
+   ]}
+);
+
+/* helper used by v4 events before engine.js loads its own yearOf */
+function yearOfW(w){ return Math.floor((w-1)/52)+1; }
