@@ -10,7 +10,9 @@ const ROOT = "/home/user/Box-office-War";
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8")
   .replace(/<script src="data.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"data.js"),"utf8")+"<\/script>")
   .replace(/<script src="engine.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"engine.js"),"utf8")+"<\/script>")
-  .replace(/<script src="ui.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"ui.js"),"utf8")+"<\/script>");
+  .replace(/<script src="i18n.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"i18n.js"),"utf8")+"<\/script>")
+  .replace(/<script src="ui.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"ui.js"),"utf8")+"<\/script>")
+  .replace(/<script>\s*\/\* PWA[^]*?<\/script>/, ""); // no service worker in jsdom
 
 const virtualConsole = new VirtualConsole();
 let pageErrors = [];
@@ -112,6 +114,8 @@ step("schedule release via modal", ()=>{
   click(btn);
   const rows=$$("[data-w]"); if(!rows.length) throw new Error("calendar empty");
   click(rows[rows.length-1]);
+  // like a real player: if the P&A down payment is out of reach, bridge it with a loan
+  window.eval("if(G.studio.cash < 40) takeLoan(60)");
   click($("#scGo"));
   if(!g().projects.some(p=>p.releaseWeek>0)) throw new Error("not scheduled");
 });
@@ -185,8 +189,82 @@ step("loadGame roundtrip", ()=>{
   const g = window.eval("loadGame()");
   if(!g || g.studio.name!=="Test Studio") throw new Error("loadGame failed");
 });
+step("v2 start options were on the start screen", ()=>{
+  const rawHtml = html;
+  if(!rawHtml.includes("startOptions")) throw new Error("startOptions container missing");
+});
+step("v2 scenario/difficulty/sandbox/slots render at boot", ()=>{
+  // reload-free check: the game started via defaults (standard/normal/slot 1)
+  const j = JSON.parse(window.localStorage.getItem("bow_save"));
+  if(j.scenario!=="standard" || j.difficulty!=="normal" || j.slot!==1) throw new Error("meta not saved: "+JSON.stringify([j.scenario,j.difficulty,j.slot]));
+});
+step("v2 achievements modal opens", ()=>{
+  click($(".tab[data-tab='studio']"));
+  const btn=$("#btnAch"); if(!btn) throw new Error("achievements button missing");
+  click(btn);
+  if(!window.document.querySelector(".modal")) throw new Error("ach modal not open");
+  click(window.document.querySelector(".modal-actions .btn"));
+});
+step("v2 settings modal + Hindi toggle + back to English", ()=>{
+  click($("#btnSettings"));
+  if(!window.document.querySelector(".modal")) throw new Error("settings modal not open");
+  const hi=[...window.document.querySelectorAll(".modal .btn")].find(b=>b.textContent.includes("हिन्दी"));
+  if(!hi) throw new Error("hindi button missing");
+  click(hi);
+  if(window.localStorage.getItem("bow_lang")!=="hi") throw new Error("lang not persisted");
+  if(!$("#btnWeek").textContent.includes("अगला")) throw new Error("chrome not translated: "+$("#btnWeek").textContent);
+  click($("#btnSettings"));
+  const en=[...window.document.querySelectorAll(".modal .btn")].find(b=>b.textContent.trim()==="English");
+  click(en);
+  if(!$("#btnWeek").textContent.toLowerCase().includes("next")) throw new Error("chrome not back in english");
+  click([...window.document.querySelectorAll(".modal-actions .btn")].pop());
+});
+step("v2 executives hire", ()=>{
+  click($(".tab[data-tab='finance']"));
+  window.eval("G.studio.cash=400");
+  click($(".tab[data-tab='finance']"));
+  const btn=$$("[data-exec]")[0]; if(!btn) throw new Error("exec buttons missing");
+  click(btn);
+  if(!Object.keys(g().execs).length) throw new Error("exec not hired");
+});
+step("v3 streamer launch + library move", ()=>{
+  window.eval("G.studio.cash=400; G.studio.rep=55; launchStreamer('TestStream')");
+  if(!g().streamer) throw new Error("streamer not launched");
+  click($(".tab[data-tab='ott']"));
+  if(!$("#view").innerHTML.includes("TestStream")) throw new Error("streamer card missing");
+});
+step("v3 IP market renders & buys", ()=>{
+  click($(".tab[data-tab='develop']"));
+  if(!$$("[data-ip]").length) throw new Error("IP market items missing");
+  window.eval("G.studio.cash=200");
+  const before=g().ideas.length;
+  click($$("[data-ip]")[0]);
+  if(g().ideas.length<=before) throw new Error("IP buy did not add an idea");
+});
+step("v2 rewrite / test-screening flows", ()=>{
+  // fabricate a pre-production project and a ready project
+  window.eval(`G.projects.push({id:9872, kind:"film", title:"Rewrite Me", genre:"drama", scale:"indie", script:60, budget:10, spent:1, devCost:2, director:null, cast:[], phase:"pre", phaseWeek:0, phaseLen:{pre:3,shoot:4,post:4}, releaseWeek:0, marketing:0, marketingPaid:0, buzzBonus:0, location:"atlanta", rating:"R"})`);
+  window.eval(`G.projects.push({id:9873, kind:"film", title:"Screen Me", genre:"drama", scale:"indie", script:60, budget:10, spent:10, devCost:2, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, buzzBonus:0, quality:{overall:52,critic:50,aud:55}})`);
+  click($(".tab[data-tab='productions']"));
+  const rw=$$("[data-rewrite]").find(b=>+b.dataset.rewrite===9872);
+  if(!rw) throw new Error("rewrite button missing");
+  click(rw);
+  const p1=g().projects.find(x=>x.id===9872);
+  if(!p1.rewritten || p1.script<=60) throw new Error("rewrite did not apply");
+  const sc=$$("[data-screen]").find(b=>+b.dataset.screen===9873);
+  if(!sc) throw new Error("screening button missing");
+  click(sc);
+  if(!window.document.querySelector(".modal")) throw new Error("screening modal not open");
+  click(window.document.querySelector(".modal-actions .btn"));
+  const rs=$$("[data-reshoot]").find(b=>+b.dataset.reshoot===9873);
+  if(!rs) throw new Error("reshoot button missing (quality 52)");
+  click(rs);
+  const p2=g().projects.find(x=>x.id===9873);
+  if(!p2.reshoot) throw new Error("reshoot did not apply");
+});
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){
+    if(g().sportsAuction){ const sk=$$("#sportsSkip")[0]||window.document.querySelector("#sportsSkip"); if(sk){ click(sk); } }
     click($("#btnFast"));
     if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
     if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }

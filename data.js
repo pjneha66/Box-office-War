@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
    BOX OFFICE WAR — data.js
    Static game data: genres, scales, calendar, OTT platforms,
-   talent name pools, title generators, archetypes, events.
+   talent name pools, title generators, archetypes, events,
+   v2/v3 expansion data (difficulty, scenarios, execs, festivals,
+   sports, IP market, achievements…).
    All money is in $Millions (USD).
    ═══════════════════════════════════════════════════════════ */
 "use strict";
@@ -46,6 +48,13 @@ DATA.GENRES = {
   musical:  {name:"Musical",     emoji:"🎵", mass:0.95, legsAdj:+0.30, intlShare:0.40, china:0.02, critic:+4, aud:+2,  otta:1.00, awards:1.3, budgetBias:0.90, merch:0.80},
 };
 
+/* ── Series-only genres (v2: cheap, renewal-friendly) ── */
+DATA.SGENRES = {
+  reality:      {name:"Reality",      emoji:"🎤", ott:1.05, awards:0.1, perEpMax:5,  renewBonus:8},
+  documentary:  {name:"Documentary",  emoji:"🎥", ott:1.00, awards:0.4, perEpMax:6,  renewBonus:6},
+};
+DATA.genreOf = (id)=> DATA.GENRES[id] || DATA.SGENRES[id] || {name:id, emoji:"🎞"};
+
 /* ── Production scales ── */
 DATA.SCALES = {
   indie:    {name:"Indie",        emoji:"🎬", bMin:4,   bMax:25,  shoot:[4,6],   post:[4,7],   pre:[2,4],  openBase:9,   mktRate:0.55},
@@ -68,13 +77,19 @@ DATA.seasonOf = (weekIdx)=> DATA.WEEKS[((weekIdx-1)%52+52)%52];
 
 /* ── OTT platforms ── */
 DATA.PLATFORMS = [
-  {id:"streamflix", name:"StreamFlix", color:"#e50914", logo:"S", generosity:1.22, renew:58, taste:{horror:1.2,thriller:1.15,scifi:1.15,action:1.1,drama:1.0,comedy:1.0,romance:1.0,animation:1.05,fantasy:1.05,musical:0.9}, blurb:"The giant. Pays big, cancels fast."},
-  {id:"bingebox",   name:"BingeBox",   color:"#00a8e1", logo:"B", generosity:1.08, renew:52, taste:{comedy:1.25,romance:1.2,reality:1,drama:1.05,thriller:1.0,horror:1.0,action:0.95,scifi:0.95,animation:1.0,fantasy:0.95,musical:1.1}, blurb:"Binge-first. Loves comfort TV."},
-  {id:"prestigemax",name:"PrestigeMax",color:"#7b2cbf", logo:"P", generosity:1.12, renew:50, taste:{drama:1.35,musical:1.2,thriller:1.1,romance:1.05,comedy:0.95,horror:0.9,action:0.9,scifi:0.95,animation:0.9,fantasy:1.0}, blurb:"Awards darling. Prestige over profit."},
-  {id:"magicplus",  name:"Magic+",     color:"#1ce3ff", logo:"M", generosity:1.15, renew:54, taste:{animation:1.4,fantasy:1.25,action:1.1,scifi:1.1,family:1,comedy:0.95,drama:0.85,horror:0.7,thriller:0.85,romance:0.9,musical:1.15}, blurb:"Family empire. Four-quadrant only."},
-  {id:"orbittv",    name:"OrbitTV",    color:"#ff9f1c", logo:"O", generosity:0.92, renew:60, taste:{documentary:1,horror:1.1,thriller:1.05,drama:1.0,comedy:1.0,romance:1.05,action:0.9,scifi:0.9,animation:0.85,fantasy:0.9,musical:0.95}, blurb:"Budget streamer. Lowballs, but loyal."},
+  {id:"streamflix", name:"StreamFlix", color:"#e50914", logo:"S", generosity:1.22, renew:58, taste:{horror:1.2,thriller:1.15,scifi:1.15,action:1.1,drama:1.0,comedy:1.0,romance:1.0,animation:1.05,fantasy:1.05,musical:0.9,reality:1.05,documentary:1.0}, blurb:"The giant. Pays big, cancels fast."},
+  {id:"bingebox",   name:"BingeBox",   color:"#00a8e1", logo:"B", generosity:1.08, renew:52, taste:{comedy:1.25,romance:1.2,reality:1.3,drama:1.05,thriller:1.0,horror:1.0,action:0.95,scifi:0.95,animation:1.0,fantasy:0.95,musical:1.1,documentary:0.9}, blurb:"Binge-first. Loves comfort TV."},
+  {id:"prestigemax",name:"PrestigeMax",color:"#7b2cbf", logo:"P", generosity:1.12, renew:50, taste:{drama:1.35,musical:1.2,thriller:1.1,romance:1.05,comedy:0.95,horror:0.9,action:0.9,scifi:0.95,animation:0.9,fantasy:1.0,documentary:1.25,reality:0.7}, blurb:"Awards darling. Prestige over profit."},
+  {id:"magicplus",  name:"Magic+",     color:"#1ce3ff", logo:"M", generosity:1.15, renew:54, taste:{animation:1.4,fantasy:1.25,action:1.1,scifi:1.1,family:1,comedy:0.95,drama:0.85,horror:0.7,thriller:0.85,romance:0.9,musical:1.15,reality:1.1,documentary:0.8}, blurb:"Family empire. Four-quadrant only."},
+  {id:"orbittv",    name:"OrbitTV",    color:"#ff9f1c", logo:"O", generosity:0.92, renew:60, taste:{documentary:1.3,horror:1.1,thriller:1.05,drama:1.0,comedy:1.0,romance:1.05,action:0.9,scifi:0.9,animation:0.85,fantasy:0.9,musical:0.95,reality:1.15}, blurb:"Budget streamer. Lowballs, but loyal."},
 ];
-DATA.platform = (id)=> DATA.PLATFORMS.find(p=>p.id===id);
+/* platform lookup also includes streamers that entered mid-game (platform subscriber wars) */
+DATA.allPlatforms = ()=>{
+  const extra = (typeof G!=="undefined" && G && G.extraPlatforms)? G.extraPlatforms : [];
+  return DATA.PLATFORMS.concat(extra);
+};
+DATA.platform = (id)=> DATA.allPlatforms().find(p=>p.id===id) || DATA.PLATFORMS.find(p=>p.id===id) || {name:"?", color:"#555", logo:"?"};
+DATA.NEWSTREAMERS = ["VortexTV","PeakPlay","Fable+","Nebula Now","Zenith+","Bolt Stream"];
 
 /* ── Rival studios ── */
 DATA.RIVALS_DEF = [
@@ -92,6 +107,77 @@ DATA.ARCHETYPES = [
   {id:"mogul", name:"🚁 Mogul Backing", cash:420, rep:22, overhead:2.2, devBonus:0, flopPenalty:1.5,
    sub:"Deep pockets, impatient investors. Flops hurt your standing ×1.5."},
 ];
+
+/* ── v2 meta: difficulties, scenarios ── */
+DATA.DIFFICULTIES = {
+  easy:   {name:"Easy",   emoji:"🌤", rent:1.12, eventRate:0.8, desc:"Rentals +12% · milder events"},
+  normal: {name:"Normal", emoji:"⚖️", rent:1.00, eventRate:1.0, desc:"The industry as it is"},
+  hard:   {name:"Hard",   emoji:"🔥", rent:0.88, eventRate:1.3, desc:"Rentals −12% · harsher events"},
+};
+DATA.SCENARIOS = {
+  standard:   {name:"Standard",     emoji:"🎬", cash:0,   debt:0,   rep:0,   overhead:0,   flopPenalty:0,
+               desc:"Found a studio and climb from nothing."},
+  turnaround: {name:"Turnaround",   emoji:"🧯", cash:-20, debt:180, rep:-6,  overhead:0.2, flopPenalty:0,
+               desc:"You inherited a sinking lot: $180M debt, bruised reputation. Survive, rebuild, redeem."},
+  goldenage:  {name:"Golden Age",   emoji:"👑", cash:260, debt:0,   rep:+10, overhead:0.8, flopPenalty:0.4,
+               desc:"A war chest and a pedigree — but the board expects trophies. Flops sting harder."},
+};
+
+/* ── v2 content options ── */
+DATA.RATINGS = [
+  {id:"PG-13", emoji:"🍿", open:1.00, critic:0, desc:"Four-quadrant. The masses show up."},
+  {id:"R",     emoji:"🔞", open:0.88, critic:+4, desc:"−12% opening, but critics like it darker."},
+];
+DATA.LOCATIONS = [
+  {id:"home",    name:"Home lot", flag:"🏠", rate:0.08, desc:"8% baseline weekly incentive"},
+  {id:"atlanta", name:"Atlanta",  flag:"🍑", rate:0.14, desc:"14% weekly rebate on shoot burn"},
+  {id:"london",  name:"London",   flag:"🎡", rate:0.18, desc:"18% weekly rebate on shoot burn"},
+];
+DATA.WINDOWS = [
+  {d:17, label:"17-day",  pvod:1.15, rel:-10, desc:"PVOD +15% · exhibitors fume (−10 relations)"},
+  {d:45, label:"45-day",  pvod:1.00, rel:0,   desc:"The industry standard"},
+  {d:90, label:"90-day",  pvod:0.85, rel:+6,  desc:"PVOD −15% · theaters love you (+6 relations)"},
+];
+DATA.PATTERNS = [
+  {id:"wide",     label:"Wide release",     open:1.08, legs:0.00, desc:"+8% opening, everywhere at once"},
+  {id:"platform", label:"Platform rollout", open:0.75, legs:0.35, desc:"−25% opening, much longer legs"},
+];
+DATA.ROLLOUTS = [
+  {id:"day",       label:"Day-and-date worldwide", open:1.00, legs:0.00, intl:1.00, desc:"One weekend, whole planet"},
+  {id:"staggered", label:"Staggered intl rollout", open:0.88, legs:0.15, intl:1.12, desc:"−12% open, +legs, intl builds week by week"},
+];
+
+/* ── v2 executives ── */
+DATA.EXECS = [
+  {id:"cmo",     icon:"📣", name:"Chief Marketing Officer", hire:40, salary:0.40, desc:"+12% hype on every release"},
+  {id:"casting", icon:"🎭", name:"Head of Casting",         hire:30, salary:0.30, desc:"Talent fees −10% · stars much harder to poach"},
+  {id:"cfo",     icon:"🧮", name:"Chief Financial Officer", hire:35, salary:0.35, desc:"All loan interest −30%"},
+];
+
+/* ── v2 festivals (4 per year) ── */
+DATA.FESTIVALS = [
+  {woy:9,  name:"Polar Light Festival",  emoji:"❄️"},
+  {woy:20, name:"Côte d'Azur Film Fest", emoji:"🌴"},
+  {woy:36, name:"Laguna Film Festival",  emoji:"🛶"},
+  {woy:43, name:"Harvest Telluride",     emoji:"🍂"},
+];
+
+/* ── v3 live sports packages ── */
+DATA.SPORTS = [
+  {id:"soccer", name:"Soccer League",   emoji:"⚽"},
+  {id:"hoops",  name:"Hoops League",    emoji:"🏀"},
+  {id:"racing", name:"Motorsport Tour", emoji:"🏎️"},
+  {id:"fights", name:"Fight League",    emoji:"🥊"},
+];
+
+/* ── v3 IP market ── */
+DATA.IPKINDS = [
+  {id:"book",  name:"Bestselling novel",      emoji:"📖"},
+  {id:"comic", name:"Comic book / graphic novel", emoji:"🦸"},
+  {id:"true",  name:"True story rights",      emoji:"📰"},
+  {id:"pd",    name:"Public-domain classic",  emoji:"🏛️"},
+];
+DATA.PD_TITLES = ["Hamlet","The Odyssey","Twenty Thousand Leagues","Pride & Prejudice","Moby-Dick","Dracula","The Jungle Book","War of the Worlds"];
 
 /* ── Talent name pools ── */
 DATA.FIRST_M = ["Jack","Elias","Roman","Kai","Dante","Micah","Orion","Caleb","Leon","Adrian","Marcus","Theo","Rhys","Julian","Cassius","Miles","Owen","Silas","Nico","Amir","Diego","Ravi","Kenji","Idris","Mateo","Finn","Xavier","Gideon","Ezra","Malik"];
@@ -117,6 +203,9 @@ DATA.SHARED_TITLES = ["Echoes","The Long Goodbye","Midnight Sun","Paper Kingdoms
 
 /* ── Series title bits ── */
 DATA.SERIES_TITLES = {a:["North","Crown","Silent","Bright","Broken","Golden","Iron","Hidden","Crimson","Pale"],b:["Harbor","Street","Valley","Heights","Precinct","Shores","Files","County","Society","Sessions"]};
+
+/* ── Spin-off / crossover bits ── */
+DATA.SPINOFF_SUFFIX = ["Origins","Rising","Legacy","Protocol","Untamed","Chronicles","Reign","Reloaded"];
 
 /* ── Concept blurbs (flavor for ideas) ── */
 DATA.BLURBS = {
@@ -170,6 +259,19 @@ DATA.EVENTS = [
   {id:"stream_war", w:3, icon:"⚔️", title:"Streaming war heats up",
    text:"Two platforms are fighting over subscribers. Licensing offers spike +30% for 10 weeks.",
    run(G){ G.streamWar=10; G.log("⚔️ Streaming war! Offers +30% for 10 weeks","gold"); }},
+  {id:"new_streamer", w:3, icon:"🛰", title:"Platform subscriber wars",
+   text:"A rival is bankrolling a brand-new streaming service. One more bidder enters the market — for now.",
+   when(G){ return (G.extraPlatforms||[]).length<2 && G.films.length>=1; },
+   run(G){
+     const used=DATA.allPlatforms().map(p=>p.name);
+     const name=pick(DATA.NEWSTREAMERS.filter(n=>!used.includes(n))||["Apex+"]);
+     const gen={ id:"new"+nid(), name, color:pick(["#22c55e","#f472b6","#38bdf8","#facc15","#a78bfa"]), logo:name[0],
+       generosity:1.18, renew:55, taste:{}, blurb:"Fresh money. Hungry for content — pays a premium." };
+     Object.keys(DATA.GENRES).forEach(k=>gen.taste[k]=0.95+rnd()*0.25);
+     gen.taste.reality=1.0; gen.taste.documentary=1.0;
+     G.extraPlatforms.push(gen);
+     G.log("🛰 "+pick(G.rivals).name+" launches "+name+" — a new streamer enters the bidding wars!","gold");
+   }},
   {id:"pandemic", w:2, icon:"🦠", title:"Theater capacity limits",
    text:"A health scare caps theater occupancy. Box office −45% for 8 weeks. (It happened before…)",
    run(G){ G.theaterCap=8; G.log("🦠 Theater caps! Box office −45% for 8 weeks","bad"); }},
@@ -191,10 +293,36 @@ DATA.EVENTS = [
      {label:"Take the $50M", run(G){earn("financing",50); G.studio.investorDebt=(G.studio.investorDebt||0)+70; G.log("🕴 Investor cash +$50M (owe $70M)","good");}},
      {label:"Stay independent", run(G){G.log("🕴 You passed on outside money","");}},
    ]},
+  {id:"toxic_tabloid", w:3, icon:"🗞", title:"Tabloid storm",
+   text:"A loose-cannon star on your payroll is melting down in public. Openings suffer until it's handled.",
+   when(G){ return G.talent.some(t=>t.kind==="actor"&&!t.toxic&&t.pics>0); }, kind:"choice",
+   choices:(G)=>[
+     {label:"Ignore it", run(G){ const t=G.talent.find(t=>t.kind==="actor"&&!t.toxic&&t.pics>0); if(t){t.toxic=true; G.log("🗞 "+t.name+" is now box-office poison (−7% openings until rehab)","bad");} }},
+     {label:"Pay for PR containment (−$3M)", run(G){spend("other",3); G.log("🗞 Contained. For now.","");}},
+   ]},
 ];
 
 /* ── Award show name ── */
 DATA.AWARDS = "The Golden Reel Awards";
+
+/* ── Achievements (v2/v3: 15 of them) ── */
+DATA.ACH = [
+  {id:"green",     icon:"🎬", name:"Slate Starter",   desc:"Greenlight your first film",            check:G=>G.projects.length>0||G.stats.films>0},
+  {id:"open100",   icon:"💥", name:"Century Club",    desc:"$100M+ opening weekend",                check:G=>G.stats.bestOpen>=100},
+  {id:"hit",       icon:"🔥", name:"It's a Hit",      desc:"Land your first theatrical hit",        check:G=>G.stats.hits>=1},
+  {id:"smash",     icon:"🌟", name:"Smash Maker",     desc:"A film grosses 1.6× breakeven",         check:G=>G.films.some(f=>f.ww&&f.ww>=breakevenWW(f)*1.6)},
+  {id:"franchise", icon:"🏰", name:"Franchise Born",  desc:"Unlock your first franchise",           check:G=>G.franchises.length>=1},
+  {id:"empire",    icon:"🎡", name:"Empire Builder",  desc:"Merch + theme park on one franchise",   check:G=>G.franchises.some(f=>f.merch>=1&&f.park>=1)},
+  {id:"award",     icon:"🏆", name:"Best Picture",    desc:"Win Best Picture at the Golden Reels",  check:G=>(G.stats.awards||[]).some(a=>a.cat==="Best Picture")},
+  {id:"stream5",   icon:"📺", name:"Streaming Machine",desc:"Sell 5 films to streamers",            check:G=>G.films.filter(f=>f.soldTo||f.streamingOriginal).length>=5},
+  {id:"billion",   icon:"💵", name:"Billion-Grosser", desc:"$1B all-time worldwide gross",          check:G=>G.stats.totalWW>=1000},
+  {id:"watercool", icon:"📡", name:"Watercooler",     desc:"A season posts 75+ buzz",               check:G=>G.series.some(s=>s.seasons.some(x=>x.viewership>=75))},
+  {id:"subs25",    icon:"🛰", name:"25M Club",        desc:"25M subscribers on your own streamer",  check:G=>!!(G.streamer&&G.streamer.subs>=25)},
+  {id:"ipo",       icon:"🔔", name:"Going Public",    desc:"Ring the bell — complete an IPO",       check:G=>!!G.ipo},
+  {id:"year3",     icon:"⏳", name:"Survivor",        desc:"Reach Year 3",                          check:G=>yearOf(G.week)>=3},
+  {id:"warchest",  icon:"🏦", name:"War Chest",       desc:"$500M cash with no debt",               check:G=>G.studio.cash>=500&&G.studio.debt<=0.5},
+  {id:"fullslate", icon:"🖐", name:"Full Slate",      desc:"5 of your films in theaters same week", check:G=>G.films.filter(f=>f.inTheaters).length>=5},
+];
 
 /* ── Fictional "real world" flavor news (rival headlines) ── */
 DATA.FLAVOR = [
