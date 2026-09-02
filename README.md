@@ -58,10 +58,29 @@ Progress auto-saves to your browser's localStorage.
 | Exhibitor relations meter | 🎞 short windows anger exhibitors; the meter swings openings ±5% |
 | PVOD → pay-1 TV ladder | pay-1 lands 6% of WW at week +6 after the run |
 
+### The v4 Craft, Cycles & Consequences update
+| Mechanic | Real-world rule used |
+|---|---|
+| ✍️ Writers | attach a writer at greenlight: skill + genre fit adds up to **+11 script**, and script is 30% of quality |
+| 🎫 Producers | they contain **cost overruns** (odds & size), add production value, and a great one shaves a week off the shoot — go without and every overrun is yours |
+| 📈 Genre trends | every genre carries a heat multiplier (0.78–1.28×) that re-rates **every quarter**; heat moves opening weekend and streaming appetite, hits warm a genre, flops cool it |
+| 🗞 Named critics | five named reviewers (own outlet, harshness, genre loves/hates) publish on opening day — their consensus becomes the critic score |
+| 🍅 Critic/audience split | separate critic & audience meters; **review bombing** events tank the audience score and the legs that come with it |
+| 😴 Franchise fatigue | each entry adds fatigue: smaller openings *and* worse reviews, healed only by resting the brand ~6 months |
+| 👵 Talent careers | everyone ages: skill peaks in the 30s–40s, star power fades late, veterans **retire**, scandals make talent radioactive (cheap to hire, −opening) and a **comeback** event can rehabilitate them |
+| 🎬 New genres | western, war, sports, concert film and true-crime docudrama, each with their own legs, intl mix and merch |
+| 💸 Streamer tiers | premium-only ($0.50/sub/wk) vs **ad tier + premium** (−24% ARPU, +32% ceiling, stickier) — plus a **password-sharing crackdown** event |
+| 📊 Post-IPO stock | a real share price, market cap, quarterly **earnings calls** (beat/miss vs the street), named analysts, downgrade streaks and **secondary offerings** |
+| 🤝 Co-financing | a partner covers 30% of a production for 35% of its net |
+| 🔊 Sound & motion | WebAudio stings — opening fanfare, cash register, award timpani, smash-hit chime, downgrade buzzer — plus animated chart bars and **confetti** on smash hits and Best Picture |
+| 📸 Studio card | generate a shareable PNG snapshot of your studio (or copy the summary) |
+| 💾 Save safety | versioned save schema with **validation + forward migrations**; corrupt saves are quarantined instead of crashing the game |
+
 ### Screens
-🏛 Studio (feed + market share) · 📝 Develop (script market + talent + craft choices) · 🎬 Productions (pipeline, test screenings & reshoots, release dating) · 📊 Box Office (weekly chart, runs, library) · 📺 OTT & Series (offers, renewals, platforms) · 🏰 Empire (franchises, merch, parks) · 💼 Finance (live weekly P&L, 12-week forecast, loans, mezzanine, IPO, execs, upgrades)
+🏛 Studio (feed + market share + achievements + share card) · 📝 Develop (genre trend board + script market + writers/producers/directors/cast) · 🎬 Productions (pipeline, test screenings & reshoots, release dating) · 📊 Box Office (weekly chart, runs, critic/audience split & reviews, library) · 📺 OTT & Series (offers, renewals, platforms) · 🏰 Empire (franchises, merch, parks) · 💼 Finance (live weekly P&L, 12-week forecast, loans, mezzanine, IPO + stock price, execs, upgrades)
 
 ## 🕹 Quick strategy tips
+0. Read the **genre trend board** before you buy a script — a red-hot genre is worth more than a star.
 1. Start with an **indie or mid film** — tentpoles need ~$200M+ and a franchise to pay off.
 2. Pick your distribution: theatrical for upside, **streaming original** for guaranteed cash, or keep options open and shop it later.
 3. Never release a genre film into a rival tentpole's weekend — check the dating calendar.
@@ -69,16 +88,19 @@ Progress auto-saves to your browser's localStorage.
 5. A hit film (2× breakeven + good reviews) unlocks a **franchise** — sequels open ~35% bigger, merch & parks pay weekly, and each release re-heats the brand.
 6. Cash-strapped? **International pre-sales** pay ~22% of budget on day one (you give up intl box office), and filming rebates arrive weekly during the shoot.
 7. Watch **Finance → This week's P&L**: box office rentals land every week a film is in theaters.
-8. Loans bridge production gaps; net debt beyond your credit line for 3 weeks = the bank takes the lot.
+8. Always attach a **producer** on anything over $50M: overruns compound faster than interest.
+9. Rest a franchise for two quarters when fatigue passes ~30% — sequels into fatigue open small and review badly.
+10. Loans bridge production gaps; net debt beyond your credit line for 3 weeks = the bank takes the lot.
 
 ## 🛠 Development
 
 ```
 index.html      shell (start screen + app)
 style.css       dark cinematic theme, responsive (mobile bottom-nav / desktop tabs)
-data.js         genres, scales, calendar, OTT platforms, talent pools, title generators, events
+data.js         genres, scales, calendar, OTT platforms, talent pools, critics, trends, tiers, events
+                save schema version (DATA.SAVE_VERSION) — bump it and add a migration step
 engine.js       the simulation (quality, hype, legs, splits, offers, rivals, awards, finance)
-ui.js           rendering, wizards, modals, toasts, WebAudio bleeps
+ui.js           rendering, wizards, modals, toasts, WebAudio stings, confetti, studio card
 test/smoke.js   headless 5-year economy simulation (node test/smoke.js)
 test/ui-test.mjs jsdom click-through of the full game flow (npm i jsdom; node test/ui-test.mjs)
 ```

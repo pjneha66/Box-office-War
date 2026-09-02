@@ -309,3 +309,75 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 @media(max-width:400px){
   .chip:nth-child(4){display:none} /* hide date chip on tiny screens */
 }
+
+/* ═══════════════════════════════════════════════════════════
+   v4 — trends board · critic split · stock · tiers · motion
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── motion: bars grow in, cards ease up ── */
+@keyframes bowGrowW{ from{ width:0 } }
+@keyframes bowGrowH{ from{ height:0 } }
+@keyframes bowFadeUp{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
+@keyframes bowPop{ 0%{ transform:scale(.94); opacity:.4 } 60%{ transform:scale(1.02) } 100%{ transform:scale(1); opacity:1 } }
+.chart-bar .cb-fill{ animation:bowGrowW .65s cubic-bezier(.2,.85,.25,1) }
+.trend-board .tr-fill{ animation:bowGrowW .6s cubic-bezier(.2,.85,.25,1) }
+.bar>i{ animation:bowGrowW .55s cubic-bezier(.2,.85,.25,1) }
+.weekly-gross-chart .wg,
+.pl-bars .pb,
+.forecast-bars .fg i,
+.stock-spark i{ animation:bowGrowH .5s cubic-bezier(.2,.85,.25,1) }
+.chart-bar{ animation:bowFadeUp .35s ease both }
+.chart-bar:nth-child(2){ animation-delay:.04s } .chart-bar:nth-child(3){ animation-delay:.08s }
+.chart-bar:nth-child(4){ animation-delay:.12s } .chart-bar:nth-child(5){ animation-delay:.16s }
+.chart-bar:nth-child(6){ animation-delay:.2s }  .chart-bar:nth-child(7){ animation-delay:.24s }
+.toast{ animation:bowPop .28s ease both }
+@media (prefers-reduced-motion: reduce){
+  .chart-bar,.chart-bar .cb-fill,.trend-board .tr-fill,.bar>i,.weekly-gross-chart .wg,
+  .pl-bars .pb,.forecast-bars .fg i,.stock-spark i,.toast{ animation:none !important }
+}
+
+/* ── confetti overlay ── */
+.confetti-canvas{
+  position:fixed; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:9999;
+}
+
+/* ── genre trend board ── */
+.trend-board .trend-row{
+  display:grid; grid-template-columns:132px 1fr auto; gap:10px;
+  align-items:center; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.03);
+}
+.trend-board .trend-row:last-of-type{ border-bottom:none }
+.trend-board .tr-name{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.trend-board .tr-track{ position:relative; height:9px; background:#0d1119; border:1px solid var(--line); border-radius:99px; overflow:hidden }
+.trend-board .tr-fill{ height:100%; border-radius:99px; background:linear-gradient(90deg,#4a5570,#7b88a8) }
+.trend-board .tr-fill.hot{ background:linear-gradient(90deg,#f5b942,#ff8f4d) }
+.trend-board .tr-fill.cold{ background:linear-gradient(90deg,#3a4a6d,#5aa2ff) }
+.trend-board .tr-val{ font-size:12px; white-space:nowrap; display:flex; align-items:center; gap:6px }
+@media (max-width:560px){
+  .trend-board .trend-row{ grid-template-columns:104px 1fr; }
+  .trend-board .tr-val{ grid-column:1 / -1; justify-content:flex-end }
+}
+
+/* ── critic / audience split ── */
+.split{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:8px;
+  padding:8px 10px; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:12px }
+.split .sp-side{ display:flex; align-items:center; gap:8px }
+.split .sp-face{ font-size:22px; line-height:1 }
+.split b{ font-size:17px }
+.review-card{ border-left:3px solid var(--line2) }
+.review-card:hover{ border-left-color:var(--gold) }
+
+/* ── stock sparkline ── */
+.stock-spark{ display:flex; align-items:flex-end; gap:2px; height:56px; margin:8px 0 10px;
+  padding:4px; background:#0d1119; border:1px solid var(--line); border-radius:10px }
+.stock-spark i{ flex:1; min-width:2px; background:linear-gradient(180deg,var(--gold2),var(--goldDim));
+  border-radius:2px 2px 0 0; min-height:3px }
+
+/* ── streamer tier cards ── */
+.tier-on{ border-color:var(--purple) !important; box-shadow:0 0 0 1px rgba(180,139,255,.35) inset }
+
+/* ── share card modal ── */
+.share-card-wrap{ display:flex; justify-content:center; margin:8px 0 4px }
+.share-card-img{ max-width:100%; max-height:60vh; border-radius:12px; border:1px solid var(--line2); box-shadow:var(--shadow) }
+.btn-xs{ padding:2px 8px; min-height:24px; font-size:11.5px; border-radius:8px }

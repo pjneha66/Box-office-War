@@ -76,15 +76,25 @@ step("open develop + start wizard", ()=>{
   }
   if(!btn) throw new Error("no affordable idea found");
   click(btn);
+  if(!$$("[data-writer]").length && !$("#wzSkipWriter")) throw new Error("writer step missing");
+});
+step("attach writer (v4)", ()=>{
+  const w=$$("[data-writer]")[0];
+  if(w){ click(w); if(!window.eval("WZ.writer")) throw new Error("writer not attached"); click($("#wzNext")); }
+  else click($("#wzSkipWriter"));
   if(!$$("[data-dir]").length) throw new Error("director picker empty");
 });
-step("pick director + cast + confirm", ()=>{
+step("pick director + cast + producer + confirm", ()=>{
   click($$("[data-dir]")[0]);
+  click($("#wzNext"));
   if(!$$("[data-cast]").length) throw new Error("cast picker empty");
   click($$("[data-cast]")[0]);
   click($$("[data-cast]")[1]||$$("[data-cast]")[0]);
   click($$("[data-cast]")[2]||$$("[data-cast]")[0]);
   if($$("[data-cast]").length<3) errors.push("expected 3 cast picks possible");
+  click($("#wzNext"));
+  const prod=$$("[data-prod]")[0];
+  if(prod){ click(prod); if(!window.eval("WZ.producer")) throw new Error("producer not attached"); }
   click($("#wzNext"));
   if(!$("#wzBudget")) throw new Error("budget slider missing");
   if(!$$("[data-plan]").length) throw new Error("distribution plan picker missing");
@@ -127,6 +137,59 @@ step("run to release + theatrical", ()=>{
 step("box office view shows film in theaters section", ()=>{
   click($(".tab[data-tab='boxoffice']"));
   if(!$("#view").innerHTML.includes("Your films in theaters")) throw new Error("section missing");
+});
+step("v4 named critics reviewed the release", ()=>{
+  const f=g().films.find(x=>x.reviews && x.reviews.length);
+  if(!f) throw new Error("no film carries reviews");
+  if(!Number.isFinite(f.criticAvg)) throw new Error("no critic consensus");
+  const btn=$$("[data-reviews]")[0];
+  if(!btn) throw new Error("reviews button missing");
+  click(btn);
+  if(!$(".review-card")) throw new Error("review cards missing in modal");
+  window.eval("closeModal()");
+});
+step("v4 genre trend board renders in Develop", ()=>{
+  click($(".tab[data-tab='develop']"));
+  if(!$(".trend-board")) throw new Error("trend board missing");
+  if($$(".trend-row").length !== Object.keys(window.eval("DATA.GENRES")).length) throw new Error("trend rows incomplete");
+  if(!$("#view").innerHTML.includes("Writers on the market")) throw new Error("writer market missing");
+  if(!$("#view").innerHTML.includes("Producers on the market")) throw new Error("producer market missing");
+});
+step("v4 streamer tiers + password crackdown state", ()=>{
+  window.eval("G.studio.rep=Math.max(G.studio.rep,45); G.studio.cash=Math.max(G.studio.cash,700); launchStreamer(); render();");
+  click($(".tab[data-tab='ott']"));
+  const t=$$("[data-tier]")[0];
+  if(!t) throw new Error("tier switch missing");
+  click(t);
+  if(g().streamer.tier!=="ads") throw new Error("tier did not switch");
+});
+step("v4 IPO, stock panel and earnings call", ()=>{
+  window.eval("G.studio.rep=70; G.studio.cash=Math.max(G.studio.cash,300); goPublic(); render();");
+  click($(".tab[data-tab='finance']"));
+  if(!$(".stock-spark")) throw new Error("stock sparkline missing");
+  if(!$("#fnSec")) throw new Error("secondary offering control missing");
+  window.eval("earningsCall()");
+  window.eval("earningsModal()");
+  if(!$("#view")) throw new Error("view gone");
+  window.eval("closeModal()");
+  if(!Number.isFinite(g().public.price)) throw new Error("share price not finite");
+});
+step("v4 share-your-studio card", ()=>{
+  click($(".tab[data-tab='studio']"));
+  const b=$("#btnShareCard");
+  if(!b) throw new Error("share card button missing");
+  const data=window.eval("studioCardData()");
+  if(!data || !data.rows || data.rows.length<8) throw new Error("card data incomplete");
+});
+step("v4 save schema is versioned and migrates", ()=>{
+  window.eval("saveGame()");
+  const raw=window.localStorage.getItem("bow_save");
+  const j=JSON.parse(raw);
+  if(j.v!==window.eval("DATA.SAVE_VERSION")) throw new Error("save not stamped");
+  const legacy=JSON.parse(raw); legacy.v=1; delete legacy.trends;
+  const migrated=window.eval("migrateSave")(legacy);
+  if(!migrated.save.trends) throw new Error("migration failed");
+  if(window.eval("validateSave")({}).length===0) throw new Error("validator too permissive");
 });
 step("empire tab renders", ()=>{
   click($(".tab[data-tab='empire']"));
