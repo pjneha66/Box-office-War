@@ -127,6 +127,10 @@ DATA.SCENARIOS = {
                desc:"You inherited a sinking lot: $180M debt, bruised reputation. Survive, rebuild, redeem."},
   goldenage:  {name:"Golden Age",   emoji:"👑", cash:260, debt:0,   rep:+10, overhead:0.8, flopPenalty:0.4,
                desc:"A war chest and a pedigree — but the board expects trophies. Flops sting harder."},
+  indiedarling:{name:"Indie Darling", emoji:"🌹", cash:-35, debt:0,  rep:+12, overhead:-0.2, flopPenalty:0.55, devBonus:5,
+               desc:"Festival-bred credibility: high rep, tiny bank account. Critics love you; the bank doesn't. Script quality is everything."},
+  franchisemachine:{name:"Franchise Machine", emoji:"🏰", cash:180, debt:60, rep:+4, overhead:1.3, flopPenalty:1.2,
+               desc:"You bought a tired-but-beloved IP with your seed money. One legacy franchise is already on the lot — feed it fresh entries without burning it out."},
 };
 
 /* ── v2 content options ── */
@@ -134,11 +138,7 @@ DATA.RATINGS = [
   {id:"PG-13", emoji:"🍿", open:1.00, critic:0, desc:"Four-quadrant. The masses show up."},
   {id:"R",     emoji:"🔞", open:0.88, critic:+4, desc:"−12% opening, but critics like it darker."},
 ];
-DATA.LOCATIONS = [
-  {id:"home",    name:"Home lot", flag:"🏠", rate:0.08, desc:"8% baseline weekly incentive"},
-  {id:"atlanta", name:"Atlanta",  flag:"🍑", rate:0.14, desc:"14% weekly rebate on shoot burn"},
-  {id:"london",  name:"London",   flag:"🎡", rate:0.18, desc:"18% weekly rebate on shoot burn"},
-];
+/* (v1 location table removed — see the authoritative v5 list below) */
 DATA.WINDOWS = [
   {d:17, label:"17-day",  pvod:1.15, rel:-10, desc:"PVOD +15% · exhibitors fume (−10 relations)"},
   {d:45, label:"45-day",  pvod:1.00, rel:0,   desc:"The industry standard"},
@@ -160,12 +160,19 @@ DATA.EXECS = [
   {id:"cfo",     icon:"🧮", name:"Chief Financial Officer", hire:35, salary:0.35, desc:"All loan interest −30%"},
 ];
 
-/* ── v2 festivals (4 per year) ── */
+/* ── v2 festivals → v5 circuit: each festival has its own taste & a sales market ──
+   loves   : premiere a film in a loved genre and your win odds + buzz jump
+   prestige: multiplies prize money, buzz and awards momentum from a win
+   market  : strength of the acquisitions floor — a win invites premium streamer auctions/offers  */
 DATA.FESTIVALS = [
-  {woy:9,  name:"Polar Light Festival",  emoji:"❄️"},
-  {woy:20, name:"Côte d'Azur Film Fest", emoji:"🌴"},
-  {woy:36, name:"Laguna Film Festival",  emoji:"🛶"},
-  {woy:43, name:"Harvest Telluride",     emoji:"🍂"},
+  {woy:9,  name:"Snowfall Festival",      emoji:"❄️", blurb:"The indie marketplace. Scrappy discoveries get bought here.",
+   loves:["drama","thriller","truecrime","horror","romance"], prestige:1.0, market:1.5},
+  {woy:20, name:"Azure Coast Festival",   emoji:"🌴", blurb:"The pale-blue carpet. Auterurs, foreign-language gems and scandal.",
+   loves:["drama","musical","romance","fantasy","western"], prestige:1.4, market:1.1, foreign:true},
+  {woy:36, name:"Laguna Film Festival",   emoji:"🛶", blurb:"Old-world prestige: where awards season quietly begins.",
+   loves:["drama","war","musical","animation","romance"], prestige:1.2, market:1.2},
+  {woy:43, name:"Harvest Telluride",      emoji:"🍂", blurb:"No market, no fuss — pure awards-momentum screening room.",
+   loves:["drama","western","war","thriller","truecrime"], prestige:0.9, market:0.7},
 ];
 
 /* ── v3 live sports packages ── */
@@ -253,13 +260,18 @@ DATA.EXECS = [
   {id:"cfo",  name:"Chief Financial Officer", icon:"💼", cost:110, blurb:"−30% interest on all debt.", key:"cfo"},
 ];
 
-/* ── Shoot locations: filming rebate % off the shoot burn (v2) ── */
+/* ── Shoot locations: filming rebate % off the shoot burn (v2) ──
+   v5 tax credits: every jurisdiction now carries a per-picture CAP and an AUDIT risk
+   (an audit claws back 40% of the rebates you banked on that film, plus a fine). */
 DATA.LOCATIONS = [
-  {id:"la",      name:"Los Angeles", rebate:0.00, blurb:"The home lot. No rebate, zero risk."},
-  {id:"atlanta", name:"Atlanta",     rebate:0.14, blurb:"Georgia. 14% filming rebate on shoot spend.", win:"THE PRIDE OF THE PECACH"},
-  {id:"london",  name:"London",      rebate:0.18, blurb:"UK. 18% filming rebate on shoot spend.", win:"A LONDON SOUNDSTAGE"},
+  {id:"la",         name:"Los Angeles", flag:"🌴", rebate:0.00, cap:0,    audit:0,    treaty:false, blurb:"The home lot. No rebate, zero risk — and zero paperwork."},
+  {id:"atlanta",    name:"Atlanta",     flag:"🍑", rebate:0.14, cap:30,   audit:0.03, treaty:false, blurb:"Georgia credit: 14% of shoot spend, capped at $30M per picture. Audits are rare and polite."},
+  {id:"london",     name:"London",      flag:"🎡", rebate:0.18, cap:45,   audit:0.05, treaty:true,  blurb:"UK credit: 18% capped at $45M/picture. Treaty-eligible for co-productions; counts as EU-quota content."},
+  {id:"newmexico",  name:"New Mexico",  flag:"🌵", rebate:0.20, cap:22,   audit:0.09, treaty:false, blurb:"Aggressive 20% credit, low $22M cap. Auditors have been paying extra attention lately."},
+  {id:"toronto",    name:"Toronto",     flag:"🍁", rebate:0.13, cap:20,   audit:0.03, treaty:true,  blurb:"Canada: 13% capped at $20M/picture. Treaty-eligible (co-productions). Reliable paymaster."},
+  {id:"queensland", name:"Queensland",  flag:"🦘", rebate:0.22, cap:35,   audit:0.15, treaty:true,  blurb:"Australia: the juiciest credit in the world (22%, $35M cap) — and the nosiest film office (15% audit odds)."},
 ];
-DATA.location = (id)=> DATA.LOCATIONS.find(l=>l.id===id) || DATA.LOCATIONS[0];
+DATA.location = (id)=> DATA.LOCATIONS.find(l=>l.id===id) || (id==="home"? DATA.LOCATIONS[0] : DATA.LOCATIONS[0]);
 
 /* ── MPAA rating choice (v2): PG-13 for the masses vs R (critics like it darker) ── */
 DATA.RATINGS = [
@@ -277,6 +289,9 @@ DATA.SPORTS = [
   {id:"hoops",  name:"National Basketball Circuit", icon:"🏀", blurb:"Year-round live appointment viewing."},
   {id:"racing", name:"Grand Prix Racing",        icon:"🏎️", blurb:"Season-long drama, big PPV bumps."},
   {id:"fights", name:"Combat Championship",      icon:"🥊", blurb:"Event-driven spikes, loyal PPV base."},
+  /* v5: live events beyond stick-and-ball */
+  {id:"wrestling", name:"Global Wrestling Circuit", icon:"🤼", blurb:"Weekly PPV spectacle — cheap to buy, rabid young fans, sticky subs." },
+  {id:"esports",   name:"Championship Gaming League", icon:"🎮", blurb:"Sold-out arenas of streamers. Gen-Z subs in bulk, ceiling soars." },
 ];
 DATA.sport = (id)=> DATA.SPORTS.find(s=>s.id===id);
 
@@ -497,17 +512,26 @@ DATA.MARKET = {
 
 /* ── v4 random events (appended to the weekly pool) ── */
 DATA.EVENTS.push(
-  {id:"review_bomb", w:4, icon:"🍅", title:"Review bombing",
-   text:"An organised pile-on is tanking the audience score of one of your releases.",
+  {id:"review_bomb", w:4, icon:"🍅", title:"Review bombing", kind:"choice",
+   text:(G)=>{ const f=pick(G.films.filter(x=>x.inTheaters)); G._evtF=f;
+      return f? ("An organised pile-on is tanking the audience score of “"+f.title+"” — bots, brigades, the lot. Counter it or ride it out?")
+              : "An organised pile-on is tanking one of your releases."; },
    when(G){ return G.films.some(f=>f.inTheaters); },
-   run(G){
-     const f=pick(G.films.filter(x=>x.inTheaters)); if(!f) return;
-     const hit=rint(8,20);
-     f.quality.aud=clamp(f.quality.aud-hit,5,99);
-     f.reviewBombed=(f.reviewBombed||0)+hit;
-     f.piracyPenalty=(f.piracyPenalty||0)+0.02;
-     G.log("🍅 Review bombing hits “"+f.title+"” — audience score −"+hit+".","bad");
-   }},
+   choices:(G)=>[
+     {label:"Fan-activation counter-campaign (−$4M, halve the damage)", run(G){
+        const f=G._evtF; if(!f) return; spend("marketing",4);
+        const hit=Math.round(rint(8,20)/2);
+        f.quality.aud=clamp(f.quality.aud-hit,5,99); f.reviewBombed=(f.reviewBombed||0)+hit; f.piracyPenalty=(f.piracyPenalty||0)+0.01;
+        f.bombCountered=true;
+        G.log("🍿 Your fans mobilised — “"+f.title+"” took a reduced hit ("+("−"+hit)+" audience).","good");
+     }},
+     {label:"Ride it out (full pile-on)", run(G){
+        const f=G._evtF; if(!f) return;
+        const hit=rint(8,20);
+        f.quality.aud=clamp(f.quality.aud-hit,5,99); f.reviewBombed=(f.reviewBombed||0)+hit; f.piracyPenalty=(f.piracyPenalty||0)+0.02;
+        G.log("🍅 Review bombing hits “"+f.title+"” — audience score −"+hit+".","bad");
+     }},
+   ]},
   {id:"awards_campaign", w:3, icon:"🏆", title:"Awards campaign", kind:"choice",
    text:"Your consultants want a full-blown Golden Reel campaign for your best-reviewed film of the year.",
    when(G){ return G.films.some(f=>f.year===yearOfW(G.week) && f.quality && f.quality.critic>=70); },
@@ -570,3 +594,267 @@ DATA.EVENTS.push(
 
 /* helper used by v4 events before engine.js loads its own yearOf */
 function yearOfW(w){ return Math.floor((w-1)/52)+1; }
+
+/* ═══════════════════════════════════════════════════════════
+   v5 — AI & SYNTHETIC MEDIA · GLOBAL MARKETS · CO-PRODUCTIONS
+        TALENT AGENCIES · AWARDS/PRECURSORS · MARKETING ·
+        PIRACY · MERCH/PARKS DEPTH · M&A · TAX CREDITS v2 ·
+        UNION NEGOTIATIONS · WAGE INFLATION · TUTORIAL
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Save schema v5 (see migrateSave step 5 in engine.js) ── */
+DATA.SAVE_VERSION = 5;
+
+/* ── Talent agencies (v5): WME/CAA-style shops with rosters ──
+   Every piece of talent is repped by one of these. Casting 2+ clients
+   of the same agency in one picture triggers a PACKAGING FEE.
+   An exclusive deal with an agency waives their packaging fee and
+   cuts their clients' quotes — until a poaching war heats up. */
+DATA.AGENCIES = [
+  {id:"meridian", name:"Meridian Talent Group", icon:"🌐", fee:0.04, blurb:"The biggest book in town. Package two of their clients in one film and they bill you a 4% packaging fee.", dealCost:30, dealWeeks:104, disc:0.15},
+  {id:"crown",    name:"Crown Artists",         icon:"👑", fee:0.05, blurb:"Prestige-leaning roster: stars who win things and know it. 5% packaging fee on stacked casts.", dealCost:36, dealWeeks:104, disc:0.18},
+  {id:"sterling", name:"Sterling Bureau",       icon:"💼", fee:0.03, blurb:"Scrappy volume house. Cheap packaging (3%), thinner top end.", dealCost:22, dealWeeks:104, disc:0.12},
+];
+DATA.agency = (id)=> DATA.AGENCIES.find(a=>a.id===id) || null;
+
+/* ── AI & synthetic media (v5) ──
+   aiCast  : licensed digital doubles replace the lead cast — zero cast fees,
+             but audiences smell it (audience −, weak opening mass), guilds fume.
+   aiScript: SynthScribe writes overnight — free writer, flat mediocre page.
+   AI productions roll the backlash dice weekly and can trigger audience revolt. */
+DATA.AI = {
+  castSkill: 58,           // the synthetic ensemble never quite acts human
+  castPower: 1,            // no star power to open on
+  audPenalty: 9,           // audience score hit for a fully synthetic cast
+  scriptScore: 56,         // SynthScribe's page quality
+  scrQualityPenalty: 4,    // overall craft ding
+  unionKick: 9,            // union-meter bump per AI production greenlit
+  backlashWeekly: 0.018,   // weekly odds per AI-flagged project in production
+};
+DATA.AI_RUNTIME = { deepfakePicks: 4 }; // clip count in the detection mini-game
+
+/* ── Global markets (v5) ── */
+DATA.GLOBAL = {
+  china: {
+    quotaName: "The 34-slot import quota",
+    basePass: 0.55,                // base odds your import wins a slot
+    repPerSlot: 0.003,             // reputation helps the ministry like you
+    rPenalty: 0.18,                // R-rated imports struggle at the censor board
+    horrorPenalty: 0.28,           // horror effectively can't pass
+    kidFriendly: 0.08,             // animation/family genres are favoured
+    recutCost: 3,                  // pay to recut and re-submit
+  },
+  eu: { quota: 0.30, fine: 5, freezeWeeks: 4, bonusSubs: 0.6 }, // streamer must carry ≥30% European-works
+  india: { // genres that over-index in Indian theatrical (added to intl share)
+    musical:+0.05, romance:+0.04, action:+0.03, drama:+0.02, sports:+0.03, fantasy:+0.02,
+  },
+};
+
+/* ── Awards overhaul (v5): precursor shows + campaign budgets + Oscar bump ── */
+DATA.PRECURSORS = [
+  {woy:46, name:"Critics Circle Prize",  emoji:"🗞", boost:6, cash:2},
+  {woy:49, name:"Industry Guild Awards", emoji:"🤝", boost:8, cash:3},
+];
+DATA.OSCAR_BUMP  = 0.25; // Best Picture win adds a re-release bump worth +25% of its P&A
+DATA.ACTING_BUMP = 0.08; // acting/directing win nudges the same picture too
+
+/* ── Marketing campaign boosts (v5), chosen when you date the release ── */
+DATA.MKT_BOOSTS = [
+  {id:"superbowl", icon:"🏈", name:"Super Bowl spot", cost:7, open:1.08,
+   desc:"$7M for 30 seconds in the Big Game. +8% opening hype."},
+  {id:"influencer", icon:"🤳", name:"Influencer junket", cost:2.5, open:1.04, buzz:0.04,
+   desc:"Fly 40 creators through Vegas. +4% opening, +4% buzz. Gen-Z does the rest."},
+  {id:"embargo", icon:"🤐", name:"Review embargo", cost:1, open:1.03,
+   desc:"Hold reviews until opening Friday. +3% opening — but if critics hate it anyway, the audience backlash bites your legs."},
+];
+DATA.mktBoost = (id)=> DATA.MKT_BOOSTS.find(m=>m.id===id) || null;
+
+/* ── Piracy & windowing (v5) ── */
+DATA.PIRACY = {
+  start: 18, drift: 0.35,        // meter drifts up weekly
+  decayWithUpgrade: 1.0,         // anti-piracy task force drains this much extra/wk
+  window90: -4,                  // each 90-day-window release washes the meter down
+  window17: +3,                  // each 17-day-window release feeds the torrents
+  dayAndDate: +6,                // day-and-date is pirate Christmas
+  leakDivisor: 55,               // meter % → event severity
+  maxGrossDamage: 0.10,          // at meter 100, live films lose 10% of weekly gross
+};
+
+/* ── Merch & parks depth (v5) ── */
+DATA.MERCH_V2 = {
+  toyCost: (tier)=> 25 + tier*10,        // one-off toy-line licensing deal
+  toyMult: 1.30,                         // permanent merch income boost
+  holidayMonths: ["Nov","Dec"],          // holiday toy spike…
+  holidayMult: 1.6,
+  parkSummer: ["Jun","Jul","Aug"],       // park summer-season spike
+  parkSummerMult: 1.25,
+};
+
+/* ── M&A desk (v5): rotating acquisition offers each quarter ── */
+DATA.MA = {
+  library:   { name:"Indie library bundle", icon:"📚", costMin:45, costMax:95,  catalogEach:42, blurb:"A boutique distributor's back catalogue — permanent catalog value + weekly royalty flow." },
+  ministream:{ name:"Mini-streamer",        icon:"📱", costMin:160, costMax:230, subs:6, power:2, blurb:"A niche service with loyal subs. Buy it, fold it in: +6M subscribers, ceiling perks." },
+  rivalslate:{ name:"Rival slate firesale", icon:"🎞", costMin:60, costMax:130, films:2, blurb:"A distressed rival sells off two finished films. You distribute them and keep the rentals." },
+};
+
+/* ── Union negotiations (v5): guild relations meter ── */
+DATA.UNION = {
+  start: 25, drift: 0.22,        // weekly upward pressure as the town talks wages
+  aiKick: 9,                     // per AI production greenlit
+  refuseStrike: +18,             // hardball at the picket line
+  concede: -28,                  // a generous contract settles everyone down
+  settle: -12,
+  negotiationWoy: 30,            // the Summer of Demands — every year, week 30
+  strikeAt: 75,                  // past this, a general strike fires
+  strikePause: 3,                // weeks all shoots stop
+};
+
+/* ── Wage inflation (v5): talent quotes compound faster than the market ── */
+DATA.WAGE_INFLATION = 0.03; // 3%/yr, on top of the 2% general inflation
+
+/* ── Festival flavour (v5) ── */
+DATA.FESTIVAL_FOREIGN_BONUS = 0.08; // foreign-language films travel well on the circuit
+
+/* ── Interactive 5-week tutorial (v5) ── */
+DATA.TUT_STEPS = [
+  {icon:"🎬", title:"Welcome to the business", until:"wizard",
+   text:"You've got a studio name, a little cash and zero films. Hit 📝 Develop and open a script from the script market."},
+  {icon:"✍️", title:"Attach the package", until:"greenlit",
+   text:"Pick a writer (lifts the script), a director (shapes the film) and stars (open the weekend) — a producer protects your budget during the shoot. Set a sane budget and 🎥 Greenlight."},
+  {icon:"🔥", title:"Now it cooks", until:"ready",
+   text:"Production burns cash weekly through pre → shoot → post. Hit ▶ Next Week (or ⏩×4) and watch the pipeline in 🎬 Productions."},
+  {icon:"📅", title:"Date it like a pro", until:"dated",
+   text:"Your film is in the can! In Productions tap Theatrical Release, set your P&A, and pick a clean weekend — summer and the holidays open bigger; rival tentpoles split the audience."},
+  {icon:"📊", title:"Cash the receipts", until:"released",
+   text:"Rentals (~53% of domestic gross) arrive every week it plays. Track it in 📊 Box Office and read the itemized P&L in 💼 Finance. Cash beats everything."},
+];
+DATA.TUT_REWARD = { rep:1, text:"🎓 Tutorial complete — +1 rep. Now go build an empire." };
+
+/* ── v5 achievements join the main list (unified with the v4 meta set) ── */
+DATA.ACH.push(
+  {id:"open200",   icon:"🚀", name:"Double Century",   desc:"$200M+ opening weekend",                  check:G=>G.stats.bestOpen>=200},
+  {id:"subs50",    icon:"🛰", name:"Satellite Empire", desc:"50M subscribers on your own streamer",    check:G=>!!(G.streamer&&G.streamer.subs>=50)},
+  {id:"ten",       icon:"🎞", name:"Slate Machine",    desc:"Release ten films",                       check:G=>G.stats.films>=10},
+  {id:"ww5b",      icon:"💵", name:"Five Billion Club",desc:"Cross $5B in all-time worldwide gross",   check:G=>G.stats.totalWW>=5000},
+  {id:"saga",      icon:"🏰", name:"Saga Builder",     desc:"Grow a franchise to tier 4",              check:G=>G.franchises.some(fr=>fr.tier>=4)},
+  {id:"acclaim",   icon:"🍅", name:"Critical Darling", desc:"Land a 90+ critics' consensus",           check:G=>G.films.some(f=>f.criticAvg>=90)},
+  {id:"redemption",icon:"🎭", name:"Second Act",       desc:"Bankroll a scandal-hit star's comeback",  check:G=>G.talent.some(t=>t.comeback)},
+  {id:"range",     icon:"🎪", name:"Genre Omnivore",   desc:"Release five films across the v4 genres", check:G=>G.films.filter(f=>f.genre==="concert"||f.genre==="truecrime"||f.genre==="western"||f.genre==="war"||f.genre==="sports").length>=5},
+  {id:"launch",    icon:"📱", name:"Streamer Barons",  desc:"Launch your own streaming platform",      check:G=>!!G.streamer},
+  {id:"stock3x",   icon:"📈", name:"Triple Bagger",    desc:"Triple your share price after the IPO",   check:G=>!!(G.public&&G.public.price>=DATA.MARKET.ipoPrice*3)},
+  {id:"sports",    icon:"🏟", name:"Live & Buzzing",   desc:"Win a live sports rights package",        check:G=>(((G.sportsWon||[]).length)+((G.mySports||[]).length))>=1},
+  /* v5 originals */
+  {id:"aifilm",    icon:"🤖", name:"Synthetic Dreams", desc:"Greenlight a fully AI-assisted production", check:G=>(G.projects||[]).concat(G.films||[]).some(p=>p.aiCast||p.aiScript)},
+  {id:"globalite", icon:"🌍", name:"Location Scout",   desc:"Shoot films in 3 different jurisdictions", check:G=>{ const s=new Set((G.projects||[]).concat(G.films||[]).map(p=>p.location||"la")); return s.size>=3; }},
+  {id:"merchmogul",icon:"🧸", name:"Merch Mogul",      desc:"Build a tier-3 consumer-products empire",  check:G=>G.franchises.some(f=>f.merch>=3)},
+  {id:"dealmaker", icon:"🤝", name:"The Dealmaker",    desc:"Close 3 M&A acquisitions",                 check:G=>((G.maDeals||[]).length>=3)},
+  {id:"peacemaker",icon:"🕊", name:"Guild Diplomat",   desc:"Sign 2 guild contracts without a strike",  check:G=>!!(G.unionStats&&G.unionStats.signed>=2)},
+  {id:"precursor", icon:"🗳", name:"Season Player",    desc:"Win 3 precursor awards in a single season",check:G=>!!(G.precursorWins&&G.precursorWins.count>=3)},
+);
+
+
+/* ── Co-production partners (v5): split budget & risk with a rival or foreign studio ──
+   pct   : fraction of the budget they wire you at greenlight
+   share : fraction of NET profit they keep forever (yes, it's steep — that's the business)
+   foreign partners unlock treaty bonuses when you shoot in a treaty jurisdiction */
+DATA.COPROD_PARTNERS = [
+  {id:"none",      name:"Go it alone",                icon:"🎬", pct:0,    share:0,    foreign:false, blurb:"You keep every risk and every dollar."},
+  {id:"apex",      name:"Apex Pictures (rival)",      icon:"🏔", pct:0.40, share:0.45, foreign:false, blurb:"Your tentpole rival splits the risk: they wire 40% of budget and keep 45% of net. Co-opetition, Hollywood style."},
+  {id:"kyoto",     name:"Kyōto Film Partners",        icon:"⛩️", pct:0.50, share:0.50, foreign:true,  blurb:"Foreign studio money: half the budget covered, half the net surrendered. Treaty jurisdiction +30% rebates, +prestige."},
+  {id:"europa",    name:"Europa Film Alliance",       icon:"🎞", pct:0.35, share:0.38, foreign:true,  blurb:"European co-pro with softer terms — pair with London/Toronto/Queensland for treaty bonuses."},
+];
+
+/* ── v5 random events (appended to the weekly pool) ── */
+DATA.EVENTS.push(
+  /* AI backlash — the town turns on synthetic productions */
+  {id:"ai_backlash", w:5, icon:"🤖", title:"Synthespian backlash", kind:"choice",
+   text:"Clips of your AI-generated production have the internet furious: 'uncanny', 'soulless', '#NotMyMeryl' is trending. The guilds are watching how you respond.",
+   when(G){ return (G.projects||[]).concat(G.films||[]).some(p=>p.aiCast||p.aiScript); },
+   choices:(G)=>[
+     {label:"Pledge human-first creativity (rep +1, guilds calm down)", run(G){
+        G.studio.rep=Math.min(99, G.studio.rep+1);
+        if(typeof unionAdjust==="function") unionAdjust(-8,"human-first pledge");
+        G.log("🤖 You pledged human-led creativity. The trades approve; #NotMyMeryl dies down.","good");
+     }},
+     {label:"Double down on the tech (audience goodwill −, guilds heat up)", run(G){
+        (G.films||[]).forEach(f=>{ if(f.aiCast||f.aiScript){ f.quality.aud=Math.max(5,f.quality.aud-7); f.piracyPenalty=(f.piracyPenalty||0)+0.02; }});
+        if(typeof unionAdjust==="function") unionAdjust(+10,"doubled down on AI");
+        G.studio.rep=Math.max(5, G.studio.rep-2);
+        G.log("🤖 You told the internet it's the future. The internet disagreed — audience scores on your synthetic slate dropped.","bad");
+     }},
+   ]},
+  /* Deepfake leak → the detection mini-game (player hunts the fake frame) */
+  {id:"deepfake_leak", w:4, icon:"🧬", title:"Deepfake clip circulating", kind:"choice",
+   text:(G)=>{ const t=(G.talent||[]).filter(x=>x.kind==="actor"&&x.power>=3); G._evtT=t.length?pick(t):null;
+      return G._evtT? ("A convincing fake video of "+G._evtT.name+" is everywhere — endorsing things, saying worse. Your crisis team pulled four frames from the feed; one carries the deepfake's tell.")
+                    : "A convincing fake clip of one of your stars is everywhere."; },
+   when(G){ return G.talent.some(t=>t.kind==="actor"&&t.power>=3); },
+   choices:(G)=>[
+     {label:"Run the deepfake-detection drill (mini-game)", run(G){
+        G.pendingDeepfake = { talentId: G._evtT? G._evtT.id:null, week:G.week };
+        G.log("🧬 Detection drill opened — find the fake frame before the entertainment press does.","gold");
+     }},
+     {label:"Ignore it (60% scandal risk)", run(G){
+        const t=G._evtT;
+        if(t && Math.random()<0.6){ if(typeof scandalHit==="function") scandalHit(t); G.log("🧬 The fake stuck — "+t.name+" is radioactive for a while.","bad"); }
+        else G.log("🧬 The clip burned itself out by Tuesday.","");
+     }},
+   ]},
+  /* EU content quota spot-check (fires only when you own a streamer) */
+  {id:"eu_quota", w:3, icon:"🇪🇺", title:"EU content quota review",
+   text:"Brussels is auditing platforms against the 30% European-works rule. Your catalogue is up for review.",
+   when(G){ return !!G.streamer; },
+   run(G){ if(typeof euQuotaCheck==="function") euQuotaCheck(); }},
+  /* Tax credit audit — v2 credits carry real paperwork risk */
+  {id:"tax_audit", w:3, icon:"🧾", title:"Tax credit audit", kind:"choice",
+   text:(G)=>{ const f=(G.films||[]).filter(x=>x.rebateEarned>3 && !x.audited); G._evtF=f.length?pick(f):null;
+      return G._evtF? ("Revenue agents are auditing the "+G._evtF.title+" production credit ("+fmtM0(f.rebateEarned)+" claimed). The file is… creative.")
+                    : "Revenue agents are sniffing around your incentive claims."; },
+   when(G){ return (G.films||[]).some(f=>f.rebateEarned>3 && !f.audited) || (G.projects||[]).some(p=>p.rebateEarned>3 && !p.audited); },
+   choices:(G)=>[
+     {label:"Settle quietly (−40% of the rebates claimed)", run(G){
+        const f=G._evtF || (G.projects||[]).find(p=>p.rebateEarned>3 && !p.audited); if(!f) return; f.audited=true;
+        const claw=Math.round((f.rebateEarned||5)*0.4*10)/10; if(typeof spend==="function") spend("other", claw);
+        G.log("🧾 Audit settled on “"+f.title+"”: −"+fmtM0(claw)+" clawed back.","bad");
+     }},
+     {label:"Fight it (50/50: keep everything, or clawback + $4M fine)", run(G){
+        const f=G._evtF || (G.projects||[]).find(p=>p.rebateEarned>3 && !p.audited); if(!f) return; f.audited=true;
+        if(Math.random()<0.5){ G.studio.rep=Math.min(99,G.studio.rep+1); G.log("🧾 Audit WON on “"+f.title+"” — every rebate dollar survives. +1 rep.","gold"); }
+        else{ const claw=Math.round((f.rebateEarned||5)*0.4*10)/10+4; if(typeof spend==="function") spend("other", claw); G.studio.rep=Math.max(5,G.studio.rep-1); G.log("🧾 Audit LOST on “"+f.title+"”: −"+fmtM0(claw)+" with a fine on top. −1 rep.","bad"); }
+     }},
+   ]},
+  /* Agency poaching war over your biggest free star */
+  {id:"agency_war", w:3, icon:"🕴", title:"Packaging war heats up", kind:"choice",
+   text:(G)=>{ const t=(G.talent||[]).filter(x=>x.kind==="actor"&&x.power>=4&&!x.bookedUntil); G._evtT=t.length?pick(t):null;
+      const ag=G._evtT&&DATA.agency? DATA.agency(G._evtT.agency):null;
+      return G._evtT? ((ag?ag.name:"An agency")+" is dangling "+G._evtT.name+" at every studio in town. Lock them with a rich holding deal, or let the market play it?")
+                    : "Agencies are at war over the A-list."; },
+   when(G){ return G.talent.some(t=>t.kind==="actor"&&t.power>=4&&!t.bookedUntil); },
+   choices:(G)=>[
+     {label:"Pay a holding deal (−$6M, they warm up and wait)", run(G){
+        const t=G._evtT; if(!t) return; if(typeof spend==="function") spend("talent",6);
+        t.heat=Math.min(3,(t.heat||0)+1); t.loyalTo=G.studio.name;
+        G.log("🕴 "+t.name+" signs a holding deal with you — warmed up and off the market's mind.","good");
+     }},
+     {label:"Let them shop (their quote jumps ~25%)", run(G){
+        const t=G._evtT; if(t){ t.fee=Math.round(t.fee*1.25*10)/10; G.log("🕴 "+t.name+"'s quote just jumped. Agencies gonna agency.",""); }
+     }},
+   ]},
+  /* M&A: distressed-asset firesale */
+  {id:"ma_firesale", w:3, icon:"🏦", title:"Distressed-asset firesale", kind:"choice",
+   text:(G)=>{ const price=38+((G.week*7)%40); G._evtPrice=price;
+      return "A minnow distributor is going under: its whole library is on the block at ~$"+price+"M. Catalog value and steady royalties forever."; },
+   when(G){ return G.week>30 && G.studio.cash>30; },
+   choices:(G)=>[
+     {label:"Buy the library (pay the firesale price, +catalog value)", run(G){
+        const price=G._evtPrice||50; if(G.studio.cash<price){ G.log("💸 Couldn't cover the firesale price.","bad"); return; }
+        if(typeof spend==="function") spend("studio", price);
+        G.maLibraries=(G.maLibraries||0)+1; G.maDeals=(G.maDeals||[]); G.maDeals.push({kind:"library", week:G.week, price});
+        G.log("📚 Library acquired in the firesale — catalog value up by ~"+fmtM0(Math.round(price*0.9))+", royalties flow weekly.","gold");
+     }},
+     {label:"Pass on the carrion", run(G){ G.log("🏦 You let the vultures have it.",""); }},
+   ]}
+);
+
+/* tiny money formatter usable inside data.js events (engine's fmtM wins once loaded) */
+function fmtM0(v){ return "$"+(Math.round(v*10)/10)+"M"; }

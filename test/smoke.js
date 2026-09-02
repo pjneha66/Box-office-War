@@ -29,9 +29,12 @@ function tryEmpire(){
 function tryGreenlight(){
   const producing = G.projects.filter(p=>p.phase!=="ready").length;
   if(producing>=2 || !G.ideas.length) return;
-  const idea = pick(G.ideas);
+  // play it like a real producer: match the slate to the bank account (cheapest viable first)
+  const ideas = G.ideas.filter(i=>i.scale!=="tentpole" || G.studio.cash>320)
+                       .sort((a,b)=>neededBudget(a.genre,a.scale)-neededBudget(b.genre,b.scale));
+  const idea = ideas[0]; if(!idea) return;
   const dirs = G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil);
-  const acts = G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil);
+  const acts = G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil).sort((a,b)=>actorFee(a)-actorFee(b));
   if(!dirs.length || acts.length<1) return;
   const budget = neededBudget(idea.genre, idea.scale);
   const useStreamPlan = !didAuction && G.films.length>=1 && chance(0.5);
@@ -45,9 +48,9 @@ function tryGreenlight(){
   const pool = acts.filter(affordable);
   for(let i=0;i<rint(1,3) && pool.length;i++){ const a=pool.splice(rint(0,pool.length-1),1)[0]; cast.push(a); }
   const fees = actorFee(dir)+actorFee(writer)+actorFee(producer)+cast.reduce((s,c)=>s+actorFee(c),0);
-  // disciplined: only commit when cash covers most of the film + buffer, and not drowning in debt
-  if(G.studio.cash < devCostOf(idea)+fees+budget*0.8+40) return;
-  if(G.studio.debt > 60 && G.films.length<3) return;
+  // the budget burns weekly over months — you don't need all of it on day one
+  if(G.studio.cash < devCostOf(idea)+fees+budget*0.5+25) return;
+  if(G.studio.debt > maxDebt()*0.7) return;
   const cfg={idea, director:dir, writer, producer, cast, budget, presales:chance(0.3)};
   if(useStreamPlan){ cfg.plan="streaming"; didAuction=true; }
   greenlight(cfg);
@@ -89,8 +92,9 @@ function tryEmpireFinance(){
 for(let w=0; w<260; w++){
   if(G.over) break;
   tryGreenlight(); trySchedule(); tryOffers(); trySeries(); tryAuctions(); tryEmpire(); tryEmpireFinance();
-  if(G.studio.cash<25 && G.studio.debt<maxDebt()*0.55) takeLoan(80);
-  if(G.studio.debt>0 && G.studio.cash>G.studio.debt+80) repayDebt(G.studio.debt);
+  if(G.studio.cash<25 && G.studio.debt<maxDebt()*0.7) takeLoan(80);
+  if(G.studio.debt>0 && G.studio.cash>Math.max(G.studio.debt+60, 240)) repayDebt(Math.min(G.studio.debt, G.studio.cash-120));
+  for(const o of [...(G.maOffers||[])]){ if(G.studio.cash>o.price+180 && chance(0.5)) maBuy(o.id); } // v5 M&A
   advanceWeek();
   if(G.pendingChoice){ resolveChoice(0); choices++; }
   if(G.pendingReport){ reports++; G.pendingReport=null; }
