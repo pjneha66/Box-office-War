@@ -38,14 +38,17 @@ function tryGreenlight(){
   const affordable = a => actorFee(a) <= budget*0.18;
   const dir = pick(dirs.filter(affordable)) || pick(dirs.filter(d=>actorFee(d)<=budget*0.25));
   if(!dir) return;
+  // v4: hire a writer and a producer when they're cheap enough
+  const writer = pick(freeTalent("writer").filter(affordable)) || null;
+  const producer = pick(freeTalent("producer").filter(affordable)) || null;
   const cast = [];
   const pool = acts.filter(affordable);
   for(let i=0;i<rint(1,3) && pool.length;i++){ const a=pool.splice(rint(0,pool.length-1),1)[0]; cast.push(a); }
-  const fees = actorFee(dir)+cast.reduce((s,c)=>s+actorFee(c),0);
+  const fees = actorFee(dir)+actorFee(writer)+actorFee(producer)+cast.reduce((s,c)=>s+actorFee(c),0);
   // disciplined: only commit when cash covers most of the film + buffer, and not drowning in debt
   if(G.studio.cash < devCostOf(idea)+fees+budget*0.8+40) return;
   if(G.studio.debt > 60 && G.films.length<3) return;
-  const cfg={idea, director:dir, cast, budget, presales:chance(0.3)};
+  const cfg={idea, director:dir, writer, producer, cast, budget, presales:chance(0.3)};
   if(useStreamPlan){ cfg.plan="streaming"; didAuction=true; }
   greenlight(cfg);
 }
@@ -75,10 +78,17 @@ function trySeries(){
     showrunner:pick(G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil)), cast:[]});
 }
 
-let reports=0, choices=0;
+let reports=0, choices=0, sawEarnings=0;
+function tryEmpireFinance(){
+  if(!G.public && G.studio.rep>=60) goPublic();
+  if(G.public && G.pendingEarnings){ sawEarnings++; G.pendingEarnings=null; }
+  if(!G.streamer && G.studio.rep>=40 && G.studio.cash>400) launchStreamer();
+  if(G.streamer && G.streamer.tier==="premium" && G.studio.cash>250 && G.week>120) setStreamerTier("ads");
+  if(G.pendingSports) passSports();
+}
 for(let w=0; w<260; w++){
   if(G.over) break;
-  tryGreenlight(); trySchedule(); tryOffers(); trySeries(); tryAuctions(); tryEmpire();
+  tryGreenlight(); trySchedule(); tryOffers(); trySeries(); tryAuctions(); tryEmpire(); tryEmpireFinance();
   if(G.studio.cash<25 && G.studio.debt<maxDebt()*0.55) takeLoan(80);
   if(G.studio.debt>0 && G.studio.cash>G.studio.debt+80) repayDebt(G.studio.debt);
   advanceWeek();
@@ -117,4 +127,55 @@ if(G.films.length>=3 && !sawRentals) throw new Error("no rentals ever recorded")
 if(G.franchises.some(fr=>!Number.isFinite(fr.earned))) throw new Error("bad franchise earnings");
 if(G.films.some(f=>f.streamingOriginal && !f.soldTo)) throw new Error("auction sale missing platform");
 if(reports<4) throw new Error("year-end reports never fired");
+// ── v4 checks ──
+const withWriter = G.films.filter(f=>f.writer).length;
+const withProd   = G.films.filter(f=>f.producer).length;
+const reviewed   = G.films.filter(f=>(f.reviews||[]).length>=3).length;
+const trendVals  = Object.keys(DATA.GENRES).map(g=>trendOf(g));
+console.log("v4 · films w/ writer:", withWriter, " w/ producer:", withProd, " reviewed:", reviewed,
+            " overruns:", G.films.filter(f=>(f.overrun||0)>0).length);
+console.log("v4 · trends:", Object.keys(DATA.GENRES).map(g=>g+" "+trendOf(g).toFixed(2)).join(" "));
+console.log("v4 · retired:", (G.retired||[]).length, " scandals live:", G.talent.filter(t=>t.scandal>0).length,
+            " achievements:", (G.achv||[]).length);
+console.log("v4 · public:", G.public? ("$"+G.public.price.toFixed(2)+" · cap "+fmtM(marketCap())+" · "+G.public.rating) : "private",
+            " earnings calls:", sawEarnings, " streamer:", G.streamer? (G.streamer.subs.toFixed(1)+"M subs · "+G.streamer.tier) : "none");
+console.log("v4 · fatigue:", G.franchises.map(f=>f.name+" "+Math.round((f.fatigue||0)*100)+"%").join(" | ")||"-");
+
+if(!trendVals.every(v=>Number.isFinite(v) && v>=0.7 && v<=1.35)) throw new Error("genre trend out of range");
+if(reviewed===0 && G.films.length>2) throw new Error("critics never reviewed anything");
+if(!G.films.every(f=>!f.reviews || f.reviews.every(r=>Number.isFinite(r.score)))) throw new Error("bad review score");
+if(!G.talent.every(t=>Number.isFinite(t.age) && t.age>0)) throw new Error("talent missing age");
+if(G.franchises.some(fr=>!Number.isFinite(fr.fatigue))) throw new Error("bad franchise fatigue");
+if(G.public && !Number.isFinite(G.public.price)) throw new Error("bad share price");
+if(G.streamer && !Number.isFinite(G.streamer.subs)) throw new Error("bad sub count");
+
+// ── save schema: round-trip, migration from legacy v1, corruption rejection ──
+saveGame();
+const raw = localStorage.getItem("bow_save");
+if(!raw) throw new Error("save never written");
+const parsed = JSON.parse(raw);
+if(parsed.v !== DATA.SAVE_VERSION) throw new Error("save not stamped with schema version");
+if(validateSave(parsed).length) throw new Error("freshly written save fails validation");
+
+const legacy = JSON.parse(raw);
+legacy.v = 1;
+delete legacy.trends; delete legacy.retired; delete legacy.achv;
+legacy.talent.forEach(t=>{ delete t.age; delete t.scandal; });
+(legacy.franchises||[]).forEach(f=>{ delete f.fatigue; });
+if(legacy.streamer){ delete legacy.streamer.tier; }
+if(legacy.public){ delete legacy.public.price; }
+const mig = migrateSave(legacy);
+if(mig.save.v !== DATA.SAVE_VERSION) throw new Error("migration did not reach current version");
+if(!mig.save.trends || !Number.isFinite(mig.save.trends.action)) throw new Error("migration did not seed trends");
+if(!mig.save.talent.every(t=>Number.isFinite(t.age))) throw new Error("migration did not backfill talent ages");
+if(mig.save.streamer && mig.save.streamer.tier!=="premium") throw new Error("migration did not default the streamer tier");
+if(mig.save.public && !Number.isFinite(mig.save.public.price)) throw new Error("migration did not seed the share price");
+console.log("v4 · save schema v"+parsed.v+" ok · legacy v1 migrated via steps ["+mig.applied.join(",")+"]");
+
+const badProblems = validateSave({ studio:{cash:"lots"}, week:0 });
+if(!badProblems.length) throw new Error("validator accepted a corrupt save");
+localStorage.setItem("bow_save", "{not json");
+if(loadGame()!==null) throw new Error("loadGame accepted broken JSON");
+console.log("v4 · corrupt saves rejected ("+badProblems.length+" problems flagged)");
+
 console.log("ALL CHECKS PASSED ✅");

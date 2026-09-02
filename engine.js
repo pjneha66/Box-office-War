@@ -324,6 +324,8 @@ function trendOf(genre){
   const v = G.trends[genre];
   return Number.isFinite(v)? v : 1;
 }
+/* the market only passes ~75% of a genre's heat through to opening weekend */
+function trendPull(genre){ return 1 + (trendOf(genre)-1)*0.75; }
 function trendLabel(genre){
   const v=trendOf(genre);
   for(const l of DATA.TREND.labels){ if(v>=l.at) return l; }
@@ -463,7 +465,7 @@ function expectedOpening(p, weekAbs){
   const season = seasonOfW(weekAbs).season;
   const fr = p.franchise? 1.35 : 1;
   const fatigue = 1 - fatigueOfName(p.franchiseName);   // v4: over-milked brands open smaller
-  const trend = trendOf(p.genre);                        // v4: genre cycles
+  const trend = trendPull(p.genre);                      // v4: genre cycles
   const repF = 0.92 + G.studio.rep/600;
   const comp = competitionFactor(p, weekAbs);
   const rate = DATA.rating(p.rating);
@@ -488,7 +490,7 @@ function expectedWeightOf(p){
   const S=DATA.SCALES[p.scale];
   const rate = DATA.rating(p.rating);
   let w = S.openBase * DATA.GENRES[p.genre].mass * (G.infl||1) * (p.franchise?1.35:1)
-    * (1-fatigueOfName(p.franchiseName)) * trendOf(p.genre)
+    * (1-fatigueOfName(p.franchiseName)) * trendPull(p.genre)
     * (1+(rate?rate.open:0)) * (p.premium?1.12:1)
     * (0.95 + (G.exhibitor||50)/1000)
     * (p.dayAndDate?0.65:1)
@@ -607,9 +609,9 @@ function tickProjects(){
       burn = p.budget*0.70/Math.max(1,L.shoot) * (G.upgrades.backlot?0.88:1);
       // v4: cost overruns — weather, reshoot days, a star's trailer. Producers contain them.
       const prodSkill = p.producer? p.producer.skill : 45;
-      const risk = clamp(0.24 - (prodSkill-45)/260, 0.05, 0.30);
+      const risk = clamp(0.15 - (prodSkill-45)/300, 0.03, 0.20);
       if(chance(risk)){
-        const size = Math.round(p.budget*(0.012+rnd()*0.03)*(p.producer? 0.65:1)*10)/10;
+        const size = Math.round(p.budget*(0.008+rnd()*0.017)*(p.producer? 0.6:1)*10)/10;
         p.overrun = Math.round(((p.overrun||0)+size)*10)/10;
         p.budget = Math.round((p.budget+size)*10)/10;
         burn += size;
@@ -1038,7 +1040,7 @@ function seedRivalYear(){
       else genre = pick(Object.keys(DATA.GENRES));
       const S=DATA.SCALES[scale];
       const q = clamp(rint(40,90) + gauss()*8, 20, 96);
-      const weight = S.openBase*DATA.GENRES[genre].mass*(G.infl||1);
+      const weight = S.openBase*DATA.GENRES[genre].mass*(G.infl||1)*trendPull(genre);
       return { week: (yr-1)*52+wk, title:makeTitle(genre), genre, scale, quality:q, weight,
                opening:0, dom:0, decay:0, weeksOut:0, live:false, dead:false, ytdGross:0 };
     });
@@ -1050,7 +1052,7 @@ function tickRivals(){
     for(const f of r.slate){
       if(f.week===G.week){
         // release
-        let opening = f.weight * (0.8+rnd()*0.45) * DATA.seasonOf(woyOf(G.week)).season;
+        let opening = f.weight * (0.8+rnd()*0.45) * DATA.seasonOf(woyOf(G.week)).season * trendPull(f.genre);
         // competition vs your films this weekend
         const mine = G.films.filter(x=>x.releaseWeek===G.week).map(x=>x.opening);
         const myW = mine.reduce((a,b)=>a+Math.pow(b,0.8),0);
@@ -1268,10 +1270,11 @@ function tickPublic(){
     log("📉 Shareholders punish a weak quarter — rep −3. Fix the P&L.","bad");
     P.strikes=0;
   }
-  // price walk
+  // price walk: sentiment (weekly P&L, reputation) plus a slow pull toward book value
+  const book = Math.max(1, (catalogValue() + G.studio.cash - G.studio.debt + (G.streamer? G.streamer.subs*18:0)) / Math.max(1,P.shares));
   let move = net*M.driftPerNetM
            + (G.studio.rep-50)*M.repInfluence
-           + (catalogValue()/4000)
+           + (book - P.price)*0.02
            - (G.studio.debt/1600)
            + gauss()*0.16;
   P.price = Math.max(0.6, Math.round((P.price + move)*100)/100);

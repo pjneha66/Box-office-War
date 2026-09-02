@@ -343,8 +343,8 @@ DATA.FATIGUE = {
 /* ── Talent careers (v4): ages, retirement, scandal, comeback ── */
 DATA.CAREER = {
   minAge: 22, maxStartAge: 58,
-  retireFrom: 62,           // retirement rolls start here
-  retireChancePerYear: 0.22,
+  retireFrom: 59,           // retirement rolls start here
+  retireChancePerYear: 0.26,
   primeLow: 30, primeHigh: 48,
   scandalCooldown: 40,      // weeks radioactive
 };
