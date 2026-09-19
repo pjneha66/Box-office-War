@@ -182,4 +182,37 @@ localStorage.setItem("bow_save", "{not json");
 if(loadGame()!==null) throw new Error("loadGame accepted broken JSON");
 console.log("v4 · corrupt saves rejected ("+badProblems.length+" problems flagged)");
 
+// ── export / import round-trip (settings codes) ──
+const code = exportCode();
+if(!code || code.length<100) throw new Error("export code empty");
+const keepName = G.studio.name, keepCash = G.studio.cash;
+newGame("producer", "Scratch Import Studios");
+if(!importCode(code)) throw new Error("importCode rejected a fresh export");
+if(G.studio.name!==keepName) throw new Error("import did not restore studio name");
+if(G.studio.cash!==keepCash) throw new Error("import did not restore cash");
+if(importCode("!!!not-a-code!!!")) throw new Error("importCode accepted garbage");
+console.log("v5 · export/import round-trip ok · garbage rejected");
+
+// ── multi-year economy drift: inflation, wages, meters ──
+if(!(G.infl>1.05)) throw new Error("market inflation never compounded over "+G.week+" weeks");
+if(!(G.wageInfl>=G.infl)) throw new Error("wage inflation did not track market inflation");
+if(!Number.isFinite(G.piracy) || !Number.isFinite(G.unionMeter)) throw new Error("piracy/union meters non-finite");
+console.log("v5 · "+yearOf(G.week)+"y drift ok · infl "+G.infl.toFixed(3)+" · wage "+G.wageInfl.toFixed(3));
+
+// ── forecast regression (perf-area): finite nets, no throw ──
+for(const fc of [forecastProject(), cashflowForecast()]){
+  const rows = fc.rows||fc;
+  if(!rows.length) throw new Error("forecast empty");
+  if(!rows.every(r=>Number.isFinite(r.net))) throw new Error("forecast has non-finite net");
+}
+console.log("v5 · forecasts finite");
+
+// ── game-over path: insolvent studio is seized after 3 weeks ──
+if(!G.over){
+  G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;
+  advanceWeek();
+}
+if(!G.over || !/bankrupt/i.test(G.over.title)) throw new Error("insolvency did not end the game");
+console.log("v5 · game over ok ("+G.over.title+")");
+
 console.log("ALL CHECKS PASSED ✅");
