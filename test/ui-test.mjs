@@ -4,8 +4,8 @@
    streamers via the auction modal, builds the franchise empire, and checks save/load. */
 "use strict";
 import { JSDOM, VirtualConsole } from "jsdom";
-import fs from "fs"; import path from "path";
-const ROOT = "/home/user/Box-office-War";
+import fs from "fs"; import path from "path"; import { fileURLToPath } from "url";
+const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8")
   .replace(/<script src="data.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"data.js"),"utf8")+"<\/script>")

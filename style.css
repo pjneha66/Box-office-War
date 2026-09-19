@@ -4,7 +4,7 @@
 :root{
   --bg:#0b0e14; --bg2:#11151f; --card:#151a26; --card2:#1a2130;
   --line:#242c3d; --line2:#303a50;
-  --text:#e8ecf4; --dim:#8b94a7; --dim2:#5d6678;
+  --text:#e8ecf4; --dim:#9aa3b5; --dim2:#7d879c;
   --gold:#f5b942; --gold2:#ffd479; --goldDim:#8a6a1f;
   --green:#3ddc84; --red:#ff5d6c; --blue:#5aa2ff; --purple:#b48bff; --cyan:#4dd6e8;
   --shadow:0 10px 30px rgba(0,0,0,.45);
@@ -12,6 +12,13 @@
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
+/* ── a11y: skip link + visible focus ── */
+.skip{position:absolute; left:12px; top:-48px; z-index:300; background:var(--gold); color:#1a1204;
+  font-weight:800; padding:10px 16px; border-radius:10px; transition:top .15s}
+.skip:focus{top:12px}
+:focus-visible{outline:2.5px solid var(--gold2); outline-offset:2px; border-radius:6px}
+.modal-x{min-height:44px; min-width:44px}
+.name-suggests button{min-height:32px}
 body{
   background:var(--bg); color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -309,6 +316,48 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 @media(max-width:400px){
   .chip:nth-child(4){display:none} /* hide date chip on tiny screens */
 }
+/* ─────────── responsive hardening: no-framework phone fixes ─────────── */
+html,body{overflow-x:clip}
+.view{min-width:0; overflow-x:clip}
+.card,.modal,.stat{min-width:0; overflow-wrap:anywhere}
+.cost-line{gap:10px}
+.cost-line span{min-width:0}
+.cost-line b{flex:none; text-align:right; font-variant-numeric:tabular-nums}
+.chart-bar{grid-template-columns:26px minmax(0,1fr) auto}
+.chart-bar .cb-track{min-width:0}
+.chart-bar .cb-fill{overflow:hidden; white-space:nowrap}
+.calendar-row{min-width:0}
+.cal-note{min-width:0; overflow-wrap:anywhere}
+.weekly-gross-chart,.forecast-bars,.pl-bars,.stock-spark{max-width:100%}
+.share-card-img,.confetti-canvas{max-width:100%}
+.slider-row{flex-wrap:wrap}
+@media(max-width:760px){
+  .stat-hero{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .chart-bar{grid-template-columns:22px minmax(0,1fr) auto}
+  .chart-bar .cb-fill{font-size:10.5px; padding-right:6px}
+  .modal-actions .btn{min-height:44px}
+  .plan-opt{padding:12px}
+  .calendar-row{grid-template-columns:72px minmax(0,1fr); row-gap:6px}
+  .calendar-row .tiny.muted:last-child{grid-column:1/-1; text-align:left}
+  .toasts{left:10px; right:10px}
+  .toast{max-width:100%; font-size:12.5px}
+  .split{gap:10px}
+}
+@media(max-width:400px){
+  body{font-size:14px}
+  .view{padding:10px 10px 96px}
+  .stat-hero{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
+  .stat{padding:10px}
+  .stat .s-v{font-size:16px; overflow-wrap:anywhere}
+  .g2,.g3{grid-template-columns:minmax(0,1fr)}
+  .topbar-actions{flex-basis:100%; display:grid; grid-template-columns:1fr auto auto auto auto; gap:6px; margin-left:0}
+  #btnWeek{min-height:44px}
+  .modal{padding:14px 12px calc(14px + env(safe-area-inset-bottom))}
+  .news-item{font-size:12.5px}
+}
+@media(min-width:1100px){
+  .view{max-width:1160px}
+}
 
 /* ═══════════════════════════════════════════════════════════
    v4 — trends board · critic split · stock · tiers · motion
@@ -334,6 +383,8 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 @media (prefers-reduced-motion: reduce){
   .chart-bar,.chart-bar .cb-fill,.trend-board .tr-fill,.bar>i,.weekly-gross-chart .wg,
   .pl-bars .pb,.forecast-bars .fg i,.stock-spark i,.toast{ animation:none !important }
+  .btn,.card,.arch,.scen,.pick-list .card,.skip{ transition:none !important }
+  html{ scroll-behavior:auto }
 }
 
 /* ── confetti overlay ── */
