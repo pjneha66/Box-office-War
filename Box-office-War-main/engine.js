@@ -3174,6 +3174,22 @@ function canRerelease(f){
     && G.week-(f.releaseWeek||0)>=104 && G.week-(f.rereleasedAt||0)>=104;
 }
 
+/* Director's cut / Extended edition — post-theatrical quality boost */
+function makeDirectorsCut(f){
+  const cost = Math.round(f.budget*0.15);
+  if(G.studio.cash < cost){ toast("Need "+fmtM(cost)+" for director's cut.","bad"); beep("bad"); return false; }
+  spend("studio", cost);
+  f.directorsCut = true;
+  f.quality.critic = clamp(f.quality.critic + 4, 0, 99);
+  f.quality.overall = clamp(f.quality.overall + 3, 0, 99);
+  f.legs = legsOf(f)*1.15; // legs boost
+  f.rereleaseEligible = true;
+  f.cutCost = cost;
+  log("🎬 Director's cut completed for “"+f.title+"” — critic +4, overall +3, legs +15%. Cost: "+fmtM(cost)+".","gold");
+  beep("gold");
+  return true;
+}
+
 function cashflowForecast(){
   const out=[];
   const liveRuns = G.films.filter(f=>f.inTheaters).map(f=>{

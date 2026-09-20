@@ -247,6 +247,18 @@ window.addEventListener("DOMContentLoaded", ()=>{
   try{ applyChromeLang(); }catch(e){}
   applyMotionPref();
   installGestures();   // v5: swipe tabs + pull-to-advance on mobile
+  // keyboard shortcuts
+  document.addEventListener("keydown", e=>{
+    if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA") return;
+    if(e.key>=="1" && e.key<="7"){ const tabs=["studio","develop","productions","boxoffice","ott","empire","finance"]; switchTab(tabs[e.key-1]); }
+    else if(e.code==="Space" && !e.shiftKey){ e.preventDefault(); doWeek(1); }
+    else if(e.code==="Space" && e.shiftKey){ e.preventDefault(); doWeek(4); }
+    else if(e.key==="r" || e.key==="R"){ e.preventDefault(); if(!G.over){ const rows=$$("[data-sched]"); if(rows.length) rows[0].click(); } }
+    else if(e.key==="s" || e.key==="S"){ e.preventDefault(); saveGame(); toast("💾 Game saved"); }
+    else if(e.key==="l" || e.key==="L"){ e.preventDefault(); const g=loadGame(); if(g){ render(); toast("📂 Game loaded"); } }
+    else if(e.key==="h" || e.key==="H"){ e.preventDefault(); helpModal(); }
+    else if(e.key==="Escape"){ closeModal(); }
+  });
   // long-press fast on mobile
   let lp=null;
   $("#btnWeek").addEventListener("touchstart",()=>{ lp=setTimeout(()=>{ doWeek(4); lp="done"; },600); },{passive:true});
@@ -501,7 +513,10 @@ function eventHistModal(){
   openModal(h);
 }
 
-function statCard(v,l,c){ return "<div class='stat'><div class='s-v' style='"+(c?"color:"+c:"")+"'>"+v+"</div><div class='s-l'>"+l+"</div></div>"; }
+function statCard(v,l,c, tip){ 
+  const tt = tip ? " data-tooltip='"+esc(tip)+"'" : "";
+  return "<div class='stat'"+tt+"><div class='s-v' style='"+(c?"color:"+c:"")+"'>"+v+"</div><div class='s-l'>"+l+"</div></div>"; 
+}
 /* Living industry: timeline of what actually happened + nine-domain state.
    Everything below already happened — this board only connects the dots. */
 function industryBoard(){
@@ -1882,9 +1897,41 @@ function regionSummaryPanel(){
     h+="<div class='cost-line'><span>"+t.emoji+" "+t.name+" <span class='tiny muted'>"+t.count+" films · aud "+t.aud+"</span></span>"+
       "<b>"+fmtG(t.gross)+"<span class='tiny muted'> ("+pct+"% of intl)</span></b></div>";
   });
-  return h+"</div>";
+return h+"</div>";
 }
-/* Audience profile: five demos from genre/rating/cast, plus conversion/retention
+
+/* Film comparison modal */
+function compareFilmsModal(){
+  const sel = (G.compareSel||[]).map(id=>G.films.find(f=>f.id===id)).filter(Boolean);
+  if(sel.length<2){ toast("Select at least 2 films to compare.","bad"); return; }
+  let h="<h3>⚖ Film Comparison</h3>";
+  h+="<div class='grid g2' style='margin-top:12px;max-height:70vh;overflow:auto'>";
+  sel.forEach(f=>{
+    const be=breakevenWW(f);
+    const mult=boMult(f), legs=boLegs(f);
+    const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):f.quality.aud;
+    const crit=f.criticAvg!=null?f.criticAvg:f.quality.critic;
+    const sp=boSplit(f);
+    const verdict = f.streamingOriginal? "streaming original" :
+      f.ww>=be*1.6? "SMASH" : f.ww>=be? "HIT" : f.ww>=be*0.75? "soft" : "FLOP";
+    h+="<div class='card'><div style='border-bottom:2px solid "+(verdict==="SMASH"?"var(--green)":verdict==="HIT"?"var(--gold2)":verdict==="soft"?"var(--gold)":"var(--red)")+"';padding-bottom:8px;margin-bottom:8px>"+
+      "<b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b> <span class='tag'>"+verdict+"</span></div>"+
+      "<div class='cost-line'><span>Budget</span><b>"+fmtM(f.budget)+"</b></div>"+
+      "<div class='cost-line'><span>Opening</span><b>"+fmtG(f.opening||0)+"</b></div>"+
+      "<div class='cost-line'><span>Domestic</span><b>"+fmtG(sp.dom)+"</b></div>"+
+      "<div class='cost-line'><span>Intl</span><b>"+fmtG(sp.intl)+"</b></div>"+
+      "<div class='cost-line'><span>Worldwide</span><b>"+fmtG(sp.ww)+"</b></div>"+
+      "<div class='cost-line'><span>Multiplier</span><b>"+mult+"×</b></div>"+
+      "<div class='cost-line'><span>Legs</span><b>"+legs+"×</b></div>"+
+      "<div class='cost-line'><span>Critics</span><b>"+crit+"%</b></div>"+
+      "<div class='cost-line'><span>Audience</span><b>"+aud+"%</b></div>"+
+      "<div class='cost-line'><span>Profit</span><b class='"+(f.profit>=0?"pos":"neg")+"'>"+(f.profit>=0?"+":"")+fmtM(f.profit||0)+"</b></div>"+
+      "<div class='weekly-gross-chart' style='margin-top:8px'>"+(f.weekly||[]).slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/(f.opening||1)*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
+      "</div>";
+  });
+  h+="</div>";
+  openModal(h,{onClose:()=>{G.compareSel=[]; render();}});
+}
    read off the actual opening and legs. Same card pre-release (screening) and live. */
 function demoPanel(f){
   let pr;
@@ -1952,10 +1999,10 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
         statCard(fmtG(sp.dom),"Domestic")+
         statCard(fmtG(sp.intl),"International"+(f.presales?" (pre-sold)":""))+
         statCard(fmtG(sp.ww),"Worldwide")+
-        statCard(mult+"×","Multiplier")+
-        statCard(legs+"×","Legs")+
-        statCard(crit+"%","Critics")+
-        statCard(aud+"%","Audience · WOM")+
+        statCard(mult+"×","Multiplier",0,"Total WW ÷ opening weekend. >2.5× = strong legs (animation, horror). <2× = front-loaded (concert, horror).")+
+        statCard(legs+"×","Legs",0,"Projected total ÷ opening. Driven by quality, genre, audience score. Horror ~1.5×, Animation ~3×.")+
+        statCard(crit+"%","Critics",0,"Named critic consensus (5 reviewers). Higher = better awards odds, stronger streaming appetite.")+
+        statCard(aud+"%","Audience · WOM",0,"Audience score (Word of Mouth). Drives legs & streaming. Review bombing tanks this.")+
       "</div>"+
       "<div class='weekly-gross-chart'>"+f.weekly.slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
       "<div class='tiny muted' style='margin-top:4px'>Weekly rentals (53% dom, paid weekly): "+f.weekly.slice(-6).map(x=>fmtG(x.gross*0.53)).join(" · ")+"</div>"+
@@ -1970,7 +2017,9 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
       "<div class='tiny' style='margin-top:4px'>💰 Rentals received to date: <b class='gold'>"+fmtM(f.rentalsDom||0)+"</b> <span class='muted'>(~53% of domestic gross, paid weekly)</span>"+(f.presales?" · <span class='muted'>intl pre-sold</span>":"")+"</div></div>";
   }
   const lib=G.films.slice().sort((a,b)=>(b.ww||0)-(a.ww||0));
-  h+="<div class='section-title'>Library ("+lib.length+")</div>";
+  const compareSel = G.compareSel || [];
+  h+="<div class='spread'><div class='section-title'>Library ("+lib.length+")</div>"+
+    (compareSel.length>=2? "<button class='btn btn-sm btn-primary' id='btnCompareFilms'>⚖ Compare "+compareSel.length+" films</button>" : "")+"</div>";
   if(!lib.length) h+="<div class='card muted small'>Your trophy shelf is empty. For now.</div>";
   h+="<div class='card'>";
   lib.slice(0,15).forEach(f=>{
@@ -1978,7 +2027,9 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
     const verdict = f.streamingOriginal? "<span class='tag purple'>streaming original</span>" :
       f.ww>=be*1.6? "<span class='tag green'>SMASH</span>" : f.ww>=be? "<span class='tag green'>HIT</span>" :
       f.ww>=be*0.75? "<span class='tag gold'>soft</span>" : "<span class='tag red'>FLOP</span>";
-    h+="<div class='film-row'><div><b>"+esc(f.title)+"</b> "+verdict+" "+
+    const isSel = compareSel.includes(f.id);
+    h+="<div class='film-row"+(isSel?" sel":"")+"' data-film-id='"+f.id+"'><div style='display:flex;align-items:center;gap:8px'><input type='checkbox' "+(isSel?"checked":"")+" class='film-cb' data-fid='"+f.id+"' style='transform:scale(1.2)'>"+
+      "<b>"+esc(f.title)+"</b> "+verdict+" "+
       ((f.awards&&f.awards.length)?"🏆 "+f.awards.join(" · "):"")+
       ((f.reviews&&f.reviews.length)?" <button class='btn btn-sm btn-ghost' data-reviews='"+f.id+"'>🗞 "+(f.criticAvg||0)+"%</button>":"")+
       "<div class='tiny muted'>"+DATA.GENRES[f.genre].name+" · "+fmtM(f.budget)+" budget · "+fmtG(f.ww||0)+" WW"+
@@ -1989,6 +2040,7 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
       (G.streamer && !f.streamingOriginal && !f.soldTo && !f.onOwn && !f.inTheaters? "<button class='btn btn-sm btn-alt' style='margin-top:4px' data-movestr='"+f.id+"'>📱 → your platform</button>":"")+
       (typeof canRerelease==="function" && canRerelease(f)? "<button class='btn btn-xs btn-alt' style='margin-top:4px' data-rerelease='"+f.id+"'>🎟 Re-release</button>":"")+
       (typeof canReboot==="function" && canReboot(f)? "<button class='btn btn-xs btn-alt' style='margin-top:4px' data-reboot='"+f.id+"'>🔁 Reboot</button>":"")+
+      (!f.streamingOriginal && !f.inTheaters && !f.directorsCut && f.ww>=120? "<button class='btn btn-xs btn-alt' style='margin-top:4px' data-cut='"+f.id+"'>✂ Director's Cut</button>":"")+
       "</div></div>";
   });
   h+="</div>";
@@ -2361,6 +2413,11 @@ function bindView(){
   $$("[data-test]").forEach(b=>b.onclick=()=>{ beep("click"); screeningModal(+b.dataset.test); });
   $$("[data-reviews]").forEach(b=>b.onclick=()=>{ beep("click"); reviewsModal(+b.dataset.reviews); });
   $$("[data-movestr]").forEach(b=>b.onclick=()=>{ if(moveToStreamer(+b.dataset.movestr)){beep("gold"); flashes(G.flash); render();} else toast("That film can't move to your platform.","bad"); });
+  // film comparison checkboxes
+  $$(".film-cb").forEach(cb=>cb.onclick=(e)=>{ e.stopPropagation(); const id=+cb.dataset.fid; G.compareSel = G.compareSel||[]; if(cb.checked){ if(!G.compareSel.includes(id)) G.compareSel.push(id); } else { G.compareSel=G.compareSel.filter(x=>x!==id); } render(); });
+  $$(".film-row").forEach(r=>r.onclick=(e)=>{ if(e.target.type==="checkbox") return; const id=+r.dataset.filmId; const cb=r.querySelector(".film-cb"); if(cb){ cb.checked=!cb.checked; cb.dispatchEvent(new Event("click")); }});
+  $("#btnCompareFilms") && ($("#btnCompareFilms").onclick=()=>{ beep("click"); compareFilmsModal(); });
+  $$("[data-cut]").forEach(b=>b.onclick=()=>{ const id=+b.dataset.cut; const f=G.films.find(x=>x.id===id); if(f && makeDirectorsCut(f)){ beep("gold"); flashes(G.flash); render(); } });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
@@ -3080,7 +3137,14 @@ function settingsModal(){
     "<button class='btn btn-sm btn-alt' id='btnImport'>"+t("set.import")+"</button></div>"+
     "<textarea id='saveCode' rows='3' placeholder='paste an import code here…' style='width:100%;margin-top:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:10px;padding:8px;font-size:11px'></textarea>"+
     "<div class='row' style='margin-top:8px'><span class='small muted'>"+t("set.slot")+":</span>"+
-    [1,2,3].map(n=>"<button class='btn btn-sm "+((G.slot||1)===n?"btn-primary":"")+"' data-saveslot='"+n+"'>Slot "+n+"</button>").join("")+"</div></div>";
+    [1,2,3].map(n=>{
+      const meta = slotMeta(n);
+      const label = meta ? meta.name : ("Slot "+n);
+      return "<div class='row' style='margin:4px 0;align-items:center;gap:8px'>"+
+        "<button class='btn btn-sm "+((G.slot||1)===n?"btn-primary":"")+"' data-saveslot='"+n+"' style='min-width:70px'>Slot "+n+"</button>"+
+        "<input type='text' value='"+esc(label)+"' data-slotname='"+n+"' placeholder='rename…' style='flex:1;max-width:180px;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:4px 8px;font-size:11px'>"+
+      "</div>";
+    }).join("")+"</div></div>";
   h+="<div class='modal-actions'><button class='btn btn-ghost' id='btnToMenu'>"+t("set.menu")+"</button>"+
     "<button class='btn btn-primary' onclick='closeModal()'>"+t("btn.close")+"</button></div>";
   const v=openModal(h);
@@ -3105,6 +3169,15 @@ function settingsModal(){
   };
   v.querySelectorAll("[data-saveslot]").forEach(b=>b.onclick=()=>{
     G.slot=+b.dataset.saveslot; saveGame(); beep("click"); toast("Saved to slot "+G.slot,"good"); closeModal(); settingsModal();
+  });
+  v.querySelectorAll("[data-slotname]").forEach(inp=>inp.onblur=()=>{
+    const n=+inp.dataset.slotname;
+    const raw=localStorage.getItem("bow_slot"+n);
+    if(raw){
+      const j=JSON.parse(raw);
+      j.studio.name = inp.value.trim().slice(0,26);
+      localStorage.setItem("bow_slot"+n, JSON.stringify(j));
+    }
   });
   v.querySelector("#btnToMenu").onclick=()=>{ saveGame(); if(AUTO)toggleAuto(false); location.reload(); };
 }
