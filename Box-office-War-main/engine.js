@@ -2798,7 +2798,7 @@ function histEv(title, tone){
   G.eventHist.unshift({week:G.week, title, tone:tone||""});
   if(G.eventHist.length>80) G.eventHist.length=80;
 }
-const CELEB_EVENTS=[
+DATA.CELEB_EVENTS=[
   {id:"celeb_controversy", w:3, icon:"😱", title:"Star controversy", kind:"choice",
    text:G=>{ const t=G.talent.find(t=>t.booked&&t.kind==="actor")||null; G._evtT=t;
      return t? t.name+" said the quiet part loud on a press tour. The clip has "+(2+G.week%5)+"M views.":"A star is trending for the wrong reasons."; },
