@@ -2835,12 +2835,23 @@ function frStreamVal(fr){
 }
 function frTimeline(fr){
   const ents=(fr.entries||[]).slice().sort((a,b)=>a.week-b.week);
-  let h="<div class='tiny' style='margin-top:8px'><b>Timeline</b></div><div class='tiny muted'>";
-  ents.forEach((e,i)=>{
-    const smash=(e.ww||0)>=300?" · BREAKOUT":"";
-    h+="🎬 "+esc(e.title)+" ("+fmtG(e.ww||0)+" WW"+smash+")";
-    if(i<ents.length-1) h+="<br>↓<br>";
-  });
+  let h="<div class='fr-timeline' style='margin-top:8px'><div class='tl-header'><b>🕰 Timeline</b> <span class='tiny muted'>(fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+Math.round((fr.decay||1)*100)+"%)</span></div>";
+  if(!ents.length){
+    h+="<div class='tl-empty'>No films yet — greenlight the first entry</div>";
+  }else{
+    h+="<div class='tl-track'>";
+    ents.forEach((e,i)=>{
+      const smash=(e.ww||0)>=300?" <span class='tl-breakout'>BREAKOUT</span>":"";
+      const yrs=Math.floor(e.week/52)+1;
+      const w=e.week%52||52;
+      h+="<div class='tl-node'><div class='tl-marker'></div>"+
+        "<div class='tl-content'><div class='tl-title'>"+esc(e.title)+smash+"</div>"+
+        "<div class='tl-meta'>Year "+yrs+", W"+w+" · "+fmtG(e.ww||0)+" WW · "+fmtG(e.opening||0)+" open · "+(e.criticAvg||e.quality?.critic||"?")+"% critics</div>"+
+        "<div class='tl-profit'>Profit: <span class='"+((e.profit||0)>=0?"pos":"neg")+"'>"+((e.profit||0)>=0?"+":"")+fmtM(e.profit||0)+"</span></div></div></div>";
+      if(i<ents.length-1) h+="<div class='tl-gap'></div>";
+    });
+    h+="</div>";
+  }
   const live=[];
   if(fr.merch) live.push("🧸 Merch L"+fr.merch);
   if(fr.toys) live.push("🧒 Toy line");
@@ -2853,11 +2864,19 @@ function frTimeline(fr){
     const placed=(G.films||[]).filter(f=>names.has(f.title)&&(f.onOwn||f.streamingOriginal||f.soldTo)).length;
     if(placed) live.push("📺 Streaming ("+placed+")");
   }catch(e){}
-  if(live.length) h+=(ents.length?"<br>↓<br>":"")+live.join(" · ");
+  if(live.length) h+="<div class='tl-assets' style='margin-top:8px'><b>Active assets:</b> "+live.join(" · ")+"</div>";
   const lastWk=ents.length?ents[ents.length-1].week:(fr.built||G.week);
   const rested=G.week-lastWk>26;
-  h+=(ents.length||live.length?"<br>↓<br>":"")+((fr.fatigue||0)>0.35?(rested?"😴 Rested enough — sequel window open":"😴 Rest brand (~"+Math.max(0,Math.ceil(26-(G.week-lastWk)))+"w) before Film "+(ents.length+1)):"⚡ Film "+(ents.length+1)+" window open");
-  return h+"</div>";
+  const fatigue=fr.fatigue||0;
+  h+="<div class='tl-next' style='margin-top:8px;padding:8px;background:var(--card2);border:1px solid var(--line);border-radius:8px'>";
+  if(fatigue>0.35){
+    h+=rested?"<span class='pos'>✅ Rested enough — sequel window open</span>":"<span class='neg'>😴 Rest brand ~"+Math.max(0,Math.ceil(26-(G.week-lastWk)))+"w before Film "+(ents.length+1)+"</span>";
+  }else{
+    h+="<span class='pos'>⚡ Film "+(ents.length+1)+" window open</span>";
+  }
+  if(fatigue>0.15) h+=" <span class='muted'>(fatigue "+Math.round(fatigue*100)+"%)</span>";
+  h+="</div></div>";
+  return h;
 }
 function frMeter(l,v){ return "<div class='fr-meter'><div class='fm-v'>"+v+"</div><div class='fm-l'>"+l+"</div></div>"; }
 function pips(n,max){ let s="<span class='pips'>"; for(let i=1;i<=max;i++) s+= i<=n? "●":"<span class='off'>●</span>"; return s+"</span>"; }

@@ -465,3 +465,20 @@ html,body{overflow-x:clip}
 .sandbox-lbl{font-size:12px; color:var(--dim); display:flex; align-items:center; gap:6px; margin-left:6px}
 .sandbox-lbl input{accent-color:var(--gold)}
 .slot{min-width:110px}
+
+/* ── franchise timeline ── */
+.fr-timeline{margin-top:8px}
+.fr-timeline .tl-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.fr-timeline .tl-track{position:relative;padding-left:16px}
+.fr-timeline .tl-track::before{content:"";position:absolute;left:7px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--gold2),var(--goldDim))}
+.fr-timeline .tl-node{position:relative;padding-left:28px;margin-bottom:4px;display:flex;align-items:flex-start}
+.fr-timeline .tl-marker{position:absolute;left:-4px;top:4px;width:10px;height:10px;background:var(--gold2);border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 2px var(--goldDim)}
+.fr-timeline .tl-gap{height:12px}
+.fr-timeline .tl-content{min-width:0}
+.fr-timeline .tl-title{font-weight:700;font-size:13px;color:var(--text)}
+.fr-timeline .tl-breakout{font-size:9px;background:var(--red);color:#fff;padding:1px 4px;border-radius:4px;margin-left:6px;font-weight:700}
+.fr-timeline .tl-meta{font-size:11px;color:var(--dim);margin-top:2px}
+.fr-timeline .tl-profit{font-size:11px;margin-top:2px}
+.fr-timeline .tl-empty{padding:12px;text-align:center;color:var(--dim);font-style:italic}
+.fr-timeline .tl-assets{font-size:11px;color:var(--dim);padding:8px;background:var(--card2);border:1px solid var(--line);border-radius:8px}
+.fr-timeline .tl-next{font-size:12px;line-height:1.4}
