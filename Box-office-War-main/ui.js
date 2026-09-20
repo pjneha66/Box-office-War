@@ -742,7 +742,8 @@ function viewDevelop(){
     if(cls.length) h+="<div class='card' style='border-left:3px solid var(--green)'><b>🌟 New Faces of Year "+yearOf(G.week)+"</b><div class='tiny muted'>"+cls.slice(0,5).map(x=>esc(x.name)+" ("+x.power+"★)").join(" · ")+"</div></div>";
   }catch(e){}
   h+="<div class='spread'><div class='section-title' style='margin:0'>Script market</div>"+
-     "<button class='btn btn-sm' id='btnPitchSeries'>📺 Pitch a Series</button></div>";
+     "<button class='btn btn-sm' id='btnPitchSeries'>📺 Pitch a Series</button>"+
+     "<button class='btn btn-sm' id='btnPitchFilm' style='margin-left:8px'>🎬 Pitch a Film</button></div>";
   h+="<div class='grid g2' style='margin-top:8px'>";
   for(const i of G.ideas){
     const S=DATA.SCALES[i.scale];
@@ -1305,6 +1306,142 @@ function seriesModal(){
   };
 }
 
+/* ═══════════ film pitch wizard — like series pitch ═══════════ */
+function startFilmPitchWizard(){
+  WZ={mode:"filmPitch", genre:pick(["action","scifi","fantasy","animation","comedy","horror","thriller","drama","romance","musical","western","war","sports","concert","truecrime"]),
+      scale:"mid", budget:0, rating:"PG-13", location:"home", pattern:"wide", rollout:"day", window:45,
+      imax:false, premium:false, soundtrack:false, dayAndDate:false, scriptPolish:false,
+      director:null, writer:null, producer:null, cast:[]};
+  filmPitchModal();
+}
+function filmPitchModal(){
+  const step = !WZ.director? 1 : (!WZ.writer? 2 : 3);
+  let h="<h3>🎬 Pitch a Film</h3>";
+  if(step===1){
+    h+="<div class='small muted' style='margin-bottom:8px'>Genre & scale</div><div class='row' id='fpGenres'>";
+    Object.keys(DATA.GENRES).forEach(g=>{
+      h+="<button class='btn btn-sm "+(WZ.genre===g?"btn-primary":"")+"' data-g='"+g+"'>"+DATA.GENRES[g].emoji+" "+DATA.GENRES[g].name+"</button>";
+    });
+    h+="</div><div class='card' style='margin-top:10px'><div class='small muted'>Production scale</div><div class='row' id='fpScales'>";
+    Object.keys(DATA.SCALES).forEach(s=>{
+      h+="<button class='btn btn-sm "+(WZ.scale===s?"btn-primary":"")+"' data-s='"+s+"'>"+DATA.SCALES[s].emoji+" "+DATA.SCALES[s].name+"</button>";
+    });
+    h+="</div></div>";
+    h+="<div class='card'><div class='slider-row'><span class='small muted'>Budget</span><input type='range' id='fpBudget' min='"+DATA.SCALES[WZ.scale].bMin+"' max='"+Math.round(DATA.SCALES[WZ.scale].bMax*1.4)+"' step='"+(DATA.SCALES[WZ.scale].bMin>=100?5:2)+"' value='"+Math.round(neededBudget(WZ.genre,WZ.scale))+"'><span class='slider-val' id='fpBudgetV'>"+fmtM(Math.round(neededBudget(WZ.genre,WZ.scale)))+"</span></div></div>";
+  }else if(step===2){
+    h+="<div class='small muted' style='margin-bottom:8px'>Distribution choices</div>";
+    h+="<div class='card'><div class='small muted'>Rating</div><div class='row'>";
+    DATA.RATINGS.forEach(r=>{
+      h+="<button class='btn btn-sm "+(WZ.rating===r.id?"btn-primary":"")+"' data-r='"+r.id+"'>"+r.emoji+" "+r.id+"</button>";
+    });
+    h+="</div></div>";
+    h+="<div class='card'><div class='small muted'>Shoot location</div><div class='row' id='fpLocs'>";
+    DATA.LOCATIONS.forEach(l=>{
+      h+="<button class='btn btn-sm "+(WZ.location===l.id?"btn-primary":"")+"' data-l='"+l.id+"'>"+l.name+" ("+l.rebate+"% rebate"+(l.cap?" · cap "+fmtM(l.cap):"")+")</button>";
+    });
+    h+="</div></div>";
+    h+="<div class='card'><div class='small muted'>Release pattern</div><div class='row' id='fpPatterns'>";
+    DATA.PATTERNS.forEach(p=>{
+      h+="<button class='btn btn-sm "+(WZ.pattern===p.id?"btn-primary":"")+"' data-pat='"+p.id+"'>"+p.label+"</button>";
+    });
+    h+="</div></div>";
+    h+="<div class='card'><div class='small muted'>Intl rollout</div><div class='row' id='fpRollouts'>";
+    DATA.ROLLOUTS.forEach(r=>{
+      h+="<button class='btn btn-sm "+(WZ.rollout===r.id?"btn-primary":"")+"' data-roll='"+r.id+"'>"+r.label+"</button>";
+    });
+    h+="</div></div>";
+    h+="<div class='card'><div class='small muted'>Window</div><div class='row' id='fpWindows'>";
+    DATA.WINDOWS.forEach(w=>{
+      h+="<button class='btn btn-sm "+(WZ.window===w.d?"btn-primary":"")+"' data-win='"+w.d+"'>"+w.label+"</button>";
+    });
+    h+="</div></div>";
+    h+="<div class='card'><div class='small muted'>Extras</div><div class='row' style='gap:8px'>";
+    h+="<label class='btn btn-sm "+(WZ.imax?"btn-primary":"")+"' data-imax><input type='checkbox' style='display:none'>"+(WZ.imax?"✓":"")+" IMAX/Premium</label>";
+    h+="<label class='btn btn-sm "+(WZ.premium?"btn-primary":"")+"' data-premium><input type='checkbox' style='display:none'>"+(WZ.premium?"✓":"")+" Premium format</label>";
+    h+="<label class='btn btn-sm "+(WZ.soundtrack?"btn-primary":"")+"' data-soundtrack><input type='checkbox' style='display:none'>"+(WZ.soundtrack?"✓":"")+" Soundtrack</label>";
+    h+="<label class='btn btn-sm "+(WZ.dayAndDate?"btn-primary":"")+"' data-dad><input type='checkbox' style='display:none'>"+(WZ.dayAndDate?"✓":"")+" Day-and-date</label>";
+    h+="<label class='btn btn-sm "+(WZ.scriptPolish?"btn-primary":"")+"' data-polish><input type='checkbox' style='display:none'>"+(WZ.scriptPolish?"✓":"")+" Script polish</label>";
+    h+="</div></div>";
+  }else{
+    const ev = (function(){
+      const S = DATA.SCALES[WZ.scale] || DATA.SCALES.mid;
+      const g = DATA.GENRES[WZ.genre] || DATA.GENRES.action;
+      const dir = WZ.director;
+      const writer = WZ.writer;
+      const producer = WZ.producer;
+      const cast = WZ.cast || [];
+      const budget = WZ.budget || Math.round(neededBudget(WZ.genre, WZ.scale));
+      const mkt = recMarketing({budget, scale:WZ.scale, genre:WZ.genre});
+      const totalCost = devCostOf({scale:WZ.scale, genre:WZ.genre, hot:false, script:65}) + budget + mkt;
+      const trend = (typeof trendPull==="function")?trendPull(WZ.genre):1;
+      const openEst = S.openBase * g.mass * trend * (WZ.rating==="R"?0.88:1.0) * (WZ.imax?1.08:1.0) * (WZ.premium?1.12:1.0) * (G.infl||1);
+      const legsEst = clamp(2.2 + g.legsAdj + 0.02*(dir?dir.skill:55), 1.45, 4.4);
+      const wwEst = openEst * legsEst / (1 - g.intlShare);
+      const revenue = Math.round(wwEst * 0.48);
+      const profit = Math.round(revenue - totalCost);
+      const be = (budget + mkt) / 0.48;
+      const commercial = clamp(Math.round(wwEst/be*50), 5, 99);
+      const critical = clamp(Math.round((dir?dir.skill:55)*0.4 + (writer?writer.skill:55)*0.3 + 30 + g.critic), 5, 99);
+      const audience = clamp(Math.round((dir?dir.skill:55)*0.3 + cast.reduce((s,c)=>s+c.power,0)*0.2 + 35 + g.aud), 5, 99);
+      let risk = Math.round(clamp((budget/S.bMax)*40 + (WZ.rating==="R"?10:0) + (trend<0.94?15:0) + (WZ.scale==="tentpole"?10:0), 5, 99));
+      const franchise = clamp(Math.round(g.merch*45 + (WZ.scale==="tentpole"?25:WZ.scale==="mid"?10:0)), 5, 99);
+      const score = Math.round(commercial*0.35 + critical*0.2 + audience*0.25 + (100-risk)*0.2);
+      const verdict = score>=70?"Greenlight material":score>=50?"Viable with caveats":"Pass";
+      return {commercial, critical, audience, risk, cost:Math.round(totalCost), revenue, profit,
+        franchise, score, verdict, openEst:Math.round(openEst*10)/10, legsEst:Math.round(legsEst*100)/100, be:Math.round(be)};
+    })();
+    h+="<div class='card platform-card'><div class='platform-logo' style='background:#f5b942'>🎬</div><div><b>Greenlight Review</b><div class='tiny muted'>Internal evaluation — no platform gatekeeper for theatrical</div></div></div>";
+    h+="<div class='card'><div class='cost-line'><span>Opening (est.)</span><b>"+fmtG(ev.openEst)+" dom</b></div>"+
+      "<div class='cost-line'><span>Legs (est.)</span><b>"+ev.legsEst+"×</b></div>"+
+      "<div class='cost-line'><span>Worldwide (est.)</span><b>"+fmtG(ev.openEst*ev.legsEst/(1-(DATA.GENRES[WZ.genre]||{intlShare:0.5}).intlShare))+"</b></div>"+
+      "<div class='cost-line'><span>Total cost (dev+budget+P&A)</span><b>"+fmtM(ev.cost)+"</b></div>"+
+      "<div class='cost-line'><span>Projected return (studio share)</span><b class='"+(ev.profit>=0?"pos":"neg")+"'>"+(ev.profit>=0?"+":"")+fmtM(ev.profit)+"</b></div>"+
+      "<div class='cost-line'><span>Breakeven WW</span><b>"+fmtG(ev.be)+"</b></div></div>";
+    h+="<div class='card'><b class='small'>Room read — score "+ev.score+"/100 · "+esc(ev.verdict)+"</b>"+
+      "<div class='cost-line'><span>Commercial potential</span><b class='"+(ev.commercial>=65?"pos":ev.commercial<45?"neg":"")+"'>"+ev.commercial+"/100</b></div>"+
+      "<div class='cost-line'><span>Critical potential</span><b>"+ev.critical+"/100</b></div>"+
+      "<div class='cost-line'><span>Audience potential</span><b>"+ev.audience+"/100</b></div>"+
+      "<div class='cost-line'><span>Risk</span><b class='"+(ev.risk>=65?"neg":ev.risk<40?"pos":"")+"'>"+ev.risk+"/100</b></div>"+
+      "<div class='cost-line'><span>Franchise potential</span><b>"+ev.franchise+"/100</b></div></div>";
+    h+="<div class='small muted' style='margin:10px 0'>Pick your team — director is mandatory</div>";
+    h+="<div class='pick-list'>";
+    freeTalent("director").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(d){
+      h+=crewCard(d,{genre:WZ.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-fpd='"+d.id+"'"});
+    });
+    h+="</div>";
+  }
+  const v=openModal(h,{onClose:()=>{WZ=null;}});
+  v.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ WZ.genre=b.dataset.g; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{ WZ.scale=b.dataset.s; WZ.budget=Math.round(neededBudget(WZ.genre,WZ.scale)); beep("click"); filmPitchModal(); });
+  const bud=v.querySelector("#fpBudget"); if(bud){ bud.oninput=()=>{ WZ.budget=+bud.value; const el=$("#fpBudgetV"); if(el) el.textContent=fmtM(WZ.budget); }; }
+  v.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ WZ.rating=b.dataset.r; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{ WZ.location=b.dataset.l; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-pat]").forEach(b=>b.onclick=()=>{ WZ.pattern=b.dataset.pat; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-roll]").forEach(b=>b.onclick=()=>{ WZ.rollout=b.dataset.roll; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-win]").forEach(b=>b.onclick=()=>{ WZ.window=+b.dataset.win; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-imax]").forEach(b=>b.onclick=()=>{ WZ.imax=!WZ.imax; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-premium]").forEach(b=>b.onclick=()=>{ WZ.premium=!WZ.premium; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-soundtrack]").forEach(b=>b.onclick=()=>{ WZ.soundtrack=!WZ.soundtrack; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-dad]").forEach(b=>b.onclick=()=>{ WZ.dayAndDate=!WZ.dayAndDate; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-polish]").forEach(b=>b.onclick=()=>{ WZ.scriptPolish=!WZ.scriptPolish; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-fpd]").forEach(el=>el.onclick=()=>{ WZ.director=talentById(+el.dataset.fpd); beep("click"); filmPitchModal(); });
+  if(step>=2){
+    v.querySelectorAll("[data-fpw]").forEach(el=>el.onclick=()=>{ WZ.writer=talentById(+el.dataset.fpw); beep("click"); filmPitchModal(); });
+    v.querySelectorAll("[data-fpp]").forEach(el=>el.onclick=()=>{ WZ.producer=talentById(+el.dataset.fpp); beep("click"); filmPitchModal(); });
+    v.querySelectorAll("[data-fpc]").forEach(el=>el.onclick=()=>{ const t=talentById(+el.dataset.fpc); if(t){ const idx=WZ.cast.findIndex(c=>c.id===t.id); if(idx>=0) WZ.cast.splice(idx,1); else if(WZ.cast.length<4) WZ.cast.push(t); beep("click"); filmPitchModal(); }});
+  }
+  const bk=v.querySelector("#fpBack"); if(bk) bk.onclick=filmPitchModal;
+  const go=v.querySelector("#fpGo");
+  if(go) go.onclick=()=>{
+    const res=pitchFilm({titleOverride:null, genre:WZ.genre, scale:WZ.scale, budget:WZ.budget,
+      rating:WZ.rating, location:WZ.location, pattern:WZ.pattern, rollout:WZ.rollout, window:WZ.window,
+      imax:WZ.imax, premium:WZ.premium, soundtrack:WZ.soundtrack, dayAndDate:WZ.dayAndDate,
+      scriptPolish:WZ.scriptPolish, director:WZ.director, writer:WZ.writer, producer:WZ.producer, cast:WZ.cast, coProd:null});
+    beep(res.ok?"gold":"bad"); flashes(G.flash);
+    WZ=null; closeModal(); render();
+  };
+}
+
 /* ═══════════ VIEW: productions ═══════════ */
 function viewProductions(){
   let h="";
@@ -1718,6 +1855,35 @@ function regionPanel(f){
   });
   return h+"</div>";
 }
+
+/* Regional summary across all films */
+function regionSummaryPanel(){
+  const films = [...G.films].filter(f=>f.ww && f.ww>0);
+  if(!films.length) return "";
+  const defs = regionDefs();
+  const totals = defs.map(d=>({id:d.id, name:d.name, emoji:d.emoji, gross:0, count:0, aud:0}));
+  films.forEach(f=>{
+    let regs = f.regions;
+    try{ if(!regs||!regs.length) regs=regionSplit(f); }catch(e){ return; }
+    regs.forEach((r,i)=>{
+      const t = totals.find(x=>x.id===r.id);
+      if(t){
+        t.gross += r.gross;
+        t.count++;
+        t.aud = t.count>0 ? Math.round((t.aud*(t.count-1) + r.aud)/t.count) : r.aud;
+      }
+    });
+  });
+  const totalIntl = totals.reduce((a,b)=>a+b.gross,0);
+  let h="<div class='card' style='margin-bottom:12px'><b class='small'>🌍 Regional box office summary (all-time)</b>"+
+    "<div class='tiny muted'>Aggregated across "+films.length+" released films. Total intl: <b class='gold'>"+fmtG(totalIntl)+"</b>.</div>";
+  totals.sort((a,b)=>b.gross-a.gross).forEach(t=>{
+    const pct = totalIntl>0 ? Math.round(t.gross/totalIntl*1000)/10 : 0;
+    h+="<div class='cost-line'><span>"+t.emoji+" "+t.name+" <span class='tiny muted'>"+t.count+" films · aud "+t.aud+"</span></span>"+
+      "<b>"+fmtG(t.gross)+"<span class='tiny muted'> ("+pct+"% of intl)</span></b></div>";
+  });
+  return h+"</div>";
+}
 /* Audience profile: five demos from genre/rating/cast, plus conversion/retention
    read off the actual opening and legs. Same card pre-release (screening) and live. */
 function demoPanel(f){
@@ -1767,8 +1933,9 @@ function viewBoxOffice(){
       "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(7,c.gross/max*100)+"%;background:"+(c.mine?"linear-gradient(90deg,#f5b942,#ffd479)":(c.color||"#4a5570"))+"'>"+fmtG(c.gross)+"</div></div></div>";
   });
   h+="</div>";
-  h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div class='tiny muted' style='margin:-4px 0 8px'>They date corridors by style, blink when you out-muscle their weekend, poach hot free talent, outbid you on sports, and launch streamers. Slates re-seed yearly; heat follows genre trends like yours.</div><div class='grid g3'>"+
-    G.rivals.map(rivalProfile).join("")+"</div>";
+h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div class='tiny muted' style='margin:-4px 0 8px'>They date corridors by style, blink when you out-muscle their weekend, poach hot free talent, outbid you on sports, and launch streamers. Slates re-seed yearly; heat follows genre trends like yours.</div><div class='grid g3'>"+
+     G.rivals.map(rivalProfile).join("")+"</div>";
+  h+=regionSummaryPanel();
   const live=activeFilms();
   h+="<div class='section-title'>Your films in theaters ("+live.length+")</div>";
   if(!live.length) h+="<div class='card muted small'>No active runs. A film without a release date earns nothing.</div>";
@@ -2183,6 +2350,7 @@ function bindView(){
   });
   $$("[data-pitch]").forEach(b=>b.onclick=()=>{ beep("click"); startPitch(+b.dataset.pitch); });
   const ps=$("#btnPitchSeries"); if(ps) ps.onclick=()=>{ beep("click"); startSeriesWizard(); };
+  const pf=$("#btnPitchFilm"); if(pf) pf.onclick=()=>{ beep("click"); startFilmPitchWizard(); };
   const shc=$("#btnShareCard"); if(shc) shc.onclick=function(){ shareStudioCard(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });

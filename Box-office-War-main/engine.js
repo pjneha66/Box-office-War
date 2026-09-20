@@ -985,6 +985,68 @@ function pitchSave(ideaId, angleId, budget){
   return ev;
 }
 
+/* ═══════════ film pitch wizard — like series pitch but for theatrical ═══════════ */
+function pitchFilm(cfg){
+  const S = DATA.SCALES[cfg.scale] || DATA.SCALES.mid;
+  const g = DATA.GENRES[cfg.genre] || DATA.GENRES.action;
+  const dir = cfg.director;
+  const writer = cfg.writer;
+  const producer = cfg.producer;
+  const cast = cfg.cast || [];
+  const budget = cfg.budget || Math.round(neededBudget(cfg.genre, cfg.scale));
+  const mkt = recMarketing({budget, scale:cfg.scale, genre:cfg.genre});
+  const totalCost = devCostOf({scale:cfg.scale, genre:cfg.genre, hot:false, script:65}) + budget + mkt;
+  const trend = (typeof trendPull==="function")?trendPull(cfg.genre):1;
+  const openEst = S.openBase * g.mass * trend * (cfg.rating==="R"?0.88:1.0) * (cfg.imax?1.08:1.0) * (cfg.premium?1.12:1.0) * (G.infl||1);
+  const legsEst = clamp(2.2 + g.legsAdj + 0.02*(dir?dir.skill:55), 1.45, 4.4);
+  const wwEst = openEst * legsEst / (1 - g.intlShare);
+  const revenue = Math.round(wwEst * 0.48);
+  const profit = Math.round(revenue - totalCost);
+  const be = (budget + mkt) / 0.48;
+  const commercial = clamp(Math.round(wwEst/be*50), 5, 99);
+  const critical = clamp(Math.round((dir?dir.skill:55)*0.4 + (writer?writer.skill:55)*0.3 + 30 + g.critic), 5, 99);
+  const audience = clamp(Math.round((dir?dir.skill:55)*0.3 + cast.reduce((s,c)=>s+c.power,0)*0.2 + 35 + g.aud), 5, 99);
+  let risk = Math.round(clamp((budget/S.bMax)*40 + (cfg.rating==="R"?10:0) + (trend<0.94?15:0) + (cfg.scale==="tentpole"?10:0), 5, 99));
+  const franchise = clamp(Math.round(g.merch*45 + (cfg.scale==="tentpole"?25:cfg.scale==="mid"?10:0)), 5, 99);
+  const score = Math.round(commercial*0.35 + critical*0.2 + audience*0.25 + (100-risk)*0.2);
+  const verdict = score>=70?"Greenlight material":score>=50?"Viable with caveats":"Pass";
+  const ev = {commercial, critical, audience, risk, cost:Math.round(totalCost), revenue, profit,
+    franchise, score, verdict, openEst:Math.round(openEst*10)/10, legsEst:Math.round(legsEst*100)/100, be:Math.round(be)};
+  if(chance(clamp(0.15 + score/200 + G.studio.rep/500 + (G.upgrades.rd?0.05:0), 0.1, 0.9))){
+    const p = {
+      id:nid(), kind:"film", title:cfg.titleOverride || makeTitle(cfg.genre), genre:cfg.genre, scale:cfg.scale,
+      script: (writer?writer.skill:65) + (cfg.scriptPolish?6:0), blurb: "Pitched concept", hot:false,
+      budget: budget, budget0: budget, overrun:0, spent:0, devCost: devCostOf({scale:cfg.scale, genre:cfg.genre, hot:false, script:65}),
+      director: dir, writer: writer||null, producer: producer||null, cast: cast, cameo: null,
+      phase:"pre", phaseWeek:0,
+      phaseLen:{ pre:rint(...S.pre)+(cfg.scriptPolish?1:0), shoot:rint(...S.shoot), post:rint(...S.post) },
+      releaseWeek:0, marketing:0, marketingPaid:0,
+      franchise: false, sequelOf:null,
+      buzzBonus: 0, awareness:0,
+      strikePause:0,
+      rating: cfg.rating||"PG-13",
+      location: cfg.location||"home",
+      foreignLang: !!cfg.foreignLang,
+      rewritten:false, tested:false, reshoot:false,
+      pattern: cfg.pattern||"wide", rollout: cfg.rollout||"day", window: cfg.window||45, imax: !!cfg.imax, premium: !!cfg.premium, soundtrack: !!cfg.soundtrack, dayAndDate: !!cfg.dayAndDate,
+      writerBonus: writer? (writer.genreFit===cfg.genre?4:2) : 0,
+      aiCast: false, aiScript: false,
+      rebateEarned: 0,
+      coProd: cfg.coProd||null,
+      mktBoosts: [],
+    };
+    G.projects.push(p);
+    if(dir){dir.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; dir.booked=p.title;}
+    if(writer){writer.bookedUntil=G.week+p.phaseLen.pre; writer.booked=p.title;}
+    if(producer){producer.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; producer.booked=p.title;}
+    cast.forEach(c=>{c.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; c.booked=p.title;});
+    log("🎬 Film greenlit: “"+p.title+"” — "+cfg.scale+" "+g.name+" @ "+fmtM(budget)+".","gold");
+    return {ok:true, ev, project:p};
+  }
+  log("🚫 The board passed on “"+(cfg.titleOverride||"the concept")+"”. Rework and try again.","bad");
+  return {ok:false, ev};
+}
+
 /* ═══════════ greenlight ═══════════ */
 function devCostOf(idea){
   const base = { indie:2, mid:5, tentpole:12 }[idea.scale];
