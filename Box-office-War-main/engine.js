@@ -2902,7 +2902,7 @@ const CELEB_EVENTS=[
        histEv("Caved on "+(t?t.name:"a casting"),"bad");
        G.log("📣 You caved. The quote drops 10% — so does your standing.","bad"); }}]},
 ];
-if(!DATA.CELEB_MERGED){ DATA.CELEB_MERGED=true; DATA.EVENTS.push(...CELEB_EVENTS); }
+if(!DATA.CELEB_MERGED){ DATA.CELEB_MERGED=true; DATA.EVENTS.push(...DATA.CELEB_EVENTS); }
 /* ═══════════ events ═══════════ */
 function tickEvents(){
   if(!chance(0.34)) return;
