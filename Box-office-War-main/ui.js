@@ -1843,7 +1843,7 @@ function rivalProfile(r){
   const tot=all.reduce((a,x)=>a+x.ww,0)||1;
   const rank=all.slice().sort((a,b)=>b.ww-a.ww).findIndex(x=>x.n===r.name)+1;
   const share=Math.round((r.ytd||0)/tot*100);
-  return "<div class='card'><div class='spread'><div><b style='color:"+(r.color||"#fff")+"'>"+esc(r.name)+"</b>"+
+  return "<div class='card rival-card' data-rival='"+esc(r.name)+"' style='cursor:pointer;border-left:4px solid "+(r.color||"#fff")+"'><div class='spread'><div><b style='color:"+(r.color||"#fff")+"'>"+esc(r.name)+"</b>"+
     "<div class='tiny muted'>"+esc(r.blurb||"")+" · #"+rank+" share ("+share+"%)</div></div>"+
     "<span class='tag'>"+fmtM(r.ytd||0)+" YTD</span></div>"+
     "<div class='cost-line'><span>Strategy</span><b class='tiny'>"+meta.strategy+"</b></div>"+
@@ -1931,6 +1931,39 @@ function compareFilmsModal(){
   });
   h+="</div>";
   openModal(h,{onClose:()=>{G.compareSel=[]; render();}});
+}
+
+/* Rival studio profile modal */
+function rivalProfileModal(r){
+  const style=r.style;
+  const meta={
+    tentpole:{strategy:"Blockbusters — summer/holiday corridors", strength:"Tentpole openings, corridor dating", weakness:"Prestige seasons, crowded weekends"},
+    prestige:{strategy:"Prestige — awards + festivals", strength:"Reviews, awards momentum", weakness:"Tentpole corridors, small openings"},
+    balanced:{strategy:"Volume — a bit of everything", strength:"Full slate, steady share", weakness:"No killer edge anywhere"}
+  }[style]||{strategy:style, strength:"—", weakness:"—"};
+  const up=(r.slate||[]).filter(f=>!f.dead&&!f.live&&f.week>G.week).sort((a,b)=>a.week-b.week).slice(0,6);
+  const done=(r.slate||[]).filter(f=>(f.live||f.dead)&&(f.opening||0)>0).sort((a,b)=>b.week-a.week).slice(0,6);
+  const all=[{n:"You",ww:G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0)}].concat(G.rivals.map(x=>({n:x.name,ww:x.ytd||0})));
+  const tot=all.reduce((a,x)=>a+x.ww,0)||1;
+  const rank=all.slice().sort((a,b)=>b.ww-a.ww).findIndex(x=>x.n===r.name)+1;
+  const share=Math.round((r.ytd||0)/tot*100);
+  const cash=r.cash||0, debt=r.debt||0, rep=r.rep||25;
+  let h="<h3>🏢 "+esc(r.name)+" <span class='tiny' style='color:"+(r.color||"#fff")+"'>●</span></h3>"+
+    "<div class='tiny muted'>"+esc(r.blurb||"")+" · #"+rank+" market share ("+share+"%) · rep "+rep+" · cash "+fmtM(cash)+" · debt "+fmtM(debt)+"</div>";
+  h+="<div class='card' style='margin-top:12px'><b class='small'>Strategy</b><div class='tiny muted'>"+meta.strategy+"</div></div>";
+  h+="<div class='card'><b class='small'>Strength / Weakness</b>"+
+    "<div class='cost-line'><span>✅ Strength</span><b class='pos'>"+meta.strength+"</b></div>"+
+    "<div class='cost-line'><span>❌ Weakness</span><b class='neg'>"+meta.weakness+"</b></div></div>";
+  h+="<div class='card' style='margin-top:8px'><b class='small'>Current slate ("+up.length+")</b>"+
+    "<div class='tiny muted'>"+(up.length?up.map(f=>"• "+esc(f.title)+" — "+DATA.GENRES[f.genre].name+"/"+f.scale+", "+dateLabel(f.week)).join("<br>"):"nothing dated")+"</div></div>";
+  h+="<div class='card' style='margin-top:8px'><b class='small'>Recent releases ("+done.length+")</b>"+
+    "<div class='tiny muted'>"+(done.length?done.map(f=>"• "+esc(f.title)+" — "+fmtG(f.dom||0)+" dom"+((f.dom||0)>=(f.opening||0)*2.5?" 🔥":"")).join("<br>"):"no releases yet")+"</div></div>";
+  h+="<div class='card' style='margin-top:8px'><b class='small'>Head-to-head vs you</b>"+
+    "<div class='cost-line'><span>Their YTD</span><b>"+fmtM(r.ytd||0)+"</b></div>"+
+    "<div class='cost-line'><span>Your YTD</span><b>"+fmtM(G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0))+"</b></div>"+
+    "<div class='cost-line'><span>Share gap</span><b class='"+(r.ytd>0?"neg":"pos")+"'>"+(r.ytd>0?"−":"+")+Math.abs(Math.round((r.ytd||0)/Math.max(1,(r.ytd||0)+G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0))*100))+"%</b></div></div>";
+  openModal(h,{onClose:()=>{}});
+}
 }
    read off the actual opening and legs. Same card pre-release (screening) and live. */
 function demoPanel(f){
@@ -2418,6 +2451,7 @@ function bindView(){
   $$(".film-row").forEach(r=>r.onclick=(e)=>{ if(e.target.type==="checkbox") return; const id=+r.dataset.filmId; const cb=r.querySelector(".film-cb"); if(cb){ cb.checked=!cb.checked; cb.dispatchEvent(new Event("click")); }});
   $("#btnCompareFilms") && ($("#btnCompareFilms").onclick=()=>{ beep("click"); compareFilmsModal(); });
   $$("[data-cut]").forEach(b=>b.onclick=()=>{ const id=+b.dataset.cut; const f=G.films.find(x=>x.id===id); if(f && makeDirectorsCut(f)){ beep("gold"); flashes(G.flash); render(); } });
+  $$(".rival-card").forEach(c=>c.onclick=()=>{ const name=c.dataset.rival; const r=G.rivals.find(x=>x.name===name); if(r) rivalProfileModal(r); });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
