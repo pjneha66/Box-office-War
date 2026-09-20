@@ -3061,6 +3061,7 @@ function advanceWeek(){
   if(chance(.18)) G.talent.push(chance(.6)?genActor(chance(.2)):genDirector(chance(.2)));
   G.talent=G.talent.filter(t=>!t.bookedUntil||t.bookedUntil>=G.week-30).slice(-52);
   if(typeof tickPoaching==="function") tickPoaching();
+  if(typeof checkContractRenegotiation==="function") checkContractRenegotiation();
   if(typeof tickFestivals==="function") tickFestivals();
   if(typeof tickEvents==="function") tickEvents();
   if(typeof tickAchievements==="function") tickAchievements();
@@ -3188,6 +3189,24 @@ function makeDirectorsCut(f){
   log("🎬 Director's cut completed for “"+f.title+"” — critic +4, overall +3, legs +15%. Cost: "+fmtM(cost)+".","gold");
   beep("gold");
   return true;
+}
+
+/* Talent contract renegotiation — when heat ≥2 and under contract, they demand more */
+function checkContractRenegotiation(){
+  const renegotiations=[];
+  (G.talent||[]).forEach(t=>{
+    if(t.contract && (t.heat||0)>=2 && !t.renegotiated && chance(0.15)){
+      const oldFee = actorFee(t);
+      const mult = 1.2 + (t.heat||0)*0.15 + t.power*0.03;
+      const newFee = Math.round(oldFee * mult * 10)/10;
+      t.renegotiated = true;
+      t.contract.renegotiated = true;
+      t.contract.newFee = newFee;
+      renegotiations.push({name:t.name, old:oldFee, new:newFee, heat:t.heat});
+      log("💼 "+t.name+" (heat "+t.heat+") demands renegotiation — fee "+fmtM(oldFee)+" → "+fmtM(newFee)+".","gold");
+    }
+  });
+  return renegotiations;
 }
 
 function cashflowForecast(){
