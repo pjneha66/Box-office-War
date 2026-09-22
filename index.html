@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<meta name="description" content="Box Office War — a movie & series studio tycoon simulation. Greenlight films, survive the box office, build franchises, launch your own streamer.">
+<title>Box Office War — Movie & Series Studio Tycoon</title>
+<link rel="icon" href="icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#view">Skip to studio view</a>
+
+<!-- ══════════════════ START SCREEN ══════════════════ -->
+<div id="startScreen" class="start-screen">
+  <div class="start-inner">
+    <div class="logo-block">
+      <div class="logo-icon">🎬</div>
+      <h1 class="logo-title">BOX OFFICE <span>WAR</span></h1>
+      <p class="logo-sub">Movie &amp; Series Studio Tycoon</p>
+    </div>
+
+    <div class="start-card" id="startCard">
+      <label class="field-label" id="fieldStudioName">Name your studio</label>
+      <input id="studioName" type="text" maxlength="26" placeholder="e.g. Lighthouse Pictures" autocomplete="off" aria-labelledby="fieldStudioName">
+      <div class="name-suggests" id="nameSuggests"></div>
+
+      <label class="field-label" style="margin-top:14px" id="fieldOrigin">Choose your origin story</label>
+      <div id="archList" class="arch-list"></div>
+
+      <!-- v2: scenario, difficulty, sandbox, save slots -->
+      <div id="startOptions" style="margin-top:14px"></div>
+
+      <button id="btnStart" class="btn btn-primary btn-big" style="margin-top:14px">🎥 Found the Studio</button>
+      <button id="btnContinue" class="btn btn-ghost btn-big" style="display:none">⏵ Continue Saved Game</button>
+      <p class="start-note">Runs 100% in your browser · saves automatically · works offline</p>
+    </div>
+
+    <div class="start-feats">
+      <span>🎥 Greenlight films</span><span>🌍 Dom + Intl box office</span><span>📺 OTT &amp; your own streamer</span><span>🏟 Live sports rights</span><span>🏆 Awards &amp; festivals</span><span>💰 Franchises &amp; universes</span><span>🌐 हिन्दी / English</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MAIN APP ══════════════════ -->
+<div id="app" class="app" style="display:none">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="brand" id="brandName">Studio</div>
+      <div class="chip-row">
+        <div class="chip chip-cash" title="Cash on hand">💰 <b id="chipCash">$0</b></div>
+        <div class="chip chip-debt" id="chipDebtWrap" title="Debt (weekly interest)">🏦 <b id="chipDebt">$0</b></div>
+        <div class="chip" title="Industry reputation">⭐ <b id="chipRep">25</b></div>
+        <div class="chip" title="Current date">📅 <b id="chipDate">Y1 · W1</b></div>
+      </div>
+      <div class="topbar-actions">
+        <button id="btnWeek" class="btn btn-primary">▶ Next Week</button>
+        <button id="btnFast" class="btn btn-alt" title="Advance 4 weeks (pauses on big events)">⏩ ×4</button>
+        <button id="btnAuto" class="btn btn-icon" title="Auto-play weeks" aria-label="Auto-play weeks">⏵⏵</button>
+        <button id="btnSound" class="btn btn-icon" title="Sound" aria-label="Toggle sound">🔊</button>
+        <button id="btnSettings" class="btn btn-icon" title="Settings · भाषा · saves" aria-label="Settings, language, saves">⚙</button>
+        <button id="btnHelp" class="btn btn-icon" title="How to play" aria-label="How to play">❓</button>
+      </div>
+    </div>
+    <!-- DESKTOP TABS -->
+    <nav class="tabs" id="tabsNav" aria-label="Studio sections">
+      <button class="tab active" data-tab="studio">🏛 Studio</button>
+      <button class="tab" data-tab="develop">📝 Develop</button>
+      <button class="tab" data-tab="productions">🎬 Productions</button>
+      <button class="tab" data-tab="boxoffice">📊 Box Office</button>
+      <button class="tab" data-tab="ott">📺 OTT &amp; Series</button>
+      <button class="tab" data-tab="empire">🏰 Empire</button>
+      <button class="tab" data-tab="finance">💼 Finance</button>
+    </nav>
+  </header>
+
+  <!-- VIEW -->
+  <main id="view" class="view" aria-label="Studio view" tabindex="-1"></main>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="bottomnav" id="bottomNav" aria-label="Studio sections">
+    <button class="btab active" data-tab="studio"><span>🏛</span>Studio</button>
+    <button class="btab" data-tab="develop"><span>📝</span>Develop</button>
+    <button class="btab" data-tab="productions"><span>🎬</span>Films</button>
+    <button class="btab" data-tab="boxoffice"><span>📊</span>Charts</button>
+    <button class="btab" data-tab="ott"><span>📺</span>OTT</button>
+    <button class="btab" data-tab="empire"><span>🏰</span>Empire</button>
+    <button class="btab" data-tab="finance"><span>💼</span>Money</button>
+  </nav>
+</div>
+
+<!-- Modal + toast roots -->
+<div id="modalRoot"></div>
+<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="i18n.js"></script>
+<script src="ui.js"></script>
+<script>
+/* PWA: offline-first service worker (skipped on file://) */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Box Office War — Movie & Series Studio Tycoon",
+  "short_name": "BoxOfficeWar",
+  "description": "Found a studio. Greenlight films. Survive the box office. Build a franchise empire and your own streamer.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "lang": "en",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
