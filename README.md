@@ -4,6 +4,14 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v7
+
+- **Fixed a fatal syntax error** that blanked the entire UI (`ui.js` never booted — the game was unplayable in any browser). Also rebuilt the film-pitch wizard's lost director/writer/producer/cast steps.
+- **Cinematic visual overhaul** of the whole stylesheet: film-grain shimmer, sweeping projector beams on the start screen, shimmering gold logo, glowing tab indicator, gradient cards with hover lift, shine-sweep primary buttons, animated progress bars with moving highlights.
+- **New animations**: the cash chip counts up and flashes green/red on change, tabs glide in with staggered card entrances, toasts spring in with a countdown strip, the bottom-nav icon bounces on the active tab, the close button spins on hover.
+- **Full reduced-motion support** — every animation respects `prefers-reduced-motion` and the in-game motion toggle.
+- **Stabilized the UI integration test** (was flaky: the board can pass on pitches, wizard bails on low cash, streamers can pre-buy your ready film — the test now plays those like a real player). `npm test` runs both suites.
+
 ## ▶ How to run
 
 - **Easiest:** double-click `index.html` (yes, `file://` works).

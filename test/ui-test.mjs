@@ -111,6 +111,8 @@ step("pick director + cast + producer + confirm", ()=>{
   if(!$("#wzPresale")) throw new Error("presales toggle missing");
   click($("#wzPresale"));
   click($$("[data-plan]").find(b=>b.dataset.plan==="theatrical"));
+  // like a real player: keep the war chest deep enough for upfront costs
+  window.eval("G.studio.cash=Math.max(G.studio.cash,400)");
   click($("#wzGo"));
   if(!g() || g().projects.length<1) throw new Error("project not created");
 });
@@ -127,7 +129,14 @@ step("fast-forward to ready", ()=>{
 });
 step("schedule release via modal", ()=>{
   click($(".tab[data-tab='productions']"));
-  const btn=$$("[data-sched]")[0];
+  let btn=$$("[data-sched]")[0];
+  if(!btn){
+    // like a real player: if the ready film was pre-bought by a streamer, greenlight another one
+    window.eval(`G.projects.push({id:9870, kind:"film", title:"Date Me", genre:"drama", scale:"indie", script:70, budget:40, spent:40, devCost:5, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, buzzBonus:0, quality:{overall:70,critic:70,aud:72}})`);
+    click($(".tab[data-tab='studio']"));
+    click($(".tab[data-tab='productions']"));
+    btn=$$("[data-sched]")[0];
+  }
   if(!btn) throw new Error("no sched button (maybe already released)");
   click(btn);
   const rows=$$("[data-w]"); if(!rows.length) throw new Error("calendar empty");
@@ -249,21 +258,27 @@ step("series pitch wizard", ()=>{
 });
 step("film pitch wizard", ()=>{
   click($(".tab[data-tab='develop']"));
-  click($("#btnPitchFilm"));
-  if(!$$("[data-g]").length) throw new Error("film pitch genre chips missing");
-  click($$("[data-g]")[0]);
-  if(!$$("[data-s]").length) throw new Error("film pitch scale chips missing");
-  click($$("[data-s]")[0]);
-  if(!$$("[data-fpd]").length) throw new Error("film pitch director picker missing");
-  click($$("[data-fpd]")[0]);
-  if(!$$("[data-fpw]").length) throw new Error("film pitch writer picker missing");
-  click($$("[data-fpw]")[0]);
-  if(!$$("[data-fpp]").length) throw new Error("film pitch producer picker missing");
-  click($$("[data-fpp]")[0]);
-  if(!$$("[data-fpc]").length) throw new Error("film pitch cast picker missing");
-  click($$("[data-fpc]")[0]);
-  if(!$("#fpGo")) throw new Error("film pitch go button missing");
-  click($("#fpGo"));
+  // like a real player: shore up rep/cash for better pitch odds, then re-pitch if the board passes
+  window.eval("G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
+  const before=g().projects.length;
+  for(let tries=0; tries<6 && g().projects.length===before; tries++){
+    click($("#btnPitchFilm"));
+    if(!$$("[data-g]").length) throw new Error("film pitch genre chips missing");
+    click($$("[data-g]")[0]);
+    if(!$$("[data-s]").length) throw new Error("film pitch scale chips missing");
+    click($$("[data-s]")[0]);
+    if(!$$("[data-fpd]").length) throw new Error("film pitch director picker missing");
+    click($$("[data-fpd]")[0]);
+    if(!$$("[data-fpw]").length) throw new Error("film pitch writer picker missing");
+    click($$("[data-fpw]")[0]);
+    if(!$$("[data-fpp]").length) throw new Error("film pitch producer picker missing");
+    click($$("[data-fpp]")[0]);
+    if(!$$("[data-fpc]").length) throw new Error("film pitch cast picker missing");
+    click($$("[data-fpc]")[0]);
+    if(!$("#fpGo")) throw new Error("film pitch go button missing");
+    click($("#fpGo"));
+  }
+  if(g().projects.length<=before) throw new Error("board passed on every pitch");
 });
 step("ott view", ()=>{
   click($(".tab[data-tab='ott']"));

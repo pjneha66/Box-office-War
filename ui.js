@@ -250,7 +250,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   // keyboard shortcuts
   document.addEventListener("keydown", e=>{
     if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA") return;
-    if(e.key>=="1" && e.key<="7"){ const tabs=["studio","develop","productions","boxoffice","ott","empire","finance"]; switchTab(tabs[e.key-1]); }
+    if(e.key>="1" && e.key<="7"){ const tabs=["studio","develop","productions","boxoffice","ott","empire","finance"]; switchTab(tabs[e.key-1]); }
     else if(e.code==="Space" && !e.shiftKey){ e.preventDefault(); doWeek(1); }
     else if(e.code==="Space" && e.shiftKey){ e.preventDefault(); doWeek(4); }
     else if(e.key==="r" || e.key==="R"){ e.preventDefault(); if(!G.over){ const rows=$$("[data-sched]"); if(rows.length) rows[0].click(); } }
@@ -266,7 +266,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
 });
 function enterApp(fresh){
   $("#startScreen").style.display="none";
-  $("#app").style.display="flex";
+  const app=$("#app");
+  app.style.display="flex";
+  try{ if(motionOK()){ app.style.animation="viewIn .45s cubic-bezier(.2,.85,.3,1)"; } }catch(e){}
   if(fresh) setTimeout(helpModal, 400);
   render();
   if(G.pendingEarnings) earningsModal();
@@ -281,6 +283,8 @@ function switchTab(t){
   TAB=t; beep("click");
   $$(".tab,.btab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t));
   render();
+  const v=$("#view");   // v7: replay the entrance so the new tab glides in
+  if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
 }
 function doWeek(n){
   if(G.over){ gameOverModal(); return; }
@@ -310,10 +314,30 @@ function afterTick(){
 }
 
 /* ═══════════ top chips + render router ═══════════ */
+/* v7: cash chip counts to its new value and flashes green/red on the way */
+let LASTCASH=null, cashRaf=null;
+function setCashChip(v){
+  const el=$("#chipCash"); if(!el) return;
+  const from=(typeof LASTCASH==="number" && isFinite(LASTCASH))?LASTCASH:v;
+  LASTCASH=v;
+  if(cashRaf){ cancelAnimationFrame(cashRaf); cashRaf=null; }
+  if(Math.abs(v-from)<0.05 || !motionOK()){ el.textContent=fmtM(v); return; }
+  const wrap=el.closest?el.closest(".chip"):null;
+  if(wrap){ wrap.classList.remove("chip-flash-up","chip-flash-down"); void wrap.offsetWidth; wrap.classList.add(v>from?"chip-flash-up":"chip-flash-down"); }
+  const t0=(typeof performance!=="undefined")?performance.now():Date.now();
+  const dur=420;
+  (function tick(now){
+    const t=((typeof performance!=="undefined")?performance.now():Date.now())-t0;
+    const k=Math.min(1,t/dur), e=1-Math.pow(1-k,3);
+    el.textContent=fmtM(from+(v-from)*e);
+    if(k<1){ cashRaf=(window.requestAnimationFrame||function(f){setTimeout(f,16);})(tick); }
+    else{ el.textContent=fmtM(v); cashRaf=null; }
+  })();
+}
 function render(){
   if(!G) return;
   $("#brandName").textContent=G.studio.name;
-  $("#chipCash").textContent=fmtM(G.studio.cash);
+  setCashChip(G.studio.cash);
   $("#chipDebt").textContent=fmtM(G.studio.debt);
   $("#chipDebtWrap").style.display = G.studio.debt>0.5? "":"none";
   $("#chipRep").textContent=Math.round(G.studio.rep);
@@ -1343,6 +1367,11 @@ function filmPitchModal(){
     });
     h+="</div></div>";
     h+="<div class='card'><div class='slider-row'><span class='small muted'>Budget</span><input type='range' id='fpBudget' min='"+DATA.SCALES[WZ.scale].bMin+"' max='"+Math.round(DATA.SCALES[WZ.scale].bMax*1.4)+"' step='"+(DATA.SCALES[WZ.scale].bMin>=100?5:2)+"' value='"+Math.round(neededBudget(WZ.genre,WZ.scale))+"'><span class='slider-val' id='fpBudgetV'>"+fmtM(Math.round(neededBudget(WZ.genre,WZ.scale)))+"</span></div></div>";
+    h+="<div class='small muted' style='margin:10px 0 8px'>Attach a director — mandatory</div><div class='pick-list'>";
+    freeTalent("director").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(d){
+      h+=crewCard(d,{genre:WZ.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-fpd='"+d.id+"'"});
+    });
+    h+="</div>";
   }else if(step===2){
     h+="<div class='small muted' style='margin-bottom:8px'>Distribution choices</div>";
     h+="<div class='card'><div class='small muted'>Rating</div><div class='row'>";
@@ -1377,6 +1406,11 @@ function filmPitchModal(){
     h+="<label class='btn btn-sm "+(WZ.dayAndDate?"btn-primary":"")+"' data-dad><input type='checkbox' style='display:none'>"+(WZ.dayAndDate?"✓":"")+" Day-and-date</label>";
     h+="<label class='btn btn-sm "+(WZ.scriptPolish?"btn-primary":"")+"' data-polish><input type='checkbox' style='display:none'>"+(WZ.scriptPolish?"✓":"")+" Script polish</label>";
     h+="</div></div>";
+    h+="<div class='small muted' style='margin:10px 0 8px'>Hire a writer — sharpens the script</div><div class='pick-list'>";
+    freeTalent("writer").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(w){
+      h+=crewCard(w,{genre:WZ.genre, sel:!!(WZ.writer&&WZ.writer.id===w.id), attr:"data-fpw='"+w.id+"'"});
+    });
+    h+="</div>";
   }else{
     const ev = (function(){
       const S = DATA.SCALES[WZ.scale] || DATA.SCALES.mid;
@@ -1418,12 +1452,18 @@ function filmPitchModal(){
       "<div class='cost-line'><span>Audience potential</span><b>"+ev.audience+"/100</b></div>"+
       "<div class='cost-line'><span>Risk</span><b class='"+(ev.risk>=65?"neg":ev.risk<40?"pos":"")+"'>"+ev.risk+"/100</b></div>"+
       "<div class='cost-line'><span>Franchise potential</span><b>"+ev.franchise+"/100</b></div></div>";
-    h+="<div class='small muted' style='margin:10px 0'>Pick your team — director is mandatory</div>";
+    h+="<div class='small muted' style='margin:10px 0'>Round out the team — producer and cast</div>";
     h+="<div class='pick-list'>";
-    freeTalent("director").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(d){
-      h+=crewCard(d,{genre:WZ.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-fpd='"+d.id+"'"});
+    freeTalent("producer").sort((a,b)=>b.skill-a.skill).slice(0,6).forEach(function(p){
+      h+=crewCard(p,{genre:WZ.genre, sel:!!(WZ.producer&&WZ.producer.id===p.id), attr:"data-fpp='"+p.id+"'"});
     });
     h+="</div>";
+    h+="<div class='small muted' style='margin:10px 0 8px'>Cast ("+WZ.cast.length+"/4) — stars multiply the opening</div><div class='pick-list'>";
+    freeTalent("actor").sort((a,b)=>(b.power*30+b.skill)-(a.power*30+a.skill)).slice(0,10).forEach(function(a){
+      h+=crewCard(a,{genre:WZ.genre, sel:WZ.cast.some(c=>c.id===a.id), attr:"data-fpc='"+a.id+"'"});
+    });
+    h+="</div>";
+    h+="<div class='modal-actions'><button class='btn btn-ghost' id='fpBack'>← Back</button><button class='btn btn-primary' id='fpGo'>🎥 Greenlight the pitch</button></div>";
   }
   const v=openModal(h,{onClose:()=>{WZ=null;}});
   v.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ WZ.genre=b.dataset.g; beep("click"); filmPitchModal(); });
@@ -1964,7 +2004,8 @@ function rivalProfileModal(r){
     "<div class='cost-line'><span>Share gap</span><b class='"+(r.ytd>0?"neg":"pos")+"'>"+(r.ytd>0?"−":"+")+Math.abs(Math.round((r.ytd||0)/Math.max(1,(r.ytd||0)+G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0))*100))+"%</b></div></div>";
   openModal(h,{onClose:()=>{}});
 }
-}
+
+/* Audience demo panel — pre-release estimates vs post-release actuals:
    read off the actual opening and legs. Same card pre-release (screening) and live. */
 function demoPanel(f){
   let pr;
