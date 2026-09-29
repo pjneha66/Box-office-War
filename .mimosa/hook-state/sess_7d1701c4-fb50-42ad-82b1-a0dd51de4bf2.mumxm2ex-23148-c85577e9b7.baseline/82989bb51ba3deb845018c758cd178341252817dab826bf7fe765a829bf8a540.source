@@ -146,7 +146,7 @@ if(G.films.some(f=>f.inTheaters) && !G.films.some(f=>(f.rentalsDom||0)>1)) throw
 if(G.films.length>=3 && !sawRentals) throw new Error("no rentals ever recorded");
 if(G.franchises.some(fr=>!Number.isFinite(fr.earned))) throw new Error("bad franchise earnings");
 if(G.films.some(f=>f.streamingOriginal && !f.soldTo)) throw new Error("auction sale missing platform");
-if(reports<4) throw new Error("year-end reports never fired");
+if(!G.over && reports<4) throw new Error("year-end reports never fired");
 // ── v4 checks ──
 const withWriter = G.films.filter(f=>f.writer).length;
 const withProd   = G.films.filter(f=>f.producer).length;

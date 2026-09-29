@@ -401,6 +401,55 @@ function spawnWriterHot(){ if(G) G.talent.push(genWriter(true)); }
 function talentById(id){ return G.talent.find(t=>t.id===id); }
 function talentByKind(kind){ return G.talent.filter(t=>t.kind===kind); }
 function freeTalent(kind){ return G.talent.filter(t=>t.kind===kind && !t.bookedUntil && !(t.retired)); }
+
+/* ── v8: create-your-own superstar ── */
+const STAR_FEE = { actor:[0.3,1.2,4,12,25], director:[0.8,2,5,10,18], writer:[0.4,1.1,2.8,6,12], producer:[0.5,1.4,3.2,7,13] };
+function starSignFee(kind, power, skill){
+  const base=(STAR_FEE[kind]||STAR_FEE.actor)[clamp(power,1,5)-1];
+  return Math.round(base*(0.6+skill/100)*(2.2+power*0.5)*10)/10;
+}
+function createStar(cfg){
+  const kind=cfg.kind, power=clamp(Math.round(cfg.power||3),1,5), skill=clamp(Math.round(cfg.skill||60),20,99);
+  const name=String(cfg.name||"").trim().slice(0,28) || talentName(kind);
+  const sign=starSignFee(kind,power,skill);
+  if(G.studio.cash<sign){ log("💸 Signing "+name+" takes "+fmtM(sign)+" — you can't cover it.","bad"); return {ok:false}; }
+  spend("talent", sign);
+  const t={ id:nid(), kind, name, power, skill,
+    fee:Math.round((STAR_FEE[kind]||STAR_FEE.actor)[power-1]*(0.6+skill/100)*10)/10,
+    agency:null, bookedUntil:0, heat:0, genreFit: cfg.genreFit||null,
+    age: clamp(Math.round(cfg.age||rint(22,34)),18,60), scandal:0, pics:0,
+    joinedYear: yearOf(G.week), trait:"Homegrown", homegrown:true };
+  G.talent.push(t);
+  log("🌟 Signed "+name+" — "+kind+" · "+power+"★ · skill "+skill+". Signing bonus "+fmtM(sign)+".","gold");
+  return {ok:true, t, sign};
+}
+
+/* ── v8: renaming ── */
+function renameFilm(id, name){
+  const f=G.films.find(x=>x.id===id); const n=String(name||"").trim().slice(0,60);
+  if(!f || !n) return false;
+  const old=f.title; f.title=n;
+  G.talent.forEach(t=>{ if(t.booked===old) t.booked=n; });
+  log("✏️ “"+old+"” is now “"+n+"”.",""); saveGame(); return true;
+}
+function renameSeries(id, name){
+  const s=G.series.find(x=>x.id===id); const n=String(name||"").trim().slice(0,60);
+  if(!s || !n) return false;
+  const old=s.title; s.title=n;
+  G.talent.forEach(t=>{ if(t.booked===old) t.booked=n; });
+  log("✏️ “"+old+"” is now “"+n+"”.",""); saveGame(); return true;
+}
+function renameStreamer(name){
+  if(!G.streamer) return false;
+  const n=String(name||"").trim().slice(0,24); if(!n) return false;
+  const old=G.streamer.name; G.streamer.name=n;
+  G.films.forEach(f=>{ if(f.soldTo===old) f.soldTo=n; });
+  log("📺 "+old+" rebranded as "+n+".","gold"); saveGame(); return true;
+}
+function renameStudio(name){
+  const n=String(name||"").trim().slice(0,26); if(!n) return false;
+  G.studio.name=n; saveGame(); return true;
+}
 function actorFee(t){
   if(!t) return 0;
   const scandalDiscount = t.scandal>0? 0.55 : 1;
@@ -1077,7 +1126,7 @@ function greenlight(cfg){
   const polish = !!cfg.scriptPolish;
   if(polish) dev += Math.round(dev*0.4);
   const p = {
-    id:nid(), kind:"film", title:idea.title, genre:idea.genre, scale:idea.scale,
+      id:nid(), kind:"film", title:(cfg.titleOverride? String(cfg.titleOverride).trim().slice(0,60) : "") || idea.title, genre:idea.genre, scale:idea.scale,
     script: idea.script + (polish?6:0), blurb: idea.blurb, hot:idea.hot,
     budget: cfg.budget, budget0: cfg.budget, overrun:0, spent:0, devCost:dev,
     director: cfg.director, writer: cfg.writer||null, producer: cfg.producer||null, cast: cfg.cast, cameo: cfg.cameo||null,
@@ -1432,10 +1481,12 @@ function regionDefs(){
 }
 function regionSplit(f){
   const defs=regionDefs();
-  const intl=Math.max(0,(f.ww||0)-(f.dom||0));
+  const targeted=f.targetRegion && f.targetRegion!=="auto";
+  const intl=Math.max(0,(f.ww||0)-(f.dom||0))*(targeted?1.06:1);
   const g=DATA.GENRES[f.genre]||{};
   const ws=defs.map(d=>d.w);
   const at=id=>defs.findIndex(d=>d.id===id);
+  if(targeted) ws[at(f.targetRegion)]*=1.8;              // v8: the release leans into its chosen market
   if(f.chinaDenied) ws[at("eastasia")]*=0.35;            // missed the quota slot
   else if(f.censorCut) ws[at("eastasia")]*=0.7;          // trimmed for China
   else ws[at("eastasia")]+= (g.china||0)*0.5;            // full China rollout

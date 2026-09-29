@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20260929T170401162Z-22624-1e852898170e",
+  "runId": "20260929T170401162Z-22624-1e852898170e",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "0a6ff7510173c78cf24b8d0062f78ef8b4ce3dfb",
+  "diffHash": "02d0c39adeb31f617d94dbef1013d54f696b540eada953fa66eb83a82ef4ab9f",
+  "rulesVersion": "unavailable",
+  "sessionHash": "17bcf1061168920bca14469eff800ca2cb507250b84be3df41c104d5a8a36131",
+  "reportRef": ".mimosa/reports/task-review-sess_7d1701c4-fb50-42ad-82b1-a0dd51de4bf2-20260929T170401162Z-22624-1e852898170e.json",
+  "events": [
+    {
+      "eventId": "hook-67a9a3a00677094373b48094783216d6",
+      "findingId": "mimosa-bbe09912524eadc956e34062",
+      "type": "finding_observed",
+      "at": "2026-09-29T16:50:40.746Z",
+      "identity": {
+        "projectRelativeFile": "ui.js",
+        "ruleId": "security",
+        "codeEvidenceHash": "48cbf70cf4d8eb2f9fec1f0da7a9dcaa8727ccedbf878061307e59d3ddf6c311",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 1296,
+      "endLine": 1296,
+      "reasonCode": "advisory",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "48cbf70cf4d8eb2f9fec1f0da7a9dcaa8727ccedbf878061307e59d3ddf6c311"
+      },
+      "sequence": 0
+    }
+  ],
+  "observedFindingIds": [
+    "mimosa-4116cb0e5c3eb53f343febaf",
+    "mimosa-646931a1a16d3269448b3167",
+    "mimosa-ca49966aeb17a4a88d0d8d49",
+    "mimosa-71361be323f8d5e38c0d834c",
+    "mimosa-0a59d6ecc378e6cc1738c2d6",
+    "mimosa-bbe09912524eadc956e34062"
+  ],
+  "verifiedFiles": [
+    {
+      "file": "engine.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "ui.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "test/smoke-body.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "sw.js",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-09-29T17:04:01.350Z"
+}

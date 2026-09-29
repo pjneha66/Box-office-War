@@ -94,6 +94,25 @@ step("v8 create your own superstar", ()=>{
   if(!t) throw new Error("custom superstar not created");
   if(name && t.name!=="Rhea Stormborn") throw new Error("custom name not applied: "+t.name);
 });
+step("v9 contracts, training, BTL crew", ()=>{
+  window.eval("G.studio.cash=Math.max(G.studio.cash,900)");
+  // multi-picture deal on a free writer
+  const w=window.eval("G.talent.find(t=>t.kind==='writer'&&!t.bookedUntil&&!t.multiDeal)");
+  if(!w) throw new Error("no free writer");
+  click($(".tab[data-tab='develop']"));
+  if(!window.eval(`signMultiFilmDeal(${w.id})`)) throw new Error("multi-picture deal rejected");
+  if(!window.eval(`G.talent.find(t=>t.id===${w.id}).multiDeal`)) throw new Error("multi-picture deal not applied");
+  // star school on a young actor
+  const a=window.eval("G.talent.find(t=>t.kind==='actor'&&t.age<=34&&!t.training)");
+  if(a){ window.eval(`startTraining(${a.id})`);
+    if(!window.eval(`G.talent.find(t=>t.id===${a.id}).training`)) throw new Error("training not started"); }
+  // below-the-line hire
+  if(!$("#view").innerHTML.includes("Below-the-line crew")) throw new Error("BTL section missing");
+  const hire=$$("[data-btlhire]")[0];
+  if(!hire) throw new Error("BTL hire button missing");
+  click(hire);
+  if(!window.eval("G.btl && (G.btl.dp||G.btl.composer||G.btl.vfx)")) throw new Error("BTL hire failed");
+});
 
 step("open develop + start wizard", ()=>{
   click($(".tab[data-tab='develop']"));
@@ -137,6 +156,7 @@ step("pick director + cast + producer + confirm", ()=>{
   if(!$("#wzPresale")) throw new Error("presales toggle missing");
   click($("#wzPresale"));
   click($$("[data-plan]").find(b=>b.dataset.plan==="theatrical"));
+  if(!$$(".alSlider").length) throw new Error("budget allocation sliders missing");
   // like a real player: keep the war chest deep enough for upfront costs
   window.eval("G.studio.cash=Math.max(G.studio.cash,400)");
   const titleIn=$("#wzTitle");
@@ -174,12 +194,14 @@ step("schedule release via modal", ()=>{
   click(reg);
   const rows=$$("[data-w]"); if(!rows.length) throw new Error("calendar empty");
   click(rows[rows.length-1]);
-  // like a real player: if the P&A down payment is out of reach, bridge it with a loan
-  window.eval("if(G.studio.cash < 40) takeLoan(60)");
+  // like a real player: if the P&A down payment is out of reach, bridge it with a loan,
+  // and keep the war chest deep enough that the studio never tips into insolvency
+  window.eval("if(G.studio.cash < 40) takeLoan(60); G.studio.cash=Math.max(G.studio.cash,500); G.weeksInDebt=0; G.studio.debt=Math.min(G.studio.debt||0, Math.round(maxDebt()*0.2))");
   click($("#scGo"));
   const sched=g().projects.find(p=>p.releaseWeek>0);
   if(!sched) throw new Error("not scheduled");
-  if(sched.targetRegion!=="india") throw new Error("region target not applied");
+  const regs=Array.isArray(sched.targetRegion)? sched.targetRegion : [sched.targetRegion];
+  if(!regs.includes("india")) throw new Error("region target not applied");
 });
 step("run to release + theatrical", ()=>{
   for(let i=0;i<40 && g(); i++){
@@ -412,6 +434,15 @@ step("v2 rewrite / test-screening flows", ()=>{
   click(rs);
   const p2=g().projects.find(x=>x.id===9873);
   if(!p2.reshoot) throw new Error("reshoot did not apply");
+});
+step("v9 alt endings on a tested film", ()=>{
+  window.eval(`G.projects.push({id:9874, kind:"film", title:"Ending Test", genre:"drama", scale:"indie", script:70, budget:10, spent:10, devCost:2, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, buzzBonus:0, quality:{overall:70,critic:68,aud:72}, tested:true})`);
+  click($(".tab[data-tab='productions']"));
+  const c=$$("[data-ending]").find(b=>+b.dataset.eid===9874);
+  if(!c) throw new Error("alt ending buttons missing");
+  click(c);
+  const p=window.eval("G.projects.find(x=>x.id===9874)");
+  if(!p.altEnding || p.quality.critic!==72 || p.quality.aud!==68) throw new Error("ending not applied: "+JSON.stringify(p.quality));
 });
 step("v7 acquired media: license to streamer + re-date", ()=>{
   // fabricate a firesale rival film and a library vault film

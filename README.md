@@ -4,6 +4,13 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v9
+
+- **Weekly report popup** now includes the ⚠ **Warnings** section (cash low, starved streamer, strikes, expiring offers…) right under the cash delta.
+- **Multi-country releases** — target ONE or SEVERAL international markets when scheduling; each adds +6%/+3% intl gross and ×1.8 share in that market.
+- **Talent & people**: multi-picture contracts (−25% fees, creative-control fights), star school training (young talent grows skill/power, homegrown −30%), cast chemistry (+buzz on reunions), tabloid feuds (never cast them together), muse directors (3+ films together → +5% buzz in their genre), and the **Walk of Fame** (a $150M+ worldwide run or a Best Picture carves permanent sidewalk stars).
+- **Production craft**: budget allocation sliders (VFX / stunts / cast / music / design reshape the critic-audience split and overrun risk), below-the-line crew (hire a cinematographer, composer and VFX house with weekly retainers), **rating appeal board** (fight an R for ~55% odds of PG-13), and **alt endings** after test screenings (critics' cut vs crowd-pleaser).
+
 ## 🆕 What's new in v7
 
 - **Fixed a fatal syntax error** that blanked the entire UI (`ui.js` never booted — the game was unplayable in any browser). Also rebuilt the film-pitch wizard's lost director/writer/producer/cast steps.
