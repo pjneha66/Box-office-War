@@ -367,6 +367,27 @@ step("v2 rewrite / test-screening flows", ()=>{
   const p2=g().projects.find(x=>x.id===9873);
   if(!p2.reshoot) throw new Error("reshoot did not apply");
 });
+step("v7 acquired media: license to streamer + re-date", ()=>{
+  // fabricate a firesale rival film and a library vault film
+  window.eval(`G.rivals[0].slate.push({week:G.week+8, title:"Firesale Film", genre:"thriller", scale:"mid", quality:62, weight:18, opening:0, dom:0, decay:0, weeksOut:0, live:false, dead:false, ytdGross:0, distBy:"me"});
+    G.maVault=G.maVault||[]; G.maVault.push({id:99001, title:"Vault Film", genre:"drama", quality:55, weight:6, week:G.week+10, opening:0, dom:0, live:false, dead:false, weeksOut:0, soldTo:null, source:"library"});`);
+  click($(".tab[data-tab='productions']"));
+  if(!$("#view").innerHTML.includes("Acquired media")) throw new Error("acquired media section missing");
+  const sell=$$("[data-masell]").find(b=>b.dataset.masell==="rival:Firesale Film");
+  if(!sell) throw new Error("license button missing");
+  click(sell);
+  if(!$$(".bid-card").length) throw new Error("license bids missing");
+  click($$(".bid-card")[0]);
+  const rf=window.eval("G.rivals[0].slate.find(f=>f.title==='Firesale Film')");
+  if(!rf.soldTo || rf.distBy!=="ott") throw new Error("license sale failed");
+  const dt=$$("[data-madate]").find(b=>b.dataset.madate.indexOf("vault:")===0);
+  if(!dt) throw new Error("re-date button missing");
+  click(dt);
+  if(!$$("[data-maweek]").length) throw new Error("re-date options missing");
+  click($$("[data-maweek]")[0]);
+  const vf=window.eval("G.maVault.find(f=>f.id===99001)");
+  if(!(vf.week>window.eval("G.week"))) throw new Error("re-date did not apply");
+});
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){
     if(g().sportsAuction){ const sk=$$("#sportsSkip")[0]||window.document.querySelector("#sportsSkip"); if(sk){ click(sk); } }

@@ -1,0 +1,21 @@
+{
+  "name": "box-office-war",
+  "version": "7.0.0",
+  "description": "A realistic movie-business simulation game that runs in any browser — phone, tablet, or PC. No installs, no dependencies, no server: pure HTML/CSS/JS, works offline (just open index.html).",
+  "main": "data.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node test/smoke.js && node test/ui-test.mjs",
+    "test:engine": "node test/smoke.js",
+    "test:ui": "node test/ui-test.mjs"
+  },
+  "keywords": ["game", "tycoon", "simulation", "box-office", "browser-game"],
+  "author": "pjneha66",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jsdom": "^30.1.0"
+  }
+}
