@@ -1,11 +1,5 @@
-/* Headless smoke test: loads data.js + engine.js, plays ~5 years with an AI, sanity-checks the economy. */
-"use strict";
-const fs = require("fs"), vm = require("vm");
-global.localStorage = { _s:{}, getItem(k){ return this._s[k]??null; }, setItem(k,v){ this._s[k]=v; }, removeItem(k){ delete this._s[k]; } };
-
-const src = f => fs.readFileSync(__dirname+"/../"+f, "utf8");
-vm.runInThisContext(src("data.js"), {filename:"data.js"});
-vm.runInThisContext(src("engine.js"), {filename:"engine.js"});
+/* Smoke test driver — runs with data.js + engine.js loaded ahead of it in one
+   shared scope (assembled by smoke.js). All game functions are in scope. */
 
 newGame("producer", "Smoke Test Studios");
 

@@ -40,6 +40,10 @@ const dismissSideModals = () => {
   if(g().pendingAuction){ const nb=$("#aucNo"); if(nb) click(nb); }
   if(g().pendingDeepfake){ const df=$("#dfDefer"); if(df) click(df); }
   if(g().pendingSports){ const sk=$("#sportsSkip"); if(sk) click(sk); }
+  // v8: dismiss the weekly report popup when it's the only thing on screen
+  if(!g().pendingAuction && !g().pendingDeepfake && !g().pendingSports && !g().pendingChoice && !g().pendingReport && !g().pendingEarnings){
+    const wk=$("#wkGo"); if(wk) click(wk);
+  }
 };
 
 function step(name, fn){ try{ fn(); console.log("✓", name); }catch(e){ errors.push(name+": "+e.message); console.log("✗", name, e.message); } }
@@ -67,7 +71,29 @@ for(const t of ["develop","productions","boxoffice","ott","finance","studio"]){
   step("tab "+t, ()=>{ click($(".tab[data-tab='"+t+"']")); if(!$("#view").innerHTML) throw new Error("empty view"); });
 }
 
-step("advance 3 weeks", ()=>{ for(let i=0;i<3;i++) click($("#btnWeek")); });
+step("advance 3 weeks", ()=>{
+  for(let i=0;i<3;i++){ click($("#btnWeek")); dismissSideModals(); }
+});
+
+step("v8 week summary popup pops and jumps tabs", ()=>{
+  click($("#btnWeek"));
+  if($("#wkGo")){
+    click($("[data-wk-tab='boxoffice']"));
+    if(window.eval("TAB")!=="boxoffice") throw new Error("summary tab jump failed");
+  }
+});
+step("v8 create your own superstar", ()=>{
+  window.eval("G.studio.cash=Math.max(G.studio.cash,60)");
+  click($(".tab[data-tab='develop']"));
+  const b=$("#btnStarSign"); if(!b) throw new Error("superstar button missing");
+  click(b);
+  if(!$("#ssGo")) throw new Error("superstar modal missing");
+  const name=$("#ssName"); if(name) name.value="Rhea Stormborn";
+  click($("#ssGo"));
+  const t=window.eval("G.talent.find(x=>x.homegrown)");
+  if(!t) throw new Error("custom superstar not created");
+  if(name && t.name!=="Rhea Stormborn") throw new Error("custom name not applied: "+t.name);
+});
 
 step("open develop + start wizard", ()=>{
   click($(".tab[data-tab='develop']"));
@@ -113,8 +139,12 @@ step("pick director + cast + producer + confirm", ()=>{
   click($$("[data-plan]").find(b=>b.dataset.plan==="theatrical"));
   // like a real player: keep the war chest deep enough for upfront costs
   window.eval("G.studio.cash=Math.max(G.studio.cash,400)");
+  const titleIn=$("#wzTitle");
+  if(!titleIn) throw new Error("film name input missing");
+  titleIn.value="My Custom Title";
   click($("#wzGo"));
   if(!g() || g().projects.length<1) throw new Error("project not created");
+  if(g().projects[0].title!=="My Custom Title") throw new Error("custom title not applied: "+g().projects[0].title);
 });
 
 step("fast-forward to ready", ()=>{
@@ -139,12 +169,17 @@ step("schedule release via modal", ()=>{
   }
   if(!btn) throw new Error("no sched button (maybe already released)");
   click(btn);
+  const reg=$$("[data-region]").find(b=>b.dataset.region==="india");
+  if(!reg) throw new Error("region picker missing");
+  click(reg);
   const rows=$$("[data-w]"); if(!rows.length) throw new Error("calendar empty");
   click(rows[rows.length-1]);
   // like a real player: if the P&A down payment is out of reach, bridge it with a loan
   window.eval("if(G.studio.cash < 40) takeLoan(60)");
   click($("#scGo"));
-  if(!g().projects.some(p=>p.releaseWeek>0)) throw new Error("not scheduled");
+  const sched=g().projects.find(p=>p.releaseWeek>0);
+  if(!sched) throw new Error("not scheduled");
+  if(sched.targetRegion!=="india") throw new Error("region target not applied");
 });
 step("run to release + theatrical", ()=>{
   for(let i=0;i<40 && g(); i++){
@@ -159,6 +194,17 @@ step("run to release + theatrical", ()=>{
 step("box office view shows film in theaters section", ()=>{
   click($(".tab[data-tab='boxoffice']"));
   if(!$("#view").innerHTML.includes("Your films in theaters")) throw new Error("section missing");
+});
+step("v8 rename a film from the library row", ()=>{
+  const f=window.eval("G.films[0]");
+  if(!f) throw new Error("no film to rename");
+  const btn=$$("[data-rename]").find(b=>b.dataset.rename==="f:"+f.id);
+  if(!btn) throw new Error("rename button missing on film row");
+  click(btn);
+  const inp=$("#rnInput"); if(!inp) throw new Error("rename modal missing");
+  inp.value="Renamed Feature";
+  click($("#rnSave"));
+  if(window.eval("G.films[0].title")!=="Renamed Feature") throw new Error("renameFilm failed");
 });
 step("v4 named critics reviewed the release", ()=>{
   const f=g().films.find(x=>x.reviews && x.reviews.length);
