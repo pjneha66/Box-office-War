@@ -465,6 +465,21 @@ step("v7 acquired media: license to streamer + re-date", ()=>{
   const vf=window.eval("G.maVault.find(f=>f.id===99001)");
   if(!(vf.week>window.eval("G.week"))) throw new Error("re-date did not apply");
 });
+step("v10 mobile nav: More sheet + finance drawer + calendar chip", ()=>{
+  const more=$("#btabMore"); if(!more) throw new Error("More tab missing");
+  click(more);
+  if(!$$("[data-more-tab]").length) throw new Error("More sheet missing");
+  click($("[data-more-tab='finance']"));
+  if(window.eval("TAB")!=="finance") throw new Error("More sheet navigation failed");
+  click($("#chipCashWrap"));
+  if(!$("#foOpen")) throw new Error("finance drawer missing");
+  if(!$("#view")) throw new Error("view gone");
+  click($("#foOpen"));
+  if(window.eval("TAB")!=="finance") throw new Error("finance drawer jump failed");
+  click($("#chipDateWrap"));
+  if(!window.document.querySelector(".modal") || !window.document.querySelector(".modal").textContent.includes("alendar")) throw new Error("calendar did not open from date chip");
+  window.eval("closeModal()");
+});
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){
     if(g().sportsAuction){ const sk=$$("#sportsSkip")[0]||window.document.querySelector("#sportsSkip"); if(sk){ click(sk); } }

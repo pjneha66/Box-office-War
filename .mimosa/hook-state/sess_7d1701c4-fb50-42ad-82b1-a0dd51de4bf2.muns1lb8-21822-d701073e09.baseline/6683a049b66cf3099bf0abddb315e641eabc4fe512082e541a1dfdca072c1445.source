@@ -64,6 +64,7 @@ function newGame(archId, name, opts){
   };
   seedTrends();
   genTalentPool();
+  if(typeof seedBTL==="function") seedBTL();
   seedIdeas();
   seedRivalYear();
   refreshIpMarket(true);
@@ -450,10 +451,156 @@ function renameStudio(name){
   const n=String(name||"").trim().slice(0,26); if(!n) return false;
   G.studio.name=n; saveGame(); return true;
 }
+
+/* ── v9: multi-picture contracts ── */
+function contractCost(t){ return Math.round(actorFee(t)*1.5*10)/10; }
+function signMultiFilmDeal(id){
+  const t=talentById(id); if(!t||t.multiDeal) return false;
+  const cost=contractCost(t);
+  if(G.studio.cash<cost){ log("💸 Locking in "+t.name+" takes "+fmtM(cost)+" up front.","bad"); return false; }
+  spend("talent", cost);
+  t.multiDeal={left:3, disc:0.25};
+  log("📜 Multi-picture deal: "+t.name+" is locked for 3 films at −25% fees — expect creative-control fights.","gold");
+  saveGame(); return true;
+}
+/* ── v9: star school ── */
+function trainCost(t){ return Math.round((t.fee*1.2+5)*(t.homegrown?0.7:1)*10)/10; }
+function startTraining(id){
+  const t=talentById(id); if(!t||t.training||t.age>34) return false;
+  const cost=trainCost(t);
+  if(G.studio.cash<cost){ log("💸 Star school charges "+fmtM(cost)+" up front.","bad"); return false; }
+  spend("talent", cost);
+  t.training={ weeksLeft:rint(8,12), skillGain:rint(4,9), powerOdds:(5-t.power)*0.14+0.05 };
+  log("🎓 "+t.name+" enters star school — "+t.training.weeksLeft+" weeks of coaching ("+fmtM(cost)+").","");
+  saveGame(); return true;
+}
+function tickTraining(){
+  for(const t of G.talent){
+    if(!t.training) continue;
+    t.training.weeksLeft--;
+    if(t.training.weeksLeft<=0){
+      t.skill=clamp(t.skill+t.training.skillGain,20,99);
+      let msg=t.name+" finished star school: skill now "+t.skill;
+      if(chance(t.training.powerOdds)){ t.power=Math.min(5,t.power+1); msg+=", and the trade papers bump them to "+t.power+"★"; }
+      log("🌟 "+msg+".","good");
+      t.training=null;
+    }
+  }
+}
+/* ── v9: relationships — chemistry, feuds, muse directors ── */
+function pairKey(a,b){ return a<b? a+"-"+b : b+"-"+a; }
+function feudPartner(t){
+  if(!G.feuds) return null;
+  const k=G.feuds.find(k=>k.split("-").includes(String(t.id)));
+  if(!k) return null;
+  const [a,b]=k.split("-").map(Number);
+  const other=a===t.id? b : a;
+  const p=talentById(other); return p? p.name : "a rival star";
+}
+/* chemistry, feud penalties, muse bonuses, contract decrees — run at greenlight */
+function applyGreenlightRelationships(p){
+  G.chem=G.chem||{}; G.feuds=G.feuds||[];
+  const cast=p.cast||[], dir=p.director;
+  const crew=[dir, p.writer, p.producer].concat(cast).filter(Boolean);
+  // multi-picture deals: creative-control fights first, then burn a film off the deal
+  const fighters=crew.filter(t=>t.multiDeal);
+  fighters.forEach(t=>{
+    if((t.kind==="writer"||t.kind==="director") && chance(0.35)){
+      p.script=clamp(p.script+5,5,99); p.phaseLen.pre+=1;
+      log("📜 Creative control: "+t.name+" forces a page-one rewrite on “"+p.title+"” (+5 script, +1 wk pre-production).","");
+    }else if(t.kind==="actor" && p.rating==="R" && chance(0.4)){
+      p.rating="PG-13";
+      log("📜 Creative control: "+t.name+" (contracted) forces “"+p.title+"” to a PG-13 cut.","");
+    }
+  });
+  fighters.forEach(t=>{ t.multiDeal.left--; if(t.multiDeal.left<=0){ t.multiDeal=null; log("📜 "+t.name+"'s multi-picture deal has wrapped.",""); } });
+  // cast pair chemistry / feuds
+  for(let i=0;i<cast.length;i++) for(let j=i+1;j<cast.length;j++){
+    const a=cast[i], b=cast[j], k=pairKey(a.id,b.id);
+    if((G.feuds||[]).includes(k)){
+      p.script=clamp(p.script-5,5,99); p.buzzBonus=(p.buzzBonus||0)-0.06; p.feudSet=true;
+      log("⚔️ "+a.name+" and "+b.name+" are still feuding — the set is icy (script −5, buzz −6%).","bad");
+    }else{
+      G.chem[k]=(G.chem[k]||0)+1;
+      if(G.chem[k]>=2){
+        const bump=0.04*Math.min(3,G.chem[k]-1);
+        p.buzzBonus=(p.buzzBonus||0)+bump;
+        log("🤝 "+a.name+" & "+b.name+" reunite (chemistry ×"+G.chem[k]+") — buzz +"+Math.round(bump*100)+"%.","");
+      }
+    }
+  }
+  // fresh feuds: two big stars, no chemistry, hot sets
+  for(let i=0;i<cast.length;i++) for(let j=i+1;j<cast.length;j++){
+    const a=cast[i], b=cast[j], k=pairKey(a.id,b.id);
+    if(a.power>=4 && b.power>=4 && (G.chem[k]||0)<2 && !(G.feuds||[]).includes(k) && chance(0.15)){
+      G.feuds.push(k);
+      log("⚔️ A tabloid feud erupts between "+a.name+" and "+b.name+" on the “"+p.title+"” set — never cast them together.","bad");
+    }
+  }
+  // muse director: 3+ films together names them your muse for that genre
+  if(dir){
+    dir.museCount=(dir.museCount||0)+1;
+    if(dir.museCount>=3 && !dir.museGenre){
+      dir.museGenre=p.genre;
+      log("🪄 "+dir.museCount+" films together — the trade papers now call "+dir.name+" your "+DATA.genreOf(p.genre).name+" muse.","gold");
+    }else if(dir.museGenre===p.genre){
+      p.buzzBonus=(p.buzzBonus||0)+0.05;
+    }
+  }
+}
+/* ── v9: Walk of Fame — big wins carve a star's place on the sidewalk ── */
+function grantWalkOfFame(f, why){
+  const honored=[f.director].concat(f.cast||[]).filter(Boolean);
+  const names=[];
+  honored.forEach(t=>{
+    if(t.wof || !Number.isFinite(t.heat)) return;
+    t.wof=true; t.heat=Math.min(3,t.heat+1); names.push(t.name);
+  });
+  if(names.length) log("🚶 Walk of Fame: "+names.join(", ")+(names.length>1?" get their sidewalk stars":" gets a sidewalk star")+" — "+why+" (permanent heat +1).","gold");
+}
+/* ── v9: below-the-line crew (DP, composer, VFX house) ── */
+function genBTLCandidate(role){
+  const skill=clamp(rint(50,92)+rint(-5,5),40,97);
+  const traits={
+    dp:["Anamorphic eye","Night-shoot specialist","Oscar-nominated lens","Steadicam poet"],
+    composer:["Oscar-winning score","Synth minimalist","Theme-song hitmaker","Orchestral romantic"],
+    vfx:["Photoreal renders","Practical-first shop","Volume-stage wizards","Invisible-effects ace"]};
+  const fees={dp:[2,6,14], composer:[1.5,5,12], vfx:[3,8,18]};
+  const band=skill>80?2:skill>62?1:0;
+  return { id:nid(), role, name:talentName("director"), skill, trait:pick(traits[role]),
+    fee:fees[role][band], salary:Math.round((0.08+band*0.12)*10)/10 };
+}
+function seedBTL(){
+  G.btl={dp:null, composer:null, vfx:null};
+  G.btlMarket={};
+  ["dp","composer","vfx"].forEach(r=>{ G.btlMarket[r]=[genBTLCandidate(r),genBTLCandidate(r),genBTLCandidate(r)]; });
+}
+function btlSeedIfMissing(){ if(!G.btl || !G.btlMarket) seedBTL(); }
+function hireBTL(role, id){
+  btlSeedIfMissing();
+  const cand=(G.btlMarket[role]||[]).find(c=>c.id===id); if(!cand || G.btl[role]) return false;
+  if(G.studio.cash<cand.fee){ log("💸 Signing the "+cand.trait+" team takes "+fmtM(cand.fee)+".","bad"); return false; }
+  spend("talent", cand.fee);
+  G.btl[role]=cand;
+  G.btlMarket[role]=G.btlMarket[role].filter(c=>c.id!==id);
+  const roleNames={dp:"cinematographer",composer:"composer",vfx:"VFX house"};
+  log("🎥 Hired "+cand.name+" as your "+roleNames[role]+" — "+cand.trait+", skill "+cand.skill+" ("+fmtM(cand.fee)+" signing, "+fmtM(cand.salary)+"/wk).","gold");
+  saveGame(); return true;
+}
+function fireBTL(role){
+  btlSeedIfMissing();
+  const c=G.btl[role]; if(!c) return false;
+  G.btl[role]=null;
+  G.btlMarket[role].push(c);
+  log("🎥 "+c.name+" is off the lot (severance "+fmtM(c.salary*8)+").","");
+  spend("talent", c.salary*8);
+  saveGame(); return true;
+}
 function actorFee(t){
   if(!t) return 0;
   const scandalDiscount = t.scandal>0? 0.55 : 1;
   let f = t.fee * (1+0.25*(t.heat||0)) * scandalDiscount;
+  if(t.multiDeal) f *= (1-(t.multiDeal.disc||0.25)); // v9 multi-picture deal discount
   f *= contractMult(t); // talent deals cut the quote
   if(G.upgrades.agency) f*=0.85;
   if(t.pics>=2) f*=0.9;
@@ -694,8 +841,24 @@ function computeQuality(p){
   const critic = clamp(Math.round(overall + criticBias + gauss()*3), 5, 99);
   let audRaw = overall + g.aud + Math.min(p.cast.reduce((s,c)=>s+c.power,0),8)*1.2 + gauss()*3;
   if(p.aiCast) audRaw -= (DATA.AI? DATA.AI.audPenalty:9);          // v5: audiences smell the pixels
-  const aud    = clamp(Math.round(audRaw), 5, 99);
-  return { overall, critic, aud };
+  // v9: budget allocation emphasis + below-the-line crew lean on the split
+  let alAud=0, alCrit=0;
+  const al=p.alloc;
+  if(al){
+    const spec=["scifi","fantasy","action","animation"].includes(p.genre);
+    alAud += (spec?0.28:-0.06)*(al.vfx-20);
+    alAud += 0.22*((["action","war","sports","horror"].includes(p.genre))?1:0.5)*(al.stunts-20);
+    alAud += 0.10*(al.cast-20);
+    alCrit += 0.15*(al.music-20) + 0.12*(al.design-20) - 0.05*Math.max(0,al.vfx-20);
+  }
+  if(G.btl){
+    if(G.btl.dp) alAud += G.btl.dp.skill/25;
+    if(G.btl.composer){ alCrit += G.btl.composer.skill/22; if((G.btl.composer.trait||"").includes("Oscar")) alCrit+=2; }
+    if(G.btl.vfx && ["scifi","fantasy","action","animation"].includes(p.genre)) alAud += G.btl.vfx.skill/30;
+  }
+  const aud    = clamp(Math.round(audRaw + alAud), 5, 99);
+  const critic2 = clamp(Math.round(critic + alCrit), 5, 99);
+  return { overall: clamp(Math.round((overall+critic2+aud)/3), 8, 98), critic: critic2, aud };
 }
 
 /* v4: the writer drives the page. Genre fit and skill add on top of the spec's own score. */
@@ -1085,6 +1248,7 @@ function pitchFilm(cfg){
       mktBoosts: [],
     };
     G.projects.push(p);
+    if(typeof applyGreenlightRelationships==="function") applyGreenlightRelationships(p);
     if(dir){dir.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; dir.booked=p.title;}
     if(writer){writer.bookedUntil=G.week+p.phaseLen.pre; writer.booked=p.title;}
     if(producer){producer.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; producer.booked=p.title;}
@@ -1197,6 +1361,10 @@ function greenlight(cfg){
         log("🔥 Reunion: "+a.name+" × "+b.name+" together again (+2% buzz).","good"); }
     } }); });
   if(cfg.cameo){ cfg.cameo.bookedUntil=Math.max(cfg.cameo.bookedUntil||0, G.week+4); cfg.cameo.booked=p.title+" (cameo)"; }
+  // v9: budget allocation emphasis (defaults 20/20/20/20/20) + talent relationships
+  if(cfg.alloc){ const a=cfg.alloc; const t=(a.vfx||0)+(a.stunts||0)+(a.cast||0)+(a.music||0)+(a.design||0)||100;
+    p.alloc={vfx:Math.round(a.vfx/t*100), stunts:Math.round(a.stunts/t*100), cast:Math.round(a.cast/t*100), music:Math.round(a.music/t*100), design:Math.round(a.design/t*100)}; }
+  if(typeof applyGreenlightRelationships==="function") applyGreenlightRelationships(p);
   G.projects.push(p);
   G.ideas = G.ideas.filter(i=>i.id!==idea.id);
   const planLabel = {theatrical:"theatrical release",streaming:"streaming original",later:"decide distribution later"}[p.plan];
@@ -1226,7 +1394,10 @@ function tickProjects(){
       burn = p.budget*0.70/Math.max(1,L.shoot) * (G.upgrades.backlot?0.88:1) * (hqOwned("stage2")?0.95:1) * (techDone("virtual")?0.9:1) * econM("prod");
       // v4: cost overruns — weather, reshoot days, a star's trailer. Producers contain them.
       const prodSkill = p.producer? p.producer.skill : 45;
-      const risk = clamp(0.15 - (prodSkill-45)/300, 0.03, 0.20) * (techDone("sets")?0.8:1);
+      let risk = clamp(0.15 - (prodSkill-45)/300, 0.03, 0.20) * (techDone("sets")?0.8:1);
+      if(p.alloc) risk = clamp(risk + (p.alloc.stunts-20)*0.0012, 0.02, 0.26);   // v9: stunt-heavy shoots risk more
+      if(p.feudSet) risk = clamp(risk+0.02, 0.02, 0.28);                          // v9: feuding co-stars destabilize the set
+      if(G.btl && G.btl.vfx) risk *= 0.92;                                        // v9: a real VFX house keeps shots on budget
       if(chance(risk)){
         const size = Math.round(p.budget*(0.008+rnd()*0.017)*(p.producer? 0.6:1)*10)/10;
         p.overrun = Math.round(((p.overrun||0)+size)*10)/10;
@@ -1481,12 +1652,14 @@ function regionDefs(){
 }
 function regionSplit(f){
   const defs=regionDefs();
-  const targeted=f.targetRegion && f.targetRegion!=="auto";
-  const intl=Math.max(0,(f.ww||0)-(f.dom||0))*(targeted?1.06:1);
+  // v9: targetRegion is one id ("europe"), "auto", or an array of ids (multi-country release)
+  const raw=f.targetRegion;
+  const targets=Array.isArray(raw)? raw : (raw && raw!=="auto"? [raw] : []);
+  const intl=Math.max(0,(f.ww||0)-(f.dom||0))*(targets.length? 1+0.06+0.03*(targets.length-1) : 1);
   const g=DATA.GENRES[f.genre]||{};
   const ws=defs.map(d=>d.w);
   const at=id=>defs.findIndex(d=>d.id===id);
-  if(targeted) ws[at(f.targetRegion)]*=1.8;              // v8: the release leans into its chosen market
+  targets.forEach(id=>{ if(at(id)>=0) ws[at(id)]*=1.8; });   // v8/v9: the release leans into its chosen markets
   if(f.chinaDenied) ws[at("eastasia")]*=0.35;            // missed the quota slot
   else if(f.censorCut) ws[at("eastasia")]*=0.7;          // trimmed for China
   else ws[at("eastasia")]+= (g.china||0)*0.5;            // full China rollout
@@ -1507,6 +1680,8 @@ function regionSplit(f){
 }
 function endTheatrical(f){
   f.inTheaters=false;
+  // v9: a 150M+ worldwide run carves sidewalk stars for the billed talent
+  if(typeof grantWalkOfFame==="function" && (f.ww||0)>=150) grantWalkOfFame(f, "“"+f.title+"” crossed "+fmtG(f.ww)+" worldwide");
   // v5: the censor board also sharpens scissors for R-ratings, horror and dark thrillers
   if(!f.censorChecked && !f.presales && !f.chinaDenied){
     const ch = DATA.GENRES[f.genre].china||0;
@@ -2723,6 +2898,7 @@ function runAwards(){
       f.oscarBumped=true;
       G.studio.rep=clamp(G.studio.rep+7,5,99);
       awardHeatBump(f); // the winners' next quote just went up
+      if(typeof grantWalkOfFame==="function") grantWalkOfFame(f, "“"+f.title+"” won Best Picture");
       G.stats.awards.push({year:yr, cat:"Best Picture", film:f.title});
       sfx("drums"); G.confetti=true;
       log("🏆 BEST PICTURE: “"+f.title+"”! +7 reputation"+(bump>0? ", and the Oscar-bump re-release grosses "+fmtG(bump):"")+".","gold");
@@ -3125,6 +3301,14 @@ function advanceWeek(){
   if(typeof tickMa==="function") tickMa();
   if(typeof tickMaSlateRentals==="function") tickMaSlateRentals();
   if(typeof tickMaVault==="function") tickMaVault();
+  if(typeof btlSeedIfMissing==="function") btlSeedIfMissing();   // v9: legacy saves
+  if(typeof tickTraining==="function") tickTraining();           // v9: star school
+  if(typeof G.week==="number" && G.week%13===0 && G.btlMarket){  // v9: quarterly BTL market rotation
+    ["dp","composer","vfx"].forEach(r=>{
+      const m=G.btlMarket[r]; if(!m||!m.length) return;
+      m.splice(rint(0,m.length-1),1); m.push(genBTLCandidate(r));
+    });
+  }
   if(G.pendingDeepfake && G.week - (G.pendingDeepfake.week||G.week) >= 2){
     log("🧬 The deepfake deadline passed — the internet convened its own jury.","bad");
     if(typeof resolveDeepfake==="function") resolveDeepfake(chance(0.35));
@@ -3842,6 +4026,7 @@ function weeklyOverhead(){
   let o = G.studio.overhead + G.projects.length*0.12 + G.series.filter(s=>s.phase==="shoot").length*0.15;
   DATA.EXECS.forEach(e=>{ if(G.execs[e.id]) o+=e.salary; });
   o += hqUpkeep(); // headquarters facilities bill weekly maintenance
+  if(G.btl){ ["dp","composer","vfx"].forEach(r=>{ if(G.btl[r]) o+=G.btl[r].salary; }); } // v9 crew retainers
   return Math.round(o*100)/100;
 }
 /* ── studio headquarters: departments unify existing buys + 5 buildable wings ──

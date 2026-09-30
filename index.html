@@ -52,10 +52,10 @@
     <div class="topbar-row">
       <div class="brand" id="brandName">Studio</div>
       <div class="chip-row">
-        <div class="chip chip-cash" title="Cash on hand">💰 <b id="chipCash">$0</b></div>
+        <div class="chip chip-cash" id="chipCashWrap" title="Cash — tap for finance overview" role="button" tabindex="0">💰 <b id="chipCash">$0</b></div>
         <div class="chip chip-debt" id="chipDebtWrap" title="Debt (weekly interest)">🏦 <b id="chipDebt">$0</b></div>
         <div class="chip" title="Industry reputation">⭐ <b id="chipRep">25</b></div>
-        <div class="chip" title="Current date">📅 <b id="chipDate">Y1 · W1</b></div>
+        <div class="chip" id="chipDateWrap" title="Date — tap for release calendar" role="button" tabindex="0">📅 <b id="chipDate">Y1 · W1</b></div>
       </div>
       <div class="topbar-actions">
         <button id="btnWeek" class="btn btn-primary">▶ Next Week</button>
@@ -84,15 +84,13 @@
   <!-- MOBILE: floating Next Week action -->
   <button id="fabWeek" class="fab-week" aria-label="Advance to next week">▶ Next Week</button>
 
-  <!-- MOBILE BOTTOM NAV -->
+  <!-- MOBILE BOTTOM NAV — spec §3: five primary destinations -->
   <nav class="bottomnav" id="bottomNav" aria-label="Studio sections">
     <button class="btab active" data-tab="studio"><span>🏛</span>Studio</button>
-    <button class="btab" data-tab="develop"><span>📝</span>Develop</button>
+    <button class="btab" data-tab="develop"><span>📝</span>Create</button>
     <button class="btab" data-tab="productions"><span>🎬</span>Films</button>
-    <button class="btab" data-tab="boxoffice"><span>📊</span>Charts</button>
-    <button class="btab" data-tab="ott"><span>📺</span>OTT</button>
-    <button class="btab" data-tab="empire"><span>🏰</span>Empire</button>
-    <button class="btab" data-tab="finance"><span>💼</span>Money</button>
+    <button class="btab" data-tab="boxoffice"><span>📊</span>Market</button>
+    <button class="btab" data-tab="more" id="btabMore"><span>⋯</span>More</button>
   </nav>
 </div>
 

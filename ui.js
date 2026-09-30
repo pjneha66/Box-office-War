@@ -241,6 +241,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
   SOUND = localStorage.getItem("bow_snd")!=="0"; $("#btnSound").textContent=SOUND?"🔊":"🔇";
   $("#btnSettings").onclick=()=>{ beep("click"); settingsModal(); };
   $("#btnHelp").onclick=()=>helpModal();
+  // v10 spec §5: tappable HUD
+  const cw=$("#chipCashWrap"); if(cw) cw.onclick=()=>{ beep("click"); financeOverviewSheet(); };
+  const dw=$("#chipDateWrap"); if(dw) dw.onclick=()=>{ beep("click"); calendarModal(); };
   $("#btnAch") && ($("#btnAch").onclick=()=>{ beep("click"); achievementsModal(); });
   // tabs
   $$(".tab,.btab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
@@ -281,11 +284,55 @@ function enterApp(fresh){
   else if(G.over) gameOverModal();
 }
 function switchTab(t){
+  if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   TAB=t; beep("click");
-  $$(".tab,.btab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t));
+  $$(".tab,.btab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"))));
   render();
   const v=$("#view");   // v7: replay the entrance so the new tab glides in
   if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
+}
+/* v10 spec §3: More — secondary systems as a bottom sheet */
+function moreSheet(){
+  const rows=[
+    ["ott","📺","OTT & Series","Your streamer · licenses · sports rights"],
+    ["empire","🏰","Empire","Franchises · merch · parks · M&A desk"],
+    ["finance","💼","Finance","Loans · IPO · executives · P&L ledger"],
+  ];
+  let h="<h3>⋯ More</h3><div class='plan-pick' style='margin-top:10px'>";
+  rows.forEach(([t,icon,name,sub])=>{
+    h+="<div class='plan-opt' data-more-tab='"+t+"'><h5>"+icon+" "+name+"</h5><div class='p-sub'>"+sub+"</div></div>";
+  });
+  h+="</div><div class='row' style='margin-top:12px'>"+
+    "<button class='btn btn-alt' id='moreAch'>🏅 Awards</button>"+
+    "<button class='btn btn-alt' id='moreSet'>⚙ Settings</button>"+
+    "<button class='btn btn-alt' id='moreHelp'>❓ Help</button></div>"+
+    "<div class='row' style='margin-top:10px;align-items:center'><button class='btn btn-sm btn-ghost' id='moreSave'>💾 Save now</button><span class='tiny muted' id='moreSaveInfo'></span></div>";
+  const v=openModal(h);
+  v.querySelectorAll("[data-more-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.moreTab); });
+  v.querySelector("#moreAch").onclick=()=>{ closeModal(); achievementsModal(); };
+  v.querySelector("#moreSet").onclick=()=>{ closeModal(); settingsModal(); };
+  v.querySelector("#moreHelp").onclick=()=>{ closeModal(); helpModal(); };
+  v.querySelector("#moreSave").onclick=()=>{ saveGame(); const i=v.querySelector("#moreSaveInfo"); if(i) i.textContent="Saved ✓"; beep("click"); };
+}
+/* v10 spec §5: tap the cash chip → finance overview drawer */
+function financeOverviewSheet(){
+  let burn=0; try{ burn=weeklyOverhead(); }catch(e){ burn=0; }
+  const runway=Math.floor(Math.max(0,G.studio.cash)/Math.max(0.1,burn));
+  let credit=0; try{ credit=maxDebt(); }catch(e){}
+  const last=(G.txHistory&&G.txHistory.length)? G.txHistory[G.txHistory.length-1] : null;
+  let h="<h3>💰 Studio finance</h3>"+
+    "<div class='card'>"+
+    "<div class='cost-line'><span>Cash on hand</span><b>"+fmtM(G.studio.cash)+"</b></div>"+
+    "<div class='cost-line'><span>Debt</span><b class='"+(G.studio.debt>0.5?"neg":"")+"'>"+fmtM(G.studio.debt)+"</b></div>"+
+    "<div class='cost-line'><span>Weekly burn (overhead)</span><b>"+fmtM(burn)+"</b></div>"+
+    "<div class='cost-line'><span>Runway (zero revenue)</span><b>"+runway+" wks</b></div>"+
+    "<div class='cost-line'><span>Credit capacity</span><b>"+fmtM(credit)+"</b></div>"+
+    (last? "<div class='cost-line'><span>Last week net</span><b class='"+(last.net>=0?"pos":"neg")+"'>"+(last.net>=0?"+":"")+fmtM(last.net)+"</b></div>":"")+
+    "</div>"+
+    "<div class='modal-actions'><button class='btn btn-ghost' id='foClose'>Close</button><button class='btn btn-primary' id='foOpen'>💼 Full ledger</button></div>";
+  const v=openModal(h);
+  v.querySelector("#foClose").onclick=closeModal;
+  v.querySelector("#foOpen").onclick=()=>{ closeModal(); switchTab("finance"); };
 }
 function doWeek(n){
   if(G.over){ gameOverModal(); return; }

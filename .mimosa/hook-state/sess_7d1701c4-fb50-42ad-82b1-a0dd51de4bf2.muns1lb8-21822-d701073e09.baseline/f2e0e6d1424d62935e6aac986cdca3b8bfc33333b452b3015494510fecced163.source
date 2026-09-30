@@ -362,11 +362,11 @@ function render(){
 /* ═══════════ VIEW: studio ═══════════ */
 /* Control-room ops strip: read-only rollup of warnings, deadlines, production,
    market and rivals from existing state. No simulation writes here. */
-function studioOpsCard(ctx){
-  ctx=ctx||{};
-  const warns=[], deadlines=[], prod=[], market=[], rivals=[];
+/* v9: shared ops warnings — used by the studio control room AND the weekly report popup */
+function opsWarnings(){
+  const warns=[];
   try{
-    const st=G.studio, woy=woyOf(G.week);
+    const st=G.studio;
     if(st.cash<25) warns.push("Cash low ("+fmtM(st.cash)+") — bridge with loans or pre-sales.");
     try{ if(st.debt>0 && (st.debt-Math.max(st.cash,0))>maxDebt()) warns.push("Debt beyond credit line — bank watches. See Finance."); }catch(e){}
     if((G.weeksInDebt||0)>0) warns.push("Net debt over line "+G.weeksInDebt+"/3 wks — bankruptcy risk.");
@@ -379,6 +379,14 @@ function studioOpsCard(ctx){
     if(G.pendingSports) warns.push("Sports rights auction expires W"+(G.pendingSports.expires||"?")+".");
     if(G.pendingDeepfake) warns.push("Deepfake drill open — 2-week clock running.");
     (G.offers||[]).filter(o=>o.expires-G.week<=1).forEach(o=>{ warns.push("Offer expiring: "+(o.filmTitle||o.seriesTitle||"deal")+" ("+fmtM(o.value)+")."); });
+  }catch(e){}
+  return warns;
+}
+function studioOpsCard(ctx){
+  ctx=ctx||{};
+  const warns=opsWarnings(), deadlines=[], prod=[], market=[], rivals=[];
+  try{
+    const st=G.studio, woy=woyOf(G.week);
     (ctx.dated||[]).slice(0,3).forEach(p=>{ deadlines.push("“"+p.title+"” dated "+dateLabel(p.releaseWeek)+"."); });
     const fests=(DATA.FESTIVALS||[]).filter(f=>f.woy>woy).slice(0,1);
     fests.forEach(f=>{ deadlines.push(f.emoji+" "+f.name+" W"+f.woy+" — submit eligible films."); });
@@ -859,6 +867,30 @@ function viewDevelop(){
       for(const p of freeP.slice(0,6)) h+=talentCard(p);
       h+="</div>";
     }
+    /* v9: below-the-line crew — studio-wide DP / composer / VFX house */
+    if(typeof btlSeedIfMissing==="function"){
+      btlSeedIfMissing();
+      const roleMeta={dp:{icon:"🎥",name:"Cinematographer",eff:"audience +skill/25 on every film"},composer:{icon:"🎼",name:"Composer",eff:"critics +skill/22 (Oscar trait +2)"},vfx:{icon:"💫",name:"VFX house",eff:"audience +skill/30 on spectacle genres, overruns −8%"}};
+      h+="<div class='section-title'>🎥 Below-the-line crew <span class='tiny'>(studio-wide · weekly retainer)</span></div><div class='grid g3'>";
+      ["dp","composer","vfx"].forEach(r=>{
+        const meta=roleMeta[r], cur=G.btl[r];
+        h+="<div class='card'><b>"+meta.icon+" "+meta.name+"</b>";
+        if(cur){
+          h+="<div class='tiny muted' style='margin-top:4px'>✅ <b>"+esc(cur.name)+"</b> — "+esc(cur.trait)+" · skill "+cur.skill+" · "+fmtM(cur.salary)+"/wk</div>"+
+            "<div class='tiny muted'>"+meta.eff+"</div>"+
+            "<button class='btn btn-sm btn-ghost' style='margin-top:6px' data-btlfire='"+r+"'>✕ Let go ("+fmtM(cur.salary*8)+" severance)</button>";
+        }else{
+          h+="<div class='tiny muted' style='margin-top:4px'>Slot empty — "+meta.eff+".</div>";
+          (G.btlMarket[r]||[]).forEach(c=>{
+            h+="<div class='bid-card' style='margin-top:6px'><div style='flex:1;min-width:0'><b class='small'>"+esc(c.name)+"</b>"+
+              "<div class='tiny muted'>"+esc(c.trait)+" · skill "+c.skill+"</div></div>"+
+              "<button class='btn btn-xs btn-primary' data-btlhire='"+r+":"+c.id+"'>Sign "+fmtM(c.fee)+"</button></div>";
+          });
+        }
+        h+="</div>";
+      });
+      h+="</div>";
+    }
     h+="<div class='section-title'>🎬 Directors &amp; 🌟 cast</div><div class='grid g3'>";
     for(const d of freeD.slice(0,6)) h+=talentCard(d);
     h+="</div><div class='grid g3' style='margin-top:8px'>";
@@ -1073,6 +1105,19 @@ function crewCard(t, opts){
   else if(t.kind==="director") hint="Hire: ~25% of quality"+(fit?" + genre fit":"")+" for "+fmtM(actorFee(t))+".";
   else if(t.kind==="producer") hint="Hire: overruns ~"+overrunRisk(t.skill)+"%/wk for "+fmtM(actorFee(t))+".";
   else hint="Hire: "+t.power+"★ → opening ×"+starOpenMult(t.power)+" for "+fmtM(actorFee(t))+((t.scandal>0)?" · scandal taxes opening.":".");
+  // v9 relationship tags
+  let rel="";
+  const fp=(typeof feudPartner==="function")? feudPartner(t) : null;
+  if(t.wof) rel+=" <span class='tag gold' title='Walk of Fame — permanent heat'>🚶 Walk of Fame</span>";
+  if(t.museGenre) rel+=" <span class='tag purple' title='3+ films together: +5% buzz on "+DATA.genreOf(t.museGenre).name+" films'>🪄 "+DATA.genreOf(t.museGenre).name+" muse</span>";
+  if(t.multiDeal) rel+=" <span class='tag green' title='Multi-picture deal: −25% fees for "+t.multiDeal.left+" more films'>📜 "+t.multiDeal.left+" films left</span>";
+  if(t.training) rel+=" <span class='tag blue' title='At star school — skill rising'>🎓 in school "+t.training.weeksLeft+"w</span>";
+  if(fp) rel+=" <span class='tag red' title='Never cast them together'>⚔ feuds with "+esc(fp)+"</span>";
+  if(t.homegrown) rel+=" <span class='tag'>🌱 homegrown</span>";
+  // v9 roster actions (inline handlers work inside modals too)
+  let acts="";
+  if(!t.multiDeal && (typeof contractCost==="function")) acts+="<button class='btn btn-xs btn-alt' onclick='contractClick(event,"+t.id+")' title='Lock 3 films at −25% fees'>📜 3-film deal ("+fmtM(contractCost(t))+")</button>";
+  if(t.age<=34 && !t.training && (typeof trainCost==="function")) acts+="<button class='btn btn-xs btn-alt' onclick='trainClick(event,"+t.id+")' title='Star school: skill +4-9, maybe +1★ ("+(t.homegrown?"homegrown −30%":"")+")'>🎓 Train ("+fmtM(trainCost(t))+")</button>";
   return "<div class='card talent-card"+(opts.sel?" sel-card":"")+"' "+(opts.attr||"")+">"+
     "<div class='t-avatar'>"+icon+"</div><div style='flex:1'>"+
     "<div class='t-name'>"+esc(t.name)+(t.trait? " <span class='tiny muted'>"+esc(t.trait)+"</span>":"")+"</div>"+
@@ -1083,10 +1128,11 @@ function crewCard(t, opts){
       (t.heat? " · <span class='gold'>heat ×"+t.heat+"</span>":"")+
       (t.scandal>0? " · <span class='neg'>⚠ scandal</span>":"")+
       (t.comeback? " · <span class='pos'>comeback</span>":"")+
-    "</div>"+
+    "</div>"+(rel? "<div class='row' style='margin-top:4px'>"+rel+"</div>":"")+
     "<div class='tiny muted' style='margin-top:2px'>"+hint+"</div>"+
     "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(actorFee(t))+"</span>"+
-      (opts.sel?"<span class='tag green'>✓ attached</span>":"")+"</div></div></div>";
+      (opts.sel?"<span class='tag green'>✓ attached</span>":"")+"</div>"+
+    (acts? "<div class='row' style='margin-top:6px'>"+acts+"</div>":"")+"</div></div>";
 }
 /* Film flow: 10-stage pipeline strip + per-decision impact cards. Read-only. */
 function filmFlowStrip(active){
@@ -1222,6 +1268,16 @@ function wizardModal(){
     h+="<div class='card' style='margin-top:10px'><label class='field-label' for='wzTitle'>🎬 Film name</label>"+
       "<input id='wzTitle' type='text' maxlength='60' placeholder='Leave blank — the studio will name it' value='"+esc(WZ.title||"")+"' style='width:100%;background:#0b0f18;border:1px solid var(--line2);color:var(--text);border-radius:11px;padding:10px 12px;font-size:15px;outline:none'>"+
       "<div class='tiny muted' style='margin-top:4px'>Name it yourself, or let the machine generate a title.</div></div>";
+    /* v9: budget allocation — where the money goes changes what the film is */
+    if(!WZ.alloc) WZ.alloc={vfx:20, stunts:20, cast:20, music:20, design:20};
+    const AL=[["vfx","VFX & spectacle"],["stunts","Stunts & action"],["cast","Cast & performances"],["music","Music & score"],["design","Production design"]];
+    h+="<div class='card'><b class='small'>🎚 Budget emphasis <span class='tiny muted'>(reallocates the shoot — sliders rescale to 100%)</span></b>";
+    AL.forEach(([k,label])=>{
+      h+="<div class='slider-row'><span class='small muted' style='min-width:96px'>"+label+"</span>"+
+        "<input type='range' class='alSlider' data-al='"+k+"' min='0' max='50' step='5' value='"+WZ.alloc[k]+"'>"+
+        "<span class='slider-val' id='al-"+k+"'>"+WZ.alloc[k]+"%</span></div>";
+    });
+    h+="<div class='tiny muted' style='margin-top:4px'>VFX lifts spectacle genres · stunts lift action but risk overruns · cast lifts audience · score and design lift critics.</div></div>";
     h+="<div class='card'><div class='slider-row'><span class='small muted'>Production budget</span>"+
       "<input type='range' id='wzBudget' min='"+S2.bMin+"' max='"+(S2.bMax*1.4)+"' step='"+(S2.bMin>=100?5:2)+"' value='"+WZ.budget+"'><span class='slider-val' id='wzBudgetV'>"+fmtM(WZ.budget)+"</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>Typical "+S2.name+" range: "+fmtM(S2.bMin)+"–"+fmtM(S2.bMax)+" · genre needs ≈ "+fmtM(neededBudget(WZ.idea.genre,WZ.idea.scale))+" (underfunding hurts quality)</div></div>";
@@ -1239,6 +1295,18 @@ function wizardModal(){
     h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzBack'>← Producer</button><button class='btn btn-primary' id='wzGo'>🎥 Greenlight</button></div>";
   }
   const v=openModal(h, {onClose:()=>{WZ=null;}});
+  const wtIn=v.querySelector("#wzTitle"); if(wtIn) wtIn.oninput=()=>{ WZ.title=wtIn.value; };
+  // v9: budget allocation sliders — others rescale to keep the split at 100%
+  v.querySelectorAll(".alSlider").forEach(sl=>sl.oninput=()=>{
+    const k=sl.dataset.al; WZ.alloc[k]=+sl.value;
+    const others=Object.keys(WZ.alloc).filter(x=>x!==k);
+    const rest=100-WZ.alloc[k];
+    const osum=others.reduce((s,x)=>s+WZ.alloc[x],0);
+    if(osum>0) others.forEach(x=>{ WZ.alloc[x]=Math.max(0,Math.round(WZ.alloc[x]*rest/osum/5)*5); });
+    let tot=Object.values(WZ.alloc).reduce((a,b)=>a+b,0);
+    WZ.alloc[others[0]]=Math.max(0, WZ.alloc[others[0]]+(100-tot));
+    Object.keys(WZ.alloc).forEach(x=>{ const el=$("#al-"+x); if(el) el.textContent=WZ.alloc[x]+"%"; });
+  });
   v.querySelectorAll("[data-writer]").forEach(el=>el.onclick=()=>{
     const w=talentById(+el.dataset.writer);
     WZ.writer = (WZ.writer && WZ.writer.id===w.id)? null : w;
@@ -1294,6 +1362,7 @@ function wizardModal(){
     greenlight({ idea:WZ.idea, writer:WZ.aiScript? null : WZ.writer, director:WZ.director, producer:WZ.producer, cast:WZ.aiCast? [] : WZ.cast,
       budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales,
       titleOverride: tIn? (tIn.value.trim()||null) : (WZ.title||null),
+      alloc: WZ.alloc,
       rating:WZ.rating, location:WZ.location, scriptPolish:WZ.scriptPolish, premium:WZ.premium,
       aiCast:WZ.aiCast, aiScript:WZ.aiScript, coProd:(WZ.coProd==="none"? null : WZ.coProd),
       crossover: WZ.idea.crossover, spinoffFr: WZ.idea.spinoffFr });
@@ -1345,6 +1414,7 @@ function seriesModal(){
   const e1=v.querySelector("#szEps"); if(e1){ e1.oninput=()=>{ WZ.eps=+e1.value; $("#szEpsV").textContent=WZ.eps+" eps"; $("#szTotal").textContent=fmtM(WZ.eps*WZ.perEp); }; }
   const e2=v.querySelector("#szPerEp"); if(e2){ e2.oninput=()=>{ WZ.perEp=+e2.value; $("#szPerEpV").textContent=fmtM(WZ.perEp); $("#szTotal").textContent=fmtM(WZ.eps*WZ.perEp); }; }
   v.querySelectorAll("[data-sr]").forEach(el=>el.onclick=()=>{ WZ.showrunner=talentById(+el.dataset.sr); beep("click"); seriesModal(); });
+  const szT=v.querySelector("#szTitle"); if(szT) szT.oninput=()=>{ WZ.title=szT.value; };
   v.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ WZ.platform=b.dataset.p; beep("click"); seriesModal(); });
   const bk=v.querySelector("#szBack"); if(bk) bk.onclick=seriesModal;
   const pit=v.querySelector("#szPitch");
@@ -1495,6 +1565,7 @@ function filmPitchModal(){
   v.querySelectorAll("[data-dad]").forEach(b=>b.onclick=()=>{ WZ.dayAndDate=!WZ.dayAndDate; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-polish]").forEach(b=>b.onclick=()=>{ WZ.scriptPolish=!WZ.scriptPolish; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-fpd]").forEach(el=>el.onclick=()=>{ WZ.director=talentById(+el.dataset.fpd); beep("click"); filmPitchModal(); });
+  const fpT=v.querySelector("#fpTitle"); if(fpT) fpT.oninput=()=>{ WZ.title=fpT.value; };
   if(step>=2){
     v.querySelectorAll("[data-fpw]").forEach(el=>el.onclick=()=>{ WZ.writer=talentById(+el.dataset.fpw); beep("click"); filmPitchModal(); });
     v.querySelectorAll("[data-fpp]").forEach(el=>el.onclick=()=>{ WZ.producer=talentById(+el.dataset.fpp); beep("click"); filmPitchModal(); });
@@ -1607,6 +1678,12 @@ function weekSummaryModal(){
     news.forEach(n=>{ h+="<div class='tiny' style='padding:4px 0;border-bottom:1px dashed var(--line)'>"+n.t+"</div>"; });
     h+="</div></div>";
   }
+  const warns=(typeof opsWarnings==="function")? opsWarnings() : [];
+  if(warns.length){
+    h+="<div class='card' style='border-left:3px solid var(--red)'><b class='small neg'>⚠ Warnings</b><div style='margin-top:4px'>";
+    warns.slice(0,5).forEach(w=>{ h+="<div class='tiny neg' style='padding:4px 0;border-bottom:1px dashed var(--line)'>"+w+"</div>"; });
+    h+="</div></div>";
+  }
   h+="<div class='row' style='margin-top:12px'>"+
     "<button class='btn btn-alt' data-wk-tab='studio'>🏛 Studio</button>"+
     "<button class='btn btn-alt' data-wk-tab='productions'>🎬 Films</button>"+
@@ -1675,6 +1752,42 @@ function superstarModal(){
   };
 }
 
+/* v9: roster actions from crew cards (inline handlers — work inside modals) */
+function contractClick(e,id){
+  e.stopPropagation();
+  if(signMultiFilmDeal(id)){ beep("gold"); toast("📜 Multi-picture deal signed","gold"); }
+  else { beep("bad"); flashes(G.flash); }
+  refreshTalentSurfaces();
+}
+function trainClick(e,id){
+  e.stopPropagation();
+  if(startTraining(id)){ beep("gold"); toast("🎓 Off to star school","good"); }
+  else { beep("bad"); flashes(G.flash); }
+  refreshTalentSurfaces();
+}
+function refreshTalentSurfaces(){
+  if(typeof WZ!=="undefined" && WZ && document.querySelector(".modal")){
+    if(WZ.mode==="series") seriesModal();
+    else if(WZ.mode==="filmPitch") filmPitchModal();
+    else wizardModal();
+    return;
+  }
+  render();
+}
+/* v9: alt endings — a tested film ships one of two cuts */
+function applyAltEnding(pid, kind){
+  const p=G.projects.find(x=>x.id===pid); if(!p||!p.quality||p.altEnding) return false;
+  p.altEnding=kind;
+  if(kind==="critic"){
+    p.quality.critic=clamp(p.quality.critic+4,5,99); p.quality.aud=clamp(p.quality.aud-4,5,99); p.quality.overall=clamp(p.quality.overall+1,8,98);
+    log("🎬 “"+p.title+"” ships with the critics' ending (+4 critics, −4 audience).","");
+  }else{
+    p.quality.aud=clamp(p.quality.aud+4,5,99); p.quality.critic=clamp(p.quality.critic-4,5,99); p.quality.overall=clamp(p.quality.overall+1,8,98);
+    log("🎬 “"+p.title+"” ships with the crowd-pleaser ending (+4 audience, −4 critics).","");
+  }
+  saveGame(); return true;
+}
+
 function viewProductions(){
   let h="";
   const ready=readyProjects(), prod=inProdProjects();
@@ -1740,7 +1853,11 @@ function viewProductions(){
         "<button class='btn btn-ghost' data-test='"+p.id+"'>🎬 Test screen &amp; reshoot</button>"+
         "<button class='btn btn-ghost' data-screen='"+p.id+"'>🧪 Screening report</button>"+
         (!p.reshoot && p.quality.overall<62? "<button class='btn btn-ghost' data-reshoot='"+p.id+"'>🎞 Quick reshoot ("+fmtM(Math.max(3,Math.round(p.budget*0.08)))+")</button>":"")+
-        "</div>")+"</div>";
+        "</div>"+
+      (p.tested && !p.altEnding? "<div class='tiny muted' style='margin-top:8px'>🎞 Two endings survive the edit — pick one:</div><div class='row' style='margin-top:4px'>"+
+        "<button class='btn btn-sm btn-alt' data-ending='critic' data-eid='"+p.id+"'>🎭 Critics' cut (+critic −aud)</button>"+
+        "<button class='btn btn-sm btn-alt' data-ending='aud' data-eid='"+p.id+"'>🎉 Crowd-pleaser (+aud −critic)</button></div>" :
+        (p.altEnding? "<div class='tiny muted' style='margin-top:6px'>🎞 Ending locked: "+(p.altEnding==="critic"?"critics' cut":"crowd-pleaser")+".</div>":"")))+"</div>";
   }
   h+="<div class='section-title'>Franchise opportunities</div>";
   const fr=G.films.filter(f=>f.franchiseable);
@@ -1791,7 +1908,9 @@ function calendarModal(){
 /* ── release scheduling modal ── */
 function startScheduling(pid){
   const p=G.projects.find(x=>x.id===pid); if(!p) return;
-  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium, window:p.window||"45", dayAndDate:!!p.dayAndDate, boosts:[], camps:(p.campaigns||[]).slice(), plan:null, region:p.targetRegion||"auto"};
+  const rawReg=p.targetRegion;
+  const initReg=Array.isArray(rawReg)? rawReg.slice() : (rawReg && rawReg!=="auto"? [rawReg] : []);
+  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium, window:p.window||"45", dayAndDate:!!p.dayAndDate, boosts:[], camps:(p.campaigns||[]).slice(), plan:null, regions:initReg, appeal:false};
   if(p.mktBoosts) SCHEDULE.boosts = p.mktBoosts.slice();
   schedModal();
 }
@@ -1808,12 +1927,18 @@ function schedModal(){
   h+="<div class='small muted' style='margin:10px 0 6px'>🎞 Theatrical windowing</div><div class='row' id='scWin'>";
   DATA.WINDOWS.forEach(w=>{ h+="<button class='btn btn-sm "+(SCHEDULE.window===w.id?"btn-primary":"")+"' data-win='"+w.id+"'>"+w.name+"</button>"; });
   h+="<div class='tiny muted' style='margin:2px 0 4px'>"+DATA.window(SCHEDULE.window||"45").desc+" <span class='muted'>(exhibitor mood: "+Math.round(G.exhibitor||50)+"/100 · piracy meter "+Math.round(G.piracy||0)+"/100 — 90-day windows starve it)</span></div>";
-  /* v8: primary international market — choose the country/region this release leans into */
-  h+="<div class='small muted' style='margin:10px 0 6px'>🌍 Primary international market</div><div class='row' id='scRegion'>";
-  h+="<button class='btn btn-sm "+(SCHEDULE.region==="auto"?"btn-primary":"")+"' data-region='auto'>🌐 Auto</button>";
-  regionDefs().forEach(d=>{ h+="<button class='btn btn-sm "+(SCHEDULE.region===d.id?"btn-primary":"")+"' data-region='"+d.id+"'>"+d.emoji+" "+d.name+"</button>"; });
-  const treg=regionDefs().find(d=>d.id===SCHEDULE.region);
-  h+="</div><div class='tiny muted' style='margin:2px 0 4px'>"+(treg? "This release leans into "+treg.emoji+" <b>"+treg.name+"</b>: +6% international gross, that market takes ×1.8 share. " : "Let the film find its own markets — no targeting bonus. ")+"Shoot location rebates are separate (set in the wizard).</div>";
+  /* v9: international markets — pick ONE or SEVERAL countries/regions for the release */
+  h+="<div class='small muted' style='margin:10px 0 6px'>🌍 International markets <span class='tiny'>(tap to target one — or several — countries)</span></div><div class='row' id='scRegion'>";
+  regionDefs().forEach(d=>{ h+="<button class='btn btn-sm "+(SCHEDULE.regions.includes(d.id)?"btn-primary":"")+"' data-region='"+d.id+"'>"+d.emoji+" "+d.name+"</button>"; });
+  h+="</div><div class='tiny muted' style='margin:2px 0 4px'>"+
+    (SCHEDULE.regions.length? "This release leans into "+SCHEDULE.regions.map(id=>{const d=regionDefs().find(x=>x.id===id); return d? d.emoji+" "+d.name : id;}).join(", ")+
+      " — each +6% intl gross (first) / +3% (extra) and ×1.8 market share. Tap again to untap." :
+      "No targeting: the film finds its own markets. Shoot-location rebates are separate (set in the wizard).")+"</div>";
+  /* v9: rating appeal board */
+  if(p.rating==="R"){
+    h+="<div class='card' style='margin-top:8px;cursor:pointer' id='scAppeal'><div class='spread'><span class='small'>"+(SCHEDULE.appeal?"✅ ":"⬜ ")+"<b>⚖ Appeal the R rating</b> — fight the board for PG-13</span><span class='tag "+(SCHEDULE.appeal?"gold":"")+"'>"+fmtM(3)+" filing fee</span></div>"+
+      "<div class='tiny muted'>~55% odds the board re-rates it PG-13 (bigger family audience). Lose and the press covers the fight (+3% buzz) while the cut stays R.</div></div>";
+  }
   /* v5: marketing campaign boosts (Super Bowl, influencers, embargoes) */
   if(DATA.MKT_BOOSTS){
     h+="<div class='small muted' style='margin:10px 0 6px'>📣 Campaign boosts <span class='tiny'>(stack onto P&A, charged up front)</span></div><div class='plan-pick'>";
@@ -1902,7 +2027,12 @@ function schedModal(){
   v.querySelectorAll("[data-w]").forEach(el=>el.onclick=()=>{ SCHEDULE.week=+el.dataset.w; beep("click"); schedModal(); });
   const pm=v.querySelector("#scPremium"); if(pm) pm.onclick=()=>{ SCHEDULE.premium=!SCHEDULE.premium; beep("click"); schedModal(); };
   v.querySelectorAll("[data-win]").forEach(b=>b.onclick=()=>{ SCHEDULE.window=b.dataset.win; beep("click"); schedModal(); });
-  v.querySelectorAll("[data-region]").forEach(b=>b.onclick=()=>{ SCHEDULE.region=b.dataset.region; beep("click"); schedModal(); });
+  v.querySelectorAll("[data-region]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.region, i=SCHEDULE.regions.indexOf(id);
+    if(i>=0) SCHEDULE.regions.splice(i,1); else SCHEDULE.regions.push(id);
+    beep("click"); schedModal();
+  });
+  const ap=v.querySelector("#scAppeal"); if(ap) ap.onclick=()=>{ SCHEDULE.appeal=!SCHEDULE.appeal; beep("click"); schedModal(); };
   const dt=v.querySelector("#scDayToggle"); if(dt) dt.onclick=()=>{ SCHEDULE.dayAndDate=!SCHEDULE.dayAndDate; beep("click"); schedModal(); };
   v.querySelectorAll("[data-boost]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.boost;
@@ -1928,7 +2058,17 @@ function schedModal(){
     const now=Math.min(want, Math.max(0, Math.floor(G.studio.cash)));
     p.releaseWeek=SCHEDULE.week; p.marketing=mkt; p.marketingPaid=now; p.premium=SCHEDULE.premium;
     p.window=SCHEDULE.window; p.dayAndDate=SCHEDULE.dayAndDate;
-    p.targetRegion=SCHEDULE.region;
+    p.targetRegion=SCHEDULE.regions.length? SCHEDULE.regions.slice() : "auto";
+    if(SCHEDULE.appeal && p.rating==="R" && G.studio.cash>=3){
+      G.studio.cash-=3;
+      if(chance(0.55+G.studio.rep/500)){
+        p.rating="PG-13";
+        log("⚖ The board flipped “"+p.title+"” to PG-13 on appeal — the family audience opens up.","gold");
+      }else{
+        p.buzzBonus=(p.buzzBonus||0)+0.03;
+        log("⚖ Appeal denied — “"+p.title+"” keeps its R, but the fight made headlines (+3% buzz).","bad");
+      }
+    }
     p.mktBoosts=SCHEDULE.boosts.slice();
     if(SCHEDULE.boosts.includes("influencer")) p.buzzBonus=(p.buzzBonus||0)+(DATA.mktBoost("influencer").buzz||0.04);
     p.campaigns=SCHEDULE.camps.slice(); p.campaignPlan=SCHEDULE.plan; applyCampaigns(p);
@@ -2296,7 +2436,7 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
       ((f.reviews&&f.reviews.length)?" <button class='btn btn-sm btn-ghost' data-reviews='"+f.id+"'>🗞 "+(f.criticAvg||0)+"%</button>":"")+
       "</div>"+
       "<div class='tiny muted'>"+DATA.GENRES[f.genre].name+" · "+fmtM(f.budget)+" budget · "+fmtG(f.ww||0)+" WW"+
-      (f.targetRegion&&f.targetRegion!=="auto"?" · 🎯 "+(regionDefs().find(d=>d.id===f.targetRegion)||{}).name:"")+
+      (f.targetRegion && f.targetRegion!=="auto"? " · 🎯 "+(Array.isArray(f.targetRegion)? f.targetRegion : [f.targetRegion]).map(id=>{const d=(typeof regionDefs==="function")?regionDefs().find(x=>x.id===id):null; return d? d.name:id;}).join(", "):"")+
       (f.soldTo?" · licensed to "+f.soldTo:"")+(f.onOwn?" · on your platform":"")+(f.dayAndDate?" · 🎞 day-and-date":"")+" · "+(DATA.window(f.window||"45").name)+"</div>"+
       (f.streamingOriginal?"":"<div class='tiny muted'>Opened "+fmtG(f.opening||0)+" · mult "+boMult(f)+"× · legs "+boLegs(f)+"× · critics "+(f.criticAvg!=null?f.criticAvg:(f.quality?f.quality.critic:"—"))+"% · audience "+((typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:"—"))+"%</div>"+
       (f.streamingOriginal?"":topRegionLine(f)))+
@@ -2672,7 +2812,10 @@ function bindView(){
   const shc=$("#btnShareCard"); if(shc) shc.onclick=function(){ shareStudioCard(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
+  $$("[data-ending]").forEach(b=>b.onclick=()=>{ if(applyAltEnding(+b.dataset.eid, b.dataset.ending)){ beep("gold"); flashes(G.flash); render(); } });
   $$("[data-rename]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); const p=b.dataset.rename.split(":"); beep("click"); renameModal(p[0], p[1]); });
+  $$("[data-btlhire]").forEach(b=>b.onclick=()=>{ const [r,id]=b.dataset.btlhire.split(":"); if(hireBTL(r,+id)){ beep("gold"); flashes(G.flash); render(); } });
+  $$("[data-btlfire]").forEach(b=>b.onclick=()=>{ if(fireBTL(b.dataset.btlfire)){ beep("click"); flashes(G.flash); render(); } });
   $$("[data-madate]").forEach(b=>b.onclick=()=>{ const p=b.dataset.madate.split(":"); beep("click"); maDateModal(p[0], p.slice(1).join(":")); });
   $$("[data-masell]").forEach(b=>b.onclick=()=>{ const p=b.dataset.masell.split(":"); beep("click"); maSellModal(p[0], p.slice(1).join(":")); });
   $$("[data-shop]").forEach(b=>b.onclick=()=>{
