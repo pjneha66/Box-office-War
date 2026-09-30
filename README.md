@@ -4,6 +4,17 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v14 (spec Phases 4–6 complete — people, business & legacy)
+
+- **Agent negotiation (§29)**: stars with 4★+ offer a package choice in the cast wizard — pay the flat fee, or take 30% off the fee for +2% of rentals at the end of the run. Cheaper now, costlier on a hit.
+- **Board of directors (§44–45)**: three named seats with approval meters on the Finance tab. Tentpole greenlights go to a **real board vote** — approval moves with every hit and flop (money hawks swing harder), drifts back when things are quiet, and the tally lands in the log.
+- **Executive careers (§46) & staff skill trees (§47)**: your CMO/CFO/casting head now have tenure — they demand raises every ~2 years, can be poached by rivals, and eventually retire. They and the below-the-line crew level up (Lv 1–5) from shipped films; every effect scales with level.
+- **Espionage (§42)**: rivals leak your soft tracking to the trades and moles shop your shooting scripts. Fight back — $8M buys 8 weeks of a rival's full dated slate, marked right on their card.
+- **Legal disputes (§50)**: fee suits from your own stars and plagiarism claims from rivals land on your desk — settle quietly or fight in court and gamble rep + damages.
+- **Music label division (§32)**: launch your own label on the Empire tab ($60M), sign up to 3 acts from a fictional roster, collect weekly — when an act charts, money ×3 for a month and your in-production musicals & concert films catch +2% buzz.
+- **What-if sandbox (§56)**: a 🔮 button on dated films forks your entire studio into a sandbox (the real save is untouchable), rolls 16 weeks under three scenarios — as planned, slip 4 weeks, double the P&A — and reports cash/WW/rep for each.
+- **Hall of Fame (§57) + run seeds (§59)**: the More sheet gains a Hall of Fame — this run's records, top films, and every finished run carved with grade and gross. Each save now carries a run seed, and legacy entries are shaped for a future online leaderboard.
+
 ## 🆕 What's new in v13 (spec Phase 4 — living industry, buzz-facing)
 
 - **Campaign sequence**: marketing channels no longer all fire at once — each drop lands on its own week before release (teaser 5 wks out → trailer 3 → TV 2 → social machine ×3) and rolls a **reception event**: viral (×1.5 hype), solid, or whiff (×0.5). The schedule modal shows each channel's drop weeks and the full drop sequence; ready cards show drops so far.

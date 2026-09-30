@@ -63,6 +63,11 @@ function newGame(archId, name, opts){
     aiInUse: 0,
     /* ── v12 state ── */
     chains: (DATA.CHAINS||[]).map(c=>({id:c.id, rel:c.rel})),   // booking relation persists per chain
+    /* ── v14 state ── */
+    seed: Date.now().toString(36).toUpperCase().slice(-6),   // §59: run seed (a label, not a secret) for the legacy hall
+    board: (DATA.BOARD_TRAITS||[]).map(t=>({name:pick(t.names), trait:t.trait, hawk:!!t.hawk, approval:clamp(t.base+rint(-6,6),5,95)})),
+    label: {unlocked:false, artists:[]},
+    intel: null,
   };
   seedTrends();
   genTalentPool();
@@ -112,6 +117,7 @@ const SAVE_KEY = "bow_save";
 function saveGame(){
   try{
     if(typeof localStorage==="undefined" || !G) return;
+    if(G._noSave) return;   // v14: a what-if fork never writes over the real run
     G.v = DATA.SAVE_VERSION||4;
     const raw = JSON.stringify(G); // perf: serialize once, write twice
     localStorage.setItem(SAVE_KEY, raw);
@@ -278,6 +284,19 @@ const SAVE_MIGRATIONS = {
       if(!Array.isArray(p.promoEvents)) p.promoEvents=[];
     });
     (s.films||[]).forEach(f=>{ if(!Number.isFinite(f.campaignLegs)) f.campaignLegs=0; });
+    return s;
+  },
+  /* ── v14: board seats, exec careers, staff levels, label, run seed ── */
+  8(s){
+    if(!Array.isArray(s.board) || !s.board.length) s.board=(DATA.BOARD_TRAITS||[]).map(t=>({name:(t.names||[])[0]||"Director", trait:t.trait, hawk:!!t.hawk, approval:t.base||50}));
+    if(!s.seed) s.seed=Date.now().toString(36).toUpperCase().slice(-6);
+    if(!s.label) s.label={unlocked:false, artists:[]};
+    if(!Number.isFinite(s.intel) && !s.intel) s.intel=null;
+    Object.keys(s.execs||{}).forEach(k=>{
+      const e=s.execs[k];
+      if(!e || typeof e!=="object") s.execs[k]={hired:s.week||1, tenure:rint(0,52), xp:rint(2,10)};
+    });
+    if(s.btl) ["dp","composer","vfx"].forEach(r=>{ if(s.btl[r] && typeof s.btl[r]==="object" && !Number.isFinite(s.btl[r].xp)) s.btl[r].xp=rint(0,6); });
     return s;
   },
 };
@@ -624,7 +643,7 @@ function actorFee(t){
   if(t.pics>=2) f*=0.9;
   if(G.wrapDeal>0) f*=0.8;
   if(G.agencyExcl>G.week) f*=0.85;
-  if(G.execs && (G.execs.casting || G.execs.cast)) f*=0.9;
+  if(G.execs && (G.execs.casting || G.execs.cast)){ const cs=execObj(G.execs.casting?"casting":"cast"); f*=1-0.10*lvlMult(cs); }   // v14: a leveled casting head negotiates harder
   // v5: holding an exclusive with their agency cuts the quote (WME/CAA-style)
   if(t.agency && G.agencyDeals && G.agencyDeals[t.agency]>G.week){
     const ag = DATA.agency ? DATA.agency(t.agency) : null;
@@ -870,9 +889,9 @@ function computeQuality(p){
     alCrit += 0.15*(al.music-20) + 0.12*(al.design-20) - 0.05*Math.max(0,al.vfx-20);
   }
   if(G.btl){
-    if(G.btl.dp) alAud += G.btl.dp.skill/25;
-    if(G.btl.composer){ alCrit += G.btl.composer.skill/22; if((G.btl.composer.trait||"").includes("Oscar")) alCrit+=2; }
-    if(G.btl.vfx && ["scifi","fantasy","action","animation"].includes(p.genre)) alAud += G.btl.vfx.skill/30;
+    if(G.btl.dp) alAud += G.btl.dp.skill/25*lvlMult(G.btl.dp);
+    if(G.btl.composer){ alCrit += G.btl.composer.skill/22*lvlMult(G.btl.composer); if((G.btl.composer.trait||"").includes("Oscar")) alCrit+=2; }
+    if(G.btl.vfx && ["scifi","fantasy","action","animation"].includes(p.genre)) alAud += G.btl.vfx.skill/30*lvlMult(G.btl.vfx);
   }
   const aud    = clamp(Math.round(audRaw + alAud), 5, 99);
   const critic2 = clamp(Math.round(critic + alCrit), 5, 99);
@@ -1159,6 +1178,206 @@ function trendingBoard(){
   return tags.sort((a,b)=>b.heat-a.heat).slice(0,6);
 }
 
+/* ═══════════ people & business depth (v14) ═══════════
+   Board of directors with real votes, executive careers, staff skill levels,
+   espionage, legal disputes, the music label — and the what-if fork. */
+
+/* ── board of directors (§44–45): three seats; approval drifts with results ── */
+function boardAvg(){
+  const b=G.board||[];
+  return b.length? Math.round(b.reduce((a,m)=>a+(m.approval||50),0)/b.length) : 50;
+}
+function boardShift(delta){
+  (G.board||[]).forEach(m=>{ m.approval=clamp(Math.round(m.approval+delta*(m.hawk&&delta<0?1.3:1)),5,99); });
+}
+function boardVote(p){
+  const members=G.board||[];
+  if(!members.length) return {pass:true, votes:[]};
+  const score=(p.quality&&p.quality.overall)||65;
+  const votes=members.map(m=>{
+    const odds=clamp(0.25 + (m.approval-40)/100 + (score-60)/120 + G.studio.rep/400 + (m.hawk&&(p.budget||0)>200?-0.12:0), 0.05, 0.95);
+    return {name:m.name, yes:chance(odds)};
+  });
+  const yes=votes.filter(v=>v.yes).length;
+  return {pass: yes*2>votes.length, votes};
+}
+function tickBoard(){
+  if(G.week%13!==0) return;   // restless money: approvals drift toward 55 when the studio is quiet
+  (G.board||[]).forEach(m=>{ m.approval=clamp(Math.round(m.approval+(55-m.approval)*0.1),5,99); });
+}
+
+/* ── executive careers (§46): tenure, raise demands, poaching, retirement ── */
+function execObj(id){
+  const e=G.execs && G.execs[id];
+  if(e && typeof e==="object") return e;
+  if(e) return (G.execs[id]={hired:G.week, tenure:rint(0,52), xp:rint(2,10)});   // legacy boolean save
+  return null;
+}
+function tickExecCareers(){
+  DATA.EXECS.forEach(def=>{
+    const e=execObj(def.id); if(!e) return;
+    e.tenure=(e.tenure||0)+1;
+    if(e.tenure>0 && e.tenure%104===0){   // raise demand every ~2 years
+      const ask=Math.round(def.salary*1.25*100)/100;
+      if(G.studio.cash>=ask*26){ e.salary=ask; log("👔 "+def.name+" renegotiated — salary now "+fmtM(ask)+"/wk. Worth it: they stay.",""); }
+      else if(chance(0.5)){ delete G.execs[def.id]; log("👔 "+def.name+" walked — the studio wouldn't match the raise. The effect is gone.","bad"); }
+      else log("👔 "+def.name+" grumbled about pay but stayed. For now.","");
+    }
+    if(chance(0.002+((e.xp||0)>=12?0.002:0)) && (G.rivals||[]).length){
+      const r=pick(G.rivals);
+      delete G.execs[def.id];
+      log("🕵 "+def.name+" was poached by "+r.name+" — a rival just got sharper.","bad");
+    }
+    if(e.tenure>=312 && chance(0.06)){
+      delete G.execs[def.id];
+      log("🎖 "+def.name+" retired after "+Math.round(e.tenure/52)+" years of service — a legend leaves the lot.","");
+    }
+  });
+}
+
+/* ── staff skill levels (§47): crew and execs level up from shipped work ── */
+function levelOf(x){ return clamp(1+Math.floor(((x&&(x.xp||0))||0)/4), 1, 5); }
+function lvlMult(x){ return 1+(levelOf(x)-1)*0.15; }
+
+/* ── espionage (§42): rivals play dirty; you can buy intel ── */
+function tickEspionage(){
+  if(!G.rivals || !G.rivals.length) return;
+  const dated=(G.projects||[]).filter(p=>p.kind==="film"&&p.releaseWeek>G.week);
+  if(dated.length && chance(0.02)){   // a rival leaks your tracking to the trades
+    const p=pick(dated);
+    p.awareness=Math.max(0,(p.awareness||0)-0.05);
+    log("🕵 A rival leaked “"+p.title+"”'s soft tracking to the trades — chatter cooled (−5% awareness).","bad");
+  }
+  const shooting=(G.projects||[]).filter(p=>p.phase==="shoot");
+  if(shooting.length && chance(0.012)){   // a rival's mole shops your script around
+    const p=pick(shooting);
+    const r=pick(G.rivals);
+    r.slate=(r.slate||[]);
+    r.slate.push({title:"Untitled "+DATA.GENRES[p.genre].name, genre:p.genre, scale:p.scale, week:G.week+rint(12,40), live:false, dead:false, mole:true});
+    log("🕵 Mole alert: a rival got a look at “"+p.title+"”'s script — they're rushing a similar project.","bad");
+  }
+}
+function buyIntel(name){
+  const r=(G.rivals||[]).find(x=>x.name===name); if(!r) return false;
+  if(G.studio.cash<8){ log("💸 Buying intel runs $8M — the bagman doesn't do credit.","bad"); return false; }
+  spend("other", 8);
+  G.intel={name, until:G.week+8};
+  const up=(r.slate||[]).filter(f=>!f.dead&&!f.live&&f.week>G.week).sort((a,b)=>a.week-b.week);
+  log("🕵 The bagman delivers — "+r.name+"'s next moves: "+(up.length? up.slice(0,4).map(f=>f.title+" ("+DATA.GENRES[f.genre].name+(f.scale?", "+f.scale:"")+", "+dateLabel(f.week)+")").join(" · ") : "nothing dated")+". Intel good for 8 weeks.","gold");
+  saveGame(); return true;
+}
+
+/* ── legal disputes (§50): fee suits and plagiarism claims ── */
+function tickLegal(){
+  if(G.pendingChoice || G.over) return;
+  if(!chance(0.02)) return;
+  if(rnd()<0.5){
+    const films=G.films.filter(f=>(f.cast||[]).length&&(f.ww||0)>=30);
+    const f=films.length?pick(films):null; if(!f) return;
+    const star=pick(f.cast); if(!star) return;
+    const settle=Math.round(Math.max(4,(f.ww||0)*0.01)*10)/10;
+    G.pendingChoice={ icon:"⚖", title:"Legal dispute — "+star.name+" v. "+G.studio.name,
+      text:"“"+star.name+"” claims "+fmtM(settle)+" in unpaid backend on “"+f.title+"”. Settle quietly, or fight it in court.",
+      choices:[{label:"🤝 Settle — "+fmtM(settle)},{label:"⚔ Fight it in court"}] };
+    G._evtRun=[
+      {label:"settle", run:()=>{ spend("other", settle); log("⚖ Settled with "+star.name+" for "+fmtM(settle)+" — the trade papers never heard a word.",""); }},
+      {label:"fight", run:()=>{ if(chance(0.45+G.studio.rep/300)){ log("⚖ The court sided with the studio — the claim is dismissed. Rep intact.","good"); } else { const hit=Math.round(settle*2*10)/10; spend("other", hit); G.studio.rep=clamp(G.studio.rep-3,5,99); log("⚖ Lost in court: "+fmtM(hit)+" awarded plus legal bills — and the story ran for a week (−3 rep).","bad"); } }}
+    ];
+  }else{
+    let hit=null;
+    try{ hit=G.films.filter(f=>(f.ww||0)>=breakevenWW(f)*1.5).slice(-1)[0]; }catch(e){}
+    const rival=(G.rivals||[]).length?pick(G.rivals):null;
+    if(!hit||!rival) return;
+    const stake=Math.round(Math.max(5,(hit.ww||0)*0.02)*10)/10;
+    G.pendingChoice={ icon:"⚖", title:"Lawsuit — "+rival.name+" claims “"+hit.title+"” stole their idea",
+      text:rival.name+" says “"+hit.title+"” is their shelved script with the serial numbers filed off. They want "+fmtM(stake)+".",
+      choices:[{label:"🤝 License the idea — "+fmtM(stake)},{label:"⚔ See them in court"}] };
+    G._evtRun=[
+      {label:"license", run:()=>{ spend("other", stake); log("⚖ Licensed the contested idea from "+rival.name+" for "+fmtM(stake)+" — everyone saves face.",""); }},
+      {label:"fight", run:()=>{ if(chance(0.4+G.studio.rep/300)){ log("⚖ Court found no substantial similarity — dismissed. Free PR, honestly.","good"); G.studio.rep=clamp(G.studio.rep+1,5,99); } else { spend("other", stake); G.studio.rep=clamp(G.studio.rep-2,5,99); log("⚖ Lost the plagiarism suit: "+fmtM(stake)+" damages (−2 rep).","bad"); } }}
+    ];
+  }
+}
+
+/* ── music label division (§32): sign artists, collect weekly, chart spikes ── */
+function unlockLabel(){
+  if(G.label&&G.label.unlocked) return false;
+  if(G.studio.cash<60){ log("💸 Launching the label takes "+fmtM(60)+" of up-front investment.","bad"); return false; }
+  spend("studio", 60);
+  G.label={unlocked:true, artists:[]};
+  log("🎵 The "+G.studio.name+" music label is live — sign artists and soundtrack your own pipeline (+$0.3M/wk overhead).","gold");
+  saveGame(); return true;
+}
+function signArtist(id){
+  if(!G.label||!G.label.unlocked) return false;
+  G.label.artists=G.label.artists||[];
+  if(G.label.artists.length>=3){ log("🎧 The label's roster is full (3 acts) — drop one before signing another.","bad"); return false; }
+  const a=(DATA.ARTISTS||[]).find(x=>x.id===id); if(!a||G.label.artists.some(x=>x.id===id)) return false;
+  if(G.studio.cash<a.fee){ log("💸 Signing "+a.name+" takes "+fmtM(a.fee)+" (advance + videos).","bad"); return false; }
+  spend("talent", a.fee);
+  G.label.artists.push({id:a.id, name:a.name, heat:a.heat||1, chartUntil:0, signed:G.week});
+  log("🎧 Signed "+a.name+" to the label ("+fmtM(a.fee)+" advance). Their sound pairs with "+a.vibe+".","gold");
+  saveGame(); return true;
+}
+function dropArtist(id){
+  if(!G.label) return false;
+  const before=(G.label.artists||[]).length;
+  G.label.artists=(G.label.artists||[]).filter(x=>x.id!==id);
+  if(G.label.artists.length<before){ log("📦 Dropped an act from the roster.",""); saveGame(); return true; }
+  return false;
+}
+function tickLabel(){
+  const L=G.label; if(!L||!L.unlocked) return;
+  (L.artists||[]).forEach(a=>{
+    let inc=0.08+0.14*(a.heat||1);
+    if(a.chartUntil>G.week) inc*=3;
+    else if(chance(0.035+0.01*(a.heat||1))){
+      a.chartUntil=G.week+4;
+      log("🎵 "+a.name+" is CHARTING — streaming and sync money ×3 for a month.","gold");
+      G.projects.forEach(p=>{ if(p.genre==="musical"||p.genre==="concert") p.buzzBonus=Math.round(((p.buzzBonus||0)+0.02)*100)/100; });
+    }
+    earn("music", Math.round(inc*10)/10);
+  });
+}
+
+/* ── what-if sandbox (§56): fork the state, roll forward, report — nothing saved ── */
+function whatIf(scenario, weeks){
+  const snap=JSON.parse(JSON.stringify(G));
+  snap._noSave=true; snap.over=null;
+  const real=G;
+  let out={ok:false};
+  try{
+    G=snap;
+    G.log=log;   // JSON.stringify drops function refs — rewire the logger on the fork
+    const p=G.projects.find(x=>x.kind==="film"&&x.phase==="ready"&&x.releaseWeek>G.week);
+    if(p && scenario==="late") p.releaseWeek+=4;
+    if(p && scenario==="hype") p.marketing=(p.marketing||0)+Math.round((p.marketing||10)*1.0);
+    for(let i=0;i<weeks && !G.over;i++){
+      G.pendingChoice=null; G._evtRun=null; G.pendingReport=null;   // a projection never stops to ask
+      advanceWeek();
+    }
+    out={ok:true, cash:G.studio.cash, ww:G.stats.totalWW, rep:G.studio.rep, films:G.stats.films, over:!!G.over};
+  }catch(e){ out={ok:false, err:String(e)}; }
+  G=real;
+  return out;
+}
+
+/* ── hall of fame (§57) + async scaffold (§59): records + the past-runs hall ── */
+function hallOfFameData(){
+  const best=G.films.filter(f=>f.ww>0).sort((a,b)=>b.ww-a.ww).slice(0,5);
+  return {
+    studio:G.studio.name, seed:G.seed||"—",
+    records:{
+      bestOpen:G.stats.bestOpen||0, bestFilm:G.stats.bestFilm||"—",
+      biggest:(best[0]&&best[0].title)||"—", biggestWW:(best[0]&&best[0].ww)||0,
+      awards:(G.stats.awards||[]).length, hits:G.stats.hits||0, flops:G.stats.flops||0,
+      stars:(G.retired||[]).length,
+    },
+    top:best.map(f=>({title:f.title, ww:f.ww, year:f.year})),
+    hall:legacyHall(),
+  };
+}
+
 function expectedOpening(p, weekAbs){
   const S=DATA.SCALES[p.scale], g=DATA.GENRES[p.genre];
   let base = S.openBase * g.mass * (g.openBoost||1) * (G.infl||1);
@@ -1176,7 +1395,7 @@ function expectedOpening(p, weekAbs){
   if(p.cast.some(c=>c.toxic && !c.rehabbed)) starF *= 0.93;
   const rec = recMarketing(p);
   let mktF = clamp(Math.pow(Math.max(p.marketing,1)/rec, 0.45), 0.5, 1.55) * (G.upgrades.marketing?1.10:1) * (hqOwned("dist")?1.05:1);
-  if(G.execs.cmo || (G.execs && G.execs.cmo)) mktF *= 1.12;
+  if(G.execs.cmo || (G.execs && G.execs.cmo)){ const cm=execObj("cmo"); if(cm) mktF*=1+0.12*lvlMult(cm); }   // v14: leveled CMO markets harder
   const season = seasonOfW(weekAbs).season;
   let fr = 1;
   if(p.franchise){
@@ -1350,6 +1569,16 @@ function pitchFilm(cfg){
   const verdict = score>=70?"Greenlight material":score>=50?"Viable with caveats":"Pass";
   const ev = {commercial, critical, audience, risk, cost:Math.round(totalCost), revenue, profit,
     franchise, score, verdict, openEst:Math.round(openEst*10)/10, legsEst:Math.round(legsEst*100)/100, be:Math.round(be)};
+  /* v14: tentpoles need an actual board vote (§44–45) */
+  if(cfg.scale==="tentpole"){
+    const vote=boardVote({quality:{overall:score}, budget});
+    const tally=vote.votes.reduce((a,v)=>a+(v.yes?"✅":"❌"), "");
+    if(!vote.pass){
+      log("🏛 BOARD VOTE FAILED ("+tally+"): the "+fmtM(budget)+" tentpole doesn't get made. Win the board back with hits, or pitch smaller.","bad");
+      return {ok:false, ev, board:true};
+    }
+    log("🏛 Board approved the "+fmtM(budget)+" tentpole ("+tally+"). Greenlight proceeds.","");
+  }
   if(chance(clamp(0.15 + score/200 + G.studio.rep/500 + (G.upgrades.rd?0.05:0), 0.1, 0.9))){
     const p = {
       id:nid(), kind:"film", title:cfg.titleOverride || makeTitle(cfg.genre), genre:cfg.genre, scale:cfg.scale,
@@ -1404,7 +1633,9 @@ function greenlight(cfg){
   if(aiCast) cfg.cast = [];                 // synthetic ensemble replaces the cast
   if(aiScript) cfg.writer = null;           // SynthScribe replaced the writer
   const crew = [cfg.director, cfg.writer, cfg.producer].filter(Boolean);
-  let fees = crew.reduce((s,c)=>s+actorFee(c),0) + cfg.cast.reduce((s,c)=>s+actorFee(c),0);
+  /* v14: agent packages (§29) — a star can trade fee for backend points */
+  const deals=cfg.deals||{};
+  let fees = crew.reduce((s,c)=>s+actorFee(c),0) + cfg.cast.reduce((s,c)=>s+(deals[c.id]==="backend"? Math.round(actorFee(c)*0.7*10)/10 : actorFee(c)),0);
   if(cfg.cameo) fees += Math.round(actorFee(cfg.cameo)*0.3*10)/10;
   // v5: agency packaging fee — stack 2+ clients of one agency and they bill a % of budget
   const packCost = (typeof packagingCost==="function")? packagingCost(cfg.cast, cfg.budget) : 0;
@@ -1463,6 +1694,11 @@ function greenlight(cfg){
   p.plan = cfg.plan || "theatrical";
   const starP = cfg.cast.reduce((s,c)=>s+c.power,0);
   if(starP>=8){ p.backend = 0.05; }
+  const backendStars=(cfg.cast||[]).filter(c=>deals[c.id]==="backend");
+  if(backendStars.length){
+    p.backend=Math.round(((p.backend||0)+0.02*backendStars.length)*100)/100;
+    log("🤝 "+backendStars.map(c=>c.name).join(", ")+" traded fee for backend — −30% fee now, +2% of rentals each on a hit.","gold");
+  }
   if(cfg.presales && p.plan!=="streaming" && p.plan!=="own"){
     p.presales = Math.round(p.budget*0.22);
     earn("presales", p.presales);
@@ -1525,7 +1761,7 @@ function tickProjects(){
       let risk = clamp(0.15 - (prodSkill-45)/300, 0.03, 0.20) * (techDone("sets")?0.8:1);
       if(p.alloc) risk = clamp(risk + (p.alloc.stunts-20)*0.0012, 0.02, 0.26);   // v9: stunt-heavy shoots risk more
       if(p.feudSet) risk = clamp(risk+0.02, 0.02, 0.28);                          // v9: feuding co-stars destabilize the set
-      if(G.btl && G.btl.vfx) risk *= 0.92;                                        // v9: a real VFX house keeps shots on budget
+      if(G.btl && G.btl.vfx) risk *= Math.max(0.85, 1-0.08*lvlMult(G.btl.vfx));   // v14: a leveled VFX house keeps even more shots on budget
       if(chance(risk)){
         const size = Math.round(p.budget*(0.008+rnd()*0.017)*(p.producer? 0.6:1)*10)/10;
         p.overrun = Math.round(((p.overrun||0)+size)*10)/10;
@@ -1691,6 +1927,9 @@ function releaseFilm(p){
   }
   const fr0 = film.franchiseName && G.franchises.find(x=>x.name===film.franchiseName);
   if(fr0) fr0.decay = 1;
+  /* v14: shipped work levels up the staff (§47) */
+  if(G.btl){ ["dp","composer","vfx"].forEach(r=>{ if(G.btl[r]) G.btl[r].xp=(G.btl[r].xp||0)+1; }); }
+  Object.keys(G.execs||{}).forEach(k=>{ const e=G.execs[k]; if(e&&typeof e==="object") e.xp=(e.xp||0)+1; });
   if(opening>G.stats.bestOpen){ G.stats.bestOpen=opening; G.stats.bestFilm=film.title; }
   earn("theatrical", opening*0.53);
   if(typeof sfx==="function") sfx("fanfare");
@@ -2058,6 +2297,7 @@ function endTheatrical(f){
   }
   const dRep = f.ww>=be*1.6? 6: f.ww>=be? 3: f.ww>=be*0.75? -2: -4;
   G.studio.rep = clamp(G.studio.rep + dRep*(G.studio.flopPenalty||1), 5, 99);
+  boardShift(Math.round(dRep*0.7));   // v14: the board reacts to every verdict (§44)
   // v5: spin-off quality — a cheap spin-off that flops drags the parent brand down with it
   if(f.franchiseName){
     const frParent = G.franchises.find(x=>x.name===f.franchiseName);
@@ -2575,7 +2815,7 @@ function tickFinance(){
   spend("overhead", overhead);
   let rate = 0.0018;
   if(typeof interestRate==="function") rate = interestRate();
-  else rate = 0.0018*(G.execs&& (G.execs.cfo || G.execs.cfo)?0.70:1);
+  else { const cf=execObj("cfo"); rate = 0.0018*(cf? 1-0.30*lvlMult(cf) : 1); }
   if(st.debt>0){ const int=Math.round(st.debt*rate*10)/10; spend("interest", int); st.debt+=int; }
   if(st.mezzDebt>0){ const mz=Math.round(st.mezzDebt*0.005*10)/10; spend("interest", mz); st.mezzDebt+=mz; }
   if(G.mezz>0){ const int=Math.round(G.mezz*0.005*(G.execs.cfo?0.7:1)*10)/10; spend("interest", int); G.mezz+=int; }
@@ -2605,8 +2845,9 @@ function hireExec(id){
   const e=DATA.EXECS.find(x=>x.id===id); if(!e) return false;
   if(!G.execs) G.execs={};
   if(G.execs[id]) return false;
-  if(G.studio.cash<e.cost) return false;
-  spend("studio", e.cost); G.execs[id]=true;
+  const def=e;
+  if(G.studio.cash<def.cost){ log("💸 Hiring a "+def.name+" takes "+fmtM(def.cost)+".","bad"); return false; }
+  spend("studio", def.cost); G.execs[id]={hired:G.week, tenure:0, xp:0};   // v14: execs are careers now
   log(e.icon+" Hired: "+e.name+" ("+fmtM(e.cost)+").","gold");
   saveGame();
   return true;
@@ -3532,7 +3773,8 @@ function careerLegacy(){
     films:G.stats.films||0, series:G.stats.seriesSeasons||0, franchises:(G.franchises||[]).length,
     awards:(G.stats.awards||[]).length, smash, flops:G.stats.flops||0,
     value:val, subs:G.streamer?Math.round(G.streamer.subs*10)/10:0,
-    achv:typeof achCount==="function"?achCount():0, score:Math.round(score), grade};
+    achv:typeof achCount==="function"?achCount():0, score:Math.round(score), grade,
+    seed:G.seed||null};
 }
 function recordLegacy(){
   try{
@@ -3621,6 +3863,11 @@ function advanceWeek(){
   if(typeof tickCampaignDrops==="function") tickCampaignDrops();   // v13: staggered campaign drops fire pre-release
   if(typeof tickPromos==="function") tickPromos();                 // v13: promo appearances fire pre-release
   if(typeof tickAdvances==="function") tickAdvances();   // v12: advance sales bank weekly before opening day
+  if(typeof tickBoard==="function") tickBoard();            // v14: board approval drifts
+  if(typeof tickExecCareers==="function") tickExecCareers(); // v14: tenure, raises, poaching, retirement
+  if(typeof tickEspionage==="function") tickEspionage();     // v14: rivals play dirty
+  if(typeof tickLegal==="function") tickLegal();             // v14: disputes land on the desk
+  if(typeof tickLabel==="function") tickLabel();             // v14: music label weekly income
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
       const rest = Math.max(0, p.marketing - (p.marketingPaid||0));
@@ -4382,9 +4629,10 @@ function tickPoaching(){
 
 function weeklyOverhead(){
   let o = G.studio.overhead + G.projects.length*0.12 + G.series.filter(s=>s.phase==="shoot").length*0.15;
-  DATA.EXECS.forEach(e=>{ if(G.execs[e.id]) o+=e.salary; });
+  DATA.EXECS.forEach(e=>{ const ex=G.execs[e.id]; if(ex) o+=(typeof ex==="object"&&Number.isFinite(ex.salary))? ex.salary : e.salary; });
   o += hqUpkeep(); // headquarters facilities bill weekly maintenance
   if(G.btl){ ["dp","composer","vfx"].forEach(r=>{ if(G.btl[r]) o+=G.btl[r].salary; }); } // v9 crew retainers
+  if(G.label && G.label.unlocked) o+=0.3; // v14 music label: A&R, studio time, sync paperwork
   return Math.round(o*100)/100;
 }
 /* ── studio headquarters: departments unify existing buys + 5 buildable wings ──

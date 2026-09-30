@@ -1,7 +1,7 @@
 # Box Office War — Master Spec Audit (Sept 2026)
 
 Audit of the game against `Box-Office-War-Master-Spec.md` (96 sections).
-Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v13.
+Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v14.
 
 ## Shipped (v6–v9, before this audit)
 
@@ -84,16 +84,37 @@ Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v13.
 - ✅ §22/§23: five named theater chains with booking relations (court action, screens + opening effect) + the advance-ticket curve (`tickAdvances` weekly accrual, schedule-modal projection, opening lift ≤ +6%).
 - ✅ §26/§27: city-level box office for the top three release regions (`cityRows` in the intl panel); dubbing/localization line item charged at release and visible upfront in the schedule modal.
 
-**Phase 4 — Living industry (next)**
+**Phase 4 — Living industry ✅ (finished in v14)**
 - ✅ §17: campaign sequence — channels drop on their own weeks pre-release with reception events (viral ×1.5 / solid / whiff ×0.5); MKT_BOOSTS still stack upfront; drop timeline on cards + schedule modal.
 - ✅ §18: fictional social platforms (CineTok/Blabber/Reelit/BoxMoji) with trending hashtags driven by state (control-room board).
 - ✅ §21: celebrity promo obligations — cast owe appearances while dated, one fires per week; scandal/toxic casts turn them into liabilities; contract faces owe more.
-- ❌ §29: agent negotiation (flat fee → fee+backend packages) — partial via backend points.
-- ❌ §42: deeper espionage events. §44–45: board votes. §46: executive careers. §47: staff skill trees. §50: legal disputes.
+- ✅ §29: agent negotiation — 4★+ stars can trade a 30% fee cut for +2% backend points at cast time (wizard toggle).
+- ✅ §42: espionage — rivals leak your tracking, moles shop your scripts, and a $8M intel buy reveals a rival's slate for 8 weeks.
+- ✅ §44–45: board of directors — three seats with approval meters; tentpole greenlights go to a real vote; hits/flops drift approval (hawks swing harder).
+- ✅ §46: executive careers — tenure, raise demands every ~2 years, poaching by rivals, retirement; effects scale with level.
+- ✅ §47: staff skill levels — BTL crew and execs gain XP per shipped film (Lv 1–5, effect ×1.00–1.60).
+- ✅ §50: legal disputes — backend-fee suits and plagiarism claims with settle/fight choices in court.
 
-**Phase 5–6 — Empire & legacy**
-- ❌ §32: music label division. §56: what-if sandbox (needs a state fork). §59: async scaffolding (seeds/leaderboards later).
-- 🟡 §57: full Hall of Fame screen (records exist in state; needs a dedicated view).
+**Phase 5–6 — Empire & legacy ✅ (shipped in v14)**
+- ✅ §32: music label division — $60M launch, 3-act roster, weekly income, chart spikes (×3 for a month, +2% buzz to musical/concert projects).
+- ✅ §56: what-if sandbox — forks the live state (save-protected), rolls 16 weeks across three scenarios (as-planned / slip 4 wks / double P&A).
+- ✅ §59: async scaffolding — every run carries a seed, stamped into legacy entries; the runs hall is leaderboard-shaped.
+- ✅ §57: Hall of Fame screen — this run's records + top films + the finished-runs hall (More sheet).
+
+## New in v14 (this release — all remaining phases)
+
+| Spec § | Area | Status |
+|---|---|---|
+| 29 | Agent fee+backend packages in the cast wizard (−30% fee ↔ +2% backend per star) | ✅ |
+| 42 | Espionage: rival tracking leaks, script moles, $8M intel buys (8-week rival slate reveal) | ✅ |
+| 44–45 | Board of directors: approval meters, tentpole greenlight votes, verdict-driven drift | ✅ |
+| 46 | Executive careers: tenure, raises, poaching, retirement; leveled effects | ✅ |
+| 47 | Staff skill trees: BTL crew + execs level 1–5 from shipped films, effects scale ×1.00–1.60 | ✅ |
+| 50 | Legal disputes: fee suits & plagiarism claims, settle-or-fight court choices | ✅ |
+| 32 | Music label division: launch, 3-act roster, weekly income, chart events | ✅ |
+| 56 | What-if sandbox: state fork with save guard, 16-week scenario rollouts | ✅ |
+| 59 | Async scaffold: run seeds on every save + legacy entry | ✅ |
+| 57 | Hall of Fame screen: records, top films, past-runs hall | ✅ |
 
 **Always-on (spec §83–86)**
 - 🟡 §83: incremental modularization of engine.js/ui.js as systems are touched (each new system gets its own section + single-source helpers; no big-bang rewrite).

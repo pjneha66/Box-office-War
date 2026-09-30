@@ -184,6 +184,25 @@ DATA.SOCIALS = [
   {id:"boxmoji", name:"BoxMoji",  icon:"📊", blurb:"Tracking-obsessed prognosticators. Advance sales talk."},
 ];
 
+/* ── v14 board of directors (§44–45): three seats, drawn at founding ──
+   hawk: votes harder against big budgets when unhappy; base: starting approval */
+DATA.BOARD_TRAITS = [
+  {trait:"ex-studio head",  names:["Vera Kessler","Dana Whitlock","Marge Ohanian"], hawk:false, base:58, desc:"Greenlit a hundred pictures. Votes with the creator when the pitch is strong."},
+  {trait:"money hawk",      names:["Alden Price","Ruth Castellanos","Ivo Brandt"],  hawk:true,  base:44, desc:"Counts every zero. Big budgets need a strong pitch to clear the hawk."},
+  {trait:"legend producer", names:["Solomon Rae","Pilar Fontaine","Gus Amaro"],     hawk:false, base:62, desc:"Old-school. Loves stars, hates overruns, rewards hits."},
+];
+
+/* ── v14 music label roster (§32): up to 3 acts on the label ──
+   fee: signing advance; heat: 1-3 baseline; vibe: which films they soundtrack */
+DATA.ARTISTS = [
+  {id:"nova",   name:"NOVA REYES",    fee:8,  heat:3, vibe:"pop blockbusters",  blurb:"Arena-scale pop voice. Charts when the wind blows."},
+  {id:"kehlani",name:"The Kestrels",  fee:4,  heat:2, vibe:"prestige drama",    blurb:"Harmony trio the critics keep discovering."},
+  {id:"diesel", name:"Diesel Chapel", fee:5,  heat:2, vibe:"action & thriller", blurb:"Riff-heavy wall of sound built for car chases."},
+  {id:"wren",   name:"Wren",          fee:3,  heat:1, vibe:"indie & animation", blurb:"Bedroom-pop whisper. Sync-deals out of proportion."},
+  {id:"mcd",    name:"MC Delta",      fee:6,  heat:2, vibe:"sports & comedy",   blurb:"Locker-room anthems, every one of them."},
+  {id:"aria",   name:"Aria Solene",   fee:7,  heat:3, vibe:"musicals",          blurb:"Trained, towering, awards-season favorite."},
+];
+
 /* ── v2 executives ── */
 DATA.EXECS = [
   {id:"cmo",     icon:"📣", name:"Chief Marketing Officer", hire:40, salary:0.40, desc:"+12% hype on every release"},
@@ -655,8 +674,8 @@ function yearOfW(w){ return Math.floor((w-1)/52)+1; }
         UNION NEGOTIATIONS · WAGE INFLATION · TUTORIAL
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Save schema v7 (see migrateSave step 7 in engine.js) ── */
-DATA.SAVE_VERSION = 7;
+/* ── Save schema v8 (see migrateSave step 8 in engine.js) ── */
+DATA.SAVE_VERSION = 8;
 
 /* ── Talent agencies (v5): WME/CAA-style shops with rosters ──
    Every piece of talent is repped by one of these. Casting 2+ clients

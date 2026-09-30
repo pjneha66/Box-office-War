@@ -277,6 +277,32 @@ if(board.some(t=>!t.tag||!t.plat||!t.why)) throw new Error("trending tag missing
 console.log("v13 · "+board.length+" trending ("+board.slice(0,2).map(t=>t.tag).join(", ")+") · promo "+
             (datedV13?((datedV13.promoDone||0)+"/"+datedV13.promoOwed):"—")+" · drops "+(datedV13?Object.keys(datedV13.dropped||{}).length:0)+" · ok");
 
+// ── v14: board, exec careers, staff levels, espionage, legal, label, what-if, hall ──
+if(!Array.isArray(G.board) || G.board.length!==3) throw new Error("board not initialized");
+const vote=boardVote({quality:{overall:70}, budget:150});
+if(!vote || !Array.isArray(vote.votes) || vote.votes.length!==3) throw new Error("board vote malformed");
+if(!Array.isArray(DATA.ARTISTS) || DATA.ARTISTS.length!==6) throw new Error("label roster missing");
+G.studio.cash=Math.max(G.studio.cash, 500);
+if(!unlockLabel()) throw new Error("label unlock failed");
+if(!signArtist(DATA.ARTISTS[0].id)) throw new Error("artist sign failed");
+if(!((G.label.artists||[]).length===1)) throw new Error("label roster empty after signing");
+if(!G.execs.cmo && hireExec("cmo") && typeof G.execs.cmo!=="object") throw new Error("exec hire did not create a career object");
+if(typeof G.seed!=="string" || G.seed.length<4) throw new Error("run seed missing");
+if(!buyIntel(G.rivals[0].name)) throw new Error("intel purchase failed");
+if(!(G.intel && G.intel.until>G.week)) throw new Error("intel not active after purchase");
+saveGame();
+const savedBefore=localStorage.getItem("bow_save");
+const wl=whatIf("plan", 8);
+if(!wl.ok) throw new Error("what-if fork failed: "+(wl.err||""));
+const wh=whatIf("hype", 8);
+if(!wh.ok) throw new Error("what-if hype fork failed: "+(wh.err||""));
+if(localStorage.getItem("bow_save")!==savedBefore) throw new Error("what-if fork wrote over the real save");
+const hall=hallOfFameData();
+if(!hall || !hall.records || typeof hall.seed!=="string" || !Array.isArray(hall.hall)) throw new Error("hall of fame data malformed");
+console.log("v14 · board "+Math.round((G.board||[]).reduce((a,m)=>a+m.approval,0)/3)+"/100 · exec "+(G.execs.cmo?("Lv"+levelOf(G.execs.cmo)):"—")+
+            " · label "+(G.label.artists||[]).length+" act · intel "+(G.intel?G.intel.name:"—")+
+            " · fork ok (plan "+fmtM(wl.cash)+" / hype "+fmtM(wh.cash)+") · seed "+G.seed);
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;
