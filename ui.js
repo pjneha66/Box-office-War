@@ -451,6 +451,12 @@ function studioOpsCard(ctx){
       rivals.push(esc(r.name)+": "+fmtM(r.ytd||0)+" YTD"+(live.length?" · "+live.length+" live":""));
     });
   }catch(e){}
+  /* v13: trending hashtags (§18) — derived from real state, one line each */
+  let trendTags=[]; try{ trendTags=trendingBoard(); }catch(e){}
+  const trendingList=trendTags.length? trendTags.map(tg=>{
+    const soc=(DATA.SOCIALS||[]).find(s=>s.name===tg.plat);
+    return "<div class='cost-line'><span>"+(soc?soc.icon:"💬")+" <b>"+esc(tg.tag)+"</b> <span class='tiny muted'>"+esc(tg.why)+"</span></span><span class='tag'>"+esc(tg.plat)+"</span></div>";
+  }).join("") : "<div class='tiny muted'>Quiet feeds. Big openings, scandals and hot casts make noise.</div>";
   function list(a, empty){ return a.length? a.map(x=>"<div class='cost-line'><span>"+x+"</span></div>").join("") : "<div class='tiny muted'>"+empty+"</div>"; }
   return "<div class='section-title'>Control room</div><div class='grid g2'>"+
     "<div class='card' style='border-left:3px solid var(--red)'><b>⚠ Warnings</b>"+list(warns,"All quiet.")+"</div>"+
@@ -462,6 +468,8 @@ function studioOpsCard(ctx){
       "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('boxoffice')\">Charts</button></div></div>"+
     "<div class='card' style='border-left:3px solid var(--purple)'><b>⚔ Rivals</b>"+list(rivals,"No rival data.")+
       "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('finance')\">Finance</button></div></div>"+
+    "<div class='card' style='border-left:3px solid var(--gold2)'><b>📣 Trending</b>"+trendingList+
+      "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('boxoffice')\">Buzz</button></div></div>"+
     "<div class='card'><b>📰 Recent</b><div class='tiny muted'>"+(G.news||[]).slice(0,3).map(n=>esc(n.t)).join("<br>")+"</div></div>"+
   "</div>";
 }
@@ -1917,6 +1925,8 @@ function viewProductions(){
         const steps=[p.tested?"Test ✓":"Test — screen it", "P&A ≈ "+fmtM(recMarketing(p)), p.releaseWeek?"Dated "+dateLabel(p.releaseWeek):"Undated"];
         return "<div class='tiny muted' style='margin-top:4px'>Release readiness: "+steps.join(" · ")+" · legs ~"+legs+".</div>"; })()+
       (p.releaseWeek && p.advanceTotal? "<div class='tiny muted' style='margin-top:4px'>🎟 Advance sales: <b class='gold'>"+fmtM(p.advanceTotal)+"</b> banked over "+((p.advance||[]).length)+" wk — the curve builds toward opening day.</div>":"")+
+      (p.releaseWeek && (p.promoOwed||0)>0? "<div class='tiny muted' style='margin-top:4px'>🎤 Promo duties: "+(p.promoDone||0)+" of "+p.promoOwed+" appearances"+((p.promoEvents||[]).some(e=>e.kind==="backfire")?" · <span class='neg'>one backfired</span>":"")+".</div>":"")+
+      (p.releaseWeek && (p.dropEvents||[]).length? "<div class='tiny muted' style='margin-top:4px'>🎞 Campaign drops so far: "+(p.dropEvents||[]).slice(-4).map(e=>{const c=campaignDef(e.camp); return (c?c.icon+" "+c.name:e.camp)+" "+(e.kind==="viral"?"<span class='pos'>viral</span>":e.kind==="whiff"?"<span class='neg'>whiff</span>":"landed");}).join(" · ")+".</div>":"")+
       (p.writer||p.producer? "<div class='tiny muted'>"+(p.writer? "✍️ "+esc(p.writer.name)+" ("+(p.writerBonus>=0?"+":"")+p.writerBonus+" script)":"")+(p.producer? " · 🎫 "+esc(p.producer.name):"")+"</div>":"")+
       "<div class='row' style='margin-top:6px'><span class='tag "+(p.rating==="R"?"red":"blue")+"'>"+p.rating+"</span><span class='tag'>"+lo.name+" ("+Math.round(lo.rebate*100)+"%)</span>"+
         (p.premium?"<span class='tag gold'>🍿 IMAX/Premium</span>":"")+
@@ -2032,7 +2042,8 @@ function schedModal(){
     h+="<div class='plan-opt"+(on?" sel":"")+"' data-camp='"+c.id+"'><div class='spread'><h5>"+c.icon+" "+c.name+"</h5><span class='tag "+(on?"gold":"")+"'>+"+fmtM(cost)+"</span></div>"+
       "<div class='p-sub'>"+c.desc+"</div>"+
       "<div class='p-sub'>reach "+c.reach+" · hype +"+Math.round(c.hype*100)+"% · aware +"+Math.round(c.aware*100)+"% · legs +"+c.legs.toFixed(2)+"×</div>"+
-      "<div class='p-sub'>targets "+(c.demos||[]).join(" + ")+" · ×1.5 hype on the film's strongest demo</div></div>";
+      "<div class='p-sub'>targets "+(c.demos||[]).join(" + ")+" · ×1.5 hype on the film's strongest demo</div>"+
+      "<div class='p-sub'>🗓 drops "+dropWeeks(c).map(off=>off+" wk"+(off>1?"s":"")+" out").join(" · ")+" — each drop rolls a reception event (viral ×1.5 / solid / whiff ×0.5)</div></div>";
   });
   h+="</div>";
   { let reach=0, hype=0, cc=0, legsB=0;
@@ -2051,6 +2062,7 @@ function schedModal(){
       "<div class='cost-line'><span>Budget (P&A + campaigns)</span><b>"+fmtM(schedMkt(p,true))+"</b></div>"+
       "<div class='cost-line'><span>Spent (30% now)</span><b>"+fmtM(paidNow)+"</b></div>"+
       "<div class='cost-line'><span>Reach</span><b>"+reach+"/100</b></div>"+
+      "<div class='cost-line'><span>🗓 Drop sequence</span><b class='tiny'>"+(SCHEDULE.camps.length? (function(){ let offs=[]; SCHEDULE.camps.forEach(id=>{ const c=campaignDef(id); if(c) dropWeeks(c).forEach(off=>offs.push(off)); }); offs=[...new Set(offs)].sort((a,b)=>b-a); return offs.map(off=>off+"w").join(" · ")+" out"; })() : "—")+"</b></div>"+
       "<div class='cost-line'><span>Hype</span><b class='pos'>+"+hype+"% opening</b></div>"+
       "<div class='cost-line'><span>Expected impact</span><b class='tiny'>"+expNote+"</b></div>"+
       "<div class='cost-line'><span>ROI (est. rentals ÷ spend)</span><b class='"+(parseFloat(String(roi).slice(1))>=1?"pos":"neg")+"'>"+roi+"</b></div></div>";
@@ -2156,7 +2168,7 @@ function schedModal(){
     }
     p.mktBoosts=SCHEDULE.boosts.slice();
     if(SCHEDULE.boosts.includes("influencer")) p.buzzBonus=(p.buzzBonus||0)+(DATA.mktBoost("influencer").buzz||0.04);
-    p.campaigns=SCHEDULE.camps.slice(); p.campaignPlan=SCHEDULE.plan; applyCampaigns(p);
+    p.campaigns=SCHEDULE.camps.slice(); p.campaignPlan=SCHEDULE.plan;   // v13: effects now arrive as staggered drops (tickCampaignDrops), not all upfront
     try{ playChicken(p, SCHEDULE.week); }catch(e){} // rivals blink at the dated weekend
     G.studio.cash-=now;
     if(now<want) log("📅 “"+p.title+"” dated for "+seasonDateLabel(SCHEDULE.week)+" with "+fmtM(mkt)+" P&A — "+fmtM(now)+" paid now, "+fmtM(want-now)+" due at release (fees continue to accrue).","gold");

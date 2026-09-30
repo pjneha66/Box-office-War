@@ -1,7 +1,7 @@
 # Box Office War — Master Spec Audit (Sept 2026)
 
 Audit of the game against `Box-Office-War-Master-Spec.md` (96 sections).
-Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v12.
+Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v13.
 
 ## Shipped (v6–v9, before this audit)
 
@@ -63,6 +63,15 @@ Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v12.
 | 26 | City-level box office under the top three release regions | ✅ |
 | 27 | Dubbing/localization line item: charged at release, visible upfront in the schedule modal | ✅ |
 
+## New in v13 (this release — Phase 4 buzz-facing systems)
+
+| Spec § | Area | Status |
+|---|---|---|
+| 17 | Campaign sequence: staggered drops (teaser 5wk out → trailer 3wk → TV 2wk → social ×3) with reception events; drop timeline in the schedule modal + ready cards | ✅ |
+| 18 | Four fictional social platforms with trending hashtags driven by real state — chart leaders, memes, scandals, feuds, advance-sales countdowns | ✅ |
+| 21 | Celebrity promo obligations: cast owe appearances pre-release, scandal/toxic backfires, exclusive/multi contract faces owe more | ✅ |
+| — | Fix: the campaign legs bonus now actually rides the released film (`film.campaignLegs` was silently dropped at release) | ✅ |
+
 ## Remaining roadmap (ordered by the spec's phases)
 
 **Phase 2 — Distribution ✅ (shipped in v11)**
@@ -76,9 +85,9 @@ Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v12.
 - ✅ §26/§27: city-level box office for the top three release regions (`cityRows` in the intl panel); dubbing/localization line item charged at release and visible upfront in the schedule modal.
 
 **Phase 4 — Living industry (next)**
-- ❌ §17: trailer/release campaign sequence with reception events (partially covered by MKT_BOOSTS).
-- ❌ §18: fictional social platforms with trending hashtags driven by state.
-- ❌ §21: celebrity promo obligations in contracts.
+- ✅ §17: campaign sequence — channels drop on their own weeks pre-release with reception events (viral ×1.5 / solid / whiff ×0.5); MKT_BOOSTS still stack upfront; drop timeline on cards + schedule modal.
+- ✅ §18: fictional social platforms (CineTok/Blabber/Reelit/BoxMoji) with trending hashtags driven by state (control-room board).
+- ✅ §21: celebrity promo obligations — cast owe appearances while dated, one fires per week; scandal/toxic casts turn them into liabilities; contract faces owe more.
 - ❌ §29: agent negotiation (flat fee → fee+backend packages) — partial via backend points.
 - ❌ §42: deeper espionage events. §44–45: board votes. §46: executive careers. §47: staff skill trees. §50: legal disputes.
 

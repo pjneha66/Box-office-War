@@ -192,6 +192,7 @@ if(!mig.save.talent.every(t=>Number.isFinite(t.age))) throw new Error("migration
 if(mig.save.streamer && mig.save.streamer.tier!=="premium") throw new Error("migration did not default the streamer tier");
 if(mig.save.public && !Number.isFinite(mig.save.public.price)) throw new Error("migration did not seed the share price");
 if(!mig.save.chains || mig.save.chains.length!==5) throw new Error("migration did not seed theater chains");
+if(!mig.save.projects.every(p=>Number.isFinite(p.promoOwed))) throw new Error("migration did not backfill promo obligations");
 console.log("v4 · save schema v"+parsed.v+" ok · legacy v1 migrated via steps ["+mig.applied.join(",")+"]");
 
 const badProblems = validateSave({ studio:{cash:"lots"}, week:0 });
@@ -231,7 +232,7 @@ G.studio.cash=Math.max(G.studio.cash, 100);
 const chain0=G.chains[0], relBefore=chain0.rel;
 if(!courtChain(chain0.id)) throw new Error("courtChain failed");
 if(!(chain0.rel>relBefore)) throw new Error("courtChain did not warm the chain");
-const probe=G.films.find(f=>f.inTheaters) || G.films[G.films.length-1];
+const probe=G.films.find(f=>f.inTheaters) || G.films.filter(f=>f.opening>0).slice(-1)[0];
 if(!probe || !probe.opening) throw new Error("no released film for depth checks");
 const daily=weekendDaily(probe);
 if(Math.round(daily.reduce((a,d)=>a+d.gross,0)*10)/10!==Math.round((probe.opening||0)*10)/10) throw new Error("daily split does not re-sum to opening");
@@ -242,9 +243,9 @@ if(!wkRows.every(r=>r.screens>0 && Number.isFinite(r.psa) && r.occ>=2 && r.occ<=
 if(wkRows.length>1 && wkRows[0].wow!==null) throw new Error("opening week should not have a WoW%");
 const cities=cityRows(probe);
 if(!cities.length || !cities.every(cr=>Math.round(cr.cities.reduce((a,c)=>a+c.gross,0)*10)/10===Math.round(cr.region.gross*10)/10)) throw new Error("city split does not re-sum to region");
-const dated=G.projects.find(p=>p.phase==="ready" && p.releaseWeek>G.week);
+const dated=G.projects.find(p=>p.kind==="film" && p.phase==="ready" && p.releaseWeek>G.week);
 if(dated){
-  dated.marketing=dated.marketing||recMarketing(dated);
+  dated.marketing=Math.max(dated.marketing||recMarketing(dated), 20);   // a real P&A so the pace clears the skip threshold
   dated.awareness=Math.max(dated.awareness||0, 0.8);
   const advBefore=dated.advanceTotal||0;
   tickAdvances();
@@ -254,6 +255,27 @@ if(!(localizationCost({budget:100, foreignLang:false, rollout:"day"}, ["europe"]
 if(localizationCost({budget:100, foreignLang:true, rollout:"day"}, "auto")>=localizationCost({budget:100, foreignLang:false, rollout:"day"}, "auto")) throw new Error("foreign-language productions should print for less");
 console.log("v12 · chains "+G.chains.length+" (meridian rel "+Math.round(G.chains[0].rel)+") · daily split re-sums · "+wkRows.length+
             " wk rows · PSA wk1 $"+(wkRows[0]&&wkRows[0].psa||0)+"K · advance "+(dated?fmtM(dated.advanceTotal||0):"—")+" · cities ok");
+
+// ── v13: campaign sequence, promo obligations, trending board ──
+if(!Array.isArray(DATA.SOCIALS) || DATA.SOCIALS.length!==4) throw new Error("social platforms missing");
+if(!Array.isArray(campaignDef("teaser").drop) || !campaignDef("teaser").drop.length) throw new Error("campaign drop offsets missing");
+const datedV13=G.projects.find(p=>p.kind==="film" && p.phase==="ready" && p.releaseWeek>G.week);
+if(datedV13){
+  datedV13.campaigns=["teaser","trailer","social"];
+  datedV13.releaseWeek=Math.min(datedV13.releaseWeek, G.week+2);   // close enough that the drops fire
+  datedV13.promoOwed=Math.max(datedV13.promoOwed||0, 2);
+  const buzzBefore=datedV13.buzzBonus||0;
+  tickCampaignDrops();
+  tickPromos();
+  if(!Object.keys(datedV13.dropped||{}).length) throw new Error("campaign drops never fired");
+  if(!((datedV13.promoDone||0)>0)) throw new Error("promo appearances never fired");
+  if(!((datedV13.buzzBonus||0)>=buzzBefore)) throw new Error("drops/promos reduced buzz unexpectedly");
+}
+const board=trendingBoard();
+if(!Array.isArray(board) || board.length>6) throw new Error("trending board malformed");
+if(board.some(t=>!t.tag||!t.plat||!t.why)) throw new Error("trending tag missing fields");
+console.log("v13 · "+board.length+" trending ("+board.slice(0,2).map(t=>t.tag).join(", ")+") · promo "+
+            (datedV13?((datedV13.promoDone||0)+"/"+datedV13.promoOwed):"—")+" · drops "+(datedV13?Object.keys(datedV13.dropped||{}).length:0)+" · ok");
 
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){

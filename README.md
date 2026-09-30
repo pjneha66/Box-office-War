@@ -4,6 +4,13 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v13 (spec Phase 4 — living industry, buzz-facing)
+
+- **Campaign sequence**: marketing channels no longer all fire at once — each drop lands on its own week before release (teaser 5 wks out → trailer 3 → TV 2 → social machine ×3) and rolls a **reception event**: viral (×1.5 hype), solid, or whiff (×0.5). The schedule modal shows each channel's drop weeks and the full drop sequence; ready cards show drops so far.
+- **Fictional social platforms + trending**: the Studio control room gains a 📣 Trending board — four platforms (CineTok, Blabber, Reelit, BoxMoji) with hashtags driven by real state: your chart leader trends, big openings spawn challenges, meme machines and acclaim trend on Reelit, scandals and feuds flood Blabber, and advance-sales countdowns hit BoxMoji.
+- **Promo obligations**: cast now owe press appearances while their film is dated (more for bigger stars and exclusive/multi contract faces). One fires per week pre-release (+1.5% buzz each) — unless the cast is scandal-hit or toxic, and then the promo stop becomes a liability (−1% buzz).
+- **Fixed**: the campaign legs bonus was silently dropped when a film released — `film.campaignLegs` now actually rides the run, so marketing WOM buys the longer tail it always promised.
+
 ## 🆕 What's new in v12 (spec Phase 3 — box office depth)
 
 - **Opening-weekend daily split**: every live run now shows the Fri/Sat/Sun breakdown of opening day — horror front-loads Friday, family films go Saturday-heavy, and audience word of mouth bends the back half of the weekend.

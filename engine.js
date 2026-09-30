@@ -270,6 +270,16 @@ const SAVE_MIGRATIONS = {
     (s.films||[]).forEach(f=>{ if(!Number.isFinite(f.locCost)) f.locCost=0; if(!Number.isFinite(f.advanceTotal)) f.advanceTotal=0; });
     return s;
   },
+  /* ── v13: promo obligations ride the cast; films carry campaign legs ── */
+  7(s){
+    (s.projects||[]).forEach(p=>{
+      if(p.promoOwed===undefined) p.promoOwed=Math.min(6, (p.cast||[]).length + (((p.cast||[]).reduce((a,c)=>a+(c.power||0),0))>=6?2:0));
+      if(!Array.isArray(p.dropEvents)) p.dropEvents=[];
+      if(!Array.isArray(p.promoEvents)) p.promoEvents=[];
+    });
+    (s.films||[]).forEach(f=>{ if(!Number.isFinite(f.campaignLegs)) f.campaignLegs=0; });
+    return s;
+  },
 };
 function migrateSave(s){
   const target = DATA.SAVE_VERSION||4;
@@ -999,15 +1009,17 @@ function industryState(){
    hype/awareness ride existing expectedOpening knobs; legs rides campaignLegs.
    Costs scale with picture size. State lives on p.campaigns (saved, no schema). */
 function campaignDefs(){
+  /* v13 (§17): drop = weeks before release when the channel's drop fires;
+     channels with several offsets split their effect across those drops. */
   return [
-    {id:"teaser", icon:"📼", name:"Teaser drop", cost:2, reach:30, hype:0.02, aware:0.01, legs:0.02, demos:["fans","teens"], desc:"First look. Cheap spark for the faithful."},
-    {id:"trailer", icon:"🎞", name:"Trailer blitz", cost:5, reach:60, hype:0.04, aware:0.03, legs:0.03, demos:["adults","teens"], desc:"The main sell — theaters, TV, pre-rolls everywhere."},
-    {id:"tv", icon:"📺", name:"TV spots", cost:9, reach:75, hype:0.06, aware:0.04, legs:0.02, demos:["adults","prestige"], desc:"Broadcast carpet-bomb. Reaches non-chronically-online humans."},
-    {id:"social", icon:"📱", name:"Social machine", cost:3, reach:55, hype:0.05, aware:0.02, legs:0.05, demos:["teens","fans"], desc:"Always-on content. Word of mouth that compounds into legs."},
-    {id:"outdoor", icon:"🪧", name:"Outdoor", cost:4, reach:40, hype:0.03, aware:0.03, legs:0.01, demos:["adults","kids"], desc:"Billboards and bus wraps. Pure awareness wallpaper."},
-    {id:"influencer", icon:"🤳", name:"Influencer tour", cost:4, reach:50, hype:0.04, aware:0.02, legs:0.06, demos:["teens","fans"], desc:"Creators sell the vibe. Best long-tail per dollar."},
-    {id:"intl", icon:"🌍", name:"International push", cost:6, reach:65, hype:0.03, aware:0.02, legs:0.03, demos:["adults","fans"], desc:"Dubbed trailers, regional premieres. Travels well."},
-    {id:"premium", icon:"👑", name:"Premium event", cost:12, reach:90, hype:0.08, aware:0.05, legs:0.04, demos:["fans","adults"], desc:"Premieres, IMAX fan events, saturation. Event-ize it."},
+    {id:"teaser", icon:"📼", name:"Teaser drop", cost:2, reach:30, hype:0.02, aware:0.01, legs:0.02, drop:[5], demos:["fans","teens"], desc:"First look. Cheap spark for the faithful."},
+    {id:"trailer", icon:"🎞", name:"Trailer blitz", cost:5, reach:60, hype:0.04, aware:0.03, legs:0.03, drop:[3], demos:["adults","teens"], desc:"The main sell — theaters, TV, pre-rolls everywhere."},
+    {id:"tv", icon:"📺", name:"TV spots", cost:9, reach:75, hype:0.06, aware:0.04, legs:0.02, drop:[2], demos:["adults","prestige"], desc:"Broadcast carpet-bomb. Reaches non-chronically-online humans."},
+    {id:"social", icon:"📱", name:"Social machine", cost:3, reach:55, hype:0.05, aware:0.02, legs:0.05, drop:[5,3,1], demos:["teens","fans"], desc:"Always-on content. Word of mouth that compounds into legs."},
+    {id:"outdoor", icon:"🪧", name:"Outdoor", cost:4, reach:40, hype:0.03, aware:0.03, legs:0.01, drop:[4], demos:["adults","kids"], desc:"Billboards and bus wraps. Pure awareness wallpaper."},
+    {id:"influencer", icon:"🤳", name:"Influencer tour", cost:4, reach:50, hype:0.04, aware:0.02, legs:0.06, drop:[2], demos:["teens","fans"], desc:"Creators sell the vibe. Best long-tail per dollar."},
+    {id:"intl", icon:"🌍", name:"International push", cost:6, reach:65, hype:0.03, aware:0.02, legs:0.03, drop:[2], demos:["adults","fans"], desc:"Dubbed trailers, regional premieres. Travels well."},
+    {id:"premium", icon:"👑", name:"Premium event", cost:12, reach:90, hype:0.08, aware:0.05, legs:0.04, drop:[1], demos:["fans","adults"], desc:"Premieres, IMAX fan events, saturation. Event-ize it."},
   ];
 }
 function campaignDef(id){ return campaignDefs().find(c=>c.id===id) || null; }
@@ -1022,24 +1034,129 @@ function campaignPlans(){
   ];
 }
 /* Re-appliable: backs out the previously applied totals before adding the new mix. */
-function applyCampaigns(p){
-  p.buzzBonus=(p.buzzBonus||0)-(p._campBuzz||0);
-  p.awareness=(p.awareness||0)-(p._campAware||0);
+/* ═══════════ campaign sequence (v13): staggered drops with reception events ═══════════
+   Channels no longer apply all at once at scheduling: each drop fires on its
+   own week before release, rolls a reception event (viral / solid / whiff) and
+   applies its slice of the channel's effect. Totals stay close to the old flat
+   application; the reception roll adds variance and the log tells the story.
+   Because awareness/buzz arrive as drops land, the advance curve builds too. */
+function dropWeeks(c){ return (c&&c.drop&&c.drop.length)? c.drop : [2]; }
+function dropDemoTop(p){
   let topDemo=null;
   try{ topDemo=demoProfile(p).strongest.id; }catch(e){}
-  let bz=0, aw=0, legs=0, cost=0;
-  const matched=[];
-  (p.campaigns||[]).forEach(id=>{ const c=campaignDef(id); if(!c) return;
-    const hit=topDemo&&(c.demos||[]).includes(topDemo); // right message, right crowd
-    if(hit) matched.push(id);
-    bz+=c.hype*(hit?1.5:1); aw+=c.aware; legs+=c.legs; cost+=campaignCost(id, p.scale); });
-  p.campaignMatched=matched;
-  bz=Math.round(bz*100)/100; aw=Math.round(aw*100)/100; legs=Math.round(legs*100)/100;
+  return topDemo;
+}
+function applyDrop(p, c, topDemo, compressed){
+  const share=1/dropWeeks(c).length;
+  const hit=topDemo&&(c.demos||[]).includes(topDemo);   // right message, right crowd
+  let mult=1, kind="solid";
+  if(!compressed){
+    const roll=rnd();
+    if(roll<0.18+(hit?0.10:0)){ mult=1.5; kind="viral"; }
+    else if(roll>0.85){ mult=0.5; kind="whiff"; }
+  }
+  const bz=Math.round(c.hype*share*mult*(hit?1.5:1)*100)/100;
+  const aw=Math.round(c.aware*share*mult*100)/100;
   p.buzzBonus=Math.round(((p.buzzBonus||0)+bz)*100)/100;
   p.awareness=Math.round(((p.awareness||0)+aw)*100)/100;
-  p.campaignLegs=legs; p._campBuzz=bz; p._campAware=aw;
-  return {cost:Math.round(cost*10)/10, buzz:bz, aware:aw, legs,
-    reach:Math.min(100,(p.campaigns||[]).reduce((a,id)=>{const c=campaignDef(id);return a+(c?c.reach:0);},0))};
+  p.campaignLegs=Math.round(((p.campaignLegs||0)+c.legs*share)*100)/100;
+  return {kind, bz, aw, hit};
+}
+function tickCampaignDrops(){
+  for(const p of G.projects){
+    if(!p.releaseWeek || p.phase!=="ready" || p.releaseWeek<=G.week) continue;
+    const weeksOut=p.releaseWeek-G.week;
+    if(!p.dropped) p.dropped={};
+    const topDemo=dropDemoTop(p);
+    (p.campaigns||[]).forEach(id=>{
+      const c=campaignDef(id); if(!c) return;
+      dropWeeks(c).forEach(off=>{
+        if(weeksOut>off || p.dropped[id+":"+off]) return;
+        p.dropped[id+":"+off]=true;
+        const r=applyDrop(p, c, topDemo, false);
+        p.dropEvents=(p.dropEvents||[]).concat([{camp:id, w:G.week, kind:r.kind}]);
+        const label=c.icon+" "+c.name+" for “"+p.title+"”";
+        const delta=" ("+(r.bz>=0?"+":"")+Math.round(r.bz*100)+"% buzz)";
+        if(r.kind==="viral") log("🚀 "+label+" went VIRAL — shares everywhere "+delta+".","gold");
+        else if(r.kind==="whiff") log("💩 "+label+" whiffed — the discourse shrugged "+delta+".","bad");
+        else log("🎞 "+label+" landed "+delta+".","");
+      });
+    });
+  }
+}
+/* drops that never got their week (film dated and released in one hop) fire
+   compressed at release — the money's spent, the effect shouldn't vanish */
+function firePendingDrops(p){
+  if(!p.dropped) p.dropped={};
+  const topDemo=dropDemoTop(p);
+  (p.campaigns||[]).forEach(id=>{
+    const c=campaignDef(id); if(!c) return;
+    dropWeeks(c).forEach(off=>{
+      if(p.dropped[id+":"+off]) return;
+      p.dropped[id+":"+off]=true;
+      applyDrop(p, c, topDemo, true);
+    });
+  });
+}
+
+/* ── promo obligations (§21): stars owe press; contract faces owe more ──
+   Cast owe promo appearances while their film is dated; one fires per week
+   pre-release. A scandal-hit or toxic cast turns them into liabilities. */
+function promoOwedFor(cast){
+  const starP=(cast||[]).reduce((s,c)=>s+(c.power||0),0);
+  return Math.min(6, (cast||[]).length + (starP>=6?2:starP>=3?1:0) +
+    ((cast||[]).some(c=>c.contract&&(c.contract.type==="exclusive"||c.contract.type==="multi"))?1:0));
+}
+function tickPromos(){
+  for(const p of G.projects){
+    if(!p.releaseWeek || p.phase!=="ready" || p.releaseWeek<=G.week) continue;
+    const owed=p.promoOwed||0;
+    if(!owed || (p.promoDone||0)>=owed) continue;
+    const scandalous=(p.cast||[]).filter(c=>c&&(c.scandal>0||(c.toxic&&!c.rehabbed)));
+    const face=(p.cast||[]).slice().sort((a,b)=>(b.power||0)-(a.power||0))[0];
+    p.promoDone=(p.promoDone||0)+1;
+    if(scandalous.length){
+      p.buzzBonus=Math.round(((p.buzzBonus||0)-0.01)*100)/100;
+      log("📰 "+scandalous[0].name+"'s promo stop for “"+p.title+"” became a scandal segment (−1% buzz).","bad");
+      p.promoEvents=(p.promoEvents||[]).concat([{w:G.week, kind:"backfire"}]);
+    }else{
+      p.buzzBonus=Math.round(((p.buzzBonus||0)+0.015)*100)/100;
+      log("🎤 "+(face?face.name:"The cast")+" works the talk shows for “"+p.title+"” (+1.5% buzz).","");
+      p.promoEvents=(p.promoEvents||[]).concat([{w:G.week, kind:"hit"}]);
+    }
+  }
+}
+
+/* ── trending board (§18): hashtags derived from real state, read-only ──
+   Every tag names the state that put it there; heat ranks the board. */
+function trendingBoard(){
+  const tags=[];
+  const push=(tag, plat, why, heat)=>{ if(tag&&tag.length>1&&plat) tags.push({tag, plat, why, heat:heat||1}); };
+  const hash=s=>"#"+String(s||"").replace(/[^A-Za-z0-9]/g,"");
+  let leader=null, lg=0;
+  (G.films||[]).forEach(f=>{ if(f.inTheaters){ const g=(f.weekly&&f.weekly.length)?f.weekly[f.weekly.length-1].gross:0; if(g>lg){ leader=f; lg=g; } } });
+  if(leader) push(hash(leader.title), "CineTok", "charting at #1 this week", 3);
+  (G.films||[]).forEach(f=>{
+    const s=f.social;
+    if(f.buzzBig) push(hash(f.title)+"Challenge", "CineTok", "the opening was that big", 2);
+    if(s&&s.memes) push(hash(f.title), "Reelit", "meme machine — theories everywhere", 2);
+    if(s&&s.acclaimFlag) push(hash(f.title), "Reelit", "critics can't leave it alone", 2);
+    if(f.reviewBombed) push(hash(f.title)+"Gate", "Reelit", "the pile-on is the story", 2);
+    const sc=(f.cast||[]).find(c=>c&&c.scandal>0);
+    if(sc) push(hash(sc.name)+"Gate", "Blabber", sc.name+"'s scandal is drowning the press tour", 3);
+  });
+  (G.feuds||[]).forEach(k=>{
+    const ids=String(k).split("-");
+    const a=G.talent.find(t=>String(t.id)===ids[0]), b=G.talent.find(t=>String(t.id)===ids[1]);
+    if(a&&b) push(hash(a.name)+"Vs"+hash(b.name), "Blabber", "the feud is still live", 2);
+  });
+  try{
+    const hot=Object.keys(DATA.GENRES).map(g=>({g, t:trendOf(g)})).sort((a,b)=>b.t-a.t)[0];
+    if(hot&&hot.t>=1.10) push(hash(hot.g)+"Szn", "CineTok", "the genre is running hot ("+hot.t.toFixed(2)+"×)", 1);
+  }catch(e){}
+  (G.projects||[]).forEach(p=>{ if(p.releaseWeek>G.week && (p.advanceTotal||0)>=1) push(hash(p.title)+"Countdown", "BoxMoji", fmtM(p.advanceTotal)+" in advance sales and counting", 2); });
+  (G.retired||[]).slice(-2).forEach(t=>{ if(t&&t.name) push(hash(t.name), "Blabber", "carved a sidewalk star", 1); });
+  return tags.sort((a,b)=>b.heat-a.heat).slice(0,6);
 }
 
 function expectedOpening(p, weekAbs){
@@ -1256,6 +1373,7 @@ function pitchFilm(cfg){
       coProd: cfg.coProd||null,
       mktBoosts: [],
     };
+    p.promoOwed = promoOwedFor(cast);   // v13: stars owe press; contract faces owe more
     G.projects.push(p);
     if(typeof applyGreenlightRelationships==="function") applyGreenlightRelationships(p);
     if(dir){dir.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; dir.booked=p.title;}
@@ -1351,6 +1469,7 @@ function greenlight(cfg){
     log("🌍 International pre-sales on “"+p.title+"”: +"+fmtM(p.presales)+" (intl box office now goes to the buyers).","");
   }
   const total = p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post;
+  p.promoOwed = promoOwedFor(cfg.cast);   // v13: stars owe press; contract faces owe more
   if(cfg.director){ cfg.director.bookedUntil = G.week+total; cfg.director.booked = p.title; }
   if(cfg.writer){ cfg.writer.bookedUntil = G.week+total; cfg.writer.booked = p.title+" (writer)"; }
   if(cfg.producer){ cfg.producer.bookedUntil = G.week+total; cfg.producer.booked = p.title+" (producer)"; }
@@ -1505,6 +1624,7 @@ function beginReshoot(pid){
 
 /* ═══════════ theatrical release ═══════════ */
 function releaseFilm(p){
+  firePendingDrops(p);   // v13: drops that never got their week fire compressed at release
   let expected = expectedOpening(p, G.week);
   if(p.soundtrack){
     if(chance(0.30)){ p.soundHit=true; expected*=1.10; log("🎵 The single from “"+p.title+"” is CHARTING — +10% buzz!","gold"); }
@@ -1553,6 +1673,7 @@ function releaseFilm(p){
     releaseWeek:G.week, opening, weekly:[{w:G.week, gross:opening}],
     dom:opening, ww:0, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
     presales:p.presales||0, backend:p.backend||0,
+    campaignLegs:p.campaignLegs||0,   // v13: campaign WOM now actually rides the released film's tail
     advanceTotal:advTotal, advance:(p.advance||[]).slice(), locCost,
     inTheaters:true, weeksOut:1, franchiseable:false, soldTo:null,
     piracyPenalty:0, awardsEligible:true, year:yearOf(G.week),
@@ -3497,6 +3618,8 @@ function advanceWeek(){
   if(typeof tickFatigue==="function") tickFatigue();
   if(typeof tickPublic==="function") tickPublic();
   if(typeof tickProjects==="function") tickProjects();
+  if(typeof tickCampaignDrops==="function") tickCampaignDrops();   // v13: staggered campaign drops fire pre-release
+  if(typeof tickPromos==="function") tickPromos();                 // v13: promo appearances fire pre-release
   if(typeof tickAdvances==="function") tickAdvances();   // v12: advance sales bank weekly before opening day
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){

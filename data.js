@@ -176,6 +176,14 @@ DATA.CITIES = {
   other:["Port Meridian","Cap Aurora","Highbridge"],
 };
 
+/* ── v13 social: fictional platforms (§18) — trending hashtags are driven by state ── */
+DATA.SOCIALS = [
+  {id:"cinetok", name:"CineTok",  icon:"🎵", blurb:"Short-form video. Where trailers live or die in 48 hours."},
+  {id:"blabber", name:"Blabber",  icon:"💬", blurb:"The real-time rage machine. Scandals and feuds trend here first."},
+  {id:"reelit",  name:"Reelit",   icon:"🧵", blurb:"The film-nerd forum. Theories, leaks, pile-ons."},
+  {id:"boxmoji", name:"BoxMoji",  icon:"📊", blurb:"Tracking-obsessed prognosticators. Advance sales talk."},
+];
+
 /* ── v2 executives ── */
 DATA.EXECS = [
   {id:"cmo",     icon:"📣", name:"Chief Marketing Officer", hire:40, salary:0.40, desc:"+12% hype on every release"},
@@ -647,8 +655,8 @@ function yearOfW(w){ return Math.floor((w-1)/52)+1; }
         UNION NEGOTIATIONS · WAGE INFLATION · TUTORIAL
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Save schema v6 (see migrateSave step 6 in engine.js) ── */
-DATA.SAVE_VERSION = 6;
+/* ── Save schema v7 (see migrateSave step 7 in engine.js) ── */
+DATA.SAVE_VERSION = 7;
 
 /* ── Talent agencies (v5): WME/CAA-style shops with rosters ──
    Every piece of talent is repped by one of these. Casting 2+ clients
