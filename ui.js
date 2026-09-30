@@ -1303,9 +1303,11 @@ function wizardModal(){
     h+="<div class='small muted' style='margin:10px 0 6px'><b>Distribution plan</b> — commit now or keep options open</div><div class='plan-pick'>"+
       "<div class='plan-opt"+(WZ.plan==="theatrical"?" sel":"")+"' data-plan='theatrical'><h5>🎥 Theatrical release</h5><div class='p-sub'>Full box office upside (and risk). You set the date &amp; P&amp;A when it's finished.</div></div>"+
       "<div class='plan-opt"+(WZ.plan==="streaming"?" sel":"")+"' data-plan='streaming'><h5>📺 Streaming original</h5><div class='p-sub'>Platforms bid on delivery — guaranteed cash ≈ budget × quality, zero box office.</div></div>"+
+      (G.streamer? (function(){ const est=(typeof ownPremiereEstimate==="function")? ownPremiereEstimate({genre:WZ.idea.genre, budget:WZ.budget, marketing:recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}), script:WZ.idea.script, buzzBonus:0}) : {subs:1};
+        return "<div class='plan-opt"+(WZ.plan==="own"?" sel":"")+"' data-plan='own'><h5>▶ Own-streamer premiere — "+esc(G.streamer.name)+"</h5><div class='p-sub'>Direct to your platform: no box office, no license cheque. ≈ +"+est.subs+"M subscribers overnight, then weekly ARPU and a bigger library ceiling.</div></div>"; })() : "")+
       "<div class='plan-opt"+(WZ.plan==="later"?" sel":"")+"' data-plan='later'><h5>🤔 Decide later</h5><div class='p-sub'>Keep every door open: date it, shop it, or take incoming pre-buy offers.</div></div>"+
       "</div>";
-    if(WZ.plan!=="streaming"){
+    if(WZ.plan!=="streaming" && WZ.plan!=="own"){
       const pv=Math.round(WZ.budget*0.22);
       h+="<div class='card' style='margin-top:8px;cursor:pointer' id='wzPresale'><div class='spread'><span class='small'>"+(WZ.presales?"✅ ":"⬜ ")+"<b>International pre-sales</b> — take "+fmtM(pv)+" cash today</span><span class='tag "+(WZ.presales?"gold":"")+"'>"+(WZ.presales?"sold":"available")+"</span></div>"+
         "<div class='tiny muted'>Buyers take the international box office (~"+Math.round(DATA.GENRES[WZ.idea.genre].intlShare*100)+"% of gross). Great for cash flow; costs you upside on hits.</div></div>";
@@ -1331,7 +1333,7 @@ function wizardModal(){
     h+="<div class='card'><div class='cost-line'><span>Rights + development"+(WZ.scriptPolish?" (+script polish)":"")+"</span><b>"+fmtM(dev+polishCost)+"</b></div>"+
       "<div class='cost-line'><span>Crew &amp; cast fees (upfront)</span><b>"+fmtM(fees)+"</b></div>"+
       "<div class='cost-line'><span>Production (paid weekly over ~"+weeks+" wks)</span><b>"+fmtM(WZ.budget)+"</b></div>"+
-      (WZ.presales&&WZ.plan!=="streaming"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
+      (WZ.presales&&WZ.plan!=="streaming"&&WZ.plan!=="own"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
       "<div class='cost-line'><span>Suggested marketing (at release)</span><b id='wzMkt'>"+fmtM(recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}))+"</b></div>"+
       "<div class='cost-total'><span>Total commitment</span><span class='gold' id='wzTot'>"+fmtM(dev+polishCost+fees+WZ.budget)+"</span></div></div>";
     h+="<div class='tiny muted'>💡 Rule of thumb: a film needs ≈ <b id='wzBe'>"+fmtM(breakevenWW({budget:WZ.budget, marketing:recMarketing({budget:WZ.budget,scale:WZ.idea.scale,genre:WZ.idea.genre})}))+"</b> worldwide gross to break even (theaters keep ~half).</div>";
@@ -1382,7 +1384,7 @@ function wizardModal(){
   const bd=v.querySelector("#wzBackDir"); if(bd) bd.onclick=()=>{ WZ.sub=3; wizardModal(); };
   const bc=v.querySelector("#wzBackCast"); if(bc) bc.onclick=()=>{ WZ.sub=4; wizardModal(); };
   const bk=v.querySelector("#wzBack"); if(bk) bk.onclick=()=>{ WZ.sub=5; wizardModal(); };
-  v.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{ WZ.plan=b.dataset.plan; if(WZ.plan==="streaming") WZ.presales=false; beep("click"); wizardModal(); });
+  v.querySelectorAll("[data-plan]").forEach(b=>b.onclick=()=>{ WZ.plan=b.dataset.plan; if(WZ.plan==="streaming"||WZ.plan==="own") WZ.presales=false; beep("click"); wizardModal(); });
   const ps=v.querySelector("#wzPresale"); if(ps) ps.onclick=()=>{ WZ.presales=!WZ.presales; beep("click"); wizardModal(); };
   v.querySelectorAll("[data-rate]").forEach(b=>b.onclick=()=>{ WZ.rating=b.dataset.rate; beep("click"); wizardModal(); });
   v.querySelectorAll("[data-loc]").forEach(b=>b.onclick=()=>{ WZ.location=b.dataset.loc; beep("click"); wizardModal(); });
@@ -1441,14 +1443,18 @@ function seriesModal(){
     });
     h+="</div>";
   }else{
-    const plat=DATA.platform(WZ.platform);
-    const odds=Math.round(clamp(0.22+65/160+(plat.taste[WZ.genre]||1-1)*0.6+G.studio.rep/400+(WZ.perEp>=8?0.06:0)+(G.upgrades.ottrel?0.05:0),0.12,0.9)*100);
+    const plat=WZ.platform==="own"? ownPlatformStub() : DATA.platform(WZ.platform);
+    const odds=WZ.platform==="own"? 100 : Math.round(clamp(0.22+65/160+(plat.taste[WZ.genre]||1-1)*0.6+G.studio.rep/400+(WZ.perEp>=8?0.06:0)+(G.upgrades.ottrel?0.05:0),0.12,0.9)*100);
     h+="<div class='card platform-card'><div class='platform-logo' style='background:"+plat.color+"'>"+plat.logo+"</div><div><b>"+plat.name+"</b><div class='tiny muted'>"+plat.blurb+"</div></div></div>";
     h+="<div class='card'><div class='cost-line'><span>Taste for "+DATA.GENRES[WZ.genre].name+"</span><b>"+(((plat.taste[WZ.genre]||1))*100).toFixed(0)+"%</b></div>"+
       "<div class='cost-line'><span>Season order ("+WZ.eps+" × "+fmtM(WZ.perEp)+")</span><b>"+fmtM(WZ.eps*WZ.perEp)+"</b></div>"+
-      "<div class='cost-line'><span>License if greenlit (≈115% of budget)</span><b class='pos'>"+fmtM(WZ.eps*WZ.perEp*1.15)+"</b></div></div>";
+      (WZ.platform==="own"? (function(){ const qEst=clamp(Math.round(0.3*65+0.25*(WZ.showrunner?WZ.showrunner.skill:56)+0.2*55+0.25*45),10,97);
+        return "<div class='cost-line'><span>Overnight subscribers / season (est.)</span><b class='pos'>+"+Math.round((0.5+qEst/22)*10)/10+"M</b></div>"+
+        "<div class='cost-line'><span>License cheque</span><b>$0 — it earns weekly ARPU</b></div>"; })()
+        : "<div class='cost-line'><span>License if greenlit (≈115% of budget)</span><b class='pos'>"+fmtM(WZ.eps*WZ.perEp*1.15)+"</b></div>")+"</div>";
     h+="<div class='small' style='margin:8px 0'>Estimated pitch odds: <b class='"+(odds>=55?"pos":odds>=35?"gold":"neg")+"'>~"+odds+"%</b></div>";
     h+="<div class='row' id='szPlats'>";
+    if(G.streamer) h+="<button class='btn btn-sm "+(WZ.platform==="own"?"btn-primary":"")+"' data-p='own'>▶ "+esc(G.streamer.name)+" (yours)</button>";
     DATA.PLATFORMS.forEach(p=>{
       h+="<button class='btn btn-sm "+(WZ.platform===p.id?"btn-primary":"")+"' data-p='"+p.id+"'>"+p.name+"</button>";
     });
@@ -1834,6 +1840,24 @@ function applyAltEnding(pid, kind){
   }
   saveGame(); return true;
 }
+/* v10 Phase 2: own-streamer premiere confirmation (spec §14 + §88: show the commitment) */
+function ownPremiereModal(pid){
+  const p=G.projects.find(x=>x.id===pid); if(!p||!G.streamer) return;
+  const est=ownPremiereEstimate(p);
+  const tier=(typeof DATA.tier==="function")? DATA.tier(G.streamer.tier||"premium") : {arpu:0.5};
+  const wkRev=Math.round((G.streamer.subs+est.subs)*(tier.arpu||0.5)*10)/10;
+  const sunk=Math.round(((p.budget||0)+(p.devCost||0)+(p.marketingPaid||0))*10)/10;
+  let h="<h3>▶ Premiere on "+esc(G.streamer.name)+"</h3>"+
+    "<div class='card'><div class='cost-line'><span>Overnight subscribers (est.)</span><b class='pos'>+"+est.subs+"M</b></div>"+
+    "<div class='cost-line'><span>Box office</span><b>$0 — no theatrical run</b></div>"+
+    "<div class='cost-line'><span>Platform revenue afterwards</span><b>≈ "+fmtM(wkRev)+"/wk (whole service)</b></div>"+
+    "<div class='cost-line'><span>Already sunk (budget + dev + P&A paid)</span><b>"+fmtM(sunk)+"</b></div>"+
+    "<div class='tiny muted' style='margin-top:6px'>Value arrives as subscribers, weekly ARPU and a bigger library ceiling — not as a licence cheque. Critics still review it; awards stay eligible. This cannot be undone.</div></div>"+
+    "<div class='modal-actions'><button class='btn btn-ghost' id='opCancel'>Keep it unreleased</button><button class='btn btn-primary' id='opGo'>▶ Premiere now</button></div>";
+  const v=openModal(h);
+  v.querySelector("#opCancel").onclick=closeModal;
+  v.querySelector("#opGo").onclick=()=>{ if(finishOwnStreamerOriginal(p)){ beep("gold"); flashes(G.flash); } closeModal(); render(); };
+}
 
 function viewProductions(){
   let h="";
@@ -1897,6 +1921,7 @@ function viewProductions(){
         (p.premium?"<span class='tag gold'>🍿 IMAX/Premium</span>":"")+
         (p.scriptPolish?"<span class='tag green'>✍️ polish</span>":"")+"</div>"+
       (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button>"+
+        (G.streamer? "<button class='btn btn-alt' data-ownprem='"+p.id+"'>▶ Premiere on "+esc(G.streamer.name)+"</button>":"")+
         "<button class='btn btn-ghost' data-test='"+p.id+"'>🎬 Test screen &amp; reshoot</button>"+
         "<button class='btn btn-ghost' data-screen='"+p.id+"'>🧪 Screening report</button>"+
         (!p.reshoot && p.quality.overall<62? "<button class='btn btn-ghost' data-reshoot='"+p.id+"'>🎞 Quick reshoot ("+fmtM(Math.max(3,Math.round(p.budget*0.08)))+")</button>":"")+
@@ -1957,7 +1982,7 @@ function startScheduling(pid){
   const p=G.projects.find(x=>x.id===pid); if(!p) return;
   const rawReg=p.targetRegion;
   const initReg=Array.isArray(rawReg)? rawReg.slice() : (rawReg && rawReg!=="auto"? [rawReg] : []);
-  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium, window:p.window||"45", dayAndDate:!!p.dayAndDate, boosts:[], camps:(p.campaigns||[]).slice(), plan:null, regions:initReg, appeal:false};
+  SCHEDULE={p, week:G.week+4, marketing:recMarketing(p), sel:false, premium:!!p.premium, window:p.window||"45", dayAndDate:!!p.dayAndDate, boosts:[], camps:(p.campaigns||[]).slice(), plan:null, regions:initReg, appeal:false, ownWindow:!!p.ownWindow};
   if(p.mktBoosts) SCHEDULE.boosts = p.mktBoosts.slice();
   schedModal();
 }
@@ -2030,6 +2055,11 @@ function schedModal(){
   h+="<div class='row' id='scDay'>";
   h+="<div class='card' style='margin-top:4px;cursor:pointer;flex:1' id='scDayToggle'><div class='spread'><span class='small'>"+(SCHEDULE.dayAndDate?"✅ ":"⬜ ")+"<b>Day-and-date</b> — theater + your platform</span></div>"+
     "<div class='tiny muted'>−35% opening, but pushes your streamers' subscribers. Only if you own a platform.</div></div></div>";
+  /* v10 Phase 2: hybrid — theatrical first, then your own streamer gets it */
+  if(G.streamer){
+    h+="<div class='card' style='margin-top:4px;cursor:pointer' id='scOwnWin'><div class='spread'><span class='small'>"+(SCHEDULE.ownWindow?"✅ ":"⬜ ")+"<b>Hybrid: after the theatrical run → "+esc(G.streamer.name)+"</b></span><span class='tag "+(SCHEDULE.ownWindow?"gold":"")+"'>+subs at window end</span></div>"+
+      "<div class='tiny muted'>When the run ends the film becomes an exclusive on your platform (+subscribers, library ceiling). Skips pay-1 TV and external OTT bids for this title.</div></div>";
+  }
   h+="<div class='small muted' style='margin:10px 0 6px'>Pick a weekend (next 30 weeks):</div><div style='max-height:300px;overflow-y:auto;display:grid;gap:6px'>";
   for(let w=G.week+2; w<=G.week+30; w++){
     const s=DATA.seasonOf(woyOf(w));
@@ -2081,6 +2111,7 @@ function schedModal(){
   });
   const ap=v.querySelector("#scAppeal"); if(ap) ap.onclick=()=>{ SCHEDULE.appeal=!SCHEDULE.appeal; beep("click"); schedModal(); };
   const dt=v.querySelector("#scDayToggle"); if(dt) dt.onclick=()=>{ SCHEDULE.dayAndDate=!SCHEDULE.dayAndDate; beep("click"); schedModal(); };
+  const ow=v.querySelector("#scOwnWin"); if(ow) ow.onclick=()=>{ SCHEDULE.ownWindow=!SCHEDULE.ownWindow; beep("click"); schedModal(); };
   v.querySelectorAll("[data-boost]").forEach(b=>b.onclick=()=>{
     const id=b.dataset.boost;
     const i=SCHEDULE.boosts.indexOf(id);
@@ -2105,6 +2136,7 @@ function schedModal(){
     const now=Math.min(want, Math.max(0, Math.floor(G.studio.cash)));
     p.releaseWeek=SCHEDULE.week; p.marketing=mkt; p.marketingPaid=now; p.premium=SCHEDULE.premium;
     p.window=SCHEDULE.window; p.dayAndDate=SCHEDULE.dayAndDate;
+    p.ownWindow=!!SCHEDULE.ownWindow;
     p.targetRegion=SCHEDULE.regions.length? SCHEDULE.regions.slice() : "auto";
     if(SCHEDULE.appeal && p.rating==="R" && G.studio.cash>=3){
       G.studio.cash-=3;
@@ -2525,8 +2557,29 @@ function streamMarketBoard(){
     (signs.length?signs.map(s=>"<div class='cost-line'><span>“"+esc(s.title)+"” → "+esc(s.to)+"</span><b>"+fmtM(s.value)+" "+s.kind+"</b></div>").join(""):"<div class='tiny muted'>No platform deals yet — finish a film and shop it.</div>")+"</div>";
   return h;
 }
+/* v10 Phase 2 (spec §15): your platform at a glance — subs, churn, revenue, originals, library */
+function ownStreamerBoard(){
+  if(!G.streamer) return "";
+  const st=G.streamer;
+  const orig=G.films.filter(f=>f.streamingOriginal&&f.onOwn);
+  const lib=G.films.filter(f=>f.onOwn);
+  const ownSeries=G.series.filter(s=>s.platform==="own");
+  let ce=0; try{ ce=streamerCeiling(); }catch(e){}
+  const starved=G.week-(st.lastContent||0)>6;
+  return "<div class='section-title'>▶ Your platform — "+esc(st.name)+"</div>"+
+    "<div class='card'><div class='stat-hero' style='margin:0'>"+
+      statCard(st.subs.toFixed(1)+"M","Subscribers","var(--purple)")+
+      statCard(((st.churn||0)*100).toFixed(2)+"%","Weekly churn")+
+      statCard(fmtM(st.income||0)+"/wk","Revenue")+
+      statCard(Math.round(ce)+"M","Ceiling")+
+      statCard(lib.length+" titles","Library")+
+      statCard(String(orig.length),"Originals")+
+    "</div>"+
+    "<div class='tiny muted' style='margin-top:6px'>"+(starved? "⚠ Starved — no new content for "+(G.week-(st.lastContent||0))+" weeks; churn is bleeding subscribers." : "Fed — last content "+(G.week-(st.lastContent||0))+" wk ago.")+" · "+ownSeries.length+" own original series · premieres and hybrids land here automatically.</div></div>";
+}
 function viewOTT(){
   let h="";
+  try{ h+=ownStreamerBoard(); }catch(e){}
   try{ h+=streamMarketBoard(); }catch(e){}
   h+="<div class='section-title'>Deal offers ("+G.offers.length+")</div>";
   if(!G.offers.length) h+="<div class='card muted small'>No offers on the table. Hits and finished runs attract bidders — especially during streaming wars.</div>";
@@ -2859,6 +2912,7 @@ function bindView(){
   const shc=$("#btnShareCard"); if(shc) shc.onclick=function(){ shareStudioCard(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
+  $$("[data-ownprem]").forEach(b=>b.onclick=()=>{ beep("click"); ownPremiereModal(+b.dataset.ownprem); });
   $$("[data-ending]").forEach(b=>b.onclick=()=>{ if(applyAltEnding(+b.dataset.eid, b.dataset.ending)){ beep("gold"); flashes(G.flash); render(); } });
   $$("[data-rename]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); const p=b.dataset.rename.split(":"); beep("click"); renameModal(p[0], p[1]); });
   $$("[data-btlhire]").forEach(b=>b.onclick=()=>{ const [r,id]=b.dataset.btlhire.split(":"); if(hireBTL(r,+id)){ beep("gold"); flashes(G.flash); render(); } });

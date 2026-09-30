@@ -1336,7 +1336,7 @@ function greenlight(cfg){
   p.plan = cfg.plan || "theatrical";
   const starP = cfg.cast.reduce((s,c)=>s+c.power,0);
   if(starP>=8){ p.backend = 0.05; }
-  if(cfg.presales && p.plan!=="streaming"){
+  if(cfg.presales && p.plan!=="streaming" && p.plan!=="own"){
     p.presales = Math.round(p.budget*0.22);
     earn("presales", p.presales);
     log("🌍 International pre-sales on “"+p.title+"”: +"+fmtM(p.presales)+" (intl box office now goes to the buyers).","");
@@ -1367,7 +1367,7 @@ function greenlight(cfg){
   if(typeof applyGreenlightRelationships==="function") applyGreenlightRelationships(p);
   G.projects.push(p);
   G.ideas = G.ideas.filter(i=>i.id!==idea.id);
-  const planLabel = {theatrical:"theatrical release",streaming:"streaming original",later:"decide distribution later"}[p.plan];
+  const planLabel = {theatrical:"theatrical release",streaming:"streaming original",own:"own-streamer premiere",later:"decide distribution later"}[p.plan]||p.plan;
   const loc = DATA.LOCATIONS ? DATA.LOCATIONS.find(l=>l.id===p.location) : null;
   log("🎬 Greenlit: “"+p.title+"” ("+DATA.genreOf(p.genre).name+", "+fmtM(cfg.budget)+" budget, "+p.rating+(p.foreignLang?", foreign-language":"")+", shooting in "+(loc?loc.name:"home lot")+") — "+planLabel,"gold");
   return p;
@@ -1441,6 +1441,9 @@ function tickProjects(){
         p.quality = computeQuality(p);
         if(p.prebuyAccepted){
           finishStreamingOriginal(p);
+        }else if(p.plan==="own"){
+          if(G.streamer){ finishOwnStreamerOriginal(p); }
+          else{ p.phase="ready"; p.plan="later"; log("📭 “"+p.title+"” finished — but you have no streamer. Decide distribution.","bad"); maybePrebuyOffer(p); }
         }else if(p.plan==="streaming"){
           p.phase="ready";
           log("🎞 “"+p.title+"” is finished! Score: "+p.quality.overall+"/100. Shopping it to the streamers…","good");
@@ -1784,7 +1787,17 @@ function endTheatrical(f){
   }else{
     log("🏁 “"+f.title+"” ends its run: "+fmtG(f.ww)+" WW — "+verdict+" ("+(f.profit>=0?"+":"")+fmtM(f.profit)+" net; "+fmtM(f.studioRev)+" rentals received).", f.profit>=0?"good":"bad");
   }
-  scheduleOttOffer(f, rint(2,5));
+  // v10 Phase 2: hybrid — after the theatrical run, the film lands on your streamer
+  if(f.ownWindow && G.streamer){
+    f.onOwn=true; f.soldTo=G.streamer.name;
+    const bump=Math.round((0.4+((f.quality&&f.quality.overall)||55)/55)*10)/10;
+    G.streamer.subs=Math.round((G.streamer.subs+bump)*100)/100;
+    G.streamer.peak=Math.max(G.streamer.peak||0, G.streamer.subs);
+    G.streamer.lastContent=G.week;
+    log("📺 After its theatrical run, “"+f.title+"” lands on "+G.streamer.name+" (+"+bump+"M subscribers).","gold");
+  }else{
+    scheduleOttOffer(f, rint(2,5));
+  }
 }
 
 
@@ -1967,7 +1980,7 @@ function seriesTitle(){
   return t;
 }
 function pitchSeries(cfg){
-  const plat = DATA.platform(cfg.platformId);
+  const plat = cfg.platformId==="own"? ownPlatformStub() : DATA.platform(cfg.platformId);
   const budget = cfg.eps*cfg.perEp;
   const concept = clamp(rint(50,80)+G.studio.devBonus*2, 40, 95);
   const taste = plat.taste[cfg.genre]||1;
@@ -1981,7 +1994,7 @@ function pitchSeries(cfg){
     weeksLeft0:Math.round(cfg.eps*1.2+6),
     spent:0, status:"producing", viewership:0,
   };
-  if(chance(clamp(p,0.12,0.9))){
+  if(cfg.platformId==="own" || chance(clamp(p,0.12,0.9))){
     G.series.push(s);
     spend("talent", (cfg.showrunner?actorFee(cfg.showrunner):0) + (cfg.cast||[]).reduce((a,c)=>a+actorFee(c),0));
     if(cfg.showrunner){cfg.showrunner.bookedUntil=G.week+s.weeksLeft; cfg.showrunner.booked=s.title;}
@@ -2015,12 +2028,22 @@ function tickSeries(){
   }
 }
 function deliverSeason(s){
-  const plat=DATA.platform(s.platform);
+  const own = s.platform==="own" && G.streamer;
+  const plat=own? ownPlatformStub() : DATA.platform(s.platform);
   const q=seriesQuality(s);
   const num=s.seasons.length+1;
   const margin = 1.15 + G.studio.rep/500 + (G.upgrades.ottrel?0.05:0);
-  const license = Math.round(s.budget*margin*(G.infl||1));
-  earn("series", license);
+  const license = own? 0 : Math.round(s.budget*margin*(G.infl||1));
+  let ownSubs=0;
+  if(own){
+    // no license check — the season pays in subscribers and weekly ARPU (spec §9)
+    ownSubs=Math.round((0.5+q/22)*10)/10;
+    G.streamer.subs=Math.round((G.streamer.subs+ownSubs)*100)/100;
+    G.streamer.peak=Math.max(G.streamer.peak||0, G.streamer.subs);
+    G.streamer.lastContent=G.week;
+  }else{
+    earn("series", license);
+  }
   const sGenre=DATA.GENRES[s.genre]||{critic:0,aud:0};
   s.seasons.push({num, quality:q, license, viewership:0, // series ratings ride the same biases as films
     critic:clamp(Math.round(q+sGenre.critic+gauss()*4),5,99),
@@ -2032,10 +2055,11 @@ function deliverSeason(s){
   s.pendingV = v;
   s.phase="airing"; s.airWeeks=4;
   G.stats.seriesSeasons++;
-  log("📺 “"+s.title+"” S"+num+" dropped on "+plat.name+". License: "+fmtM(license)+".","gold");
+  log(own? "📺 “"+s.title+"” S"+num+" premieres on "+G.streamer.name+" — +"+ownSubs+"M subscribers (no license — it earns weekly)."
+        : "📺 “"+s.title+"” S"+num+" dropped on "+plat.name+". License: "+fmtM(license)+".","gold");
 }
 function finishSeason(s){
-  const plat=DATA.platform(s.platform);
+  const plat = s.platform==="own"? ownPlatformStub() : DATA.platform(s.platform);
   const season=s.seasons[s.seasons.length-1];
   season.viewership=s.pendingV; s.viewership=s.pendingV;
   season.audience=clamp(Math.round(s.pendingV*0.6+(season.quality||60)*0.4),5,99);
@@ -2050,11 +2074,12 @@ function finishSeason(s){
   if(season.viewership>=renewAt && season.viewership>0){
     const nextBudget = Math.round(s.budget*1.08);
     const margin = 0.1 + season.viewership/220;
-    const value = Math.round(nextBudget*(1+margin)*(G.infl||1));
+    const value = s.platform==="own"? 0 : Math.round(nextBudget*(1+margin)*(G.infl||1));
     s.status="renewal_pending";
     G.offers.push({ id:nid(), type:"renewal", seriesId:s.id, seriesTitle:s.title, seasonNum:season.num+1,
       platform:s.platform, value, budget:nextBudget, eps:s.eps, countered:false, expires:G.week+5 });
-    log("📨 "+plat.name+" wants to renew “"+s.title+"” for S"+(season.num+1)+" — "+fmtM(value)+" season order.","");
+    log(s.platform==="own"? "📨 Your audience wants “"+s.title+"” S"+(season.num+1)+" on "+plat.name+" — you fund the "+fmtM(nextBudget)+" season; it pays in subscribers."
+      : "📨 "+plat.name+" wants to renew “"+s.title+"” for S"+(season.num+1)+" — "+fmtM(value)+" season order.","");
   }else{
     s.status="ended";
     log("🚫 "+plat.name+" cancelled “"+s.title+"”.","bad");
@@ -2531,6 +2556,45 @@ function moveToStreamer(fid){
   f.onOwn = true; f.soldTo = G.streamer.name;
   G.streamer.subs = Math.round((G.streamer.subs + 0.3 + (f.quality?f.quality.overall/60:0))*100)/100;
   log("📺 “"+f.title+"” moved to your platform "+G.streamer.name+" — exclusive. Content ceiling +.","gold");
+  saveGame();
+  return true;
+}
+
+/* ═══════════ v10 Phase 2: own-streamer distribution — a first-class release path ═══════════ */
+function ownPlatformStub(){
+  return { id:"own", name:G.streamer? G.streamer.name : "Your Platform", color:"#b48bff", logo:"▶",
+    taste:{}, generosity:1, blurb:"Your own platform", renew:45 };
+}
+/* projected overnight subscribers for a direct-to-own-streamer release (spec §14) */
+function ownPremiereEstimate(p){
+  const q=(p.quality&&p.quality.overall)||Math.round(45+(p.script||60)/4);
+  const fit=(DATA.GENRES[p.genre]||{aud:0}).aud/40;
+  const mktBoost=1+Math.min(0.8,((p.marketing||0)/Math.max(20,(p.budget||40)))*0.6);
+  const subs=Math.round(clamp(q/16,0.4,4.5)*Math.max(0.4,fit)*(1+(p.buzzBonus||0))*mktBoost*10)/10;
+  return { subs:Math.max(0.2,subs), q };
+}
+/* convert a finished project into an original on YOUR platform: no box office,
+   no license check — value arrives as subscribers, weekly ARPU and library ceiling */
+function finishOwnStreamerOriginal(p){
+  if(!G.streamer) return false;
+  const q=p.quality||computeQuality(p);
+  const est=ownPremiereEstimate(p);
+  const f={ id:p.id, title:p.title, genre:p.genre, scale:p.scale, budget:p.budget,
+    marketing:p.marketingPaid||0, devCost:p.devCost||0, quality:q,
+    streamingOriginal:true, platform:G.streamer.name, soldTo:G.streamer.name, onOwn:true,
+    releaseWeek:G.week, weekly:[], dom:0, ww:0, studioRev:0,
+    profit:-((p.budget||0)+(p.devCost||0)+(p.marketingPaid||0)),
+    inTheaters:false, awardsEligible:true, year:yearOf(G.week), reviews:[] };
+  reviewFilm(f);
+  G.films.push(f);
+  G.projects=G.projects.filter(x=>x!==p);
+  G.stats.films++;
+  G.streamer.subs=Math.round((G.streamer.subs+est.subs)*100)/100;
+  G.streamer.peak=Math.max(G.streamer.peak||0, G.streamer.subs);
+  G.streamer.lastContent=G.week;
+  freeProjectTalent(p);
+  log("📺 “"+p.title+"” premieres on "+G.streamer.name+" — +"+est.subs+"M subscribers overnight. It earns weekly from here, and the library ceiling grows.","gold");
+  if(est.subs>=2) G.confetti=true;
   saveGame();
   return true;
 }

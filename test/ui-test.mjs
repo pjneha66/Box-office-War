@@ -480,6 +480,35 @@ step("v10 mobile nav: More sheet + finance drawer + calendar chip", ()=>{
   if(!window.document.querySelector(".modal") || !window.document.querySelector(".modal").textContent.includes("alendar")) throw new Error("calendar did not open from date chip");
   window.eval("closeModal()");
 });
+step("v11 own-streamer distribution: premiere, hybrid window, own series", ()=>{
+  if(!g().streamer) window.eval("G.studio.rep=55; G.studio.cash=Math.max(G.studio.cash,400); launchStreamer('OwnTest+')");
+  window.eval("G.studio.cash=Math.max(G.studio.cash,600)");
+  window.eval(`G.projects.push({id:9875, kind:"film", title:"Own Premiere", genre:"drama", scale:"indie", script:70, budget:20, spent:20, devCost:2, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, buzzBonus:0, quality:{overall:72,critic:70,aud:74}})`);
+  click($(".tab[data-tab='productions']"));
+  const op=$$("[data-ownprem]").find(b=>+b.dataset.ownprem===9875);
+  if(!op) throw new Error("own premiere button missing");
+  click(op);
+  if(!$("#opGo")) throw new Error("premiere modal missing");
+  const subsBefore=g().streamer.subs;
+  click($("#opGo"));
+  const f=window.eval("G.films.find(x=>x.id===9875)");
+  if(!f || !f.streamingOriginal || !f.onOwn) throw new Error("own premiere failed");
+  if(!(g().streamer.subs>subsBefore)) throw new Error("no subscriber gain");
+  window.eval(`G.projects.push({id:9876, kind:"film", title:"Hybrid Run", genre:"action", scale:"mid", script:70, budget:40, spent:40, devCost:3, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, buzzBonus:0, quality:{overall:70,critic:68,aud:72}})`);
+  click($(".tab[data-tab='studio']")); click($(".tab[data-tab='productions']"));
+  const sb=$$("[data-sched]").find(b=>+b.dataset.sched===9876);
+  if(!sb) throw new Error("sched button missing for hybrid");
+  click(sb);
+  const ow=$("#scOwnWin"); if(!ow) throw new Error("hybrid toggle missing");
+  click(ow);
+  const rows=$$("[data-w]"); if(!rows.length) throw new Error("calendar empty");
+  click(rows[rows.length-1]);
+  click($("#scGo"));
+  const hp=window.eval("G.projects.find(x=>x.id===9876)");
+  if(!hp || !hp.ownWindow) throw new Error("hybrid window not saved");
+  const res=window.eval(`pitchSeries({genre:"drama", eps:8, perEp:6, platformId:"own", showrunner:null, cast:[]})`);
+  if(!res.ok || res.s.platform!=="own") throw new Error("own series pitch failed");
+});
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){
     if(g().sportsAuction){ const sk=$$("#sportsSkip")[0]||window.document.querySelector("#sportsSkip"); if(sk){ click(sk); } }

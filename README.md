@@ -4,6 +4,13 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v11 (spec Phase 2 — distribution)
+
+- **Own-streamer premieres are a first-class release path**: the greenlight wizard gains a "▶ Own-streamer premiere" distribution plan (with projected overnight subscribers), ready films get a "▶ Premiere on \<your platform\>" button with a full commitment summary, and finished `plan:"own"` projects deliver straight to your platform.
+- **Hybrid releases**: scheduling now has a "after the theatrical run → your streamer" toggle — the film keeps its full box office, then lands as an exclusive on your platform when the run ends (skipping pay-1/external OTT bids).
+- **Series on your own platform**: pitch straight to your streamer (guaranteed greenlight); seasons pay in subscribers and weekly ARPU instead of a license cheque, and renewals are self-funded.
+- **OTT tab opens with a "Your platform" board**: subscribers, churn, weekly revenue, ceiling, library size and originals count, plus a starved-content warning.
+
 ## 🆕 What's new in v9
 
 - **Weekly report popup** now includes the ⚠ **Warnings** section (cash low, starved streamer, strikes, expiring offers…) right under the cash delta.
