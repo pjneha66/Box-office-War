@@ -61,6 +61,8 @@ function newGame(archId, name, opts){
     precursorWins: { year:0, count:0 },
     tut: opts.tutorial===false ? null : { step:0, done:false },
     aiInUse: 0,
+    /* ── v12 state ── */
+    chains: (DATA.CHAINS||[]).map(c=>({id:c.id, rel:c.rel})),   // booking relation persists per chain
   };
   seedTrends();
   genTalentPool();
@@ -260,6 +262,12 @@ const SAVE_MIGRATIONS = {
     (s.projects||[]).forEach(p=>{ if(p.location==="home") p.location="la"; if(!Number.isFinite(p.rebateEarned)) p.rebateEarned=0; });
     (s.films||[]).forEach(f=>{ if(f.location==="home") f.location="la"; if(!Number.isFinite(f.rebateEarned)) f.rebateEarned=0; });
     if(s.studio && !Number.isFinite(s.studio.devBonus)) s.studio.devBonus = 0;
+    return s;
+  },
+  /* ── v12: theater chains — booking relations persist; films carry line items ── */
+  6(s){
+    if(!Array.isArray(s.chains)) s.chains = (DATA.CHAINS||[]).map(c=>({id:c.id, rel:c.rel}));
+    (s.films||[]).forEach(f=>{ if(!Number.isFinite(f.locCost)) f.locCost=0; if(!Number.isFinite(f.advanceTotal)) f.advanceTotal=0; });
     return s;
   },
 };
@@ -1079,6 +1087,7 @@ function expectedOpening(p, weekAbs){
   const exhib = G.exhibRel || G.exhibitor || 50;
   hype *= 1 + (exhib-50)/50*0.05;
   hype *= (0.95 + (G.exhibitor||50)/1000);
+  hype *= chainScreenMult(p);                         // v12: friendlier chains book more screens — and a bigger opening
   return hype;
 }
 
@@ -1501,6 +1510,9 @@ function releaseFilm(p){
     if(chance(0.30)){ p.soundHit=true; expected*=1.10; log("🎵 The single from “"+p.title+"” is CHARTING — +10% buzz!","gold"); }
     else log("🎵 The “"+p.title+"” single stalled. No chart action.","");
   }
+  /* v12: advance tickets banked before opening day lift the opening (capped +6%) */
+  const advTotal=Math.min(p.advanceTotal||0, Math.round(expected*0.06*10)/10);
+  if(advTotal>0) expected=Math.min(expected*1.06, expected+advTotal);
   const noise = 0.85 + rnd()*0.34;
   let opening = clamp(expected*noise, 1.2, 320);
   if(G.theaterCap>0) opening *= 0.55;
@@ -1522,6 +1534,10 @@ function releaseFilm(p){
       log("🇨🇳 “"+p.title+"” won a China quota slot — full intl rollout cleared.","good");
     }
   }
+  /* v12: dubbing & localization — an itemized cost, never a silent tax (§27) */
+  const locTargets=Array.isArray(p.targetRegion)? p.targetRegion.slice() : (p.targetRegion && p.targetRegion!=="auto"? [p.targetRegion] : []);
+  const locCost=localizationCost(p, p.targetRegion);
+  if(locCost>0) spend("marketing", locCost);
   const film = {
     id:p.id, title:p.title, genre:p.genre, scale:p.scale,
     budget:p.budget, marketing:p.marketing, devCost:p.devCost,
@@ -1537,6 +1553,7 @@ function releaseFilm(p){
     releaseWeek:G.week, opening, weekly:[{w:G.week, gross:opening}],
     dom:opening, ww:0, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
     presales:p.presales||0, backend:p.backend||0,
+    advanceTotal:advTotal, advance:(p.advance||[]).slice(), locCost,
     inTheaters:true, weeksOut:1, franchiseable:false, soldTo:null,
     piracyPenalty:0, awardsEligible:true, year:yearOf(G.week),
     franchiseName:p.franchiseName||null, sequelOf:p.sequelOf,
@@ -1558,6 +1575,8 @@ function releaseFilm(p){
   if(typeof sfx==="function") sfx("fanfare");
   const label = opening>=100? "💥 MASSIVE opening": opening>=40? "🔥 Strong opening": opening>=12? "▶ Solid opening":"🎪 Limited release";
   log(label+": “"+film.title+"” opens to "+fmtG(opening)+" domestic (+"+fmtM(opening*0.53)+" rentals this week).","gold");
+  if(advTotal>0) log("🎟 Advance sales: "+fmtM(advTotal)+" banked for “"+film.title+"” — opening day landed stronger.","");
+  if(locCost>0) log("🌍 Dubbing & localization for "+(locTargets.length?locTargets.length+" targeted market(s)":"home markets")+": −"+fmtM(locCost)+" (dubs, subs, local P&A materials).","");
   if(opening>=60) p.cast.forEach(c=>{ c.heat=Math.min(3,(c.heat||0)+1); });
   const win = (typeof DATA.window==="function")? DATA.window(film.window||"45") : null;
   if(win && win.exh){ G.exhibitor = clamp((G.exhibitor||50) + win.exh, 0, 100); }
@@ -1592,6 +1611,157 @@ function tickTheatrical(){
     earn("theatrical", rentals);
     f.rentalsDom = (f.rentalsDom||0) + rentals;
   }
+}
+
+/* ═══════════ box office depth (v12): daily split, screens, advance sales, chains ═══════════
+   Everything here is either a read-only derivation from stored fields (same
+   result every read) or a bounded tick. The opening weekend splits Fri/Sat/Sun
+   by genre temper; screens come from scale + theater-chain relations; advance
+   sales bank weekly before release and lift the opening at most +6%. */
+
+/* Fri/Sat/Sun split of the opening weekend (§11). Genre sets the temper —
+   horror front-loads Friday, family films go Saturday-heavy — and audience
+   WOM bends it: loved films hold the back half of the weekend. Totals always
+   re-sum to the stored opening, so domestic never moves. */
+function weekendDaily(f){
+  const shapes={
+    horror:[0.46,0.31,0.23], concert:[0.50,0.29,0.21], thriller:[0.40,0.34,0.26],
+    action:[0.38,0.36,0.26], scifi:[0.37,0.36,0.27], western:[0.31,0.38,0.31], war:[0.32,0.38,0.30],
+    animation:[0.26,0.44,0.30], fantasy:[0.30,0.41,0.29], comedy:[0.32,0.40,0.28], romance:[0.30,0.40,0.30],
+    musical:[0.31,0.41,0.28], drama:[0.29,0.38,0.33], sports:[0.34,0.39,0.27], truecrime:[0.34,0.36,0.30],
+  };
+  const base=shapes[f.genre]||[0.34,0.38,0.28];
+  const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
+  const hold=clamp((aud-50)/100,-0.5,0.5);
+  const wob=((((f.id||0)*7)%5)-2)/100;
+  let fri=base[0]-hold*0.05+wob, sat=base[1]+hold*0.01, sun=base[2]+hold*0.04-wob;
+  fri=clamp(fri,0.15,0.60); sat=clamp(sat,0.15,0.55); sun=clamp(sun,0.10,0.45);
+  const open=Math.max(0,f.opening||0), tot=fri+sat+sun||1;
+  return [{day:"Fri",gross:Math.round(open*fri/tot*10)/10},
+          {day:"Sat",gross:Math.round(open*sat/tot*10)/10},
+          {day:"Sun",gross:0}].map((r,i,arr)=>{ if(i===arr.length-1) r.gross=Math.round((open-arr[0].gross-arr[1].gross)*10)/10; return r; });
+}
+
+/* Peak screen count (§12): anchored to release scale and pattern, nudged by
+   theater-chain relations and taste. Platform rollouts book a fraction. */
+function screensOf(f){
+  if(f.streamingOriginal) return 0;
+  const base={indie:600, mid:2800, tentpole:4300}[f.scale]||2800;
+  const pat=DATA.PATTERNS?DATA.PATTERNS.find(x=>x.id===(f.pattern||"wide")):null;
+  let screens=Math.round(base*(pat&&pat.id==="platform"?0.12:1)*chainScreenMult(f));
+  if(f.premium||f.imax) screens=Math.round(screens*1.02);
+  return clamp(screens, 60, 4800);
+}
+
+/* Per-week exhibition rows from the stored weekly grosses: screens shrink
+   through the run (~13%/wk, floored at 12% of peak), per-screen average follows
+   the gross, occupancy reads against a sold-out week (~$48K/screen), and the
+   WoW% column exposes the decay the engine has always run. */
+function screenWeeks(f){
+  const peak=screensOf(f);
+  return (f.weekly||[]).map((wk,i)=>{
+    const screens=Math.max(Math.round(peak*0.12), Math.round(peak*Math.pow(0.87,i)));
+    const psa=Math.round(wk.gross*1000/Math.max(1,screens));
+    const occ=clamp(Math.round(psa/48*100),2,98);
+    const wow=i>0?Math.round((wk.gross/Math.max(0.001,f.weekly[i-1].gross)-1)*100):null;
+    return {w:wk.w, gross:wk.gross, wow, screens, psa, occ};
+  });
+}
+
+/* City-level breakdown (§26): top three regions, top three cities each.
+   Fictional names per region (DATA.CITIES); splits are deterministic from the
+   film id, so totals always re-sum to the region's gross. */
+function cityRows(f){
+  let regs=f.regions;
+  try{ if(!regs||!regs.length) regs=regionSplit(f); }catch(e){ return []; }
+  return regs.slice().sort((a,b)=>b.gross-a.gross).slice(0,3).map((r,ri)=>{
+    const names=(DATA.CITIES&&DATA.CITIES[r.id])||["Capital City","Old Town","The Suburbs"];
+    const ws=[0.46,0.32,0.22].map((w,ci)=>w+(((((f.id||0)*7+ri*13+ci*5)%7)-3)/120));
+    const tot=ws.reduce((a,b)=>a+b,0)||1;
+    let acc=0;
+    const cities=names.map((nm,ci)=>{
+      const gross=Math.round(r.gross*ws[ci]/tot*10)/10; acc+=gross;
+      return {name:nm, gross};
+    });
+    if(cities.length) cities[cities.length-1].gross=Math.round((r.gross-acc+cities[cities.length-1].gross)*10)/10;
+    return {region:r, cities};
+  });
+}
+
+/* ── theater chains (§22): relation is courted, friendship books screens ──
+   G.chains persists only {id, rel}; the definitions (name, screens, taste)
+   live in DATA.CHAINS. chainById merges the two — everything reads through it. */
+function chainById(id){
+  const d=(DATA.CHAINS||[]).find(c=>c.id===id);
+  if(!d) return null;
+  const c=((G&&G.chains)||[]).find(x=>x.id===id);
+  return {...d, rel:(c&&Number.isFinite(c.rel))? c.rel : d.rel};
+}
+function chainScreenMult(f){
+  let m=1;
+  (DATA.CHAINS||[]).forEach(dc=>{
+    const c=chainById(dc.id); if(!c) return;
+    const friend=clamp((c.rel-50)/100,-0.5,0.45);
+    m+=c.screens*(friend*0.12+((c.taste&&f&&c.taste[f.genre])?0.05:0));
+  });
+  return Math.max(0.85, m);
+}
+function chainCourtCost(c){ return Math.round((6+c.screens*40)*10)/10; }
+function courtChain(id){
+  const c=chainById(id); if(!c) return false;
+  const cost=chainCourtCost(c);
+  if(G.studio.cash<cost){ log("💸 Courting "+c.name+" takes "+fmtM(cost)+" — and they've heard every pitch.","bad"); return false; }
+  spend("marketing", cost);
+  const bump=8+rint(0,6)+(G.studio.rep>=60?2:0);   // bounded, logged randomness
+  const stored=(G.chains||[]).find(x=>x.id===id);
+  if(stored) stored.rel=clamp((Number.isFinite(stored.rel)?stored.rel:c.rel)+bump,0,95);
+  else G.chains=(G.chains||[]).concat([{id, rel:clamp(c.rel+bump,0,95)}]);
+  log("🍿 "+c.name+" warms to the studio — booking relation +"+bump+" (now "+Math.round(chainById(id).rel)+"/100). Friendlier chains book more screens on release day.","gold");
+  saveGame();
+  return true;
+}
+
+/* ── advance tickets (§23): the curve banks weekly before opening day ──
+   Dated, ready films accrue advance sales from awareness/hype/campaigns and
+   chain relations. At release the banked total lifts the opening (≤ +6%). */
+function advanceHeat(p){
+  return clamp(Math.round((p.awareness||0)*60+(p.buzzBonus||0)*30+(p.campaigns||[]).length*5),0,100);
+}
+function advancePace(p, weeksOut){
+  return (p.marketing||0)*0.006*(advanceHeat(p)/60)*(1+(chainScreenMult(p)-1)*0.5)*(weeksOut<2?1.5:weeksOut<4?1.0:0.6);
+}
+function tickAdvances(){
+  for(const p of G.projects){
+    if(!p.releaseWeek || p.phase!=="ready" || p.releaseWeek<=G.week) continue;
+    const weeksOut=p.releaseWeek-G.week;
+    const sales=Math.round(advancePace(p,weeksOut)*(0.8+rnd()*0.4)*100)/100;
+    if(sales<0.02) continue;
+    if(!Array.isArray(p.advance)) p.advance=[];
+    p.advance.push({w:G.week, sales});
+    p.advanceTotal=Math.round(((p.advanceTotal||0)+sales)*100)/100;
+    if(p.advance.length===1) log("🎟 Advance tickets for “"+p.title+"” are on sale — "+fmtM(sales)+" in the first week.","");
+    else if(weeksOut===1) log("🎟 "+fmtM(p.advanceTotal)+" banked in advance for “"+p.title+"” — opening day is here.","");
+  }
+}
+/* Read-only projection for the schedule modal: what advance should bank by the
+   chosen weekend at the current heat. */
+function advanceProjection(p, weekAbs){
+  const weeksOut=Math.max(0,(weekAbs||p.releaseWeek||G.week+4)-G.week);
+  let total=0;
+  for(let i=1;i<=weeksOut;i++) total+=advancePace(p, weeksOut-i);
+  return Math.round(total*100)/100;
+}
+
+/* Dubbing & localization (§27): each targeted market adds dubs, subs and local
+   P&A materials. Foreign-language productions need local prints only, and a
+   staggered rollout re-prints for every wave. */
+function localizationCost(p, regions){
+  const targets=Array.isArray(regions)? regions : (regions && regions!=="auto"? [regions] : []);
+  let cost=(p.budget||0)*(targets.length? 0.02+0.012*targets.length : 0.01);
+  if(p.foreignLang) cost*=0.5;
+  if((p.rollout||"day")==="staggered") cost*=1.15;
+  cost=Math.round(cost*10)/10;
+  return Math.min(cost, Math.round((p.budget||0)*0.06*10)/10);
 }
 /* ── international regions: deterministic split of the settled intl gross ──
    Weights start from genre intl mix, then reuse china/india/censor/presales flags.
@@ -1736,7 +1906,7 @@ function endTheatrical(f){
   });
   if(dealPay>0){ spend("talent", dealPay); f.dealPay=dealPay; }
   f.studioRev = f.rentalsDom + intlRentals + pvod - backendPay - dealPay;
-  f.profit = f.studioRev + (f.presales||0) - f.budget - (f.marketing||0) - (f.devCost||0);
+  f.profit = f.studioRev + (f.presales||0) - f.budget - (f.marketing||0) - (f.devCost||0) - (f.locCost||0);
   if(f.coFinance && f.profit>0){
     const shareCo = Math.round(f.profit*(f.coFinance||0.3)*10)/10;
     spend("financing", shareCo); f.partnerShare=shareCo; f.profit-=shareCo;
@@ -3327,6 +3497,7 @@ function advanceWeek(){
   if(typeof tickFatigue==="function") tickFatigue();
   if(typeof tickPublic==="function") tickPublic();
   if(typeof tickProjects==="function") tickProjects();
+  if(typeof tickAdvances==="function") tickAdvances();   // v12: advance sales bank weekly before opening day
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
       const rest = Math.max(0, p.marketing - (p.marketingPaid||0));

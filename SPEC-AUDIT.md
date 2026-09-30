@@ -1,7 +1,7 @@
 # Box Office War — Master Spec Audit (Sept 2026)
 
 Audit of the game against `Box-Office-War-Master-Spec.md` (96 sections).
-Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v10.
+Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v12.
 
 ## Shipped (v6–v9, before this audit)
 
@@ -53,19 +53,29 @@ Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v10.
 | 3 | 5-tab mobile bottom nav (Studio / Create / Films / Market / More) + More sheet for OTT/Empire/Finance/Settings | ✅ |
 | 5 | Tap cash chip → finance drawer (burn, runway, credit); tap date → release calendar | ✅ |
 
+## New in v12 (this release — Phase 3 box office depth)
+
+| Spec § | Area | Status |
+|---|---|---|
+| 11–12 | Opening-weekend Fri/Sat/Sun daily split; per-week screens / occupancy / per-screen averages; week-over-week % rows | ✅ |
+| 22 | Five named theater chains with booking relations, a court action, and screens + opening effects | ✅ |
+| 23 | Advance-ticket curve: weekly accrual on dated films, schedule-modal projection, opening lift (≤ +6%) | ✅ |
+| 26 | City-level box office under the top three release regions | ✅ |
+| 27 | Dubbing/localization line item: charged at release, visible upfront in the schedule modal | ✅ |
+
 ## Remaining roadmap (ordered by the spec's phases)
 
-**Phase 2 — Distribution (next)**
-- ❌ §8: full 7-step pitch wizard (concept → scale → team → allocation → production → distribution → greenlight summary). Current wizard covers ~5 steps inline; needs the explicit distribution step (own-streamer / external / hybrid) with subscriber projections.
-- ❌ §9/§14/§16: own-streamer as a first-class release path for films + series (direct-to-streamer with sub projections, library value, weekly-vs-binge); hybrid windows to own streamer.
+**Phase 2 — Distribution ✅ (shipped in v11)**
+- ✅ §8: pitch wizard now carries the explicit distribution step (own-streamer / external / hybrid); the wizard remains ~6 steps inline rather than a strict 7-step wizard.
+- ✅ §9/§14/§16: own-streamer as a first-class release path — direct-to-streamer premieres, hybrid theatrical→own-streamer windows, own-streamer series (v11).
 - 🟡 §15: streamer sub-tabs (Home/Originals/Library/Finance/Sports/Deals).
 
-**Phase 3 — Box office depth**
-- ❌ §11–12: weekend daily breakdown (Fri/Sat/Sun), screens/occupancy/per-screen averages, week-over-week % rows (engine has decay; UI must expose).
-- ❌ §22/§23: named theater chains + negotiation + advance-ticket curve.
-- ❌ §26/§27: city-level box office for targeted markets; dubbing/localization line items.
+**Phase 3 — Box office depth ✅ (this release — v12)**
+- ✅ §11–12: weekend daily breakdown (Fri/Sat/Sun by genre temper + audience WOM), screens/occupancy/per-screen averages, week-over-week % rows — engine `weekendDaily`/`screensOf`/`screenWeeks`, surfaced on live-run cards.
+- ✅ §22/§23: five named theater chains with booking relations (court action, screens + opening effect) + the advance-ticket curve (`tickAdvances` weekly accrual, schedule-modal projection, opening lift ≤ +6%).
+- ✅ §26/§27: city-level box office for the top three release regions (`cityRows` in the intl panel); dubbing/localization line item charged at release and visible upfront in the schedule modal.
 
-**Phase 4 — Living industry**
+**Phase 4 — Living industry (next)**
 - ❌ §17: trailer/release campaign sequence with reception events (partially covered by MKT_BOOSTS).
 - ❌ §18: fictional social platforms with trending hashtags driven by state.
 - ❌ §21: celebrity promo obligations in contracts.

@@ -4,6 +4,15 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v12 (spec Phase 3 — box office depth)
+
+- **Opening-weekend daily split**: every live run now shows the Fri/Sat/Sun breakdown of opening day — horror front-loads Friday, family films go Saturday-heavy, and audience word of mouth bends the back half of the weekend.
+- **Screens, per-screen averages & week-over-week rows**: the week-by-week table adds screen counts (they shrink as the run winds down), per-screen average, occupancy vs a sold-out week, and the WoW% column that exposes the decay.
+- **Five named theater chains**: Meridian Cinemas, NovaStar, Lumen Grand, Regent Arthouse and Starlight Drive-Ins control ~90% of domestic screens. Each has a booking relation you can **court** ($6–18M) — friendlier chains book more screens *and* a bigger opening, and they book their favorite genres generously.
+- **Advance-ticket curve**: dated films accrue advance sales weekly from hype, campaigns and chain relations; the schedule modal projects what will be banked by opening day, and the banked total lifts the opening (capped +6%).
+- **City-level box office**: the international panel breaks the top three release regions down to fictional cities (Bright Harbour, Roshanpur, Puerto Cielo…).
+- **Dubbing & localization line item**: targeting markets now shows the dubbing/subs/local-P&A cost upfront in the schedule modal and charges it — itemized — at release. Foreign-language productions print for less; staggered rollouts print for more.
+
 ## 🆕 What's new in v11 (spec Phase 2 — distribution)
 
 - **Own-streamer premieres are a first-class release path**: the greenlight wizard gains a "▶ Own-streamer premiere" distribution plan (with projected overnight subscribers), ready films get a "▶ Premiere on \<your platform\>" button with a full commitment summary, and finished `plan:"own"` projects deliver straight to your platform.

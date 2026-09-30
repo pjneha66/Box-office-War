@@ -153,6 +153,29 @@ DATA.ROLLOUTS = [
   {id:"staggered", label:"Staggered intl rollout", open:0.88, legs:0.15, intl:1.12, desc:"−12% open, +legs, intl builds week by week"},
 ];
 
+/* ── v12 exhibition: named theater chains (§22) ──
+   screens: share of the domestic screen count this chain controls (independents hold the rest)
+   taste:   genres the chain books generously (+screens on release day)
+   rel:     starting booking relation with your studio (0–100) — court them for more screens */
+DATA.CHAINS = [
+  {id:"meridian", name:"Meridian Cinemas",    emoji:"🎞", screens:0.30, taste:{action:1.15,scifi:1.15,fantasy:1.1,war:1.05},      rel:55, blurb:"The national multiplex giant — wherever a mall went up, Meridian followed."},
+  {id:"novastar", name:"NovaStar Cineplex",   emoji:"🍿", screens:0.24, taste:{animation:1.2,romance:1.1,comedy:1.05,sports:1.05}, rel:48, blurb:"Family-first suburban palaces with the biggest lobby standees."},
+  {id:"lumen",    name:"Lumen Grand",         emoji:"✨", screens:0.16, taste:{scifi:1.15,concert:1.2,musical:1.1},                rel:50, blurb:"Big-format premium auditoriums in the toniest postcodes."},
+  {id:"regent",   name:"Regent Arthouse",     emoji:"🏛", screens:0.12, taste:{drama:1.25,truecrime:1.15,western:1.1,war:1.1},     rel:60, blurb:"Platform-release houses in every college town."},
+  {id:"starlite", name:"Starlight Drive-Ins", emoji:"🌙", screens:0.08, taste:{horror:1.25,comedy:1.1},                            rel:42, blurb:"Nostalgic lots on the edge of town. Cheap prints, loyal crowds."},
+];
+
+/* ── v12 city-level box office (§26): fictional cities per release region ── */
+DATA.CITIES = {
+  europe:["Bright Harbour","Kesselstadt","Valmont-sur-Mer"],
+  eastasia:["Xinyu Harbour","Kaicheng","Motomachi"],
+  seasia:["Kota Laut","Pantai Raya","Mueang Mai"],
+  india:["Roshanpur","Kalighat Heights","Navgaon"],
+  latam:["Puerto Cielo","Villa Sombra","Costa Verde"],
+  me:["Al Sahra City","Wadi Nassim","Jabal Rihab"],
+  other:["Port Meridian","Cap Aurora","Highbridge"],
+};
+
 /* ── v2 executives ── */
 DATA.EXECS = [
   {id:"cmo",     icon:"📣", name:"Chief Marketing Officer", hire:40, salary:0.40, desc:"+12% hype on every release"},
@@ -624,8 +647,8 @@ function yearOfW(w){ return Math.floor((w-1)/52)+1; }
         UNION NEGOTIATIONS · WAGE INFLATION · TUTORIAL
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Save schema v5 (see migrateSave step 5 in engine.js) ── */
-DATA.SAVE_VERSION = 5;
+/* ── Save schema v6 (see migrateSave step 6 in engine.js) ── */
+DATA.SAVE_VERSION = 6;
 
 /* ── Talent agencies (v5): WME/CAA-style shops with rosters ──
    Every piece of talent is repped by one of these. Casting 2+ clients

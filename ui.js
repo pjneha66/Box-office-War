@@ -1916,6 +1916,7 @@ function viewProductions(){
       (function(){ let legs="—"; try{ legs=legsOf({genre:p.genre, quality:p.quality, releaseWeek:G.week, pattern:p.pattern, rollout:p.rollout, imax:p.imax})+"×"; }catch(e){}
         const steps=[p.tested?"Test ✓":"Test — screen it", "P&A ≈ "+fmtM(recMarketing(p)), p.releaseWeek?"Dated "+dateLabel(p.releaseWeek):"Undated"];
         return "<div class='tiny muted' style='margin-top:4px'>Release readiness: "+steps.join(" · ")+" · legs ~"+legs+".</div>"; })()+
+      (p.releaseWeek && p.advanceTotal? "<div class='tiny muted' style='margin-top:4px'>🎟 Advance sales: <b class='gold'>"+fmtM(p.advanceTotal)+"</b> banked over "+((p.advance||[]).length)+" wk — the curve builds toward opening day.</div>":"")+
       (p.writer||p.producer? "<div class='tiny muted'>"+(p.writer? "✍️ "+esc(p.writer.name)+" ("+(p.writerBonus>=0?"+":"")+p.writerBonus+" script)":"")+(p.producer? " · 🎫 "+esc(p.producer.name):"")+"</div>":"")+
       "<div class='row' style='margin-top:6px'><span class='tag "+(p.rating==="R"?"red":"blue")+"'>"+p.rating+"</span><span class='tag'>"+lo.name+" ("+Math.round(lo.rebate*100)+"%)</span>"+
         (p.premium?"<span class='tag gold'>🍿 IMAX/Premium</span>":"")+
@@ -2005,7 +2006,9 @@ function schedModal(){
   h+="</div><div class='tiny muted' style='margin:2px 0 4px'>"+
     (SCHEDULE.regions.length? "This release leans into "+SCHEDULE.regions.map(id=>{const d=regionDefs().find(x=>x.id===id); return d? d.emoji+" "+d.name : id;}).join(", ")+
       " — each +6% intl gross (first) / +3% (extra) and ×1.8 market share. Tap again to untap." :
-      "No targeting: the film finds its own markets. Shoot-location rebates are separate (set in the wizard).")+"</div>";
+      "No targeting: the film finds its own markets. Shoot-location rebates are separate (set in the wizard).")+
+    "</div>"+
+    "<div class='tiny muted' style='margin:2px 0 4px'>🌍 Dubbing & localization: −"+fmtM(localizationCost(p, SCHEDULE.regions.length? SCHEDULE.regions : "auto"))+" <span class='muted'>(dubs, subs, local P&A materials — charged at release; foreign-language productions print for less, staggered rollouts print for more)</span></div>";
   /* v9: rating appeal board */
   if(p.rating==="R"){
     h+="<div class='card' style='margin-top:8px;cursor:pointer' id='scAppeal'><div class='spread'><span class='small'>"+(SCHEDULE.appeal?"✅ ":"⬜ ")+"<b>⚖ Appeal the R rating</b> — fight the board for PG-13</span><span class='tag "+(SCHEDULE.appeal?"gold":"")+"'>"+fmtM(3)+" filing fee</span></div>"+
@@ -2084,6 +2087,8 @@ function schedModal(){
   const be=breakevenWW({budget:p.budget, marketing:effMkt});
   h+="<div class='card' style='margin-top:10px'><div class='cost-line'><span>Expected opening (est.)</span><b id='scExp'>"+fmtG(exp)+" dom</b></div>"+
     "<div class='cost-line'><span>Breakeven</span><b id='scBe'>"+fmtG(be)+" WW</b></div>"+
+    "<div class='cost-line'><span>🎟 Advance sales by opening (est.)</span><b id='scAdv'>"+fmtM(advancePreview(p,SCHEDULE.week))+"</b></div>"+
+    "<div class='cost-line'><span>Dubbing & localization</span><b>−"+fmtM(localizationCost(p, SCHEDULE.regions.length? SCHEDULE.regions : "auto"))+"</b></div>"+
     "<div class='cost-line'><span>Pay now (30% P&A)</span><b id='scPay'>"+fmtM(effMkt*0.3)+"</b></div>"+
     "<div class='cost-line'><span>Cost</span><b>"+fmtM(effMkt)+" P&A total</b></div>"+
     "<div class='cost-line'><span>Risk</span><b>"+(weekendCompetitors(p,SCHEDULE.week).length? weekendCompetitors(p,SCHEDULE.week).length+" rival(s) that weekend":"clean weekend")+"</b></div>"+
@@ -2096,10 +2101,11 @@ function schedModal(){
     $("#scMktV").textContent=fmtM(SCHEDULE.marketing);
     const e2=previewOpen(p,SCHEDULE.week);
     const effMkt = schedMkt(p,true);
-    const eEl=$("#scExp"), bEl=$("#scBe"), pEl=$("#scPay");
+    const eEl=$("#scExp"), bEl=$("#scBe"), pEl=$("#scPay"), aEl=$("#scAdv");
     if(eEl) eEl.textContent=fmtG(e2)+" dom";
     if(bEl) bEl.textContent=fmtG(breakevenWW({budget:p.budget, marketing:effMkt}))+" WW";
     if(pEl) pEl.textContent=fmtM(effMkt*0.3);
+    if(aEl) aEl.textContent=fmtM(advancePreview(p,SCHEDULE.week));
   };
   v.querySelectorAll("[data-w]").forEach(el=>el.onclick=()=>{ SCHEDULE.week=+el.dataset.w; beep("click"); schedModal(); });
   const pm=v.querySelector("#scPremium"); if(pm) pm.onclick=()=>{ SCHEDULE.premium=!SCHEDULE.premium; beep("click"); schedModal(); };
@@ -2178,6 +2184,14 @@ function previewOpen(p,w){
   }
   const v=expectedOpening(p,w);
   p.marketing=saved.m; p.releaseWeek=saved.r; p.premium=saved.pr; p.mktBoosts=saved.mb; p.buzzBonus=saved.bz; p.awareness=saved.aw;
+  return v;
+}
+/* v12: advance-sales preview — reflects the P&A and campaigns currently picked in the modal */
+function advancePreview(p, week){
+  const savedC=(p.campaigns||[]).slice(), savedM=p.marketing;
+  if(SCHEDULE){ p.campaigns=SCHEDULE.camps.slice(); p.marketing=SCHEDULE.marketing; }
+  const v=advanceProjection(p, week);
+  p.campaigns=savedC; p.marketing=savedM;
   return v;
 }
 
@@ -2305,13 +2319,16 @@ function regionPanel(f){
   try{ if(!regs||!regs.length) regs=regionSplit(f); }catch(e){ return ""; }
   const lastWk=(f.weekly&&f.weekly.length)?f.weekly[f.weekly.length-1].gross:0;
   const live=!!f.inTheaters;
+  const cities=cityRows(f);
   let h="<div class='card' style='margin:8px 0 0'><b class='small'>🌍 International markets</b>"+
-    "<div class='tiny muted'>"+(live?"Estimates split from the live domestic pace — totals update nightly.":"Final regional split.")+" Levers: staggered rollout, intl campaign channel, foreign-language bonus.</div>";
+    "<div class='tiny muted'>"+(live?"Estimates split from the live domestic pace — totals update nightly.":"Final regional split.")+" City-level detail under the top three markets. Levers: staggered rollout, intl campaign channel, foreign-language bonus.</div>";
   regs.forEach(r=>{
     const openEst=f.opening? Math.max(0,Math.round(f.opening*(r.gross/Math.max(1,((f.ww||0)-(f.dom||0))))*10)/10):0;
     const wkEst=live? Math.max(0,Math.round(lastWk*(r.gross/Math.max(1,((f.ww||0)-(f.dom||0))))*10)/10):0;
     h+="<div class='cost-line'><span>"+r.emoji+" "+r.name+" <span class='tiny muted'>aud "+r.aud+" · "+r.share+"% of WW"+(r.note?" · "+r.note:"")+"</span></span>"+
       "<b>"+fmtG(r.gross)+"<span class='tiny muted'> tot</span>"+(live?" · "+fmtG(wkEst)+"<span class='tiny muted'>/wk</span>":" · open ≈ "+fmtG(openEst))+"</b></div>";
+    const cr=cities.find(x=>x.region.id===r.id);
+    if(cr) h+="<div class='tiny muted' style='margin:-2px 0 4px 14px'>🏙 "+cr.cities.map(c=>esc(c.name)+" "+fmtG(c.gross)).join(" · ")+"</div>";
   });
   return h+"</div>";
 }
@@ -2462,6 +2479,19 @@ function viewBoxOffice(){
 h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div class='tiny muted' style='margin:-4px 0 8px'>They date corridors by style, blink when you out-muscle their weekend, poach hot free talent, outbid you on sports, and launch streamers. Slates re-seed yearly; heat follows genre trends like yours.</div><div class='grid g3'>"+
      G.rivals.map(rivalProfile).join("")+"</div>";
   h+=regionSummaryPanel();
+  /* v12: theater chains (§22) — booking relation decides the screens a release gets */
+  h+="<div class='section-title'>🎞 Theater chains</div><div class='tiny muted' style='margin:-4px 0 8px'>Five chains control ~90% of domestic screens (independents hold the rest). Booking relation decides how many screens — and how big an opening — a release gets. Court a chain to warm it up; chains book their favorite genres generously.</div><div class='grid g3'>"+
+    (DATA.CHAINS||[]).map(dc=>{
+      const c=chainById(dc.id)||dc;
+      const rel=Math.round(c.rel);
+      const cost=chainCourtCost(c);
+      const taste=(c.taste?Object.keys(c.taste):[]).slice(0,3).map(g=>(DATA.GENRES[g]||{}).name||g).join(", ");
+      return "<div class='card'><div class='spread'><b>"+c.emoji+" "+esc(c.name)+"</b><span class='tag'>"+Math.round(c.screens*100)+"% screens</span></div>"+
+        "<div class='tiny muted' style='margin-top:2px'>"+esc(c.blurb)+"</div>"+
+        "<div class='cost-line'><span>Books generously</span><b class='tiny'>"+taste+"</b></div>"+
+        "<div class='cost-line'><span>Booking relation</span><b class='"+(rel>=65?"pos":rel<40?"neg":"")+"'>"+rel+"/100</b></div>"+
+        "<div class='row' style='margin-top:6px'><button class='btn btn-sm' data-court='"+c.id+"'>🤝 Court — "+fmtM(cost)+"</button></div></div>";
+    }).join("")+"</div>";
   const live=activeFilms();
   h+="<div class='section-title'>Your films in theaters ("+live.length+")</div>";
   if(!live.length) h+="<div class='card muted small'>No active runs. A film without a release date earns nothing.</div>";
@@ -2471,6 +2501,7 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
     const sp=boSplit(f), mult=boMult(f), legs=boLegs(f);
     const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):f.quality.aud;
     const crit=f.criticAvg!=null?f.criticAvg:f.quality.critic;
+    const daily=weekendDaily(f), weeks=screenWeeks(f);
     h+="<div class='card'><div class='spread'><div><b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b><div class='tiny muted'>wk "+f.weeksOut+" out · opened "+fmtG(f.opening)+" · "+scoreBadge(f.quality.overall)+"</div></div>"+
       "<div style='text-align:right'><b class='gold'>"+fmtG(f.dom)+"</b><div class='tiny muted'>domestic</div></div></div>"+
       "<div class='stat-hero' style='margin-top:8px'>"+
@@ -2485,6 +2516,13 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
       "</div>"+
       "<div class='weekly-gross-chart'>"+f.weekly.slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
       "<div class='tiny muted' style='margin-top:4px'>Weekly rentals (53% dom, paid weekly): "+f.weekly.slice(-6).map(x=>fmtG(x.gross*0.53)).join(" · ")+"</div>"+
+      "<div class='card' style='margin:8px 0 0'><b class='small'>🎟 Opening weekend — daily</b>"+
+        "<div class='weekly-gross-chart' style='margin-top:6px'>"+daily.map(d=>"<div class='wg' style='height:"+Math.max(4,d.gross/Math.max(0.001,f.opening||1)*100)+"%' title='"+d.day+" "+fmtG(d.gross)+"'></div>").join("")+"</div>"+
+        "<div class='tiny muted' style='margin-top:4px'>"+daily.map(d=>d.day+" "+fmtG(d.gross)).join(" · ")+"</div></div>"+
+      "<div class='card' style='margin:6px 0 0'><b class='small'>📊 Week-by-week</b>"+
+        weeks.slice(-8).map((r,i)=>"<div class='cost-line'><span>Wk "+(r.w-f.releaseWeek+1)+" · "+(r.wow==null?"<b>opening</b>":(r.wow>=0?"<b class='pos'>+":"<b class='neg'>")+r.wow+"% WoW</b>")+"</span>"+
+        "<b class='tiny'>"+fmtG(r.gross)+" · "+r.screens.toLocaleString("en-US")+" scr · "+(r.psa>=1000?"$"+(Math.round(r.psa/100)/10)+"M":"$"+Math.round(r.psa)+"K")+"/scr · "+r.occ+"% full</b></div>").join("")+
+        "<div class='tiny muted' style='margin-top:4px'>Screens shrink as the run winds down; per-screen average and occupancy follow the gross.</div></div>"+
       "<div class='spread small' style='margin-top:6px'><span class='muted'>Tracking ≈ "+fmtG(projWW)+" WW vs "+fmtG(be)+" breakeven · run health "+Math.round(clamp((f.weekly.length?f.weekly[f.weekly.length-1].gross:0)/Math.max(1,f.opening)*100,0,100))+"% of opening</span>"+
       "<span class='"+(projWW>=be?"pos":"neg")+"'>"+(projWW>=be?"on pace to profit":"below breakeven")+"</span></div>"+
       "<div class='card' style='margin:8px 0 0'><b class='small'>Why is this performing this way?</b><div style='margin-top:4px'>"+boWhy(f)+"</div></div>"+
@@ -2493,7 +2531,10 @@ h+="<div class='section-title'>Rival studios ("+G.rivals.length+")</div><div cla
       (G.piracy>=45? "<div class='tiny neg' style='margin:2px 0'>🏴‍☠️ Piracy is draining this run (−"+Math.round(clamp(G.piracy/100,0,1)*(DATA.PIRACY?DATA.PIRACY.maxGrossDamage:0.1)*100)+"% weekly gross).</div>":"")+
       scoreSplit(f)+
       "<div class='row' style='margin-top:4px'><button class='btn btn-sm btn-ghost' data-reviews='"+f.id+"'>🗞 Read the reviews</button></div>"+
-      "<div class='tiny' style='margin-top:4px'>💰 Rentals received to date: <b class='gold'>"+fmtM(f.rentalsDom||0)+"</b> <span class='muted'>(~53% of domestic gross, paid weekly)</span>"+(f.presales?" · <span class='muted'>intl pre-sold</span>":"")+"</div></div>";
+      "<div class='tiny' style='margin-top:4px'>💰 Rentals received to date: <b class='gold'>"+fmtM(f.rentalsDom||0)+"</b> <span class='muted'>(~53% of domestic gross, paid weekly)</span>"+(f.presales?" · <span class='muted'>intl pre-sold</span>":"")+"</div>"+
+      (f.advanceTotal? "<div class='tiny' style='margin-top:4px'>🎟 Advance tickets banked: <b class='gold'>"+fmtM(f.advanceTotal)+"</b> <span class='muted'>(sold before opening day)</span></div>":"")+
+      (f.locCost? "<div class='tiny' style='margin-top:4px'>🌍 Dubbing & localization: <b>"+fmtM(f.locCost)+"</b> <span class='muted'>(dubs, subs, local P&A — itemized at release)</span></div>":"")+
+      "</div>";
   }
   const lib=G.films.slice().sort((a,b)=>(b.ww||0)-(a.ww||0));
   const compareSel = G.compareSel || [];
@@ -3034,6 +3075,7 @@ function bindView(){
   $$("[data-fr-more]").forEach(b=>b.onclick=()=>{ beep("click"); empireModal(+b.dataset.frMore); });
   $$("[data-merchline]").forEach(b=>b.onclick=()=>{ const [fid,lid]=b.dataset.merchline.split(":"); if(launchMerchLine(+fid,lid)){ beep("cash"); flashes(G.flash); render(); } else beep("bad"); });
   $$("[data-rerelease]").forEach(b=>b.onclick=()=>{ rereleaseFilm(+b.dataset.rerelease); beep("gold"); flashes(G.flash); render(); });
+  $$("[data-court]").forEach(b=>b.onclick=()=>{ courtChain(b.dataset.court); beep("gold"); flashes(G.flash); render(); });   // v12: warm up a theater chain
   $$("[data-reboot]").forEach(b=>b.onclick=()=>{ rebootFilm(+b.dataset.reboot); beep("gold"); flashes(G.flash); render(); });
   $$("[data-rewrite]").forEach(b=>b.onclick=()=>{ rewriteScript(+b.dataset.rewrite); beep("click"); flashes(G.flash); render(); });
   $$("[data-reshoot]").forEach(b=>b.onclick=()=>{ reshootFilm(+b.dataset.reshoot); beep("gold"); flashes(G.flash); render(); });

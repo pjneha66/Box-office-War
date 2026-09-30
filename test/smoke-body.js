@@ -191,6 +191,7 @@ if(!mig.save.trends || !Number.isFinite(mig.save.trends.action)) throw new Error
 if(!mig.save.talent.every(t=>Number.isFinite(t.age))) throw new Error("migration did not backfill talent ages");
 if(mig.save.streamer && mig.save.streamer.tier!=="premium") throw new Error("migration did not default the streamer tier");
 if(mig.save.public && !Number.isFinite(mig.save.public.price)) throw new Error("migration did not seed the share price");
+if(!mig.save.chains || mig.save.chains.length!==5) throw new Error("migration did not seed theater chains");
 console.log("v4 · save schema v"+parsed.v+" ok · legacy v1 migrated via steps ["+mig.applied.join(",")+"]");
 
 const badProblems = validateSave({ studio:{cash:"lots"}, week:0 });
@@ -223,6 +224,36 @@ for(const fc of [forecastProject(), cashflowForecast()]){
   if(!rows.every(r=>Number.isFinite(r.net))) throw new Error("forecast has non-finite net");
 }
 console.log("v5 · forecasts finite");
+
+// ── v12: box office depth — chains, daily split, screens, advance curve, localization ──
+if(!Array.isArray(G.chains) || G.chains.length!==5) throw new Error("theater chains not initialized");
+G.studio.cash=Math.max(G.studio.cash, 100);
+const chain0=G.chains[0], relBefore=chain0.rel;
+if(!courtChain(chain0.id)) throw new Error("courtChain failed");
+if(!(chain0.rel>relBefore)) throw new Error("courtChain did not warm the chain");
+const probe=G.films.find(f=>f.inTheaters) || G.films[G.films.length-1];
+if(!probe || !probe.opening) throw new Error("no released film for depth checks");
+const daily=weekendDaily(probe);
+if(Math.round(daily.reduce((a,d)=>a+d.gross,0)*10)/10!==Math.round((probe.opening||0)*10)/10) throw new Error("daily split does not re-sum to opening");
+if(JSON.stringify(weekendDaily(probe))!==JSON.stringify(daily)) throw new Error("daily split is not deterministic");
+const wkRows=screenWeeks(probe);
+if(wkRows.length!==(probe.weekly||[]).length) throw new Error("screen weeks row mismatch");
+if(!wkRows.every(r=>r.screens>0 && Number.isFinite(r.psa) && r.occ>=2 && r.occ<=98)) throw new Error("bad screen/occupancy row");
+if(wkRows.length>1 && wkRows[0].wow!==null) throw new Error("opening week should not have a WoW%");
+const cities=cityRows(probe);
+if(!cities.length || !cities.every(cr=>Math.round(cr.cities.reduce((a,c)=>a+c.gross,0)*10)/10===Math.round(cr.region.gross*10)/10)) throw new Error("city split does not re-sum to region");
+const dated=G.projects.find(p=>p.phase==="ready" && p.releaseWeek>G.week);
+if(dated){
+  dated.marketing=dated.marketing||recMarketing(dated);
+  dated.awareness=Math.max(dated.awareness||0, 0.8);
+  const advBefore=dated.advanceTotal||0;
+  tickAdvances();
+  if(!((dated.advanceTotal||0)>advBefore)) throw new Error("advance sales did not accrue");
+}
+if(!(localizationCost({budget:100, foreignLang:false, rollout:"day"}, ["europe"])>0)) throw new Error("localization cost empty");
+if(localizationCost({budget:100, foreignLang:true, rollout:"day"}, "auto")>=localizationCost({budget:100, foreignLang:false, rollout:"day"}, "auto")) throw new Error("foreign-language productions should print for less");
+console.log("v12 · chains "+G.chains.length+" (meridian rel "+Math.round(G.chains[0].rel)+") · daily split re-sums · "+wkRows.length+
+            " wk rows · PSA wk1 $"+(wkRows[0]&&wkRows[0].psa||0)+"K · advance "+(dated?fmtM(dated.advanceTotal||0):"—")+" · cities ok");
 
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
