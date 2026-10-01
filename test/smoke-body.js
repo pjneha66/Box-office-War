@@ -318,6 +318,27 @@ if(unreadMail()!==0) throw new Error("markMailRead left unread letters");
 console.log("v15 · mail "+G.mail.length+" letters ("+unreadMail()+" unread after read-all) · kinds "+
             [...new Set(G.mail.map(m=>m.kind))].join("/")+" · ok");
 
+// ── v16: game studio ──
+if(!Array.isArray(DATA.GAME_DEVS) || DATA.GAME_DEVS.length!==3) throw new Error("game dev houses missing");
+G.studio.cash=Math.max(G.studio.cash, 200);
+if(!unlockGames()) throw new Error("game studio unlock failed");
+const srcsV16=gameSources();
+if(srcsV16.length){
+  if(!startGameDev(srcsV16[0].key, "partner")) throw new Error("game dev failed to start");
+  const prV16=G.gamesDiv.projects[0];
+  const cashBefore=G.studio.cash;
+  tickGameStudio();
+  if(G.studio.cash>=cashBefore) throw new Error("game dev did not burn weekly");
+  let guard16=0;
+  while(G.gamesDiv.projects.length && guard16++<20) tickGameStudio();
+  if(!G.gamesDiv.released.length) throw new Error("game never shipped");
+  const g16=G.gamesDiv.released[0];
+  if(!(g16.score>=5 && g16.score<=98 && g16.total>0 && g16.weekly>0)) throw new Error("bad game release data");
+  console.log("v16 · game studio: “"+g16.title+"” scored "+g16.score+"/100, "+fmtM(g16.total)+" total (launch "+fmtM(g16.earned)+") · ok");
+}else{
+  console.log("v16 · game studio unlocked; no eligible sources this run · ok");
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;

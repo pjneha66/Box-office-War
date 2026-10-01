@@ -1440,6 +1440,86 @@ function tickFanMail(){
 function unreadMail(){ return (G.mail||[]).filter(m=>m.unread).length; }
 function markMailRead(){ (G.mail||[]).forEach(m=>{ m.unread=false; }); saveGame(); }
 
+/* ── game studio (v16): the movie-game division — turn hits & franchises into games ──
+   Unlock once, greenlight adaptations (source + developer house), burn weekly
+   through development, launch to a review score with a 12-week sales tail.
+   A 70+ game re-heats its franchise brand and earns a board nod. */
+function unlockGames(){
+  if(G.gamesDiv && G.gamesDiv.unlocked) return false;
+  if(G.studio.cash<50){ log("💸 Founding the game studio takes "+fmtM(50)+" — engines, licenses, desks.","bad"); return false; }
+  spend("studio", 50);
+  G.gamesDiv={unlocked:true, projects:[], released:[]};
+  log("🎮 The "+G.studio.name+" game studio is open — adapt your hits and franchises into playable worlds (+$0.4M/wk overhead).","gold");
+  saveGame(); return true;
+}
+function gameSources(){
+  const inDev=(((G.gamesDiv||{}).projects)||[]).map(p=>p.srcKey);
+  const out=[];
+  (G.franchises||[]).forEach(fr=>{
+    out.push({key:"fr:"+fr.id, kind:"franchise", id:fr.id, name:fr.name, emoji:"🏰",
+      heat:Math.round((fr.decay||0)*100), power:15+fr.tier*15+(fr.decay||0)*35,
+      blurb:fr.entries.length+" hit"+(fr.entries.length>1?"s":"")+" · tier "+fr.tier});
+  });
+  (G.films||[]).filter(f=>{ try{ return (f.ww||0)>=breakevenWW(f)*1.2; }catch(e){ return false; } }).slice(-8).forEach(f=>{
+    out.push({key:"film:"+f.id, kind:"film", id:f.id, name:f.title, emoji:(DATA.GENRES[f.genre]||{}).emoji||"🎬",
+      heat:Math.round(clamp((f.ww||0)/Math.max(1,(f.opening||1)*2.2),0,4)*25), power:10+clamp((f.ww||0)/40,0,30),
+      blurb:fmtG(f.ww)+" WW · "+((DATA.GENRES[f.genre]||{}).name||f.genre)});
+  });
+  return out.filter(s=>!inDev.includes(s.key));
+}
+function startGameDev(srcKey, devId){
+  if(!G.gamesDiv || !G.gamesDiv.unlocked) return false;
+  if((G.gamesDiv.projects||[]).length>=3){ log("🕹 The dev floor is full (3 projects) — ship one first.","bad"); return false; }
+  const dev=(DATA.GAME_DEVS||[]).find(d=>d.id===devId); if(!dev) return false;
+  const src=gameSources().find(s=>s.key===srcKey);
+  if(!src){ log("🎮 That source is already in development (or no longer eligible).","bad"); return false; }
+  if(G.studio.cash<dev.cost){ log("💸 "+dev.name+" wants "+fmtM(dev.cost)+" up front (plus "+fmtM(dev.weekly)+"/wk through development).","bad"); return false; }
+  spend("games", dev.cost);
+  const weeks=rint(dev.weeks[0], dev.weeks[1]);
+  const title=src.kind==="franchise"? src.name+": "+pick(["The Game","Next Level","Legacy Mode","Open World","Rivals"]) : src.name+" — The Game";
+  G.gamesDiv.projects.push({id:nid(), title, srcKey, srcKind:src.kind, srcId:src.id, srcName:src.name,
+    dev:dev.id, devName:dev.name, weeksLeft:weeks, weeks0:weeks, weekly:dev.weekly, base:dev.quality, power:src.power, spent:dev.cost});
+  log("🕹 Greenlit: “"+title+"” — "+dev.name+", ~"+weeks+" wks at "+fmtM(dev.weekly)+"/wk.","gold");
+  saveGame(); return true;
+}
+function tickGameStudio(){
+  const D=G.gamesDiv; if(!D||!D.unlocked) return;
+  const shipped=[];
+  (D.projects||[]).forEach(pr=>{
+    if(pr.weeksLeft>0){
+      spend("games", pr.weekly); pr.spent=Math.round((pr.spent+pr.weekly)*10)/10;
+      pr.weeksLeft--;
+      if(pr.weeksLeft<=0){ releaseGame(pr); shipped.push(pr); }
+    }
+  });
+  D.projects=(D.projects||[]).filter(p=>!shipped.includes(p));
+}
+function releaseGame(pr){
+  const D=G.gamesDiv;
+  const fr=pr.srcKind==="franchise"? frById(pr.srcId) : null;
+  const heat=fr? (fr.decay||0.5) : 0.5;
+  const score=clamp(Math.round(pr.base + pr.power*0.25 + (heat-0.5)*25 + (rnd()*16-8)), 5, 98);
+  const total=Math.round((score/100)*(18+pr.power)*(0.8+rnd()*0.4)*10)/10;
+  const launch=Math.round(total*0.35*10)/10;
+  const weekly=Math.round((total-launch)/12*10)/10;
+  earn("games", launch);
+  D.released.unshift({id:pr.id, title:pr.title, score, total, earned:launch, weekly, weeksLeft:12, when:G.week});
+  if(D.released.length>12) D.released.length=12;
+  if(fr && score>=70){
+    fr.decay=clamp((fr.decay||0)+0.1,0,1);
+    (G.board||[]).forEach(m=>{ m.approval=clamp(m.approval+1,5,99); });
+    log("🎮 "+pr.title+" launches to a "+score+"/100 — the "+fr.name+" brand runs hot again (+heat), "+fmtM(launch)+" launch weekend. The board is pleased.","gold");
+  }
+  else if(score<45) log("🎮 "+pr.title+" launches to a rough "+score+"/100 — the forums are merciless. "+fmtM(launch)+" launch weekend.","bad");
+  else log("🎮 "+pr.title+" launches to a "+score+"/100. "+fmtM(launch)+" launch weekend, "+fmtM(weekly)+"/wk tail for a year.","");
+}
+function tickGameSales(){
+  const D=G.gamesDiv; if(!D||!D.unlocked) return;
+  (D.released||[]).forEach(g=>{
+    if(g.weeksLeft>0){ earn("games", g.weekly); g.earned=Math.round((g.earned+g.weekly)*10)/10; g.weeksLeft--; }
+  });
+}
+
 function expectedOpening(p, weekAbs){
   const S=DATA.SCALES[p.scale], g=DATA.GENRES[p.genre];
   let base = S.openBase * g.mass * (g.openBoost||1) * (G.infl||1);
@@ -3930,6 +4010,8 @@ function advanceWeek(){
   if(typeof tickEspionage==="function") tickEspionage();     // v14: rivals play dirty
   if(typeof tickLegal==="function") tickLegal();             // v14: disputes land on the desk
   if(typeof tickLabel==="function") tickLabel();             // v14: music label weekly income
+  if(typeof tickGameStudio==="function") tickGameStudio();   // v16: game dev burns weekly, ships at gold master
+  if(typeof tickGameSales==="function") tickGameSales();     // v16: released games' sales tail
   if(typeof tickFanMail==="function") tickFanMail();         // v15: the audience writes back
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
@@ -4696,6 +4778,7 @@ function weeklyOverhead(){
   o += hqUpkeep(); // headquarters facilities bill weekly maintenance
   if(G.btl){ ["dp","composer","vfx"].forEach(r=>{ if(G.btl[r]) o+=G.btl[r].salary; }); } // v9 crew retainers
   if(G.label && G.label.unlocked) o+=0.3; // v14 music label: A&R, studio time, sync paperwork
+  if(G.gamesDiv && G.gamesDiv.unlocked) o+=0.4; // v16 game studio: engines, licenses, dev kits
   return Math.round(o*100)/100;
 }
 /* ── studio headquarters: departments unify existing buys + 5 buildable wings ──

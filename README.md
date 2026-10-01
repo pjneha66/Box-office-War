@@ -4,6 +4,12 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v16 — 🎮 Game Studio tab
+
+- **New Game Studio tab** (desktop nav; on mobile it's in the ⋯ More sheet): found your own movie-game division — adapt franchises (any tier) and 1.2× breakeven hits into video games.
+- **Pick a source + a developer house**: in-house team ($12M, scrappy), partner studio ($30M, solid) or the elite AAA house ($70M, delivers). Development burns weekly for 5–12 weeks, up to 3 games in dev at once.
+- **Launches land a review score** (hotter sources + better houses score higher) and a launch weekend plus a 12-week sales tail. A 70+ game re-heats its franchise brand, pleases the board, and duds get shredded in the forums. Sources already in development are locked out, and licensing rights out (Empire tab) still exists for the sell-out route.
+
 ## 🆕 What's new in v15 — Fans tab, fan mail & collapsible everything
 
 - **New 📬 Fans tab** (desktop nav + a sixth mobile bottom tab): the audience-facing desk — fan mail, the trending board (moved off the crowded control room), buzz panels for films in theaters, and an audience-pulse summary.

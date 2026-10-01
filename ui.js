@@ -253,7 +253,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   // keyboard shortcuts
   document.addEventListener("keydown", e=>{
     if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA") return;
-    if(e.key>="1" && e.key<="8"){ const tabs=["studio","develop","productions","boxoffice","fans","ott","empire","finance"]; switchTab(tabs[e.key-1]); }
+    if(e.key>="1" && e.key<="9"){ const tabs=["studio","develop","productions","boxoffice","fans","ott","empire","games","finance"]; switchTab(tabs[e.key-1]); }
     else if(e.code==="Space" && !e.shiftKey){ e.preventDefault(); doWeek(1); }
     else if(e.code==="Space" && e.shiftKey){ e.preventDefault(); doWeek(4); }
     else if(e.key==="r" || e.key==="R"){ e.preventDefault(); if(!G.over){ const rows=$$("[data-sched]"); if(rows.length) rows[0].click(); } }
@@ -286,7 +286,7 @@ function enterApp(fresh){
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   TAB=t; beep("click");
-  $$(".tab,.btab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"))));
+  $$(".tab,.btab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"))));
   render();
   const v=$("#view");   // v7: replay the entrance so the new tab glides in
   if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
@@ -386,6 +386,7 @@ function moreSheet(){
   const rows=[
     ["ott","📺","OTT & Series","Your streamer · licenses · sports rights"],
     ["empire","🏰","Empire","Franchises · merch · parks · M&A desk"],
+    ["games","🎮","Game Studio","Adapt your hits & franchises into games"],
     ["finance","💼","Finance","Loans · IPO · executives · P&L ledger"],
   ];
   let h="<h3>⋯ More</h3><div class='plan-pick' style='margin-top:10px'>";
@@ -493,6 +494,7 @@ function render(){
   else if(TAB==="fans") h=viewFans();
   else if(TAB==="ott") h=viewOTT();
   else if(TAB==="empire") h=viewEmpire();
+  else if(TAB==="games") h=viewGames();
   else if(TAB==="finance") h=viewFinance();
   const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
   v.innerHTML = (tb? tb : "") + h;
@@ -3300,6 +3302,14 @@ function bindView(){
   $$("[data-dropartist]").forEach(b=>b.onclick=()=>{ if(dropArtist(b.dataset.dropartist)){ beep("click"); flashes(G.flash); render(); } });
   $$("[data-whatif]").forEach(b=>b.onclick=()=>{ beep("click"); whatIfModal(); });
   const mr=$("#btnMailRead"); if(mr) mr.onclick=()=>{ markMailRead(); beep("click"); render(); };
+  /* ── v16 game studio bindings ── */
+  $$("[data-games-unlock]").forEach(b=>b.onclick=()=>{ if(unlockGames()){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
+  $$("[data-gsrc]").forEach(b=>b.onclick=()=>{ GAMES.src=b.dataset.gsrc; beep("click"); render(); });
+  $$("[data-gdev]").forEach(b=>b.onclick=()=>{ GAMES.dev=b.dataset.gdev; beep("click"); render(); });
+  const gsGo=$("#gsGo"); if(gsGo) gsGo.onclick=()=>{
+    if(!GAMES.src){ toast("Pick a source first — a franchise or a hit film.","bad"); return; }
+    if(startGameDev(GAMES.src, GAMES.dev)){ beep("gold"); flashes(G.flash); render(); } else beep("bad");
+  };
 }
 
 /* ═══════════ streaming auction modal ═══════════ */
@@ -3384,6 +3394,54 @@ function testScreenModal(pid){
     if(beginReshoot(+rs.dataset.reshoot)){ beep("gold"); flashes(G.flash); closeModal(); render(); }
     else { toast("Not enough to reshoot now.","bad"); }
   };
+}
+
+/* ═══════════ VIEW: game studio (v16) — the movie-game division ═══════════ */
+let GAMES={src:null, dev:"partner"};
+function viewGames(){
+  let h="";
+  const D=G.gamesDiv||{unlocked:false, projects:[], released:[]};
+  h+="<div class='section-title'>🎮 Game studio</div>";
+  if(!D.unlocked){
+    h+="<div class='card'><div class='spread'><div><b>Found the "+esc(G.studio.name)+" game studio</b>"+
+      "<div class='tiny muted' style='margin-top:4px'>Turn your franchises and box-office hits into video games. Pick a developer house, burn weekly through development, launch to a review score with a 12-week sales tail. A 70+ game re-heats its franchise brand — and the board notices. (Prefer licensing the rights out instead? That's still on the Empire tab.)</div></div>"+
+      "<button class='btn btn-primary' data-games-unlock='1'>Found it — "+fmtM(50)+"</button></div>"+
+      "<div class='tiny muted' style='margin-top:6px'>+$0.4M/wk overhead once live. Up to 3 games in development at once.</div></div>";
+    return h;
+  }
+  h+="<div class='card'><div class='spread'><b>🕹 "+esc(G.studio.name)+" Interactive</b><span class='tag'>"+D.projects.length+"/3 in dev · "+D.released.length+" released</span></div></div>";
+  h+="<div class='section-title'>In development ("+D.projects.length+")</div>";
+  if(!D.projects.length) h+="<div class='card muted small'>The dev floor is quiet — greenlight an adaptation below.</div>";
+  D.projects.forEach(pr=>{
+    const pct=Math.round((1-pr.weeksLeft/pr.weeks0)*100);
+    h+="<div class='card'><div class='spread'><div><b>🕹 "+esc(pr.title)+"</b><div class='tiny muted'>"+esc(pr.devName)+" · "+fmtM(pr.weekly)+"/wk · "+pr.weeksLeft+" wk"+(pr.weeksLeft===1?"":"s")+" to gold master</div></div>"+
+      "<span class='tag'>"+pct+"%</span></div>"+
+      "<div style='height:8px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden'><div style='height:100%;width:"+pct+"%;background:linear-gradient(90deg,var(--gold),var(--gold2))'></div></div></div>";
+  });
+  h+="<div class='section-title'>Released games ("+D.released.length+")</div>";
+  if(!D.released.length) h+="<div class='card muted small'>No releases yet — the first gold master is always the scariest.</div>";
+  D.released.forEach(g=>{
+    h+="<div class='card'><div class='spread'><div><b>🎮 "+esc(g.title)+"</b><div class='tiny muted'>Y"+yearOf(g.when)+" · "+fmtM(g.earned)+" earned"+(g.weeksLeft>0? " · +"+fmtM(g.weekly)+"/wk for "+g.weeksLeft+" more wks":" · tail complete")+"</div></div>"+
+      "<b class='"+(g.score>=70?"pos":g.score<45?"neg":"")+"'>"+g.score+"/100</b></div></div>";
+  });
+  const srcs=gameSources();
+  h+="<div class='section-title'>Greenlight an adaptation</div>";
+  if(!srcs.length){
+    h+="<div class='card muted small'>No eligible sources — land a franchise (any tier) or a 1.2× breakeven release first, and keep them out of development.</div>";
+  }else{
+    h+="<div class='card'><div class='tiny muted' style='margin-bottom:6px'>Pick a source, then a developer house. Hotter sources make better games; a source already in development is locked out.</div>"+
+      "<div class='small muted' style='margin-bottom:6px'>Source</div><div class='row' style='flex-wrap:wrap'>";
+    srcs.slice(0,10).forEach(s=>{
+      h+="<button class='btn btn-sm"+(GAMES.src===s.key?" btn-primary":"")+"' data-gsrc='"+esc(s.key)+"'>"+s.emoji+" "+esc(s.name)+" <span class='tiny muted'>🔥"+s.heat+"</span></button>";
+    });
+    h+="</div><div class='small muted' style='margin:10px 0 6px'>Developer house</div><div class='plan-pick'>";
+    (DATA.GAME_DEVS||[]).forEach(d=>{
+      h+="<div class='plan-opt"+(GAMES.dev===d.id?" sel":"")+"' data-gdev='"+d.id+"'><div class='spread'><h5>"+d.name+"</h5><span class='tag "+(GAMES.dev===d.id?"gold":"")+"'>"+fmtM(d.cost)+" + "+fmtM(d.weekly)+"/wk</span></div>"+
+        "<div class='p-sub'>"+d.blurb+" Base quality ~"+d.quality+", "+d.weeks[0]+"–"+d.weeks[1]+" weeks.</div></div>";
+    });
+    h+="</div><div class='row' style='margin-top:10px'><button class='btn btn-primary' id='gsGo'>🕹 Greenlight the game</button></div></div>";
+  }
+  return h;
 }
 
 /* ═══════════ EMPIRE view ═══════════ */
@@ -4252,7 +4310,7 @@ function empireModal(frId){
 function installGestures(){
   if(installGestures._done) return;
   installGestures._done=true;
-  const ORDER=["studio","develop","productions","boxoffice","fans","ott","empire","finance"];
+  const ORDER=["studio","develop","productions","boxoffice","fans","ott","empire","games","finance"];
   let sx=0, sy=0, topY=0, pulled=false;
   document.addEventListener("touchstart",e=>{
     if(!e.touches.length) return;

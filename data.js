@@ -210,6 +210,14 @@ DATA.FAN_NAMES = [
   "bandagedthumb","the Alvarez crew","Noor H.","Paulie & the kids","midnight_marge","Dev P.",
 ];
 
+/* ── v16 game studio: developer houses for the movie-game division ──
+   cost: up-front fee; weekly: burn through development; quality: base score */
+DATA.GAME_DEVS = [
+  {id:"inhouse", name:"In-house team",    cost:12, weeks:[8,12], quality:55, weekly:0.8, blurb:"Cheap and loyal — scrappy games, thin ceilings."},
+  {id:"partner", name:"Partner studio",   cost:30, weeks:[6,9],  quality:72, weekly:1.5, blurb:"Proven genre houses — solid games, real burn."},
+  {id:"elite",   name:"Elite AAA house",  cost:70, weeks:[5,8],  quality:88, weekly:3,   blurb:"The best in the business. Costs like it, delivers like it."},
+];
+
 /* ── v2 executives ── */
 DATA.EXECS = [
   {id:"cmo",     icon:"📣", name:"Chief Marketing Officer", hire:40, salary:0.40, desc:"+12% hype on every release"},
