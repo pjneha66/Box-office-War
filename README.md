@@ -4,6 +4,17 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v17 — Cinematic HUD 2.0 theme
+
+A full visual pass over the game's chrome, taking the design language of [21st.dev's game-UI collection](https://21st.dev/community/components/s/game-ui) (HUD stat panels, segmented XP bars, achievement medallions) and [Uiverse](https://uiverse.io/) (glass panels, gradient borders, glow hovers) — rebuilt entirely in vanilla CSS, so the game stays 100% offline with zero external assets:
+
+- **HUD panels**: every card and stat wears a subtle gradient border ring that catches a gold glow on hover.
+- **HUD chips**: the topbar cash/debt/date chips get glass rings, a glowing signal dot, and hover sheen.
+- **Medallion stats**: the big stat values render in gradient gold with a soft drop glow.
+- **Segmented XP-style bars**: all progress bars gain game-style segment ticks under their shimmer.
+- **Quest-panel folds**: collapsible section headers glow gold on hover with a lit caret.
+- **Detail pass**: diamond section-title markers, glossy chart-bar caps, tag glow, a gold top indicator on the active mobile tab, modal gradient ring, toast polish, and a gold-whisper scrollbar. Every animation respects the existing reduced-motion switches.
+
 ## 🆕 What's new in v16 — 🎮 Game Studio tab
 
 - **New Game Studio tab** (desktop nav; on mobile it's in the ⋯ More sheet): found your own movie-game division — adapt franchises (any tier) and 1.2× breakeven hits into video games.

@@ -759,3 +759,135 @@ body.rm-motion *, body.rm-motion *::before, body.rm-motion *::after{
 .mail-item{padding:9px 2px; border-bottom:1px dashed var(--line)}
 .mail-item:last-child{border-bottom:none}
 .mail-item.unread{border-left:3px solid var(--gold); padding-left:8px; border-radius:4px}
+
+/* ═══════════════════════════════════════════════════════════
+   v17 — CINEMATIC HUD 2.0
+   Design language borrowed from 21st.dev's game-UI collection
+   (HUD stat panels, segmented XP bars, achievement medallions)
+   and Uiverse's glass / gradient-border / glow patterns — rebuilt
+   in vanilla CSS: zero external assets, fully offline, and every
+   animation respects the reduced-motion switches above.
+   ═══════════════════════════════════════════════════════════ */
+:root{
+  --hudGold: rgba(245,185,66,.22);
+  --hudGlow: 0 12px 36px rgba(0,0,0,.45), 0 0 26px rgba(245,185,66,.10);
+  --hudRing: linear-gradient(155deg, rgba(245,185,66,.22), rgba(49,64,94,.6) 40%, rgba(35,44,64,.6));
+}
+
+/* ── HUD panels: cards & stats wear a gradient border ring ── */
+.card, .stat{
+  border:1px solid transparent;
+  background:
+    linear-gradient(180deg, var(--card), #10141f) padding-box,
+    var(--hudRing) border-box;
+}
+.card:hover, .stat:hover{
+  border-color:transparent;
+  box-shadow: var(--hudGlow), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.card{box-shadow: inset 0 1px 0 rgba(255,255,255,.04)}
+
+/* stat medallions: gradient gold value + hover lift (21st.dev stat-panel vibe) */
+.stat .s-v{
+  background:linear-gradient(120deg,#f7e2b0,var(--gold2) 45%,var(--gold));
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 8px rgba(245,185,66,.22));
+}
+
+/* ── section titles: HUD label with a gold diamond marker ── */
+.section-title::before{
+  content:"◆"; font-size:7px; color:var(--gold);
+  text-shadow:0 0 9px rgba(245,185,66,.65); letter-spacing:0;
+}
+.section-title::after{background:linear-gradient(90deg, rgba(245,185,66,.30), rgba(49,64,94,.35) 45%, transparent)}
+
+/* ── XP-style segmented bars (8-bit progress, modernized) ── */
+.bar>i::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(90deg, transparent 0 9px, rgba(10,12,18,.28) 9px 11px);
+}
+.bar{box-shadow:inset 0 1px 3px rgba(0,0,0,.55)}
+
+/* ── HUD chips (topbar): glass ring + signal dot ── */
+.chip{
+  border:1px solid transparent;
+  background:
+    linear-gradient(180deg, rgba(22,28,44,.92), rgba(14,18,28,.92)) padding-box,
+    linear-gradient(155deg, rgba(245,185,66,.20), rgba(49,64,94,.65)) border-box;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 10px rgba(0,0,0,.35);
+}
+.chip:hover{box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 16px rgba(245,185,66,.14)}
+.chip-cash::before, #chipDateWrap::before{
+  content:"●"; font-size:7px; margin-right:5px; vertical-align:1px;
+  color:var(--gold); text-shadow:0 0 7px rgba(245,185,66,.8);
+}
+.chip-debt::before{
+  content:"●"; font-size:7px; margin-right:5px; vertical-align:1px;
+  color:var(--red); text-shadow:0 0 7px rgba(255,93,108,.8);
+}
+
+/* ── buttons: sheen cap on primary, glass depth on the rest ── */
+.btn{box-shadow: inset 0 1px 0 rgba(255,255,255,.05)}
+.btn-primary{box-shadow:0 4px 22px rgba(245,185,66,.32), inset 0 1px 0 rgba(255,255,255,.45)}
+.btn-primary::before{
+  content:""; position:absolute; top:0; left:12%; right:12%; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent);
+}
+.btn-alt:hover, .btn:hover{border-color:rgba(245,185,66,.35)}
+.btn-danger:hover{border-color:var(--red)}
+
+/* ── modal: ring + stronger veil ── */
+.modal{
+  border:1px solid transparent;
+  background:
+    linear-gradient(180deg, #141a29, #0e1219) padding-box,
+    linear-gradient(180deg, rgba(245,185,66,.30), rgba(49,64,94,.45)) border-box;
+}
+
+/* ── tags & toasts: HUD glow accents ── */
+.tag.gold{box-shadow:inset 0 0 9px rgba(245,185,66,.14)}
+.tag.green{box-shadow:inset 0 0 9px rgba(61,220,132,.12)}
+.tag.red{box-shadow:inset 0 0 9px rgba(255,93,108,.12)}
+.toast{border:1px solid rgba(49,64,94,.7); border-left:3px solid var(--blue)}
+
+/* ── chart bars: glossy cap ── */
+.weekly-gross-chart .wg, .cb-fill{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 0 12px rgba(245,185,66,.10);
+}
+
+/* ── fold headers: quest-panel styling ── */
+.fold-head{
+  border:1px solid rgba(49,64,94,.8);
+  background:linear-gradient(180deg, rgba(22,28,44,.7), rgba(14,18,28,.5));
+}
+.fold-head:hover{border-color:rgba(245,185,66,.4); background:linear-gradient(180deg, rgba(28,34,52,.8), rgba(14,18,28,.5))}
+.fold-caret{color:var(--gold); text-shadow:0 0 8px rgba(245,185,66,.5)}
+.fold.open .fold-head{border-color:rgba(245,185,66,.28)}
+
+/* ── news & mail: quiet hover accents ── */
+.news-item{transition:border-color .18s, transform .18s var(--ease-out)}
+.news-item:hover{border-color:rgba(245,185,66,.28); transform:translateX(2px)}
+.mail-item.unread{border-left-color:var(--gold2)}
+
+/* ── selection surfaces (wizard / schedule pickers) ── */
+.plan-opt.sel, .calendar-row.sel{
+  box-shadow:0 0 0 1px rgba(245,185,66,.35), 0 0 20px rgba(245,185,66,.12);
+}
+
+/* ── mobile dock: active tab gets a gold top indicator ── */
+@media(max-width:760px){
+  .btab.active::before{
+    content:""; position:absolute; top:0; left:26%; right:26%; height:2.5px; border-radius:0 0 4px 4px;
+    background:linear-gradient(90deg, transparent, var(--gold), var(--gold2), transparent);
+    box-shadow:0 2px 10px rgba(245,185,66,.55);
+  }
+  .bottomnav{box-shadow:0 -8px 30px rgba(0,0,0,.5)}
+}
+
+/* ── scrollbar: gold whisper ── */
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#4a3d1e,#2c3550)}
+
+/* ── start screen: logo ring ── */
+.logo-icon{
+  box-shadow:0 0 0 1px rgba(245,185,66,.35), 0 0 34px rgba(245,185,66,.22), inset 0 1px 0 rgba(255,255,255,.2);
+}
