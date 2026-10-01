@@ -1378,6 +1378,68 @@ function hallOfFameData(){
   };
 }
 
+/* ── fan mail (v15): the audience writes back, driven by real state ──
+   Read-only flavor with one small hook: enough love mail on a live film pays
+   +1% buzz once. The mailbox keeps the 30 most recent letters. */
+function tickFanMail(){
+  G.mail=G.mail||[];
+  const push=(kind, from, text, film)=>{
+    G.mail.unshift({w:G.week, kind, from, text, film:film||null, unread:true});
+    if(G.mail.length>30) G.mail.length=30;
+  };
+  const name=()=>pick(DATA.FAN_NAMES||["A fan"]);
+  (G.films||[]).filter(f=>f.inTheaters).forEach(f=>{
+    const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
+    const g=(DATA.GENRES[f.genre]||{}).name||f.genre;
+    if(aud>=70 && chance(0.30)){
+      f.mailLove=(f.mailLove||0)+1;
+      push("love", name(), pick([
+        "Saw “"+f.title+"” twice opening weekend. Twice! Whatever you're doing with "+g+", keep doing it.",
+        "My whole family saw “"+f.title+"” — grandma laughed, the kids cheered, I cried a little. Thank you.",
+        "Three words: more "+g+" like “"+f.title+"”. Best tickets I've bought in years.",
+        "“"+f.title+"” got me through a rough week. The third act is PERFECT. That's all.",
+      ]), f.title);
+      if(f.mailLove===3 && !f.mailBuzzed){
+        f.mailBuzzed=true;
+        f.buzzBonus=Math.round(((f.buzzBonus||0)+0.01)*100)/100;
+        log("📬 Fan mail poured in for “"+f.title+"” — the letterbox is overflowing (+1% buzz).","");
+      }
+    }
+    if(f.reviewBombed && chance(0.4)){
+      push("angry", name(), "Your comment sections are a WAR ZONE over “"+f.title+"”. Somebody do something about the brigading!!", f.title);
+    }
+    const sc=(f.cast||[]).find(c=>c&&c.scandal>0);
+    if(sc && chance(0.3)){
+      push("scandal", name(), "I don't care what "+sc.name+" did — I buy tickets for the MOVIES. But maybe read the room on the press tour?", f.title);
+    }
+  });
+  (G.franchises||[]).forEach(fr=>{   // hot brands get asked for the next one
+    if((fr.decay||0)>=0.9 && chance(0.25)){
+      push("demand", name(), pick([
+        "It's been a MINUTE since the last "+fr.name+". The group chat is starving. When??",
+        "Petition for the next "+fr.name+" entry to start filming YESTERDAY. Signed, everyone I know.",
+        "My "+fr.name+" Blu-rays are worn out. Take my money for the next one already.",
+      ]), fr.name);
+    }
+  });
+  if(G.streamer && G.streamer.subs>2 && chance(0.3)){
+    push("sub", name(), pick([
+      G.streamer.name+" is the only app I actually keep renewing. Whatever you're feeding the algorithm, keep feeding it.",
+      "Bingeing your library again — three originals deep this month. More like this please.",
+      "Cancelled two other streamers, kept "+G.streamer.name+". That's the whole review.",
+    ]));
+  }
+  (G.films||[]).filter(f=>!f.inTheaters&&(f.ww||0)>0).slice(-6).forEach(f=>{
+    try{
+      if(f.ww<breakevenWW(f)*0.6 && f.releaseWeek>=G.week-8 && chance(0.15)){
+        push("angry", name(), "I want my "+((DATA.GENRES[f.genre]||{}).name||"ticket")+" money back for “"+f.title+"”. That ending was a CRIME.", f.title);
+      }
+    }catch(e){}
+  });
+}
+function unreadMail(){ return (G.mail||[]).filter(m=>m.unread).length; }
+function markMailRead(){ (G.mail||[]).forEach(m=>{ m.unread=false; }); saveGame(); }
+
 function expectedOpening(p, weekAbs){
   const S=DATA.SCALES[p.scale], g=DATA.GENRES[p.genre];
   let base = S.openBase * g.mass * (g.openBoost||1) * (G.infl||1);
@@ -3868,6 +3930,7 @@ function advanceWeek(){
   if(typeof tickEspionage==="function") tickEspionage();     // v14: rivals play dirty
   if(typeof tickLegal==="function") tickLegal();             // v14: disputes land on the desk
   if(typeof tickLabel==="function") tickLabel();             // v14: music label weekly income
+  if(typeof tickFanMail==="function") tickFanMail();         // v15: the audience writes back
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
       const rest = Math.max(0, p.marketing - (p.marketingPaid||0));

@@ -4,6 +4,12 @@ A realistic **movie-business simulation game** that runs in any browser — phon
 
 > Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
 
+## 🆕 What's new in v15 — Fans tab, fan mail & collapsible everything
+
+- **New 📬 Fans tab** (desktop nav + a sixth mobile bottom tab): the audience-facing desk — fan mail, the trending board (moved off the crowded control room), buzz panels for films in theaters, and an audience-pulse summary.
+- **Fan mail**: the people who buy the tickets write back, driven by real state — love letters for audience darlings, demands for the next entry of hot franchises, angry mail for flops and review bombs, scandal pushback, and subscriber notes for your streamer. Enough love mail on a film still in theaters pays +1% buzz, once per film. The mailbox keeps the 30 most recent letters with an unread count and mark-all-read.
+- **Collapsible sections everywhere**: every information-heavy panel is now a fold — tap the header to open or hide it (why-it-performed, week-by-week, daily split, international markets, demographics, social buzz, rivals, chains, regional summary, trending). Each section remembers how you left it between sessions. The wall-of-info is now a filing cabinet.
+
 ## 🆕 What's new in v14 (spec Phases 4–6 complete — people, business & legacy)
 
 - **Agent negotiation (§29)**: stars with 4★+ offer a package choice in the cast wizard — pay the flat fee, or take 30% off the fee for +2% of rentals at the end of the run. Cheaper now, costlier on a hit.

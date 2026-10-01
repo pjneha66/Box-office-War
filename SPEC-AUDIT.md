@@ -116,6 +116,14 @@ Status: ✅ implemented · 🟡 partial · ❌ not yet. Ships as v14.
 | 59 | Async scaffold: run seeds on every save + legacy entry | ✅ |
 | 57 | Hall of Fame screen: records, top films, past-runs hall | ✅ |
 
+## New in v15 (this release — Fans tab, fan mail, collapsible sections)
+
+| Spec § | Area | Status |
+|---|---|---|
+| — | New 📬 Fans tab (desktop + sixth mobile bottom tab): fan mail, trending board (moved from the control room), buzz panels, audience pulse | ✅ |
+| 18-adjacent | Fan mail driven by real state (love/demand/angry/scandal/subscriber letters, 30-letter mailbox, unread + mark-all-read); love mail pays +1% buzz once per live film | ✅ |
+| §1/§81 | Fold component: collapsible open/hide sections with persisted state on every information-heavy panel | ✅ |
+
 **Always-on (spec §83–86)**
 - 🟡 §83: incremental modularization of engine.js/ui.js as systems are touched (each new system gets its own section + single-source helpers; no big-bang rewrite).
 - ✅ §84–85: engine owns every financial formula; UI renders.

@@ -253,7 +253,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   // keyboard shortcuts
   document.addEventListener("keydown", e=>{
     if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA") return;
-    if(e.key>="1" && e.key<="7"){ const tabs=["studio","develop","productions","boxoffice","ott","empire","finance"]; switchTab(tabs[e.key-1]); }
+    if(e.key>="1" && e.key<="8"){ const tabs=["studio","develop","productions","boxoffice","fans","ott","empire","finance"]; switchTab(tabs[e.key-1]); }
     else if(e.code==="Space" && !e.shiftKey){ e.preventDefault(); doWeek(1); }
     else if(e.code==="Space" && e.shiftKey){ e.preventDefault(); doWeek(4); }
     else if(e.key==="r" || e.key==="R"){ e.preventDefault(); if(!G.over){ const rows=$$("[data-sched]"); if(rows.length) rows[0].click(); } }
@@ -292,6 +292,39 @@ function switchTab(t){
   if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
 }
 /* v10 spec §3: More — secondary systems as a bottom sheet */
+/* v15: fold — one collapsible pattern for every wall-of-info section. The head
+   row toggles the body in place (no re-render); open/closed state persists in
+   localStorage so each section remembers how the player left it. */
+function foldStore(){ try{ return JSON.parse(localStorage.getItem("bow_fold")||"{}"); }catch(e){ return {}; } }
+function foldOpen(key, dflt){ const s=foldStore(); return (key in s)? !!s[key] : !!dflt; }
+function fold(id, title, body, opts){
+  opts=opts||{};
+  const open=foldOpen(id, opts.open!==false);
+  return "<div class='fold"+(open?" open":"")+"' data-foldbox='"+esc(id)+"'>"+
+    "<div class='fold-head' data-fold='"+esc(id)+"' role='button' tabindex='0' aria-expanded='"+open+"'>"+
+      "<span class='fold-caret' aria-hidden='true'>▸</span><b>"+title+"</b>"+
+      (opts.tag? " <span class='tag "+(opts.tagCls||"")+"'>"+opts.tag+"</span>":"")+
+      (opts.hint? " <span class='tiny muted'>"+opts.hint+"</span>":"")+"</div>"+
+    "<div class='fold-body'"+(open?"":" style='display:none'")+">"+body+"</div></div>";
+}
+function bindFolds(root){
+  (root||document).querySelectorAll("[data-fold]").forEach(h=>{
+    const toggle=()=>{
+      const key=h.dataset.fold;
+      const box=h.closest("[data-foldbox]");
+      const body=box&&box.querySelector(".fold-body");
+      const nowOpen=!(box&&box.classList.contains("open"));
+      if(box) box.classList.toggle("open", nowOpen);
+      if(body) body.style.display=nowOpen? "" : "none";
+      h.setAttribute("aria-expanded", nowOpen?"true":"false");
+      const s=foldStore(); s[key]=nowOpen;
+      try{ localStorage.setItem("bow_fold", JSON.stringify(s)); }catch(e){}
+    };
+    h.onclick=toggle;
+    h.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } };
+  });
+}
+
 /* v14 §56: what-if sandbox — fork the current state, roll forward, report. The
    real run never moves; each scenario forks fresh from the moment you tap. */
 function whatIfModal(){
@@ -457,12 +490,62 @@ function render(){
   else if(TAB==="develop") h=viewDevelop();
   else if(TAB==="productions") h=viewProductions();
   else if(TAB==="boxoffice") h=viewBoxOffice();
+  else if(TAB==="fans") h=viewFans();
   else if(TAB==="ott") h=viewOTT();
   else if(TAB==="empire") h=viewEmpire();
   else if(TAB==="finance") h=viewFinance();
   const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
   v.innerHTML = (tb? tb : "") + h;
   bindView();
+  bindFolds(v);   // v15: collapsible sections remember their state
+}
+
+/* ═══════════ VIEW: fans (v15) — the audience-facing desk ═══════════ */
+function viewFans(){
+  let h="";
+  const unread=unreadMail();
+  const mail=(G.mail||[]);
+  h+="<div class='spread'><div class='section-title' style='margin:0'>📬 Fan mail"+(unread? " ("+unread+" unread)":"")+"</div>"+
+    (mail.length? "<button class='btn btn-sm btn-ghost' id='btnMailRead'>Mark all read</button>":"")+"</div>";
+  h+="<div class='card'>";
+  if(!mail.length){
+    h+="<div class='tiny muted'>The mailbox is empty. Release something people love — or love to hate — and the letters come.</div>";
+  }else{
+    const ICON={love:"💌", demand:"🙏", angry:"😡", scandal:"📰", sub:"📺"};
+    mail.slice(0,14).forEach(m=>{
+      h+="<div class='mail-item"+(m.unread?" unread":"")+"'>"+
+        "<div class='spread'><span>"+(ICON[m.kind]||"✉️")+" <b>"+esc(m.from)+"</b>"+(m.unread?" <span class='tag gold'>new</span>":"")+"</span>"+
+        "<span class='tiny muted'>Y"+yearOf(m.w)+" W"+woyOf(m.w)+"</span></div>"+
+        "<div class='tiny' style='margin-top:2px'>"+esc(m.text)+"</div>"+
+        (m.film? "<div class='tiny muted'>re: "+esc(m.film)+"</div>":"")+"</div>";
+    });
+    if(mail.length>14) h+="<div class='tiny muted' style='margin-top:6px'>+"+(mail.length-14)+" older letters in the pile.</div>";
+  }
+  h+="</div>";
+  /* trending board — moved off the control room in v15 */
+  let trendTags=[]; try{ trendTags=trendingBoard(); }catch(e){}
+  const trendingList=trendTags.length? trendTags.map(tg=>{
+    const soc=(DATA.SOCIALS||[]).find(s=>s.name===tg.plat);
+    return "<div class='cost-line'><span>"+(soc?soc.icon:"💬")+" <b>"+esc(tg.tag)+"</b> <span class='tiny muted'>"+esc(tg.why)+"</span></span><span class='tag'>"+esc(tg.plat)+"</span></div>";
+  }).join("") : "<div class='tiny muted'>Quiet feeds. Big openings, scandals and hot casts make noise.</div>";
+  h+="<div class='section-title'>📣 Trending</div>"+fold("fans-trending","What the platforms are talking about", trendingList, {open:true, hint:trendTags.length? trendTags.length+" tags":""});
+  /* buzz on live films (the same social panels the run cards carry, folded) */
+  const live=activeFilms();
+  h+="<div class='section-title'>💬 Buzz on your films ("+live.length+")</div>";
+  if(!live.length) h+="<div class='card muted small'>Nothing in theaters — the feeds are quiet.</div>";
+  live.forEach(f=>{ h+=socialPanel(f); });
+  /* audience pulse */
+  const recent=G.films.filter(f=>f.ww>0).slice(-8);
+  if(recent.length){
+    const audOf=f=>(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
+    const avg=Math.round(recent.reduce((a,f)=>a+audOf(f),0)/recent.length);
+    const fav=recent.slice().sort((a,b)=>audOf(b)-audOf(a))[0];
+    h+="<div class='card' style='margin-top:8px'><b class='small'>⭐ Audience pulse</b>"+
+      "<div class='cost-line'><span>Audience score, recent films</span><b class='"+(avg>=70?"pos":avg<50?"neg":"")+"'>"+avg+"%</b></div>"+
+      "<div class='cost-line'><span>Current fan favorite</span><b>"+esc(fav.title)+"</b></div>"+
+      "<div class='tiny muted'>Fan letters with real love behind them pay +1% buzz to a film still in theaters — once per film.</div></div>";
+  }
+  return h;
 }
 
 /* ═══════════ VIEW: studio ═══════════ */
@@ -510,12 +593,6 @@ function studioOpsCard(ctx){
       rivals.push(esc(r.name)+": "+fmtM(r.ytd||0)+" YTD"+(live.length?" · "+live.length+" live":""));
     });
   }catch(e){}
-  /* v13: trending hashtags (§18) — derived from real state, one line each */
-  let trendTags=[]; try{ trendTags=trendingBoard(); }catch(e){}
-  const trendingList=trendTags.length? trendTags.map(tg=>{
-    const soc=(DATA.SOCIALS||[]).find(s=>s.name===tg.plat);
-    return "<div class='cost-line'><span>"+(soc?soc.icon:"💬")+" <b>"+esc(tg.tag)+"</b> <span class='tiny muted'>"+esc(tg.why)+"</span></span><span class='tag'>"+esc(tg.plat)+"</span></div>";
-  }).join("") : "<div class='tiny muted'>Quiet feeds. Big openings, scandals and hot casts make noise.</div>";
   function list(a, empty){ return a.length? a.map(x=>"<div class='cost-line'><span>"+x+"</span></div>").join("") : "<div class='tiny muted'>"+empty+"</div>"; }
   return "<div class='section-title'>Control room</div><div class='grid g2'>"+
     "<div class='card' style='border-left:3px solid var(--red)'><b>⚠ Warnings</b>"+list(warns,"All quiet.")+"</div>"+
@@ -527,8 +604,8 @@ function studioOpsCard(ctx){
       "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('boxoffice')\">Charts</button></div></div>"+
     "<div class='card' style='border-left:3px solid var(--purple)'><b>⚔ Rivals</b>"+list(rivals,"No rival data.")+
       "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('finance')\">Finance</button></div></div>"+
-    "<div class='card' style='border-left:3px solid var(--gold2)'><b>📣 Trending</b>"+trendingList+
-      "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('boxoffice')\">Buzz</button></div></div>"+
+    "<div class='card' style='border-left:3px solid var(--gold2)'><b>📬 The audience</b><div class='tiny muted' style='margin-top:4px'>"+unreadMail()+" unread fan letter(s) · trending tags · buzz — all on the Fans tab.</div>"+
+      "<div class='row' style='margin-top:8px'><button class='btn btn-sm' onclick=\"switchTab('fans')\">Open Fans</button></div></div>"+
     "<div class='card'><b>📰 Recent</b><div class='tiny muted'>"+(G.news||[]).slice(0,3).map(n=>esc(n.t)).join("<br>")+"</div></div>"+
   "</div>";
 }
@@ -2572,11 +2649,12 @@ function viewBoxOffice(){
 	h+="<div class='spread'><div class='section-title' style='margin:0'>Rival studios ("+G.rivals.length+")</div>"+
 	  "<button class='btn btn-sm btn-alt' data-intel='1'>🕵 Buy intel — $8M</button></div>"+
 	  "<div class='tiny muted' style='margin:-4px 0 8px'>They date corridors by style, blink when you out-muscle their weekend, poach hot free talent, outbid you on sports, and launch streamers. Slates re-seed yearly; heat follows genre trends like yours."+
-	  (G.intel&&G.intel.until>G.week? " <b class='gold'>🕵 Intel active on "+esc(G.intel.name)+" ("+(G.intel.until-G.week)+" wks left).</b>":" They play dirty too — guard your scripts.")+"</div><div class='grid g3'>"+
-     G.rivals.map(rivalProfile).join("")+"</div>";
-  h+=regionSummaryPanel();
+	  (G.intel&&G.intel.until>G.week? " <b class='gold'>🕵 Intel active on "+esc(G.intel.name)+" ("+(G.intel.until-G.week)+" wks left).</b>":" They play dirty too — guard your scripts.")+"</div>"+
+	  fold("rivals", "🏢 The competition", "<div class='grid g3'>"+G.rivals.map(rivalProfile).join("")+"</div>", {open:true, hint:G.rivals.length+" studios"})+
+	  fold("intl-summary", "🌍 Regional box office summary", regionSummaryPanel(), {open:false});
   /* v12: theater chains (§22) — booking relation decides the screens a release gets */
-  h+="<div class='section-title'>🎞 Theater chains</div><div class='tiny muted' style='margin:-4px 0 8px'>Five chains control ~90% of domestic screens (independents hold the rest). Booking relation decides how many screens — and how big an opening — a release gets. Court a chain to warm it up; chains book their favorite genres generously.</div><div class='grid g3'>"+
+  h+=fold("chains", "🎞 Theater chains",
+    "<div class='tiny muted' style='margin:-2px 0 8px'>Five chains control ~90% of domestic screens (independents hold the rest). Booking relation decides how many screens — and how big an opening — a release gets. Court a chain to warm it up; chains book their favorite genres generously.</div><div class='grid g3'>"+
     (DATA.CHAINS||[]).map(dc=>{
       const c=chainById(dc.id)||dc;
       const rel=Math.round(c.rel);
@@ -2587,7 +2665,7 @@ function viewBoxOffice(){
         "<div class='cost-line'><span>Books generously</span><b class='tiny'>"+taste+"</b></div>"+
         "<div class='cost-line'><span>Booking relation</span><b class='"+(rel>=65?"pos":rel<40?"neg":"")+"'>"+rel+"/100</b></div>"+
         "<div class='row' style='margin-top:6px'><button class='btn btn-sm' data-court='"+c.id+"'>🤝 Court — "+fmtM(cost)+"</button></div></div>";
-    }).join("")+"</div>";
+    }).join("")+"</div>", {open:true, hint:"court them for screens"});
   const live=activeFilms();
   h+="<div class='section-title'>Your films in theaters ("+live.length+")</div>";
   if(!live.length) h+="<div class='card muted small'>No active runs. A film without a release date earns nothing.</div>";
@@ -2598,6 +2676,9 @@ function viewBoxOffice(){
     const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):f.quality.aud;
     const crit=f.criticAvg!=null?f.criticAvg:f.quality.critic;
     const daily=weekendDaily(f), weeks=screenWeeks(f);
+    const panelFolds=(function(){ let s=""; const rp=regionPanel(f); if(rp) s+=fold("regions:"+f.id,"🌍 International markets & cities",rp,{open:false});
+      const dp=demoPanel(f); if(dp) s+=fold("demo:"+f.id,"🎯 Audience demographics",dp,{open:false});
+      const sp=socialPanel(f); if(sp) s+=fold("social:"+f.id,"📣 Social buzz",sp,{open:false}); return s; })();
     h+="<div class='card'><div class='spread'><div><b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b><div class='tiny muted'>wk "+f.weeksOut+" out · opened "+fmtG(f.opening)+" · "+scoreBadge(f.quality.overall)+"</div></div>"+
       "<div style='text-align:right'><b class='gold'>"+fmtG(f.dom)+"</b><div class='tiny muted'>domestic</div></div></div>"+
       "<div class='stat-hero' style='margin-top:8px'>"+
@@ -2612,17 +2693,17 @@ function viewBoxOffice(){
       "</div>"+
       "<div class='weekly-gross-chart'>"+f.weekly.slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
       "<div class='tiny muted' style='margin-top:4px'>Weekly rentals (53% dom, paid weekly): "+f.weekly.slice(-6).map(x=>fmtG(x.gross*0.53)).join(" · ")+"</div>"+
-      "<div class='card' style='margin:8px 0 0'><b class='small'>🎟 Opening weekend — daily</b>"+
+      fold("daily:"+f.id, "🎟 Opening weekend — daily",
         "<div class='weekly-gross-chart' style='margin-top:6px'>"+daily.map(d=>"<div class='wg' style='height:"+Math.max(4,d.gross/Math.max(0.001,f.opening||1)*100)+"%' title='"+d.day+" "+fmtG(d.gross)+"'></div>").join("")+"</div>"+
-        "<div class='tiny muted' style='margin-top:4px'>"+daily.map(d=>d.day+" "+fmtG(d.gross)).join(" · ")+"</div></div>"+
-      "<div class='card' style='margin:6px 0 0'><b class='small'>📊 Week-by-week</b>"+
+        "<div class='tiny muted' style='margin-top:4px'>"+daily.map(d=>d.day+" "+fmtG(d.gross)).join(" · ")+"</div>", {open:false})+
+      fold("weeks:"+f.id, "📊 Week-by-week",
         weeks.slice(-8).map((r,i)=>"<div class='cost-line'><span>Wk "+(r.w-f.releaseWeek+1)+" · "+(r.wow==null?"<b>opening</b>":(r.wow>=0?"<b class='pos'>+":"<b class='neg'>")+r.wow+"% WoW</b>")+"</span>"+
         "<b class='tiny'>"+fmtG(r.gross)+" · "+r.screens.toLocaleString("en-US")+" scr · "+(r.psa>=1000?"$"+(Math.round(r.psa/100)/10)+"M":"$"+Math.round(r.psa)+"K")+"/scr · "+r.occ+"% full</b></div>").join("")+
-        "<div class='tiny muted' style='margin-top:4px'>Screens shrink as the run winds down; per-screen average and occupancy follow the gross.</div></div>"+
+        "<div class='tiny muted' style='margin-top:4px'>Screens shrink as the run winds down; per-screen average and occupancy follow the gross.</div>", {open:false})+
       "<div class='spread small' style='margin-top:6px'><span class='muted'>Tracking ≈ "+fmtG(projWW)+" WW vs "+fmtG(be)+" breakeven · run health "+Math.round(clamp((f.weekly.length?f.weekly[f.weekly.length-1].gross:0)/Math.max(1,f.opening)*100,0,100))+"% of opening</span>"+
       "<span class='"+(projWW>=be?"pos":"neg")+"'>"+(projWW>=be?"on pace to profit":"below breakeven")+"</span></div>"+
-      "<div class='card' style='margin:8px 0 0'><b class='small'>Why is this performing this way?</b><div style='margin-top:4px'>"+boWhy(f)+"</div></div>"+
-      regionPanel(f)+demoPanel(f)+socialPanel(f)+
+      fold("why:"+f.id, "🧐 Why is this performing this way?", boWhy(f), {open:false})+
+      panelFolds+
       (f.reviewBombed? "<div class='card' style='margin:6px 0;border-left:3px solid var(--red);padding:8px 10px'><b class='neg small'>🍅 REVIEW BOMBING in progress</b><div class='tiny muted'>Audience score has taken −"+f.reviewBombed+" pts from brigading. "+(f.bombCountered? "Your fan-activation blunted the worst of it.":"Ride it out, or let counter-campaigns do their work next time.")+"</div></div>":"")+
       (G.piracy>=45? "<div class='tiny neg' style='margin:2px 0'>🏴‍☠️ Piracy is draining this run (−"+Math.round(clamp(G.piracy/100,0,1)*(DATA.PIRACY?DATA.PIRACY.maxGrossDamage:0.1)*100)+"% weekly gross).</div>":"")+
       scoreSplit(f)+
@@ -3218,6 +3299,7 @@ function bindView(){
   $$("[data-sign]").forEach(b=>b.onclick=()=>{ if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
   $$("[data-dropartist]").forEach(b=>b.onclick=()=>{ if(dropArtist(b.dataset.dropartist)){ beep("click"); flashes(G.flash); render(); } });
   $$("[data-whatif]").forEach(b=>b.onclick=()=>{ beep("click"); whatIfModal(); });
+  const mr=$("#btnMailRead"); if(mr) mr.onclick=()=>{ markMailRead(); beep("click"); render(); };
 }
 
 /* ═══════════ streaming auction modal ═══════════ */
@@ -4170,7 +4252,7 @@ function empireModal(frId){
 function installGestures(){
   if(installGestures._done) return;
   installGestures._done=true;
-  const ORDER=["studio","develop","productions","boxoffice","ott","empire","finance"];
+  const ORDER=["studio","develop","productions","boxoffice","fans","ott","empire","finance"];
   let sx=0, sy=0, topY=0, pulled=false;
   document.addEventListener("touchstart",e=>{
     if(!e.touches.length) return;

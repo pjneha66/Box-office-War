@@ -8,10 +8,8 @@
 
 const I18N = {
   en: {
-    "tab.studio":"🏛 Studio","tab.develop":"📝 Develop","tab.productions":"🎬 Productions",
-    "tab.boxoffice":"📊 Box Office","tab.ott":"📺 OTT & Series","tab.empire":"🏰 Empire","tab.finance":"💼 Finance",
-    "btab.studio":"Studio","btab.develop":"Develop","btab.productions":"Films","btab.boxoffice":"Charts",
-    "btab.ott":"OTT","btab.empire":"Empire","btab.finance":"Money",
+    "tab.studio":"🏛 Studio","tab.develop":"📝 Develop","tab.productions":"🎬 Productions","tab.boxoffice":"📊 Box Office","tab.fans":"📬 Fans","tab.ott":"📺 OTT & Series","tab.empire":"🏰 Empire","tab.finance":"💼 Finance",
+    "btab.studio":"Studio","btab.develop":"Create","btab.productions":"Films","btab.boxoffice":"Market","btab.fans":"Fans","btab.ott":"OTT","btab.empire":"Empire","btab.finance":"Money",
     "btn.week":"▶ Next Week","btn.fast":"⏩ ×4","btn.help":"❓","btn.settings":"⚙","btn.auto":"⏵⏵",
     "btn.autoOn":"⏸","chip.cash":"Cash on hand","chip.debt":"Debt","chip.rep":"Reputation","chip.date":"Date",
     "start.name":"Name your studio","start.origin":"Choose your origin story","start.scenario":"Scenario",
@@ -39,10 +37,8 @@ const I18N = {
     "help.title":"❓ How the movie business works here",
   },
   hi: {
-    "tab.studio":"🏛 स्टूडियो","tab.develop":"📝 डेवलप","tab.productions":"🎬 प्रोडक्शन",
-    "tab.boxoffice":"📊 बॉक्स ऑफ़िस","tab.ott":"📺 ओटीटी व सीरीज़","tab.empire":"🏰 साम्राज्य","tab.finance":"💼 वित्त",
-    "btab.studio":"स्टूडियो","btab.develop":"डेवलप","btab.productions":"फ़िल्में","btab.boxoffice":"चार्ट",
-    "btab.ott":"ओटीटी","btab.empire":"साम्राज्य","btab.finance":"पैसा",
+    "tab.studio":"🏛 स्टूडियो","tab.develop":"📝 डेवलप","tab.productions":"🎬 प्रोडक्शन","tab.boxoffice":"📊 बॉक्स ऑफ़िस","tab.fans":"📬 फ़ैंस","tab.ott":"📺 ओटीटी व सीरीज़","tab.empire":"🏰 साम्राज्य","tab.finance":"💼 वित्त",
+    "btab.studio":"स्टूडियो","btab.develop":"डेवलप","btab.productions":"फ़िल्में","btab.boxoffice":"चार्ट","btab.fans":"फ़ैंस","btab.ott":"ओटीटी","btab.empire":"साम्राज्य","btab.finance":"पैसा",
     "btn.week":"▶ अगला सप्ताह","btn.fast":"⏩ ×4","btn.help":"❓","btn.settings":"⚙","btn.auto":"⏵⏵",
     "btn.autoOn":"⏸","chip.cash":"नकद","chip.debt":"कर्ज़","chip.rep":"साख","chip.date":"तारीख़",
     "start.name":"अपने स्टूडियो का नाम रखें","start.origin":"अपनी शुरुआती कहानी चुनें","start.scenario":"परिदृश्य",

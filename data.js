@@ -203,6 +203,13 @@ DATA.ARTISTS = [
   {id:"aria",   name:"Aria Solene",   fee:7,  heat:3, vibe:"musicals",          blurb:"Trained, towering, awards-season favorite."},
 ];
 
+/* ── v15 fan mail (§18-adjacent flavor): the people who buy the tickets write back ── */
+DATA.FAN_NAMES = [
+  "Sam T.","Priya K.","the Okafor family","Marcus D.","Lena V.","dieharddanny42","Aunt Bex",
+  "the Chen twins","Rosa M.","filmboy_jai","Grandpa Walt","the Mehta sisters","Tomas R.","Keisha J.",
+  "bandagedthumb","the Alvarez crew","Noor H.","Paulie & the kids","midnight_marge","Dev P.",
+];
+
 /* ── v2 executives ── */
 DATA.EXECS = [
   {id:"cmo",     icon:"📣", name:"Chief Marketing Officer", hire:40, salary:0.40, desc:"+12% hype on every release"},

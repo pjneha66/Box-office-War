@@ -509,6 +509,21 @@ step("v11 own-streamer distribution: premiere, hybrid window, own series", ()=>{
   const res=window.eval(`pitchSeries({genre:"drama", eps:8, perEp:6, platformId:"own", showrunner:null, cast:[]})`);
   if(!res.ok || res.s.platform!=="own") throw new Error("own series pitch failed");
 });
+step("v15 Fans tab: mail renders, fold opens and hides, state persists", ()=>{
+  click($("[data-tab='fans']"));
+  if(!window.document.querySelector("#view").textContent.includes("Fan mail")) throw new Error("fan mail section missing");
+  window.eval("tickFanMail()");
+  const fb=window.document.querySelector("[data-foldbox='fans-trending']");
+  if(!fb) throw new Error("trending fold missing");
+  const wasOpen=fb.classList.contains("open");
+  click(fb.querySelector("[data-fold]"));
+  if(fb.classList.contains("open")===wasOpen) throw new Error("fold did not toggle");
+  const saved=JSON.parse(window.eval("localStorage.getItem('bow_fold')"));
+  if(saved["fans-trending"]!==!wasOpen) throw new Error("fold state not persisted");
+  click(fb.querySelector("[data-fold]"));   // restore
+  const readBtn=$("#btnMailRead");
+  if(readBtn){ click(readBtn); if(window.eval("unreadMail()")!==0) throw new Error("mark-all-read failed"); }
+});
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){
     if(g().sportsAuction){ const sk=$$("#sportsSkip")[0]||window.document.querySelector("#sportsSkip"); if(sk){ click(sk); } }

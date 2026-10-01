@@ -743,3 +743,19 @@ body.rm-motion *, body.rm-motion *::before, body.rm-motion *::after{
   body::after{display:none}
   .btn-primary::after{display:none}
 }
+
+/* ═══════════════════════════════════════════════════════════
+   v15 — fold (collapsible sections) · fan mail
+   ═══════════════════════════════════════════════════════════ */
+.fold{margin:6px 0}
+.fold-head{display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
+  padding:9px 10px; border:1px solid var(--line); border-radius:12px;
+  background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));}
+.fold-head:hover{border-color:var(--line2)}
+.fold-head:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+.fold-caret{display:inline-block; color:var(--muted); font-size:12px; transition:transform .18s var(--ease-out)}
+.fold.open .fold-caret{transform:rotate(90deg)}
+.fold-body{margin-top:6px}
+.mail-item{padding:9px 2px; border-bottom:1px dashed var(--line)}
+.mail-item:last-child{border-bottom:none}
+.mail-item.unread{border-left:3px solid var(--gold); padding-left:8px; border-radius:4px}

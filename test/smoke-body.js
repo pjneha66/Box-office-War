@@ -303,6 +303,21 @@ console.log("v14 · board "+Math.round((G.board||[]).reduce((a,m)=>a+m.approval,
             " · label "+(G.label.artists||[]).length+" act · intel "+(G.intel?G.intel.name:"—")+
             " · fork ok (plan "+fmtM(wl.cash)+" / hype "+fmtM(wh.cash)+") · seed "+G.seed);
 
+// ── v15: fan mail + foldable sections ──
+if(!Array.isArray(DATA.FAN_NAMES) || DATA.FAN_NAMES.length<10) throw new Error("fan names missing");
+tickFanMail();
+if(!Array.isArray(G.mail)) throw new Error("mailbox not initialized");
+const mailBefore=G.mail.length;
+tickFanMail();
+if(G.mail.length<mailBefore) throw new Error("mailbox shrank");
+if(G.mail.length>30) throw new Error("mailbox unbounded");
+if(G.mail.some(m=>!m.kind||!m.from||!m.text)) throw new Error("malformed letter");
+if(typeof unreadMail()!=="number" || unreadMail()<0) throw new Error("unread count broken");
+markMailRead();
+if(unreadMail()!==0) throw new Error("markMailRead left unread letters");
+console.log("v15 · mail "+G.mail.length+" letters ("+unreadMail()+" unread after read-all) · kinds "+
+            [...new Set(G.mail.map(m=>m.kind))].join("/")+" · ok");
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;
