@@ -921,3 +921,111 @@ body{
 .section-title::after{background:linear-gradient(90deg, rgba(245,185,66,.32), rgba(180,139,255,.20) 45%, transparent)}
 .toast::after{background:linear-gradient(90deg,var(--gold),var(--cyan),transparent)}
 .tab.active{color:var(--gold2); text-shadow:0 0 18px rgba(248,181,0,.45)}
+
+/* ═══════════════════════════════════════════════════════════
+   v19 — THEME SYSTEM (five FeralUI-designed themes)
+   Every accent color now flows from the --gold/--gold2 token set,
+   so a theme is one body[data-theme] block. Gradients per theme
+   were designed in the FeralUI Gradient Builder:
+     Midnight Gold  — "Premiere gold"  #FCC800→#F8B500→#E09A00
+     Aurora Night   — "Aurora reel"    #A2D7DD→#4DD6E8→#007BBB
+     Violet Premiere— "Violet premiere"#B28FCE→#A59ACA→#745399
+     Red Carpet     — "Red carpet rose"#F5B1AA→#F0908D→#B5484D
+     Silver Screen  — "Silver screen"  #F4F6F8→#C9CCD1→#8E95A3
+   Semantic colors (green=hit, red=flop, blue=info) stay fixed so
+   the game stays readable in every theme.
+   ═══════════════════════════════════════════════════════════ */
+:root{
+  --hudRing: linear-gradient(155deg, color-mix(in srgb, var(--gold) 22%, transparent), rgba(49,64,94,.6) 40%, rgba(35,44,64,.6));
+  --hudGlow: 0 12px 36px rgba(0,0,0,.45), 0 0 26px color-mix(in srgb, var(--gold) 10%, transparent);
+  --btnA:#FCC800; --btnB:#F8B500; --btnC:#E09A00; --btnText:#1a1204;
+}
+/* re-tint the hardcoded-gold details from v17/v18 to the accent token */
+.stat .s-v{
+  background:linear-gradient(120deg, var(--gold2), var(--gold) 55%, var(--goldDim));
+  -webkit-background-clip:text; background-clip:text;
+  filter:drop-shadow(0 2px 8px color-mix(in srgb, var(--gold) 24%, transparent));
+}
+.tab.active{text-shadow:0 0 18px color-mix(in srgb, var(--gold2) 45%, transparent)}
+.tab.active::after{box-shadow:0 -1px 10px color-mix(in srgb, var(--gold2) 50%, transparent)}
+.section-title::before{text-shadow:0 0 9px color-mix(in srgb, var(--gold) 65%, transparent)}
+.section-title::after{background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 32%, transparent), color-mix(in srgb, var(--purple) 20%, transparent) 45%, transparent)}
+.chip-cash::before, #chipDateWrap::before{text-shadow:0 0 7px color-mix(in srgb, var(--gold) 80%, transparent)}
+.chip:hover{box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 16px color-mix(in srgb, var(--gold) 14%, transparent)}
+.btn:hover, .btn-alt:hover{border-color:color-mix(in srgb, var(--gold) 35%, var(--line2))}
+.btn-primary{
+  background:linear-gradient(135deg, var(--btnA), var(--btnB) 55%, var(--btnC));
+  background:linear-gradient(135deg in oklab, var(--btnA), var(--btnB) 55%, var(--btnC));
+  color:var(--btnText); border-color:var(--btnB);
+  box-shadow:0 4px 22px color-mix(in srgb, var(--btnB) 32%, transparent), inset 0 1px 0 rgba(255,255,255,.45);
+}
+.bar>i{background:linear-gradient(90deg, var(--gold), var(--gold2))}
+.weekly-gross-chart .wg, .cb-fill{box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 0 12px color-mix(in srgb, var(--gold) 10%, transparent)}
+.fold-caret{text-shadow:0 0 8px color-mix(in srgb, var(--gold) 50%, transparent)}
+.fold-head:hover{border-color:color-mix(in srgb, var(--gold) 40%, var(--line2))}
+.fold.open .fold-head{border-color:color-mix(in srgb, var(--gold) 28%, var(--line2))}
+.news-item:hover{border-color:color-mix(in srgb, var(--gold) 28%, var(--line2))}
+.plan-opt.sel, .calendar-row.sel{box-shadow:0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent), 0 0 20px color-mix(in srgb, var(--gold) 12%, transparent)}
+.logo-icon{box-shadow:0 0 0 1px color-mix(in srgb, var(--gold) 35%, transparent), 0 0 34px color-mix(in srgb, var(--gold) 22%, transparent), inset 0 1px 0 rgba(255,255,255,.2)}
+.tag.gold{border-color:color-mix(in srgb, var(--gold) 45%, transparent); background:color-mix(in srgb, var(--gold) 8%, transparent)}
+body{
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, color-mix(in srgb, var(--cyan) 6%, transparent), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, color-mix(in srgb, var(--purple) 7%, transparent), transparent 62%);
+}
+@media(max-width:760px){
+  .btab.active::before{box-shadow:0 2px 10px color-mix(in srgb, var(--gold) 55%, transparent)}
+}
+
+/* ── Aurora Night — FeralUI "Aurora reel" on Samurai-indigo depths ── */
+body[data-theme="aurora"]{
+  --bg:#0a0f15; --bg2:#0d141c; --card:#0f1822; --card2:#12202b;
+  --line:#1b2f3d; --line2:#28475a;
+  --gold:#4dd6e8; --gold2:#a2d7dd; --goldDim:#155e75;
+  --btnA:#A2D7DD; --btnB:#4DD6E8; --btnC:#007BBB; --btnText:#04222e;
+  --hudRing: linear-gradient(155deg, color-mix(in srgb, var(--gold) 20%, transparent), rgba(40,71,90,.65) 40%, rgba(27,47,61,.6));
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, color-mix(in srgb, var(--gold) 11%, transparent), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, rgba(39,74,120,.16), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, color-mix(in srgb, var(--purple) 6%, transparent), transparent 62%);
+}
+/* ── Violet Premiere — FeralUI "Violet premiere" on Deep purple ── */
+body[data-theme="violet"]{
+  --bg:#0d0b16; --bg2:#110e1c; --card:#161027; --card2:#1b1433;
+  --line:#2a2140; --line2:#3d3058;
+  --gold:#b28fce; --gold2:#cfc0ea; --goldDim:#4a2f6e;
+  --btnA:#B28FCE; --btnB:#A59ACA; --btnC:#745399; --btnText:#170b28;
+  --hudRing: linear-gradient(155deg, color-mix(in srgb, var(--gold) 22%, transparent), rgba(61,48,88,.65) 40%, rgba(42,33,64,.6));
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, color-mix(in srgb, var(--cyan) 6%, transparent), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, rgba(116,83,153,.14), transparent 62%);
+}
+/* ── Red Carpet — FeralUI "Red carpet rose" on deep maroon ── */
+body[data-theme="carpet"]{
+  --bg:#120b0c; --bg2:#170e10; --card:#1e1114; --card2:#251519;
+  --line:#3a2126; --line2:#553039;
+  --gold:#f09199; --gold2:#f5b1aa; --goldDim:#7e3a42;
+  --btnA:#F5B1AA; --btnB:#F0908D; --btnC:#B5484D; --btnText:#2b0d10;
+  --hudRing: linear-gradient(155deg, color-mix(in srgb, var(--gold) 22%, transparent), rgba(85,48,57,.65) 40%, rgba(58,33,38,.6));
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, color-mix(in srgb, var(--gold) 10%, transparent), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, rgba(126,58,66,.14), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, color-mix(in srgb, var(--purple) 6%, transparent), transparent 62%);
+}
+/* ── Silver Screen — FeralUI "Silver screen": classic monochrome cinema ── */
+body[data-theme="silver"]{
+  --bg:#0b0c0e; --bg2:#0f1114; --card:#15171a; --card2:#1b1e23;
+  --line:#26292f; --line2:#3a3f48;
+  --gold:#c9ccd1; --gold2:#eceef1; --goldDim:#565b64;
+  --btnA:#F4F6F8; --btnB:#C9CCD1; --btnC:#8E95A3; --btnText:#22252b;
+  --hudRing: linear-gradient(155deg, color-mix(in srgb, var(--gold) 24%, transparent), rgba(58,63,72,.65) 40%, rgba(38,41,47,.6));
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, rgba(236,238,241,.07), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, rgba(142,149,163,.08), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, rgba(35,38,43,.5), transparent 62%);
+}
+/* theme swatches in Settings */
+.theme-swatch{display:inline-flex; align-items:center; gap:6px}
+.theme-dot{width:13px; height:13px; border-radius:50%; border:1px solid rgba(255,255,255,.3); box-shadow:inset 0 1px 2px rgba(255,255,255,.35)}

@@ -131,6 +131,27 @@ function motionOK(){
 function applyMotionPref(){
   try{ document.body.classList.toggle("rm-motion", !motionOK()); }catch(e){}
 }
+/* v19: theme system — five FeralUI-designed themes (see style.css v19 block).
+   The accent token set swaps wholesale via body[data-theme]; semantic colors
+   (green/red/blue) stay fixed. Persisted in localStorage like the language. */
+let THEME = "gold";
+try{ THEME = localStorage.getItem("bow_theme") || "gold"; }catch(e){}
+const THEMES=[
+  {id:"gold",   name:"Midnight Gold",   a:"#f5b942", b:"#10141f"},
+  {id:"aurora", name:"Aurora Night",    a:"#4dd6e8", b:"#0f1822"},
+  {id:"violet", name:"Violet Premiere", a:"#b28fce", b:"#151027"},
+  {id:"carpet", name:"Red Carpet",      a:"#f09199", b:"#1e1114"},
+  {id:"silver", name:"Silver Screen",   a:"#c9ccd1", b:"#15171a"},
+];
+function applyTheme(t){
+  if(t) THEME=t;
+  if(!THEMES.some(x=>x.id===THEME)) THEME="gold";
+  try{
+    if(THEME==="gold") delete document.body.dataset.theme;
+    else document.body.dataset.theme = THEME;
+  }catch(e){}
+  try{ localStorage.setItem("bow_theme", THEME); }catch(e){}
+}
 function confetti(opts){
   opts = opts||{};
   if(typeof document==="undefined") return;
@@ -249,6 +270,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $$(".tab,.btab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   try{ applyChromeLang(); }catch(e){}
   applyMotionPref();
+  applyTheme();
   installGestures();   // v5: swipe tabs + pull-to-advance on mobile
   // keyboard shortcuts
   document.addEventListener("keydown", e=>{
@@ -699,7 +721,7 @@ function viewStudio(){
   const max=Math.max(1,...rows.map(r=>r.ww));
   rows.sort((a,b)=>b.ww-a.ww).forEach((r,i)=>{
     h+="<div class='chart-bar' style='margin:5px 0'><div class='cb-rank'>"+(i+1)+"</div><div><div class='cb-name'>"+(r.me?"⭐ ":"")+esc(r.name)+"</div></div>"+
-       "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(6,r.ww/max*100)+"%;background:"+(r.me?"linear-gradient(90deg,#f5b942,#ffd479)":"#4a5570")+"'>"+fmtM(r.ww)+"</div></div></div>";
+       "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(6,r.ww/max*100)+"%;background:"+(r.me?"linear-gradient(90deg,var(--gold),var(--gold2))":"#4a5570")+"'>"+fmtM(r.ww)+"</div></div></div>";
   });
   h+="</div>";
   { // v5: unified achievements — one shelf, counted once
@@ -2645,7 +2667,7 @@ function viewBoxOffice(){
   chart.forEach((c,i)=>{
     h+="<div class='chart-bar'><div class='cb-rank'>"+(i+1)+"</div><div><div class='cb-name'>"+(c.mine?"🎬 ":"")+esc(c.title)+(c.mine?"":" <span class='tiny muted'>— "+esc(c.studio||"")+"</span>")+"</div>"+
       "<div class='cb-sub'>"+DATA.GENRES[c.genre].name+" · wk "+c.weeksOut+"</div></div>"+
-      "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(7,c.gross/max*100)+"%;background:"+(c.mine?"linear-gradient(90deg,#f5b942,#ffd479)":(c.color||"#4a5570"))+"'>"+fmtG(c.gross)+"</div></div></div>";
+      "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(7,c.gross/max*100)+"%;background:"+(c.mine?"linear-gradient(90deg,var(--gold),var(--gold2))":(c.color||"#4a5570"))+"'>"+fmtG(c.gross)+"</div></div></div>";
   });
   h+="</div>";
 	h+="<div class='spread'><div class='section-title' style='margin:0'>Rival studios ("+G.rivals.length+")</div>"+
@@ -3990,6 +4012,11 @@ function settingsModal(){
     "<div class='tiny muted' style='margin-top:4px'>Menus & chrome translate fully; long news copy stays in English.</div></div>";
   h+="<div class='card'><div class='spread'><b>"+t("set.font")+"</b><div class='row'>"+
     "<button class='btn btn-sm' id='fontMinus'>A−</button><button class='btn btn-sm' id='fontReset'>A</button><button class='btn btn-sm' id='fontPlus'>A+</button></div></div></div>";
+  /* v19: theme picker — five FeralUI-designed themes */
+  h+="<div class='card'><div class='spread'><b>🎨 Theme</b><div class='row'>"+
+    THEMES.map(th=>"<button class='btn btn-sm theme-swatch"+(THEME===th.id?" btn-primary":"")+"' data-theme='"+th.id+"'>"+
+      "<span class='theme-dot' style='background:"+th.a+"'></span><span class='theme-dot' style='background:"+th.b+"'></span>"+th.name+"</button>").join("")+"</div></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Five looks designed in the FeralUI gradient studio — the accent, panels, glows and buttons all follow. Your pick is remembered per device.</div></div>";
   /* v5: accessibility / feel */
   h+="<div class='card'><div class='spread'><b>🎞 Animations</b><div class='row'>"+
     ["auto","on","off"].map(m=>"<button class='btn btn-sm "+((MOTION||"auto")===m?"btn-primary":"")+"' data-motion='"+m+"'>"+({auto:"Auto",on:"On",off:"Off"})[m]+"</button>").join("")+"</div></div>"+
@@ -4031,6 +4058,7 @@ function settingsModal(){
   v.querySelector("#fontPlus").onclick=()=>setFont(Math.min(20,curFont()+1));
   v.querySelector("#fontReset").onclick=()=>setFont(15);
   v.querySelectorAll("[data-motion]").forEach(b=>b.onclick=()=>{ MOTION=b.dataset.motion; localStorage.setItem("bow_motion",MOTION); applyMotionPref(); beep("click"); closeModal(); settingsModal(); });
+  v.querySelectorAll("[data-theme]").forEach(b=>b.onclick=()=>{ applyTheme(b.dataset.theme); beep("click"); closeModal(); settingsModal(); });   // v19 theme picker
   v.querySelectorAll("[data-hap]").forEach(b=>b.onclick=()=>{ HAPTICS=b.dataset.hap==="1"; localStorage.setItem("bow_hap",HAPTICS?"1":"0"); if(HAPTICS) rumble([20,40,20]); beep("click"); closeModal(); settingsModal(); });
   v.querySelectorAll("[data-wksum]").forEach(b=>b.onclick=()=>{ localStorage.setItem("bow_wksum",b.dataset.wksum); beep("click"); closeModal(); settingsModal(); });
   const stn=v.querySelector("#stNameSave");
