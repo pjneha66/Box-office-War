@@ -891,3 +891,33 @@ body.rm-motion *, body.rm-motion *::before, body.rm-motion *::after{
 .logo-icon{
   box-shadow:0 0 0 1px rgba(245,185,66,.35), 0 0 34px rgba(245,185,66,.22), inset 0 1px 0 rgba(255,255,255,.2);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   v18 — FERALUI GRADIENT PASS
+   Palettes designed in the FeralUI gradient studio and rebuilt
+   locally: "Opening night sky" aurora (asset: opening-night.jpg,
+   68KB) behind the start screen; the aurora palette (Kerria gold
+   #F8B500 · violet #B48BFF · cyan #4DD6E8) washes the app body;
+   "Premiere gold" drives the primary button in oklab.
+   ═══════════════════════════════════════════════════════════ */
+.start-screen{
+  background:
+    radial-gradient(900px 520px at 50% -6%, rgba(245,185,66,.14), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.016) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, rgba(8,11,17,.46), rgba(8,11,17,.16) 42%, rgba(8,11,17,.66)),
+    url("assets/opening-night.jpg") center/cover no-repeat,
+    var(--bg);
+}
+body{
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, rgba(248,181,0,.10), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, rgba(77,214,232,.055), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, rgba(180,139,255,.07), transparent 62%);
+}
+.btn-primary{
+  background:linear-gradient(135deg,#FCC800,#F8B500 55%,#E09A00);
+  background:linear-gradient(135deg in oklab,#FCC800,#F8B500 55%,#E09A00);
+}
+.section-title::after{background:linear-gradient(90deg, rgba(245,185,66,.32), rgba(180,139,255,.20) 45%, transparent)}
+.toast::after{background:linear-gradient(90deg,var(--gold),var(--cyan),transparent)}
+.tab.active{color:var(--gold2); text-shadow:0 0 18px rgba(248,181,0,.45)}
