@@ -732,6 +732,7 @@ function _renderImpl(){
     else if(TAB==="fans") h=viewFans();
     else if(TAB==="ott") h=viewOTT();
     else if(TAB==="empire") h=viewEmpire();
+    else if(TAB==="library") h=viewLibrary();
     else if(TAB==="games") h=viewGames();
     else if(TAB==="finance") h=viewFinance();
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
@@ -3787,6 +3788,13 @@ function bindView(){
   $("#btnCompareFilms") && ($("#btnCompareFilms").onclick=()=>{ beep("click"); compareFilmsModal(); });
   $$("[data-cut]").forEach(b=>b.onclick=()=>{ const id=+b.dataset.cut; const f=G.films.find(x=>x.id===id); if(f && makeDirectorsCut(f)){ beep("gold"); flashes(G.flash); render(); } });
   $$(".rival-card").forEach(c=>c.onclick=()=>{ const name=c.dataset.rival; const r=G.rivals.find(x=>x.name===name); if(r) rivalProfileModal(r); });
+  // Library tab actions
+  $$("[data-re]").forEach(b=>b.onclick=()=>{ const f=G.films.find(x=>x.id===+b.dataset.re); if(f) reReleaseFilm(f.id); beep("click"); });
+  $$("[data-stream]").forEach(b=>b.onclick=()=>{ viewStreamingDeal(+b.dataset.stream); beep("click"); });
+  $$("[data-dc]").forEach(b=>b.onclick=()=>{ const f=G.films.find(x=>x.id===+b.dataset.dc); if(f) releaseDirectorsCut(f.id); beep("gold"); });
+  $$("[data-seq]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.seq); if(s) startSequel(s); beep("click"); });
+  $$("[data-spin]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.spin); if(s) startSpinoff(s); beep("click"); });
+  $$("[data-fr]").forEach(b=>b.onclick=()=>{ viewFranchiseDetail(b.dataset.fr); beep("click"); });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
@@ -4106,6 +4114,127 @@ function testScreenModal(pid){
     if(beginReshoot(+rs.dataset.reshoot)){ beep("gold"); flashes(G.flash); closeModal(); render(); }
     else { toast("Not enough to reshoot now.","bad"); }
   };
+}
+
+/* ═══════════ VIEW: library (v23) — released films & series vault ═══════════ */
+function viewLibrary(){
+  let h="";
+  const releasedFilms = (G.films||[]).filter(f=>f.ww && f.ww>0);
+  const releasedSeries = (G.series||[]).filter(s=>s.seasons?.length>0);
+  
+  // Filter state
+  const filter = G.libFilter || { genre:"all", type:"all", year:"all", profit:"all", franchise:"all" };
+  const genres = ["all", ...Object.keys(DATA.GENRES)];
+  const types = ["all", "film", "series"];
+  const years = ["all", ...new Set([
+    ...releasedFilms.map(f=>yearOf(f.releaseWeek||G.week)),
+    ...releasedSeries.flatMap(s=>s.seasons.map(se=>yearOf(se.when||G.week)))
+  ).sort((a,b)=>b-a)]];
+  const franchises = ["all", ...new Set([
+    ...releasedFilms.map(f=>f.franchiseName).filter(Boolean),
+    ...releasedSeries.map(s=>s.franchiseName).filter(Boolean)
+  ])];
+  
+  // Apply filters
+  let films = releasedFilms;
+  let series = releasedSeries;
+  if(filter.genre!=="all"){ films = films.filter(f=>f.genre===filter.genre); series = series.filter(s=>s.genre===filter.genre); }
+  if(filter.type!=="all"){ if(filter.type==="film") series=[]; else films=[]; }
+  if(filter.year!=="all"){ 
+    films = films.filter(f=>yearOf(f.releaseWeek||G.week)===filter.year);
+    series = series.filter(s=>s.seasons.some(se=>yearOf(se.when||G.week)===filter.year));
+  }
+  if(filter.franchise!=="all"){
+    films = films.filter(f=>f.franchiseName===filter.franchise);
+    series = series.filter(s=>s.franchiseName===filter.franchise);
+  }
+  
+  h+="<div class='spread'><div class='section-title' style='margin:0'>📚 Library — "+(films.length+series.length)+" titles</div>"+
+    "<button class='btn btn-sm btn-ghost' onclick='openLibraryFilters()'>🔍 Filters</button></div>";
+  
+  // Filters bar
+  h+="<div class='card' style='margin-bottom:8px'><div class='row' style='gap:6px;flex-wrap:wrap'>"+
+    "<span class='small muted'>Type:</span>"+types.map(t=>"<button class='btn btn-xs "+(filter.type===t?"btn-primary":"btn-ghost")+"' data-lib-type='"+t+"'>"+({film:"🎬 Film",series:"📺 Series",all:"All"})[t]+"</button>").join("")+
+    "<span class='small muted'>Genre:</span>"+genres.map(g=>"<button class='btn btn-xs "+(filter.genre===g?"btn-primary":"btn-ghost")+"' data-lib-genre='"+g+"' style='max-width:100px'>"+(g==="all"?"All":DATA.GENRES[g]?.emoji+" "+DATA.GENRES[g]?.name||g)+"</button>").join("")+
+    "<span class='small muted'>Year:</span>"+years.map(y=>"<button class='btn btn-xs "+(filter.year===y?"btn-primary":"btn-ghost")+"' data-lib-year='"+y+"'>"+y+"</button>").join("")+
+    "<span class='small muted'>Franchise:</span>"+franchises.map(f=>"<button class='btn btn-xs "+(filter.franchise===f?"btn-primary":"btn-ghost")+"' data-lib-franchise='"+esc(f)+"' style='max-width:120px'>"+(f==="all"?"All":esc(f))+"</button>").join("")+
+  "</div></div>";
+  
+  // Films grid
+  if(films.length){
+    h+="<div class='section-title'>🎬 Films ("+films.length+")</div><div class='grid g3' style='margin-top:8px'>";
+    films.sort((a,b)=>(b.ww||0)-(a.ww||0)).forEach(f=>{
+      const be = breakevenWW(f);
+      const profit = Math.round((f.ww||0) - be);
+      h+="<div class='card'><div class='spread'><b>"+(DATA.GENRES[f.genre]?DATA.GENRES[f.genre].emoji:"🎬")+" "+esc(f.title)+"</b>"+
+        "<span class='tag "+(profit>=0?"pos":"neg")+"'>"+fmtG(f.ww||0)+" WW</span></div>"+
+        "<div class='tiny muted'>Y"+yearOf(f.releaseWeek)+" · "+DATA.GENRES[f.genre]?.name+" · "+fmtM(f.budget)+"M budget · "+
+        (f.franchiseName?"🏰 "+esc(f.franchiseName)+" · ":"")+
+        (profit>=0?"<span class='pos'>+"+fmtM(profit)+" profit</span>":"<span class='neg'>"+fmtM(profit)+" loss</span>")+"</div>"+
+        "<div class='row' style='margin-top:6px;gap:4px'>"+
+          "<button class='btn btn-xs btn-alt' data-re='"+f.id+"'>🎞 Re-release</button>"+
+          (f.streamingOriginal||f.soldTo ? "<button class='btn btn-xs btn-alt' data-stream='"+f.id+"'>📺 Streaming</button>" : "")+
+          (f.franchiseName ? "<button class='btn btn-xs btn-alt' data-fr='"+esc(f.franchiseName)+"'>🏰 Franchise</button>" : "")+
+          "<button class='btn btn-xs btn-alt' data-dc='"+f.id+"'>🎬 Director's Cut</button>"+
+        "</div></div>";
+    });
+    h+="</div>";
+  }
+  
+  // Series grid
+  if(series.length){
+    h+="<div class='section-title'>📺 Series ("+series.length+")</div><div class='grid g3' style='margin-top:8px'>";
+    series.sort((a,b)=>(b.totalViewers||0)-(a.totalViewers||0)).forEach(s=>{
+      const totalEps = s.seasons.reduce((a,se)=>a+(se.episodes||0),0);
+      h+="<div class='card'><div class='spread'><b>📺 "+esc(s.title)+"</b>"+
+        "<span class='tag'>"+s.seasons.length+" seasons, "+totalEps+" eps</span></div>"+
+        "<div class='tiny muted'>Y"+yearOf(s.seasons[0]?.when)+" · "+DATA.GENRES[s.genre]?.name+" · "+
+        (s.franchiseName?"🏰 "+esc(s.franchiseName)+" · ":"")+
+        fmtM(s.budget||0)+"M budget · "+fmtM(s.totalViewers||0)+"M peak viewers</div>"+
+        "<div class='row' style='margin-top:6px;gap:4px'>"+
+          "<button class='btn btn-xs btn-alt' data-seq='"+s.id+"'>🎬 New Season</button>"+
+          "<button class='btn btn-xs btn-alt' data-spin='"+s.id+"'>📺 Spin-off</button>"+
+          (s.franchiseName ? "<button class='btn btn-xs btn-alt' data-fr='"+esc(s.franchiseName)+"'>🏰 Franchise</button>" : "")+
+        "</div></div>";
+    });
+    h+="</div>";
+  }
+  
+  if(!films.length && !series.length){
+    h+="<div class='card muted small' style='margin-top:16px;text-align:center'>Your vault is empty. Release a film or series to fill the shelves.</div>";
+  }
+  
+  return h;
+}
+
+/* Filter modal */
+function openLibraryFilters(){
+  const filter = G.libFilter || { genre:"all", type:"all", year:"all", profit:"all", franchise:"all" };
+  let h="<h3>🔍 Library Filters</h3>"+
+    "<div class='card'><div class='small muted'>Genre</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
+    ["all",...Object.keys(DATA.GENRES)].map(g=>"<button class='btn btn-sm "+(filter.genre===g?"btn-primary":"btn-ghost")+"' data-lib-genre='"+g+"'>"+(g==="all"?"All":DATA.GENRES[g]?.emoji+" "+DATA.GENRES[g]?.name||g)+"</button>").join("")+
+    "</div></div>"+
+    "<div class='card' style='margin-top:8px'><div class='small muted'>Type</div><div class='row' style='gap:4px'>"+
+    ["all","film","series"].map(t=>"<button class='btn btn-sm "+(filter.type===t?"btn-primary":"btn-ghost")+"' data-lib-type='"+t+"'>"+({film:"🎬 Film",series:"📺 Series",all:"All"})[t]+"</button>").join("")+
+    "</div></div>"+
+    "<div class='card' style='margin-top:8px'><div class='small muted'>Year</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
+    ["all",...new Set([
+      ...(G.films||[]).map(f=>yearOf(f.releaseWeek||G.week)),
+      ...(G.series||[]).flatMap(s=>s.seasons.map(se=>yearOf(se.when||G.week)))
+    )].sort((a,b)=>b-a).map(y=>"<button class='btn btn-sm "+(filter.year===y?"btn-primary":"btn-ghost")+"' data-lib-year='"+y+"'>"+y+"</button>").join("")+
+    "</div></div>"+
+    "<div class='card' style='margin-top:8px'><div class='small muted'>Franchise</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
+    ["all",...new Set([
+      ...(G.films||[]).map(f=>f.franchiseName).filter(Boolean),
+      ...(G.series||[]).map(s=>s.franchiseName).filter(Boolean)
+    ])].map(f=>"<button class='btn btn-sm "+(filter.franchise===f?"btn-primary":"btn-ghost")+"' data-lib-franchise='"+esc(f)+"'>"+(f==="all"?"All":esc(f))+"</button>").join("")+
+    "</div></div>"+
+    "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Done</button></div>";
+  openModal(h);
+  v.querySelectorAll("[data-lib-genre]").forEach(b=>b.onclick=()=>{ G.libFilter.genre=b.dataset.libGenre; beep("click"); openLibraryFilters(); });
+  v.querySelectorAll("[data-lib-type]").forEach(b=>b.onclick=()=>{ G.libFilter.type=b.dataset.libType; beep("click"); openLibraryFilters(); });
+  v.querySelectorAll("[data-lib-year]").forEach(b=>b.onclick=()=>{ G.libFilter.year=b.dataset.libYear; beep("click"); openLibraryFilters(); });
+  v.querySelectorAll("[data-lib-franchise]").forEach(b=>b.onclick=()=>{ G.libFilter.franchise=b.dataset.libFranchise; beep("click"); openLibraryFilters(); });
 }
 
 /* ═══════════ VIEW: game studio (v16) — the movie-game division ═══════════ */
