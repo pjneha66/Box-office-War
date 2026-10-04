@@ -989,3 +989,58 @@ DATA.EVENTS.push(
 
 /* tiny money formatter usable inside data.js events (engine's fmtM wins once loaded) */
 function fmtM0(v){ return "$"+(Math.round(v*10)/10)+"M"; }
+
+/* ═══════════════════════════════════════════════════════════
+   v17 — WORLD & UI FOUNDATIONS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Multi-Territory Box Office: 8 territories with genre multipliers, political risk, piracy base ── */
+DATA.TERRITORIES = [
+  {id:"uscan",    name:"US/Canada",       share:0.40, emoji:"🇺🇸🇨🇦", risk:0,   piracy:18,  genre:{action:1.15, scifi:1.10, fantasy:1.08, animation:1.05, comedy:1.00, horror:0.95, thriller:1.02, drama:0.90, romance:0.85, musical:0.95, western:0.88, war:1.05, sports:0.90, concert:1.10, truecrime:1.05}},
+  {id:"china",    name:"China",           share:0.20, emoji:"🇨🇳",   risk:0.15, piracy:35,  genre:{action:1.25, scifi:1.15, fantasy:1.05, animation:1.20, comedy:0.70, horror:0.30, thriller:0.85, drama:0.60, romance:0.50, musical:0.65, western:0.40, war:0.90, sports:0.75, concert:0.80, truecrime:0.40}},
+  {id:"india",    name:"India",           share:0.08, emoji:"🇮🇳",   risk:0.05, piracy:28,  genre:{action:1.10, scifi:1.05, fantasy:1.00, animation:1.15, comedy:1.20, horror:0.80, thriller:0.95, drama:1.10, romance:1.35, musical:1.40, western:0.60, war:0.85, sports:1.25, concert:1.05, truecrime:1.10}},
+  {id:"uk",       name:"United Kingdom",  share:0.06, emoji:"🇬🇧",   risk:0,   piracy:12,  genre:{action:1.08, scifi:1.08, fantasy:1.12, animation:1.05, comedy:1.15, horror:1.00, thriller:1.05, drama:1.10, romance:1.05, musical:1.15, western:0.95, war:1.10, sports:1.00, concert:1.10, truecrime:1.15}},
+  {id:"france",   name:"France",          share:0.05, emoji:"🇫🇷",   risk:0,   piracy:15,  genre:{action:0.95, scifi:1.05, fantasy:1.08, animation:1.15, comedy:1.10, horror:1.05, thriller:1.08, drama:1.15, romance:1.20, musical:1.10, western:0.90, war:1.05, sports:0.90, concert:1.05, truecrime:1.10}},
+  {id:"japan",    name:"Japan",           share:0.07, emoji:"🇯🇵",   risk:0,   piracy:8,   genre:{action:1.10, scifi:1.15, fantasy:1.20, animation:1.30, comedy:0.85, horror:1.15, thriller:1.00, drama:1.00, romance:0.95, musical:1.05, western:0.80, war:0.95, sports:0.85, concert:1.20, truecrime:1.00}},
+  {id:"latam",    name:"Latin America",   share:0.07, emoji:"🌎",   risk:0.08, piracy:32,  genre:{action:1.20, scifi:1.05, fantasy:1.10, animation:1.25, comedy:1.10, horror:1.15, thriller:1.00, drama:0.95, romance:1.10, musical:1.05, western:0.90, war:0.95, sports:1.15, concert:1.10, truecrime:1.05}},
+  {id:"rest",     name:"Rest of World",   share:0.07, emoji:"🌍",   risk:0.10, piracy:25,  genre:{action:1.05, scifi:1.05, fantasy:1.05, animation:1.05, comedy:1.00, horror:1.00, thriller:1.00, drama:1.00, romance:1.00, musical:1.00, western:0.95, war:1.00, sports:1.00, concert:1.00, truecrime:1.00}},
+];
+DATA.territory = (id)=> DATA.TERRITORIES.find(t=>t.id===id) || DATA.TERRITORIES[0];
+
+/* ── Economic Cycles ── */
+DATA.ECON_CYCLES = [
+  {id:"boom",       name:"Boom",        emoji:"📈", dur:[104,208], boxOffice:1.15, loanRate:0.75, streamChurn:0.95, desc:"Theaters packed, money cheap, streamers bleed subs."},
+  {id:"normal",     name:"Normal",      emoji:"➖", dur:[104,208], boxOffice:1.00, loanRate:1.00, streamChurn:1.00, desc:"Business as usual."},
+  {id:"recession",  name:"Recession",   emoji:"📉", dur:[78,156], boxOffice:0.80, loanRate:1.35, streamChurn:1.08, desc:"Tickets down, rates up, audiences stay home."},
+  {id:"streamglut", name:"Streaming Glut", emoji:"📺", dur:[78,156], boxOffice:0.90, loanRate:1.10, streamChurn:1.25, desc:"Too many services, churn spikes, licensing fees crash."},
+];
+
+/* ── Geopolitical Events (for v18, data defined here) ── */
+DATA.GEO_EVENTS = [
+  {id:"china_ban",       name:"China Import Ban",       emoji:"🚫🇨🇳", dur:26, territories:["china"],   boxOfficeMult:0,   desc:"China closes its doors — zero revenue for 26 weeks."},
+  {id:"india_boom",      name:"India Box Office Boom",  emoji:"📈🇮🇳", dur:8,  territories:["india"],   boxOfficeMult:1.40,desc:"India surges +40% for 8 weeks."},
+  {id:"eu_quota",        name:"EU Content Quota",       emoji:"🇪🇺",   dur:26, territories:["france","uk"], boxOfficeMult:0.80, desc:"EU quota rules — France/UK mult 0.8, must commission local."},
+  {id:"us_tariff",       name:"US Import Tariffs",      emoji:"🇺🇸",   dur:13, territories:["uscan"],     boxOfficeMult:1.0,  distCostMult:1.15, desc:"Tariffs raise international distribution costs +15%."},
+];
+
+/* ── Production Chaos Events (for v22, data defined here) ── */
+DATA.CHAOS_EVENTS = [
+  {id:"location_fire",    name:"Location Fire",       emoji:"🔥",  delay:2, cost:5,   insurable:true,  desc:"Set ablaze — +2 weeks, +$5M. Insurable."},
+  {id:"lead_injury",      name:"Lead Injury",         emoji:"🤕",  delay:4, cost:0,   insurable:true,  recastCost:8, desc:"Star injured — +4 weeks delay OR recast for $8M."},
+  {id:"director_walkout", name:"Director Walkout",    emoji:"🚪",  delay:0, cost:15,  insurable:false, qualityHit:10, desc:"Director quits — quality −10 OR pay $15M to retain."},
+  {id:"budget_overrun",   name:"Budget Overrun",      emoji:"💸",  delay:0, cost:0,   insurable:false, overrunPct:0.15, desc:"Remaining budget balloons +15%."},
+  {id:"script_leak",      name:"Script Leak",         emoji:"📰",  delay:0, cost:0,   insurable:false, hype:+5, openingHit:0.08, desc:"Script leaks — hype +5 but opening −8% from spoilers."},
+  {id:"star_scandal",     name:"Star Scandal",        emoji:"⭐",  delay:0, cost:8,   insurable:false, reshootCost:8, scoreHit:15, desc:"Star scandal — reshoot without them ($8M) OR release as-is (−15 audience)."},
+];
+
+/* ── Franchise Universe Graph node types ── */
+DATA.UNIVERSE_NODE_TYPES = [
+  {type:"film",    label:"Film",    emoji:"🎬", shape:"circle",    color:"#f5b942"},
+  {type:"tv",      label:"TV",      emoji:"📺", shape:"square",    color:"#5aa2ff"},
+  {type:"game",    label:"Game",    emoji:"🎮", shape:"diamond",   color:"#b48bff"},
+  {type:"park",    label:"Park",    emoji:"🎢", shape:"hexagon",   color:"#3ddc84"},
+  {type:"merch",   label:"Merch",   emoji:"🧸", shape:"triangle",  color:"#ff5d6c"},
+];
+
+/* ── SAVE_VERSION bump for v17 ── */
+DATA.SAVE_VERSION = 9;

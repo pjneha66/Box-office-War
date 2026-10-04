@@ -716,7 +716,8 @@ function render(){
     $("#chipDate").textContent="Y"+yearOf(G.week)+" · "+DATA.seasonOf(woyOf(G.week)).month+" W"+woyOf(G.week);
     const v=$("#view");
     let h="";
-    if(TAB==="studio") h=viewStudio();
+    if(TAB==="dashboard") h=viewDashboard();
+    else if(TAB==="studio") h=viewStudio();
     else if(TAB==="develop") h=viewDevelop();
     else if(TAB==="productions") h=viewProductions();
     else if(TAB==="boxoffice") h=viewBoxOffice();
@@ -5146,6 +5147,447 @@ function empireModal(frId){
 }
 
 /* ── Mobile gestures (item 34): swipe between tabs · pull-down at top = next week ── */
+/* ═══════════ VIEW: dashboard (v17) — Live HQ summary ═══════════ */
+function viewDashboard(){
+  const st=G.studio;
+  const yr=yearOf(G.week);
+  const myYtd=G.films.filter(f=>f.year===yr).reduce((a,f)=>a+(f.ww||0),0);
+  const live=activeFilms().length, inProd=inProdProjects().length;
+  const lastNet=G.txHistory && G.txHistory.length? G.txHistory[G.txHistory.length-1].net : 0;
+  let rev12=0, net12=0;
+  try{
+    for(const s of (G.txHistory||[])){
+      for(const k in (s.cats||{})){ const v=s.cats[k]||0; if(v>0 && k!=="financing") rev12+=v; }
+      net12+=s.net||0;
+    }
+    rev12=Math.round(rev12*10)/10; net12=Math.round(net12*10)/10;
+  }catch(e){}
+  let studioVal=0;
+  try{ studioVal=Math.round((st.cash-(st.debt||0)+catalogValue()+(G.streamer?(G.streamer.subs||0)*18:0))*10)/10; }catch(e){}
+  const dated=(G.projects||[]).filter(p=>p.releaseWeek>G.week).sort((a,b)=>a.releaseWeek-b.releaseWeek);
+  const readyUnscheduled=(typeof readyProjects==="function"?readyProjects():[]).filter(p=>!p.releaseWeek);
+  const topFr=(G.franchises||[]).slice().sort((a,b)=>(b.decay||0)-(a.decay||0))[0]||null;
+  const frHeat=topFr?Math.round((topFr.decay||0)*100):null;
+  const awardCount=(G.festWins||[]).filter(w=>w.year===yr).length+(G.stats.awards||[]).filter(a=>a.year===yr).length;
+  
+  // v17: Economic cycle status
+  let econBadge="";
+  if(G.econCycle){
+    const phase = DATA.ECON_CYCLES.find(c=>c.id===G.econCycle.phase);
+    if(phase){
+      econBadge = "<span class='tag "+(phase.id==="boom"?"gold":phase.id==="recession"?"red":phase.id==="streamglut"?"purple":"")+"'>"+phase.emoji+" "+phase.name+" ("+G.econCycle.weeksLeft+" wks)</span>";
+    }
+  }
+  
+  // v17: 8-week sparkline data
+  const last8Weeks = (G.txHistory||[]).slice(-8).map(s=>s.net||0);
+  const sparkline = renderSparklineSVG(last8Weeks, 160, 32, last8Weeks[last8Weeks.length-1]>=0?"var(--green)":"var(--red)");
+  
+  let h="<div class='stat-hero'>"+
+    statCard(fmtM(st.cash),"Cash on hand")+
+    statCard("+"+fmtM(rev12),"Revenue (12w)","var(--green)")+
+    statCard((net12>=0?"+":"")+fmtM(net12),"Profit (12w)", net12>=0?"var(--green)":"var(--red)")+
+    statCard(fmtM((st.debt||0)+(G.mezz||0)+(st.mezzDebt||0)),"Debt","var(--red)")+
+    statCard(fmtM(studioVal),"Studio value")+
+    statCard(Math.round(st.rep)+"/100","Reputation","var(--gold2)")+
+    statCard("Y"+yr+" · W"+woyOf(G.week),"Current date")+
+    statCard(String(inProd),"Active productions")+
+    statCard(String(dated.length),"Upcoming releases")+
+    statCard(fmtM(myYtd),"Box office Y"+yr)+
+    statCard(G.streamer?fmtSubs(G.streamer.subs):"—","Streaming subs")+
+    statCard(frHeat===null?"—":frHeat+"%","Franchise heat"+(topFr?" · "+esc(topFr.name):""))+
+    statCard(String(awardCount),"Awards Y"+yr)+
+  "</div>";
+  
+  // Economic cycle badge
+  if(econBadge){
+    h+="<div class='card' style='border-left:3px solid var(--gold)'><div class='spread'><b>🏭 Economy</b>"+econBadge+"</div>"+
+      "<div class='tiny muted' style='margin-top:4px'>Box office ×"+econBoxOfficeMult().toFixed(2)+" · Loan rate ×"+econLoanRateMult().toFixed(2)+" · Stream churn ×"+econStreamChurnMult().toFixed(2)+"</div></div>";
+  }
+  
+  // Sparkline chart
+  h+="<div class='card'><b>📈 8-Week Net Profit</b>"+sparkline+
+    "<div class='tiny muted' style='margin-top:4px'>Green = profitable weeks · Red = loss weeks</div></div>";
+  
+  // Quick actions
+  h+="<div class='card'><b>⚡ Quick Actions</b>"+
+    "<div class='row' style='margin-top:8px;gap:8px;flex-wrap:wrap'>"+
+    "<button class='btn btn-primary' onclick=\"switchTab('develop')\">📝 Greenlight a Film</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('productions')\">🎬 View Productions</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('boxoffice')\">📊 Box Office Charts</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('finance')\">💼 Finance & P&L</button>"+
+    "</div></div>";
+  
+  // Studio ops
+  h+=studioOpsCard({dated, readyUnscheduled, topFr, net12});
+  
+  // Scenario info
+  try{
+    const scen=DATA.SCENARIOS[G.scenario]||{emoji:"🎬",name:G.scenario||"Standard"};
+    const diff=DATA.DIFFICULTIES[G.difficulty]||{emoji:"⚖️",name:G.difficulty||"Normal"};
+    h+="<div class='card'><div class='row'>"+
+      "<span class='tag gold'>"+scen.emoji+" "+scen.name+"</span>"+
+      "<span class='tag blue'>"+diff.emoji+" "+diff.name+"</span>"+
+      (G.sandbox?"<span class='tag purple'>🧪 sandbox</span>":"")+
+      (G.ipo||G.public?"<span class='tag green'>🔔 public company</span>":"")+
+      (G.streamer?"<span class='tag purple'>🛰 "+esc(G.streamer.name)+" · "+(typeof fmtSubs==="function"? fmtSubs(G.streamer.subs) : G.streamer.subs.toFixed(1)+"M")+" subs</span>":"")+
+    "</div></div>";
+  }catch(e){}
+  
+  // Live films
+  if(live||inProd||G.series.some(s=>s.phase!=="between"&&s.status!=="ended")){
+    h+="<div class='card'><div class='row'>"+
+      (live?"<span class='tag gold'>🎥 "+live+" in theaters</span>":"")+
+      (inProd?"<span class='tag blue'>🎬 "+inProd+" in production</span>":"")+
+      (G.series.filter(s=>s.phase==="shoot").length?"<span class='tag purple'>📺 "+G.series.filter(s=>s.phase==="shoot").length+" series shooting</span>":"")+
+      (G.offers.length?"<span class='tag green'>📨 "+G.offers.length+" deal"+(G.offers.length>1?"s":"")+" pending</span>":"")+
+    "</div></div>";
+  }
+  
+  // Active alerts
+  if(G.streamWar>0) h+="<div class='card' style='border-left:3px solid var(--purple)'><b>⚔️ Streaming war</b> — offers +30% for "+G.streamWar+" more weeks.</div>";
+  if(G.theaterCap>0) h+="<div class='card' style='border-left:3px solid var(--red)'><b>🦠 Theater capacity limits</b> — box office −45% for "+G.theaterCap+" more weeks.</div>";
+  if(G.econCycle && G.econCycle.phase==="recession") h+="<div class='card' style='border-left:3px solid var(--red)'><b>📉 Recession</b> — tickets down, rates up. Consider cheaper productions.</div>";
+  if(G.econCycle && G.econCycle.phase==="boom") h+="<div class='card' style='border-left:3px solid var(--green)'><b>📈 Boom</b> — theaters packed, money cheap. Time for tentpoles!</div>";
+  
+  return h;
+}
+
+/* ═══════════ VIEW: release calendar (v17) ═══════════ */
+function viewCalendar(){
+  const woy = woyOf(G.week);
+  const yr = yearOf(G.week);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const weeksInMonth = [4,4,5,4,5,4,4,5,4,5,4,4];
+  const monthStart = [0];
+  for(let i=0;i<11;i++) monthStart.push(monthStart[i]+weeksInMonth[i]);
+  
+  let h="<div class='spread'><div class='section-title' style='margin:0'>📅 Release Calendar Y"+yr+"</div>"+
+    "<button class='btn btn-sm btn-ghost' onclick='calendarModal()'>📅 Full Calendar Modal</button></div>";
+  
+  // Holiday markers
+  const holidays = {48:"🎄 Christmas", 49:"🎄 Christmas", 50:"🎄 Christmas", 51:"🎄 Christmas", 52:"🎇 New Year"};
+  
+  // Build month grids
+  for(let m=0;m<12;m++){
+    const monthName = months[m];
+    const start = monthStart[m]+1;
+    const end = monthStart[m]+weeksInMonth[m];
+    const isCurrentMonth = (woy >= start && woy <= end);
+    
+    h+="<div class='card"+(isCurrentMonth?"' style='border-color:var(--gold);box-shadow:0 0 16px rgba(245,185,66,.15)":"'")+">"+
+      "<div class='spread'><b>"+monthName+"</b>"+
+      "<span class='tiny muted'>W"+start+"–"+end+"</span></div>";
+    
+    h+="<div class='calendar-grid' style='display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px'>";
+    // Weekday headers
+    ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(d=>{
+      h+="<div class='cal-head' style='text-align:center;font-size:10px;color:var(--dim2);font-weight:700'>"+d+"</div>";
+    });
+    
+    // Empty cells for first week alignment
+    // Each month starts on week boundary, so we just show 4-5 rows of 7 cells
+    const weeks = end - start + 1;
+    for(let w=start; w<=end; w++){
+      const isCurrentWeek = (w === woy);
+      const datedFilms = (G.projects||[]).filter(p=>p.releaseWeek===w);
+      const rivalFilms = (G.rivals||[]).flatMap(r=> (r.slate||[]).filter(f=>f.releaseWeek===w && f.live) );
+      const isHoliday = holidays[w] || (DATA.seasonOf(w).holiday);
+      
+      let cellClass = "cal-cell"+(isCurrentWeek?" current":"")+(isHoliday?" holiday":"");
+      let cellContent = "<div class='cal-week'>W"+w+"</div>";
+      if(isHoliday) cellContent += "<div class='cal-holiday'>"+esc(holidays[w]||"Holiday")+"</div>";
+      if(datedFilms.length) cellContent += "<div class='cal-mine'>"+datedFilms.map(f=>DATA.GENRES[f.genre]?DATA.GENRES[f.genre].emoji:"🎬"+" "+esc(f.title)).join("<br>")+"</div>";
+      if(rivalFilms.length) cellContent += "<div class='cal-rival'>"+rivalFilms.map(f=>DATA.GENRES[f.genre]?DATA.GENRES[f.genre].emoji:"🎬"+" "+esc(f.title)).join("<br>")+"</div>";
+      
+      h+="<div class='"+cellClass+"' data-week='"+w+"' style='min-height:70px;padding:4px;background:#101522;border:1px solid var(--line);border-radius:8px;cursor:pointer'>"+cellContent+"</div>";
+    }
+    h+="</div></div>";
+  }
+  
+  // Legend
+  h+="<div class='card' style='margin-top:8px'><div class='row' style='gap:12px;flex-wrap:wrap'>"+
+    "<span><span class='cal-cell current' style='width:16px;height:16px;display:inline-block;border:2px solid var(--gold);vertical-align:middle'></span> Current week</span>"+
+    "<span><span class='cal-cell holiday' style='width:16px;height:16px;display:inline-block;background:rgba(245,185,66,.15);vertical-align:middle'></span> Holiday</span>"+
+    "<span><span class='cal-mine' style='display:inline-block;width:16px;height:16px;background:var(--gold);border-radius:4px;vertical-align:middle'></span> Your film</span>"+
+    "<span><span class='cal-rival' style='display:inline-block;width:16px;height:16px;background:var(--red);border-radius:4px;vertical-align:middle'></span> Rival film</span>"+
+  "</div></div>";
+  
+  return h;
+}
+
+/* ═══════════ VIEW: film detail modal (v17) ═══════════ */
+function filmDetailModal(filmId){
+  const f = G.films.find(x=>x.id===filmId) || G.projects.find(x=>x.id===filmId);
+  if(!f) return;
+  const isReleased = f.ww && f.ww>0;
+  const g = DATA.GENRES[f.genre] || {name:f.genre, emoji:"🎬"};
+  const be = isReleased ? breakevenWW(f) : (f.budget? (f.budget + (f.marketing||recMarketing({budget:f.budget,scale:f.scale,genre:f.genre}))) / 0.48 : 0);
+  
+  // Territory breakdown
+  let territoryHtml = "";
+  if(f.territoryGross && Object.keys(f.territoryGross).length){
+    territoryHtml = "<div class='section-title'>🌍 Multi-Territory Gross</div><div class='card'>";
+    const total = Object.values(f.territoryGross).reduce((a,b)=>a+b,0);
+    for(const [tid, gross] of Object.entries(f.territoryGross)){
+      const t = DATA.territory(tid);
+      const pct = total>0? Math.round(gross/total*100) : 0;
+      territoryHtml += "<div class='cost-line'><span>"+t.emoji+" "+t.name+"</span><b>"+fmtG(gross)+" ("+pct+"%)</b></div>";
+    }
+    territoryHtml += "<div class='cost-line'><span>Total</span><b>"+fmtG(total)+"</b></div></div>";
+  }
+  
+  // Weekly gross chart
+  let weeklyHtml = "";
+  if(f.weekly && f.weekly.length){
+    const max = Math.max(1, ...f.weekly.map(w=>w.gross));
+    weeklyHtml = "<div class='section-title'>📊 Week-by-Week Gross</div><div class='card'>";
+    f.weekly.slice(-16).forEach(wk=>{
+      weeklyHtml += "<div class='chart-bar' style='margin:4px 0'><div class='cb-rank'>W"+woyOf(wk.w)+"</div>"+
+        "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(6, wk.gross/max*100)+"%;background:linear-gradient(90deg,var(--gold),var(--gold2))'>"+fmtM(wk.gross)+"</div></div></div>";
+    });
+    weeklyHtml += "</div>";
+  }
+  
+  // Awards
+  let awardsHtml = "";
+  if(f.awards && f.awards.length){
+    awardsHtml = "<div class='section-title'>🏆 Awards</div><div class='card'>";
+    f.awards.forEach(a=>{
+      awardsHtml += "<div class='cost-line'><span>"+a.emoji+" "+a.cat+"</span><b>"+esc(a.film)+"</b></div>";
+    });
+    awardsHtml += "</div>";
+  }
+  
+  // Streaming status
+  let streamingHtml = "";
+  if(f.streamingOriginal || f.soldTo){
+    streamingHtml = "<div class='section-title'>📺 Streaming</div><div class='card'>";
+    if(f.streamingOriginal) streamingHtml += "<div class='cost-line'><span>Original for "+esc(G.streamer?.name||"your streamer")+"</span></div>";
+    if(f.soldTo) streamingHtml += "<div class='cost-line'><span>Licensed to "+esc(f.soldTo)+"</span></div>";
+    if(f.window) streamingHtml += "<div class='cost-line'><span>Window: "+f.window+"-day</span></div>";
+    streamingHtml += "</div>";
+  }
+  
+  // Franchise
+  let franchiseHtml = "";
+  if(f.franchiseName){
+    const fr = G.franchises.find(x=>x.name===f.franchiseName);
+    franchiseHtml = "<div class='section-title'>🏰 Franchise</div><div class='card'>";
+    if(fr){
+      franchiseHtml += "<div class='cost-line'><span>"+esc(fr.name)+" (Tier "+fr.tier+")</span></div>";
+      franchiseHtml += "<div class='cost-line'><span>Fatigue</span><b>"+Math.round((fr.fatigue||0)*100)+"%</b></div>";
+      franchiseHtml += "<div class='cost-line'><span>Merch tier</span><b>"+fr.merch+"</b></div>";
+      franchiseHtml += "<div class='cost-line'><span>Park tier</span><b>"+fr.park+"</b></div>";
+      franchiseHtml += "<div class='cost-line'><span>Franchise earnings</span><b>"+fmtM(fr.earned||0)+"</b></div>";
+    }
+    franchiseHtml += "<button class='btn btn-sm btn-alt' onclick=\"viewFranchiseDetail('"+esc(f.franchiseName)+"')\">View Franchise Graph</button>";
+    franchiseHtml += "</div>";
+  }
+  
+  let h="<h3>"+g.emoji+" "+esc(f.title)+" <span class='tiny muted'>("+f.scale+")</span></h3>"+
+    "<div class='grid g2' style='margin-top:8px'>"+
+      "<div class='card'><b>Director</b><div>"+esc(f.director?.name||"TBD")+"</div></div>"+
+      "<div class='card'><b>Writer</b><div>"+esc(f.writer?.name||"TBD")+"</div></div>"+
+      "<div class='card'><b>Producer</b><div>"+esc(f.producer?.name||"TBD")+"</div></div>"+
+      "<div class='card'><b>Budget</b><div>"+fmtM(f.budget||0)+"</div></div>"+
+      "<div class='card'><b>Marketing</b><div>"+fmtM(f.marketing||0)+"</div></div>"+
+      (isReleased? "<div class='card'><b>WW Gross</b><div class='pos'>"+fmtG(f.ww)+" <span class='tiny'>("+(be?Math.round(f.ww/be*100)/100:"?")+"× breakeven)</span></div></div>":"")+
+      (isReleased? "<div class='card'><b>Domestic</b><div>"+fmtG(f.dom||0)+"</div></div>":"")+
+      (isReleased? "<div class='card'><b>Intl/China</b><div>"+fmtG((f.ww||0)-(f.dom||0))+"</div></div>":"")+
+      "<div class='card'><b>Quality</b><div>"+scoreBadge(f.quality?.overall||0)+"</div></div>"+
+      "<div class='card'><b>Critic / Audience</b><div>"+(f.quality?.critic||0)+" / "+(f.quality?.aud||0)+"</div></div>"+
+      "<div class='card'><b>Genre</b><div>"+gTag(f.genre)+"</div></div>"+
+      "<div class='card'><b>Rating</b><div>"+f.rating+"</div></div>"+
+      "<div class='card'><b>Window</b><div>"+(f.window||45)+"-day</div></div>"+
+      "<div class='card'><b>Location</b><div>"+(DATA.location(f.location)?.name||"LA")+"</div></div>"+
+    "</div>"+
+    (f.cast && f.cast.length? "<div class='section-title'>🎭 Cast</div><div class='card'><div class='row' style='flex-wrap:wrap;gap:6px'>"+
+      f.cast.map(c=>"<span class='tag gold'>"+c.emoji+" "+esc(c.name)+" "+c.power+"★</span>").join("")+
+      "</div></div>" : "")+
+    territoryHtml+
+    weeklyHtml+
+    awardsHtml+
+    streamingHtml+
+    franchiseHtml+
+    "<div class='modal-actions'>"+
+    (isReleased? "<button class='btn btn-primary' onclick='reReleaseFilm("+f.id+")'>🎞 Re-release</button>":"")+
+    (f.streamingOriginal||f.soldTo? "<button class='btn btn-alt' onclick='viewStreamingDeal("+f.id+")'>📺 View Deal</button>":"")+
+    "<button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";
+  
+  openModal(h);
+}
+
+/* ═══════════ Franchise Universe Graph (v17) ═══════════ */
+function viewFranchiseDetail(franchiseName){
+  const fr = G.franchises.find(x=>x.name===franchiseName);
+  if(!fr) return;
+  
+  const graph = buildUniverseGraph();
+  const nodes = graph.nodes.filter(n=>n.franchise===franchiseName);
+  const edges = graph.edges.filter(e=>e.from.startsWith("f") && nodes.find(n=>n.id===e.from));
+  
+  // SVG layout
+  const width = 700, height = 400;
+  const centerX = width/2, centerY = height/2;
+  const radius = 160;
+  
+  // Position nodes in a circle with the main film at center
+  let nodePositions = {};
+  const filmNodes = nodes.filter(n=>n.type==="film");
+  const otherNodes = nodes.filter(n=>n.type!=="film");
+  
+  filmNodes.forEach((n,i)=>{
+    const angle = (i/filmNodes.length)*Math.PI*2 - Math.PI/2;
+    nodePositions[n.id] = { x:centerX+Math.cos(angle)*radius, y:centerY+Math.sin(angle)*radius };
+  });
+  otherNodes.forEach((n,i)=>{
+    const angle = (i/otherNodes.length)*Math.PI*2 - Math.PI/2;
+    const r = radius + 100;
+    nodePositions[n.id] = { x:centerX+Math.cos(angle)*r, y:centerY+Math.sin(angle)*r };
+  });
+  
+  let edgesSvg = "";
+  edges.forEach(e=>{
+    const from = nodePositions[e.from];
+    const to = nodePositions[e.to];
+    if(from && to){
+      edgesSvg += "<line x1='"+from.x+"' y1='"+from.y+"' x2='"+to.x+"' y2='"+to.y+"' stroke='var(--line2)' stroke-width='2' marker-end='url(#arrowhead)'/>";
+    }
+  });
+  
+  let nodesSvg = "";
+  nodes.forEach(n=>{
+    const pos = nodePositions[n.id];
+    if(!pos) return;
+    const typeInfo = DATA.UNIVERSE_NODE_TYPES.find(t=>t.type===n.type) || {emoji:"🎬", color:"var(--gold)"};
+    nodesSvg += "<g class='universe-node' onclick='filmDetailModal("+(n.id.startsWith("f")?n.id.slice(1):n.id)+")' style='cursor:pointer'>"+
+      "<circle cx='"+pos.x+"' cy='"+pos.y+"' r='28' fill='"+typeInfo.color+"' stroke='var(--bg)' stroke-width='2'/>"+
+      "<text x='"+pos.x+"' y='"+(pos.y+4)+"' text-anchor='middle' font-size='16px'>"+typeInfo.emoji+"</text>"+
+      "<text x='"+pos.x+"' y='"+(pos.y+24)+"' text-anchor='middle' font-size='9px' fill='var(--dim)' style='max-width:100px'>"+esc(n.label)+"</text>"+
+      "</g>";
+  });
+  
+  let h="<h3>🌌 "+esc(franchiseName)+" Universe</h3>"+
+    "<div class='tiny muted' style='margin-bottom:8px'>Tier "+fr.tier+" · Fatigue "+Math.round((fr.fatigue||0)*100)+"% · "+nodes.length+" entries</div>"+
+    "<svg width='"+width+"' height='"+height+"' style='background:#0a0e16;border:1px solid var(--line);border-radius:12px'>"+
+      "<defs>"+
+        "<marker id='arrowhead' markerWidth='10' markerHeight='7' refX='9' refY='3.5' orient='auto'>"+
+          "<polygon points='0 0, 10 3.5, 0 7' fill='var(--line2)'/>"+
+        "</marker>"+
+      "</defs>"+
+      edgesSvg+
+      nodesSvg+
+    "</svg>"+
+    "<div class='row' style='margin-top:12px;gap:8px;flex-wrap:wrap'>"+
+    nodes.map(n=>{
+      const typeInfo = DATA.UNIVERSE_NODE_TYPES.find(t=>t.type===n.type) || {emoji:"🎬", color:"var(--gold)"};
+      return "<button class='btn btn-xs btn-alt' onclick='filmDetailModal("+(n.id.startsWith("f")?n.id.slice(1):n.id)+")'>"+typeInfo.emoji+" "+esc(n.label)+"</button>";
+    }).join("")+
+    "</div>"+
+    "<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Close</button></div>";
+  
+  openModal(h);
+}
+
+/* ═══════════ Animated Box Office Chart (v17) ═══════════ */
+function renderAnimatedChart(data, opts={}){
+  const {width=500, height=200, color="var(--gold)", duration=800, raceMode=false} = opts;
+  const max = Math.max(1, ...data);
+  const bars = data.map((val,i)=>({
+    x: (i/(data.length-1))*(width-60)+30,
+    y: height-20,
+    h: (val/max)*(height-40),
+    val: val,
+    label: opts.labels?opts.labels[i]:""
+  }));
+  
+  let svg = "<svg width='"+width+"' height='"+height+"' style='background:#0a0e16;border:1px solid var(--line);border-radius:8px'>";
+  if(raceMode){
+    svg += "<script>"+
+      "const bars = document.querySelectorAll('.chart-bar-anim');"+
+      "bars.forEach((b,i)=>{ b.style.transition='height 0s, opacity 0s'; b.style.height='0px'; b.style.opacity='0'; });"+
+      "setTimeout(()=>{"+
+        "bars.forEach((b,i)=>{ setTimeout(()=>{ b.style.transition='height "+duration+"ms ease-out, opacity 300ms'; b.style.height=b.dataset.h+'px'; b.style.opacity='1'; }, i*"+(duration/data.length)+"); });"+
+      "}, 100);"+
+    "</script>";
+  }else{
+    svg += "<style>@keyframes growUp{from{height:0}to{height:var(--h)}}.chart-bar-anim{animation:growUp "+duration+"ms ease-out forwards;}</style>";
+  }
+  
+  bars.forEach(b=>{
+    svg += "<rect class='chart-bar-anim' x='"+b.x+"' y='"+(b.y-b.h)+"' width='"+Math.max(20, 40/data.length)+"' height='0' data-h='"+b.h+"' fill='"+color+"' style='"+(raceMode?"":"--h:"+b.h+"px")+"'/>";
+    if(b.label) svg += "<text x='"+b.x+"' y='"+(b.y+14)+"' text-anchor='middle' font-size='9px' fill='var(--dim)'>"+esc(b.label)+"</text>";
+  });
+  svg += "</svg>";
+  return svg;
+}
+
+/* ═══════════ Executive Office View (v17) ═══════════ */
+function viewExecOffice(){
+  const state = execOfficeState();
+  
+  let h="<div class='spread'><div class='section-title' style='margin:0'>🏢 Executive Office</div>"+
+    "<button class='btn btn-sm btn-ghost' onclick='switchTab(\"studio\")'>Back to Control Room</button></div>";
+  
+  // Desk layout
+  h+="<div class='exec-office' style='display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px'>";
+  
+  // Left column - Script stack & Phone
+  h+="<div class='card' style='grid-column:1'><b>📋 Script Stack</b>"+
+    "<div class='cost-line'><span>Pending review</span><b>"+state.scriptsPending+"</b></div>"+
+    "<div class='cost-line'><span>In development</span><b>"+state.filmsInProduction+"</b></div>"+
+    "<div class='cost-line'><span>Ready, undated</span><b>"+state.filmsReady+"</b></div>"+
+    "<button class='btn btn-sm btn-primary' style='margin-top:8px;width:100%' onclick=\"switchTab('develop')\">Review Scripts</button>"+
+    "</div>";
+  
+  h+="<div class='card' style='grid-column:2'><b>📞 Phone</b>"+
+    (state.unreadMail>0? 
+      "<div class='cost-line'><span style='color:var(--gold)'>🔔 "+state.unreadMail+" unread messages</span></div>"+
+      "<button class='btn btn-sm btn-primary' style='margin-top:4px;width:100%' onclick=\"switchTab('fans')\">Open Fan Mail</button>"
+    : "<div class='tiny muted'>No messages</div>")+
+    "</div>";
+  
+  // Right column - Whiteboard & Trophy shelf
+  h+="<div class='card' style='grid-column:1'><b>📝 Whiteboard</b>"+
+    "<div class='cost-line'><span>Active films</span><b>"+state.filmsInProduction+"</b></div>"+
+    "<div class='cost-line'><span>Active series</span><b>"+(G.series.filter(s=>s.phase==="shoot").length)+"</b></div>"+
+    "<button class='btn btn-sm btn-alt' style='margin-top:8px;width:100%' onclick=\"switchTab('productions')\">View Pipeline</button>"+
+    "</div>";
+  
+  h+="<div class='card' style='grid-column:2'><b>🏆 Trophy Shelf</b>"+
+    "<div class='cost-line'><span>Golden Reels</span><b>"+state.awardsCount+"</b></div>"+
+    "<div class='cost-line'><span>Franchises</span><b>"+state.franchises+"</b></div>"+
+    "<div class='cost-line'><span>Streamer subs</span><b>"+fmtSubs(state.streamerSubs)+"</b></div>"+
+    "<button class='btn btn-sm btn-alt' style='margin-top:8px;width:100%' onclick=\"switchTab('empire')\">View Empire</button>"+
+    "</div>";
+  
+  h+="</div>";
+  
+  // Market share mini
+  h+="<div class='card' style='margin-top:12px'><b>🌍 Market Share Y"+yearOf(G.week)+"</b>";
+  const myYtd = G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0);
+  const rows=[{name:G.studio.name, ww:myYtd, me:true}].concat(G.rivals.map(r=>({name:r.name, ww:r.ytd})));
+  const max=Math.max(1,...rows.map(r=>r.ww));
+  rows.sort((a,b)=>b.ww-a.ww).forEach((r,i)=>{
+    h+="<div class='spread' style='margin:4px 0'><span>"+(r.me?"⭐ ":"")+esc(r.name)+"</span>"+
+      "<div class='bar' style='width:200px'><i style='width:"+Math.max(6,r.ww/max*100)+"%;background:"+(r.me?"linear-gradient(90deg,var(--gold),var(--gold2))":"#4a5570")+"'></i></div>"+
+      "<b class='tiny'>"+fmtM(r.ww)+"</b></div>";
+  });
+  h+="</div>";
+  
+  h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Close</button></div>";
+  
+  openModal(h);
+}
+
+/* Helper: format subscriber count */
+function fmtSubs(n){
+  if(!Number.isFinite(n)) return "—";
+  if(n>=1000) return (n/1000).toFixed(2)+"B";
+  return n.toFixed(1)+"M";
+}
+
 function installGestures(){
   if(installGestures._done) return;
   installGestures._done=true;

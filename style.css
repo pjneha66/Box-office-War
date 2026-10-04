@@ -1118,3 +1118,71 @@ body[data-theme="silver"]{
 #langEn::before{content:"🇺🇸 "}
 #langHi::before{content:"🇮🇳 "}
 
+/* ═══════════════════════════════════════════════════════════
+   v17 — CINEMATIC HUD 2.0 (Dashboard, Calendar, Film Modal, Franchise Graph, Exec Office)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Dashboard: stat hero with economic badge ── */
+.stat-hero{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:12px}
+.stat{transition:transform .18s var(--ease-out), border-color .18s, box-shadow .18s}
+
+/* ── Calendar grid ── */
+.calendar-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.cal-head{text-align:center; font-size:10px; color:var(--dim2); font-weight:700; padding:4px 0}
+.cal-cell{min-height:70px; padding:4px; background:#101522; border:1px solid var(--line); border-radius:8px; cursor:pointer; transition:all .15s}
+.cal-cell:hover{border-color:var(--line2); transform:translateY(-2px); box-shadow:var(--shadow-sm)}
+.cal-cell.current{border-color:var(--gold); background:#1a1610; box-shadow:0 0 12px rgba(245,185,66,.15)}
+.cal-cell.holiday{background:rgba(245,185,66,.12); border-color:var(--goldDim)}
+.cal-week{font-size:11px; font-weight:700; color:var(--gold2); margin-bottom:2px}
+.cal-holiday{font-size:8px; color:var(--gold); font-weight:700; margin-top:2px}
+.cal-mine{font-size:9px; color:var(--gold2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px}
+.cal-rival{font-size:9px; color:var(--red); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px}
+
+/* ── Film Detail Modal ── */
+.film-modal-tabs{display:flex; gap:4px; margin-bottom:8px; border-bottom:1px solid var(--line); padding-bottom:4px}
+.film-modal-tab{padding:6px 12px; background:#101522; border:1px solid var(--line); border-radius:8px 8px 0 0; cursor:pointer; font-size:12px; color:var(--dim); transition:all .15s}
+.film-modal-tab.active{background:var(--card); border-color:var(--gold); color:var(--gold2); box-shadow:0 -2px 8px rgba(245,185,66,.1)}
+.film-modal-panel{animation:bowFadeUp .25s var(--ease-out)}
+.territory-row{display:flex; align-items:center; gap:8px; padding:4px 0}
+.territory-flag{font-size:16px; width:28px; text-align:center}
+.territory-bar{flex:1; height:6px; background:#0a0e16; border-radius:3px; overflow:hidden}
+.territory-fill{height:100%; border-radius:3px; background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.territory-value{font-weight:700; font-size:12px; min-width:60px; text-align:right; color:var(--gold2)}
+
+/* ── Franchise Universe Graph ── */
+.universe-node{cursor:pointer; transition:transform .2s var(--ease-spring)}
+.universe-node:hover{transform:scale(1.15)}
+.universe-node circle{filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+.universe-node text{pointer-events:none; user-select:none}
+
+/* ── Animated Chart ── */
+.chart-bar-anim{transform-origin:bottom; transform:scaleY(0); animation:growUp 800ms var(--ease-out) forwards}
+@keyframes growUp{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+
+/* ── Executive Office ── */
+.exec-office{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.exec-office .card{background:linear-gradient(145deg, rgba(25,32,50,.92), rgba(15,19,30,.95))}
+.exec-office .card:hover{box-shadow:0 0 20px rgba(245,185,66,.15)}
+
+/* ── Economic Cycle Badge ── */
+.econ-badge{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:99px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em}
+.econ-badge.boom{background:rgba(61,220,132,.15); color:var(--green); border:1px solid var(--green)}
+.econ-badge.recession{background:rgba(255,93,108,.15); color:var(--red); border:1px solid var(--red)}
+.econ-badge.streamglut{background:rgba(180,139,255,.15); color:var(--purple); border:1px solid var(--purple)}
+.econ-badge.normal{background:rgba(90,162,255,.15); color:var(--blue); border:1px solid var(--blue)}
+
+/* ── Territory stacked bar in box office tab ── */
+.territory-stack{display:flex; flex-direction:column; gap:4px; margin-top:8px}
+.territory-stack-bar{display:flex; height:18px; border-radius:4px; overflow:hidden; background:#0a0e16}
+.territory-stack-seg{height:100%; transition:width .5s var(--ease-out)}
+.territory-stack-label{display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:2px}
+
+/* ── Mobile calendar adjustments ── */
+@media(max-width:760px){
+  .calendar-grid{grid-template-columns:repeat(7,1fr); gap:2px}
+  .cal-cell{min-height:55px; padding:2px}
+  .cal-week{font-size:9px}
+  .cal-mine,.cal-rival{font-size:8px}
+  .exec-office{grid-template-columns:1fr}
+}
+
