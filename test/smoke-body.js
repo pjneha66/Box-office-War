@@ -109,7 +109,7 @@ for(let w=0; w<260; w++){
   if(G.over) break;
   tryGreenlight(); trySchedule(); tryOffers(); trySeries(); tryFilmPitch(); tryAuctions(); tryEmpire(); tryEmpireFinance();
   if(G.studio.cash<25 && G.studio.debt<maxDebt()*0.7) takeLoan(80);
-  if(G.studio.debt>0 && G.studio.cash>Math.max(G.studio.debt+60, 240)) repayDebt(Math.min(G.studio.debt, G.studio.cash-120));
+  if(G.studio.debt>0 && G.studio.cash>60) repayDebt(Math.min(G.studio.debt, G.studio.cash-40));
   for(const o of [...(G.maOffers||[])]){ if(G.studio.cash>o.price+180 && chance(0.5)) maBuy(o.id); } // v5 M&A
   advanceWeek();
   if(G.pendingChoice){ resolveChoice(0); choices++; }

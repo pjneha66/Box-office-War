@@ -5,12 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0b0e14">
 <meta name="description" content="Box Office War — a movie & series studio tycoon simulation. Greenlight films, survive the box office, build franchises, launch your own streamer.">
+<meta property="og:title" content="Box Office War — Movie & Series Studio Tycoon">
+<meta property="og:description" content="Greenlight films, survive the box office, build franchises, and launch your own streamer in this realistic Hollywood tycoon simulator.">
+<meta property="og:image" content="assets/opening-night.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <title>Box Office War — Movie & Series Studio Tycoon</title>
 <link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="offlineBanner" class="offline-banner" style="display:none">📡 Offline mode — changes saved locally in browser storage</div>
 <a class="skip" href="#view">Skip to studio view</a>
 
 <!-- ══════════════════ START SCREEN ══════════════════ -->
@@ -99,7 +106,7 @@
 
 <!-- Modal + toast roots -->
 <div id="modalRoot"></div>
-<div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+<div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="data.js"></script>
 <script src="engine.js"></script>

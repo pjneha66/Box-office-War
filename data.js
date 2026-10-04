@@ -88,6 +88,16 @@ DATA.PLATFORMS = [
   {id:"prestigemax",name:"PrestigeMax",color:"#7b2cbf", logo:"P", generosity:1.12, renew:50, taste:{drama:1.35,musical:1.2,thriller:1.1,romance:1.05,comedy:0.95,horror:0.9,action:0.9,scifi:0.95,animation:0.9,fantasy:1.0,documentary:1.25,reality:0.7}, blurb:"Awards darling. Prestige over profit."},
   {id:"magicplus",  name:"Magic+",     color:"#1ce3ff", logo:"M", generosity:1.15, renew:54, taste:{animation:1.4,fantasy:1.25,action:1.1,scifi:1.1,family:1,comedy:0.95,drama:0.85,horror:0.7,thriller:0.85,romance:0.9,musical:1.15,reality:1.1,documentary:0.8}, blurb:"Family empire. Four-quadrant only."},
   {id:"orbittv",    name:"OrbitTV",    color:"#ff9f1c", logo:"O", generosity:0.92, renew:60, taste:{documentary:1.3,horror:1.1,thriller:1.05,drama:1.0,comedy:1.0,romance:1.05,action:0.9,scifi:0.9,animation:0.85,fantasy:0.9,musical:0.95,reality:1.15}, blurb:"Budget streamer. Lowballs, but loyal."},
+  {id:"cinemavault",name:"CinemaVault",color:"#d4af37", logo:"C", generosity:1.06, renew:48, taste:{drama:1.45,romance:1.25,documentary:1.4,thriller:1.05,musical:1.1,horror:0.75,action:0.7,animation:0.85,comedy:0.95,scifi:0.9,fantasy:0.85,reality:0.6}, blurb:"Cinephile haven. Criterion-style prestige curation."},
+  {id:"animepulse", name:"AnimePulse", color:"#ff4d88", logo:"A", generosity:1.10, renew:55, taste:{animation:1.55,fantasy:1.35,scifi:1.3,horror:1.15,action:1.2,comedy:1.05,drama:0.9,romance:1.1,musical:0.95,documentary:0.8,reality:0.7}, blurb:"Youth & animation powerhouse. Cult followings."},
+  {id:"primeaction",name:"PrimeAction",color:"#00e676", logo:"X", generosity:1.20, renew:56, taste:{action:1.4,thriller:1.3,scifi:1.25,horror:1.2,comedy:1.05,fantasy:1.1,drama:0.95,romance:0.85,animation:0.9,musical:0.75,documentary:0.85,reality:1.0}, blurb:"Adrenaline & popcorn hits. High bids for spectacle."},
+];
+/* series formats: docuseries, comedy specials, limited events */
+DATA.SERIES_FORMATS = [
+  {id:"standard", name:"Standard Series", eps:8, perEp:6, icon:"📺", desc:"Classic 8-ep episodic series · steady audience build", costMult:1.0, buzzMult:1.0},
+  {id:"docuseries", name:"Prestige Docuseries", eps:4, perEp:4, icon:"🎙️", desc:"Deep-dive 4-ep investigative series · critical darling, low burn", costMult:0.65, buzzMult:1.18},
+  {id:"comedyspecial", name:"Comedy / Event Special", eps:2, perEp:3, icon:"🎤", desc:"Fast 2-ep stand-up or variety special · quick turnaround", costMult:0.45, buzzMult:1.05},
+  {id:"limitedevent", name:"Star-Studded Limited Event", eps:6, perEp:10, icon:"🌟", desc:"6-ep high-budget mini-series · massive opening buzz & awards push", costMult:1.6, buzzMult:1.35}
 ];
 /* platform lookup also includes streamers that entered mid-game (platform subscriber wars) */
 DATA.allPlatforms = ()=>{
@@ -95,7 +105,7 @@ DATA.allPlatforms = ()=>{
   return DATA.PLATFORMS.concat(extra);
 };
 DATA.platform = (id)=> DATA.allPlatforms().find(p=>p.id===id) || DATA.PLATFORMS.find(p=>p.id===id) || {name:"?", color:"#555", logo:"?"};
-DATA.NEWSTREAMERS = ["VortexTV","PeakPlay","Fable+","Nebula Now","Zenith+","Bolt Stream"];
+DATA.NEWSTREAMERS = ["VortexTV","PeakPlay","Fable+","Nebula Now","Zenith+","Bolt Stream","Chronos","Starlight"];
 
 /* ── Rival studios ── */
 DATA.RIVALS_DEF = [
@@ -230,14 +240,46 @@ DATA.EXECS = [
    prestige: multiplies prize money, buzz and awards momentum from a win
    market  : strength of the acquisitions floor — a win invites premium streamer auctions/offers  */
 DATA.FESTIVALS = [
-  {woy:9,  name:"Snowfall Festival",      emoji:"❄️", blurb:"The indie marketplace. Scrappy discoveries get bought here.",
+  {id:"snowfall",  woy:9,  name:"Snowfall Festival",      emoji:"❄️", blurb:"The indie marketplace. Scrappy discoveries get bought here.",
    loves:["drama","thriller","truecrime","horror","romance"], prestige:1.0, market:1.5},
-  {woy:20, name:"Azure Coast Festival",   emoji:"🌴", blurb:"The pale-blue carpet. Auterurs, foreign-language gems and scandal.",
+  {id:"azure",     woy:20, name:"Azure Coast Festival",   emoji:"🌴", blurb:"The pale-blue carpet. Auterurs, foreign-language gems and scandal.",
    loves:["drama","musical","romance","fantasy","western"], prestige:1.4, market:1.1, foreign:true},
-  {woy:36, name:"Laguna Film Festival",   emoji:"🛶", blurb:"Old-world prestige: where awards season quietly begins.",
+  {id:"laguna",    woy:36, name:"Laguna Film Festival",   emoji:"🛶", blurb:"Old-world prestige: where awards season quietly begins.",
    loves:["drama","war","musical","animation","romance"], prestige:1.2, market:1.2},
-  {woy:43, name:"Harvest Telluride",      emoji:"🍂", blurb:"No market, no fuss — pure awards-momentum screening room.",
+  {id:"telluride", woy:43, name:"Harvest Telluride",      emoji:"🍂", blurb:"No market, no fuss — pure awards-momentum screening room.",
    loves:["drama","western","war","thriller","truecrime"], prestige:0.9, market:0.7},
+];
+
+/* ── v16 game studio platform options ── */
+DATA.GAME_PLATFORMS = [
+  {id:"mobile",  name:"Mobile",  emoji:"📱", cost:8,  weeks:14, mult:0.9,  targetAud:"Casual & Microtransactions", desc:"Low dev cost, fast ship, steady ad/IAP revenue."},
+  {id:"pc",      name:"PC",      emoji:"💻", cost:22, weeks:22, mult:1.35, targetAud:"Core & Modding Community",  desc:"Strong critical ceiling, digital sales, community hype."},
+  {id:"console", name:"Console", emoji:"🎮", cost:45, weeks:32, mult:1.95, targetAud:"Mass AAA Market",          desc:"Massive launch momentum, physical/digital retail blockbuster."}
+];
+
+/* ── studio XP levels & progression ── */
+DATA.STUDIO_XP_LEVELS = [
+  {id:"indie",   name:"Indie Boutique", minRep:0,  maxRep:30, badge:"🌱 Indie",  color:"#6ee7b7"},
+  {id:"growing", name:"Growing Label",  minRep:30, maxRep:55, badge:"🌿 Growing",color:"#93c5fd"},
+  {id:"major",   name:"Major Studio",   minRep:55, maxRep:75, badge:"🏛 Major",  color:"#f5b942"},
+  {id:"global",  name:"Global Conglom", minRep:75, maxRep:90, badge:"🌍 Global", color:"#c084fc"},
+  {id:"empire",  name:"Media Empire",   minRep:90, maxRep:100,badge:"👑 Empire", color:"#fb7185"}
+];
+
+/* ── merchandise tier visual indicators ── */
+DATA.MERCH_TIERS = [
+  {tier:0, name:"None",             emoji:"⚪", icon:"🏷️", label:"No Merch"},
+  {tier:1, name:"Novelty & Stickers",emoji:"🏷️", icon:"🏷️", label:"Tier 1: Stickers & Toys"},
+  {tier:2, name:"Apparel Line",     emoji:"👕", icon:"👕", label:"Tier 2: Apparel & Posters"},
+  {tier:3, name:"Retail Outlets",   emoji:"🏬", icon:"🏬", label:"Tier 3: Mall Boutiques"},
+  {tier:4, name:"Global Brand",     emoji:"🏰", icon:"🏰", label:"Tier 4: Global Brand Empire"}
+];
+
+/* ── global trade tension stages ── */
+DATA.TRADE_STAGES = [
+  {stage:"peace",   name:"Open Trade",      emoji:"🕊️", penalty:0,    desc:"Free market access, regular foreign revenues."},
+  {stage:"tension", name:"Tariff Tensions", emoji:"⚠️", penalty:0.08, desc:"Import inspection delays (−8% foreign gross)."},
+  {stage:"war",     name:"Full Trade War",  emoji:"⚔️", penalty:0.22, desc:"Retaliatory quotas & freeze (−22% foreign gross)."}
 ];
 
 /* ── v3 live sports packages ── */
@@ -322,10 +364,12 @@ DATA.UPGRADES = [
   {id:"vfx",       name:"VFX Division",           icon:"✨", cost:80,  tier:2, cat:"Production",desc:"Post costs −25%. Tentpole craft +3."},
   {id:"backlot",   name:"Studio Backlot",         icon:"🏗", cost:100, tier:2, cat:"Production",desc:"Shoot burn −12% on every production."},
   {id:"ottrel",    name:"Streaming Relations",    icon:"🛰", cost:70,  tier:2, cat:"Growth",    desc:"OTT offers +12%, better renewal odds."},
+  {id:"ottalgo",   name:"SynthStream AI Recommender", icon:"🤖", cost:85, tier:2, cat:"Growth", desc:"Streamer subscriber ceiling +15% and platform churn −20%."},
   {id:"rd",        name:"R&D Lab",                icon:"🔬", cost:90,  tier:2, cat:"Production",desc:"+5% development-success chance on greenlit scripts."},
   /* Tier 3 — major studio (rep 55+) */
   {id:"distribution",name:"Distribution Network", icon:"🎟", cost:140, tier:3, cat:"Growth",    desc:"Wide-release openings +8%; fewer screens lost mid-run."},
   {id:"music",     name:"Music Publishing Arm",   icon:"🎵", cost:120, tier:3, cat:"Finance",   desc:"Soundtrack revenue +25% on every scored release."},
+  {id:"globalcdn", name:"Global Streaming CDN",   icon:"📡", cost:135, tier:3, cat:"Growth",    desc:"International streaming license bids +18% and +2M streamer subs."},
   {id:"archive",   name:"Restoration Archive",    icon:"📚", cost:110, tier:3, cat:"Finance",   desc:"Library licensing value +15% forever."},
   /* Tier 4 — global conglomerate (rep 75+) */
   {id:"globalnet", name:"Global Distribution Net",icon:"🌐", cost:220, tier:4, cat:"Growth",    desc:"International grosses +10%; co-pro quota deals easier."},
