@@ -4237,6 +4237,84 @@ function openLibraryFilters(){
   v.querySelectorAll("[data-lib-franchise]").forEach(b=>b.onclick=()=>{ G.libFilter.franchise=b.dataset.libFranchise; beep("click"); openLibraryFilters(); });
 }
 
+/* ═══════════ Cross-Media Timeline ── */
+function crossMediaTimeline(){
+  let h="<div class='section-title'>📅 Cross-Media Timeline</div>";
+  const entries = [];
+  (G.films||[]).filter(f=>f.ww).forEach(f=>{
+    entries.push({type:"film", title:f.title, genre:f.genre, week:f.releaseWeek, ww:f.ww, franchise:f.franchiseName, icon:"🎬"});
+  });
+  (G.series||[]).forEach(s=>{
+    s.seasons.forEach(se=>{
+      entries.push({type:"series", title:s.title+" S"+se.num, genre:s.genre, week:se.when, viewers:se.viewership, franchise:s.franchiseName, icon:"📺"});
+    });
+  });
+  if(G.gamesDiv?.released){
+    G.gamesDiv.released.forEach(g=>{
+      entries.push({type:"game", title:g.title, genre:"game", week:g.when, score:g.score, franchise:g.franchiseName, icon:"🎮"});
+    });
+  }
+  (G.franchises||[]).forEach(fr=>{
+    if(fr.merch>=1) entries.push({type:"merch", title:fr.name+" Merch Tier "+fr.merch, franchise:fr.name, week:fr.merchWeek||0, icon:"🧸"});
+    if(fr.park>=1) entries.push({type:"park", title:fr.name+" Park Tier "+fr.park, franchise:fr.name, week:fr.parkWeek||0, icon:"🎡"});
+  });
+  entries.sort((a,b)=>(a.week||0)-(b.week||0));
+  if(!entries.length){
+    h+="<div class='card muted small'>No cross-media events yet. Release a film, launch a series, or build a franchise.</div>";
+    return h;
+  }
+  h+="<div class='card'><div class='timeline-container' style='position:relative;padding-left:24px'>";
+  entries.forEach((e,i)=>{
+    const color = {film:"var(--gold)",series:"var(--blue)",game:"var(--purple)",merch:"var(--green)",park:"var(--gold)"}[e.type]||"var(--dim)";
+    const yr = yearOf(e.week||G.week);
+    const w = woyOf(e.week||G.week);
+    const franchiseTag = e.franchise ? "<span class='tiny muted'> · "+esc(e.franchise)+"</span>" : "";
+    const details = e.ww ? "<span class='pos'>"+fmtG(e.ww)+" WW</span>" : (e.viewers?"<span class='pos'>"+e.viewers+"/100 viewers</span>" : (e.score?"<span class='gold'>"+e.score+"/100</span>":""));
+    h+="<div class='timeline-item' style='position:relative;margin-bottom:16px;padding-left:16px;border-left:2px solid "+color+";'>"+
+      "<div style='position:absolute;left:-22px;top:0;width:12px;height:12px;border-radius:50%;background:"+color+";border:2px solid var(--bg)'></div>"+
+      "<div class='spread'><span class='tag' style='background:"+color+"20;color:"+color+"'>"+e.icon+" "+e.type.toUpperCase()+"</span>"+
+      "<b style='margin-left:8px'>"+esc(e.title)+"</b>"+franchiseTag+details+"</div>"+
+      "<div class='tiny muted'>Y"+yr+" W"+w+"</div>"+
+    "</div>";
+  });
+  h+="</div></div>";
+  return h;
+}
+
+/* ═══════════ Shared Universe Dashboard ── */
+function sharedUniverseDashboard(){
+  if(!G.universes || !G.universes.length){
+    return "<div class='section-title'>🌌 Shared Universes</div><div class='card muted small'>No shared universes yet. Build two tier-2+ franchises and weave them together (Cost: $80M).</div>";
+  }
+  let h="<div class='section-title'>🌌 Shared Universes</div>";
+  (G.universes||[]).forEach(u=>{
+    const stats = uniStats(u);
+    const continuity = stats.continuity || 0;
+    h+="<div class='card'><div class='spread'><div><b>🌌 "+esc(u.name)+"</b>"+
+      "<div class='tiny muted'>"+stats.frs.length+" brands · "+fmtG(stats.ww)+" WW · value "+fmtM(stats.value)+" · continuity "+continuity+"% · "+stats.fanbase+"</div></div>"+
+      "<b class='"+(continuity>=70?"pos":continuity<40?"neg":"")+"'>"+(continuity>=70?"+5% openings":continuity<40?"−5% openings":"neutral")+"</b></div>"+
+      "<div class='card' style='margin-top:8px'><b>🔗 Continuity Web</b>";
+    u.franchises.forEach((fr,i)=>{
+      const frObj = G.franchises.find(f=>f.name===fr);
+      if(!frObj) return;
+      const connections = u.franchises.filter((f,j)=>j!==i);
+      if(connections.length){
+        h+="<div class='tiny muted' style='margin-top:4px'><b>"+esc(fr)+"</b> ↔ "+connections.map(c=>esc(c)).join(", ")+"</div>";
+      }
+    });
+    h+="</div>";
+    h+="<div class='fr-meters' style='margin-top:8px'>";
+    u.franchises.forEach(fr=>{
+      const frObj = G.franchises.find(f=>f.name===fr);
+      if(frObj){
+        h+=frMeter(fr, fmtM(frObj.ww||0))+frMeter("Tier", frObj.tier)+frMeter("Fatigue", Math.round((frObj.fatigue||0)*100)+"%")+frMeter("Value", fmtM(frObj.earned||0));
+      }
+    });
+    h+="</div></div>";
+  });
+  return h;
+}
+
 /* ═══════════ VIEW: game studio (v16) — the movie-game division ═══════════ */
 let GAMES={src:null, dev:"partner", platform:"console"};
 function viewGames(){
@@ -4395,6 +4473,9 @@ function viewEmpire(){
   try{ h+=merchBoard(); }catch(e){}
   try{ if(typeof uniBoard==="function") h+=uniBoard(); }catch(e){}
   try{ if(typeof endgameBoard==="function") h+=endgameBoard(); }catch(e){}
+  /* ── v25: Cross-Media Timeline & Shared Universe Dashboard ── */
+  try{ h+=crossMediaTimeline(); }catch(e){}
+  try{ h+=sharedUniverseDashboard(); }catch(e){}
   if(((G.licensedOut||[]).length)){
     h+="<div class='section-title'>📦 Brands licensed out</div><div class='card'>";
     (G.licensedOut||[]).forEach(function(L){
