@@ -1093,3 +1093,51 @@ DATA.COPRO_PARTNERS = [
 
 /* ── SAVE_VERSION bump for v20 ── */
 DATA.SAVE_VERSION = 10;
+
+/* ══════════════════════════════════════════════════════════
+   v21 — DRAMA & CRISIS EVENTS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Talent Strikes (Three Guilds) ── */
+DATA.GUILDS = [
+  {id:"wga", name:"Writers Guild", emoji:"✍️", role:"writer", color:"#4dd6e8", strikeAt:80, settleCost:[30,80], settleWeeks:[4,16], preemptiveCost:20},
+  {id:"dga", name:"Directors Guild", emoji:"🎬", role:"director", color:"#b48bff", strikeAt:80, settleCost:[35,90], settleWeeks:[4,16], preemptiveCost:22},
+  {id:"sag", name:"Actors Guild", emoji:"🎭", role:"actor", color:"#ff5d6c", strikeAt:80, settleCost:[40,100], settleWeeks:[4,16], preemptiveCost:25},
+];
+
+/* ── Casting Scandal ── */
+DATA.CASTING_SCANDAL = {
+  baseChance: 0.015,     // 1.5%/week per senior exec/producer
+  settleCost: 40,        // $40M + -5 rep
+  fightClearChance: 0.5, // 50% clear
+  fightEscalateRep: -15, // 50% escalate to -15 rep
+  prFirmCost: 10,        // $10M PR firm reduces damage 50%
+};
+
+/* ── Script Auction ── */
+DATA.SCRIPT_AUCTION = {
+  qualityThreshold: 85,  // hot scripts trigger auction
+  rivalBidders: [1,2],   // 1-2 AI rivals
+  rounds: 3,             // 3 rounds
+};
+
+/* ── Streaming vs Theatrical War Meter ── */
+DATA.WAR_METER = {
+  min: 0, max: 100,
+  start: 50,             // neutral
+  theatricalBoost: 15,   // <30: theatrical +15%
+  streamingBoost: 15,    // >70: streaming +15%, theatrical -15%
+};
+
+/* ── AI-Generated Film ── */
+DATA.AI_FILM = {
+  budget: 10,            // $10M
+  qualityRange: [40,60], // always 40-60
+  piracyResist: 0.5,     // +50% piracy resistance
+  openingMult: 0.4,      // opening ×0.4
+  streamingTail: 2.0,    // streaming long tail ×2.0
+  warMeterPush: 5,       // each use pushes meter +5 toward streaming
+};
+
+/* ── SAVE_VERSION bump for v21 ── */
+DATA.SAVE_VERSION = 11;

@@ -2048,6 +2048,11 @@ function releaseFilm(p){
   /* v12: advance tickets banked before opening day lift the opening (capped +6%) */
   const advTotal=Math.min(p.advanceTotal||0, Math.round(expected*0.06*10)/10);
   if(advTotal>0) expected=Math.min(expected*1.06, expected+advTotal);
+  // v21: Streaming vs Theatrical War Meter
+  if(typeof getWarMeterMult==="function"){
+    const wm = getWarMeterMult();
+    expected *= wm.theatrical;
+  }
   const noise = 0.85 + rnd()*0.34;
   let opening = clamp(expected*noise, 1.2, 320);
   if(G.theaterCap>0) opening *= 0.55;
@@ -2415,6 +2420,230 @@ function addCoProduction(filmId, partnerId){
   log("🤝 CO-PRODUCTION: \""+f.title+"\" partnered with "+partner.name+" — +"+fmtM(upfront)+" upfront, territory boosts applied.","gold");
   saveGame();
   return {ok:true, upfront, boosts:partner.territoryBoost};
+}
+
+/* ═══════════ v21: Talent Strikes ── */
+function initGuildMeters(){
+  if(!G.guildMeters){
+    G.guildMeters = {};
+    DATA.GUILDS.forEach(g=>{
+      G.guildMeters[g.id] = { meter:rint(10,40), strikeActive:false, weeksLeft:0, settled:true };
+    });
+  }
+}
+
+function tickGuildMeters(){
+  initGuildMeters();
+  DATA.GUILDS.forEach(g=>{
+    const gm = G.guildMeters[g.id];
+    if(gm.strikeActive){
+      gm.weeksLeft--;
+      if(gm.weeksLeft <= 0){
+        gm.strikeActive = false;
+        gm.settled = true;
+        gm.meter = Math.max(10, gm.meter - 20);
+        log("✊ "+g.name+" strike ended — productions resume. Meter reset to "+gm.meter+".","good");
+      }
+      return;
+    }
+    if(gm.settled) return;
+    // Meter drifts up weekly
+    gm.meter = Math.min(100, gm.meter + rint(1,3));
+    if(gm.meter >= g.strikeAt && chance(0.3)){
+      gm.strikeActive = true;
+      gm.weeksLeft = rint(g.settleWeeks[0], g.settleWeeks[1]);
+      gm.settled = false;
+      log("✊ "+g.name+" STRIKE! All "+g.role+"s walk out for "+gm.weeksLeft+" weeks.","bad");
+    }
+  });
+}
+
+function settleGuildStrike(guildId){
+  const g = DATA.GUILDS.find(x=>x.id===guildId);
+  if(!g) return {ok:false};
+  const gm = G.guildMeters[g.id];
+  if(!gm.strikeActive) return {ok:false, err:"No active strike"};
+  const cost = rint(g.settleCost[0], g.settleCost[1]);
+  if(G.studio.cash < cost) return {ok:false, err:"Insufficient funds"};
+  spend("studio", cost);
+  gm.strikeActive = false;
+  gm.weeksLeft = 0;
+  gm.meter = Math.max(10, gm.meter - 30);
+  gm.settled = true;
+  log("✊ "+g.name+" strike settled for "+fmtM(cost)+". Meter: "+gm.meter+".","good");
+  saveGame();
+  return {ok:true, cost};
+}
+
+function preemptiveGuildContract(guildId){
+  const g = DATA.GUILDS.find(x=>x.id===guildId);
+  if(!g) return {ok:false};
+  const cost = g.preemptiveCost;
+  if(G.studio.cash < cost) return {ok:false, err:"Insufficient funds"};
+  spend("studio", cost);
+  G.guildMeters[g.id].meter = Math.max(0, G.guildMeters[g.id].meter - 40);
+  log("📝 Pre-emptive "+g.name+" contract signed ("+fmtM(cost)+"). Meter reduced.","good");
+  saveGame();
+  return {ok:true, cost};
+}
+
+/* ── v21: Casting Scandal ── */
+function triggerCastingScandal(){
+  const execs = G.talent.filter(t=>t.kind==="producer" || (t.kind==="director" && t.power>=4));
+  if(!execs.length) return;
+  const target = pick(execs);
+  if(chance(DATA.CASTING_SCANDAL.baseChance)){
+    G.pendingScandal = { target:target.id, week:G.week };
+    log("📰 CASTING SCANDAL: "+target.name+" (power "+target.power+"★) embroiled in controversy.","bad");
+  }
+}
+
+function resolveCastingScandal(action, usePR){
+  const s = G.pendingScandal;
+  if(!s) return {ok:false};
+  const t = G.talent.find(x=>x.id===s.target);
+  if(!t) return {ok:false};
+  const cost = usePR ? DATA.CASTING_SCANDAL.prFirmCost : 0;
+  if(cost && G.studio.cash < cost) return {ok:false, err:"Insufficient funds for PR firm"};
+  if(cost) spend("studio", cost);
+  if(action==="settle"){
+    spend("studio", DATA.CASTING_SCANDAL.settleCost);
+    G.studio.rep = clamp(G.studio.rep - 5, 5, 99);
+    if(t) t.scandal = (t.scandal||0) + 52;
+    log("📰 Scandal settled: paid "+fmtM(DATA.CASTING_SCANDAL.settleCost)+", exec removed, rep -5.","bad");
+  }else if(action==="fight"){
+    if(usePR && chance(0.5)) usePR = false; // PR firm may not help
+    const clear = chance(DATA.CASTING_SCANDAL.fightClearChance);
+    if(clear){
+      G.studio.rep = clamp(G.studio.rep + 2, 5, 99);
+      log("📰 Fight won: scandal cleared, rep +2.","good");
+    }else{
+      G.studio.rep = clamp(G.studio.rep - 15, 5, 99);
+      if(t) t.scandal = (t.scandal||0) + 104;
+      log("📰 Fight lost: scandal escalates, rep -15, exec radioactive.","bad");
+    }
+  }
+  G.pendingScandal = null;
+  saveGame();
+  return {ok:true};
+}
+
+/* ── v21: Script Auction Bidding War ── */
+function triggerScriptAuction(ideaId){
+  const idea = G.ideas.find(i=>i.id===ideaId);
+  if(!idea || idea.script < DATA.SCRIPT_AUCTION.qualityThreshold) return null;
+  const rivals = rint(...DATA.SCRIPT_AUCTION.rivalBidders);
+  G.pendingAuction = {
+    ideaId: ideaId,
+    rounds: DATA.SCRIPT_AUCTION.rounds,
+    currentRound: 1,
+    playerBid: 0,
+    rivalBids: Array(rivals).fill().map(()=>rint(5,25)),
+    playerWon: false,
+  };
+  log("🎬 SCRIPT AUCTION: \""+idea.title+"\" (quality "+idea.script+") — "+rivals+" rival bidders. 3 rounds.","gold");
+  return G.pendingAuction;
+}
+
+function bidScriptAuction(bid){
+  const a = G.pendingAuction;
+  if(!a) return {ok:false};
+  if(G.studio.cash < bid) return {ok:false, err:"Insufficient funds"};
+  a.playerBid = bid;
+  // Rivals counter-bid
+  a.rivalBids = a.rivalBids.map(b=>b + rint(2,8));
+  a.currentRound++;
+  if(a.currentRound > 3){
+    // Determine winner
+    const maxBid = Math.max(a.playerBid, ...a.rivalBids);
+    if(a.playerBid === maxBid){
+      a.playerWon = true;
+    }
+    return resolveScriptAuction();
+  }
+  log("🎬 Auction Round "+(a.currentRound-1)+": your bid "+fmtM(bid)+", rivals: "+a.rivalBids.map(fmtM).join(", ")+".","");
+  saveGame();
+  return {ok:true, round:a.currentRound, rivalBids:a.rivalBids};
+}
+
+function resolveScriptAuction(){
+  const a = G.pendingAuction;
+  if(!a) return {ok:false};
+  if(a.playerWon){
+    const idea = G.ideas.find(i=>i.id===a.ideaId);
+    if(!idea) return {ok:false};
+    spend("development", a.playerBid);
+    idea.auctionWon = true;
+    idea.auctionPrice = a.playerBid;
+    log("🎬 AUCTION WON: \""+idea.title+"\" secured for "+fmtM(a.playerBid)+"M!","gold");
+  }else{
+    log("🎬 Auction lost: rival secured the script for "+fmtM(Math.max(...a.rivalBids))+"M.","bad");
+  }
+  G.pendingAuction = null;
+  saveGame();
+  return {ok:true, won:a.playerWon};
+}
+
+/* ── v21: Streaming vs Theatrical War Meter ── */
+function initWarMeter(){
+  if(!G.warMeter) G.warMeter = DATA.WAR_METER.start;
+}
+
+function adjustWarMeter(delta){
+  initWarMeter();
+  G.warMeter = clamp(G.warMeter + delta, 0, 100);
+  const wm = DATA.WAR_METER;
+  if(G.warMeter <= 30){
+    log("🏛 WAR METER: "+G.warMeter+" (Theatrical dominance — theatrical +15%, streaming slows).","gold");
+  }else if(G.warMeter >= 70){
+    log("📺 WAR METER: "+G.warMeter+" (Streaming dominance — streaming +15%, theatrical -15%).","gold");
+  }else{
+    log("⚖️ WAR METER: "+G.warMeter+" (Balanced).","");
+  }
+}
+
+function getWarMeterMult(){
+  initWarMeter();
+  const wm = DATA.WAR_METER;
+  if(G.warMeter <= 30) return { theatrical:1.15, streaming:0.95 };
+  if(G.warMeter >= 70) return { theatrical:0.85, streaming:1.15 };
+  return { theatrical:1.0, streaming:1.0 };
+}
+
+/* ── v21: AI-Generated Film ── */
+function greenlightAIFilm(cfg){
+  const budget = DATA.AI_FILM.budget;
+  if(G.studio.cash < budget) return {ok:false, err:"Insufficient funds"};
+  spend("development", budget);
+  const p = {
+    id:nid(), kind:"film", title:cfg.titleOverride || makeTitle("scifi")+" (AI)", genre:"scifi", scale:"indie",
+    script: DATA.AI_FILM.qualityRange[0] + rint(0, DATA.AI_FILM.qualityRange[1]-DATA.AI_FILM.qualityRange[0]),
+    blurb: "AI-generated concept", hot:false,
+    budget: budget, budget0: budget, overrun:0, spent:0,
+    devCost: devCostOf({scale:"indie", genre:"scifi", hot:false, script:65}),
+    director:null, writer:null, producer:null, cast:[], cameo:null,
+    phase:"pre", phaseWeek:0,
+    phaseLen:{ pre:2, shoot:4, post:3 },
+    releaseWeek:0, marketing:0, marketingPaid:0,
+    franchise: false, sequelOf:null,
+    buzzBonus: 0, awareness:0,
+    strikePause:0,
+    rating: "PG-13",
+    location: "home",
+    foreignLang: false,
+    rewritten:false, tested:false, reshoot:false,
+    pattern:"wide", rollout:"day", window:45, imax:false, premium:false, soundtrack:false, dayAndDate:false,
+    writerBonus:0,
+    aiCast:true, aiScript:true,
+    rebateEarned:0,
+    coProd:null,
+    mktBoosts:[],
+  };
+  p.promoOwed = 0;
+  G.projects.push(p);
+  adjustWarMeter(DATA.AI_FILM.warMeterPush);
+  log("🤖 AI FILM GREENLIT: \""+p.title+"\" — $"+budget+"M, quality "+p.script+". War meter +"+DATA.AI_FILM.warMeterPush+".","gold");
+  return {ok:true, project:p};
 }
 
 /* ═══════════ box office depth (v12): daily split, screens, advance sales, chains ═══════════
@@ -4473,6 +4702,12 @@ function advanceWeek(){
   if(typeof tickPodcasts==="function") tickPodcasts();
   // v20: Animated pipeline check
   if(typeof checkAnimatedPipeline==="function") checkAnimatedPipeline();
+  // v21: Guild strikes
+  if(typeof tickGuildMeters==="function") tickGuildMeters();
+  // v21: Casting scandal trigger
+  if(typeof triggerCastingScandal==="function") triggerCastingScandal();
+  // v21: War meter init
+  if(typeof initWarMeter==="function") initWarMeter();
   if(typeof tickTheatrical==="function") tickTheatrical();
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();
