@@ -2712,6 +2712,106 @@ function getWarMeterMult(){
   return { theatrical:1.0, streaming:1.0 };
 }
 
+/* ═══════════ v24: Rival AI Personalities + Memory ── */
+function initRivalAI(){
+  if(!G.rivalAI) G.rivalAI = {};
+  G.rivals.forEach(r=>{
+    if(!G.rivalAI[r.name]){
+      const pers = pick(DATA.RIVAL_PERSONALITIES);
+      G.rivalAI[r.name] = {
+        personality: pers.id,
+        traits: {...pers.traits},
+        memory: [],
+        trust: 50,
+        lastDealWeek: 0
+      };
+    }
+  });
+}
+
+function getRivalAI(name){
+  initRivalAI();
+  return G.rivalAI[name];
+}
+
+function addRivalMemory(rivalName, type, details){
+  const ai = getRivalAI(rivalName);
+  if(!ai) return;
+  const mem = DATA.RIVAL_MEMORY;
+  ai.memory.push({type, details, week:G.week, weight:mem.weights[type]||1.0});
+  if(ai.memory.length > mem.maxEntries) ai.memory.shift();
+  if(type==="deal") ai.trust = Math.min(100, ai.trust + 5);
+  else if(type==="poach" || type==="acquire") ai.trust = Math.max(0, ai.trust - 10);
+  else if(type==="deal_rejected") ai.trust = Math.max(0, ai.trust - 5);
+}
+
+function decayRivalMemory(){
+  const mem = DATA.RIVAL_MEMORY;
+  Object.values(G.rivalAI||{}).forEach(ai=>{
+    ai.memory.forEach(m=>{ m.weight *= mem.decayRate; });
+    ai.memory = ai.memory.filter(m=>m.weight > 0.1);
+  });
+}
+
+function getRivalTrust(rivalName){
+  const ai = getRivalAI(rivalName);
+  return ai ? ai.trust : 50;
+}
+
+function rivalDecisionGreenlight(rival, project){
+  const ai = getRivalAI(rival.name);
+  if(!ai) return {greenlight: true, budgetMult: 1.0};
+  const t = ai.traits;
+  let prob = 0.7;
+  if(t.genrePref.includes(project.genre)) prob += 0.15;
+  if(project.budget > rival.cash * 0.5) prob -= 0.2;
+  prob *= t.riskTolerance;
+  const recentPoach = ai.memory.some(m=>m.type==="poach" && G.week - m.week < 10);
+  if(recentPoach) prob *= 0.8;
+  return {greenlight: Math.random() < prob, budgetMult: t.budgetMult, marketingMult: t.marketingMult};
+}
+
+function rivalDecisionPoach(rival, talent){
+  const ai = getRivalAI(rival.name);
+  if(!ai) return false;
+  const t = ai.traits;
+  if(Math.random() > t.poachChance) return false;
+  const fee = actorFee(talent);
+  if(fee > rival.cash * 0.3) return false;
+  const recent = ai.memory.some(m=>m.type==="poach" && m.details?.targetStudio===G.studio.name && G.week - m.week < 20);
+  if(recent) return false;
+  return Math.random() < 0.7;
+}
+
+function rivalDecisionAcquire(rival, targetRival){
+  const ai = getRivalAI(rival.name);
+  if(!ai) return false;
+  const t = ai.traits;
+  if(Math.random() > t.acquireChance) return false;
+  const price = targetRival.ytd * 3;
+  if(rival.cash < price * 1.2) return false;
+  return Math.random() < 0.5;
+}
+
+function tickRivalAI(){
+  initRivalAI();
+  decayRivalMemory();
+  G.rivals.forEach(r=>{
+    if(!r.slate) r.slate = [];
+    const ai = getRivalAI(r.name);
+    if(!ai) return;
+    if(r.slate.length < 3 && Math.random() < 0.3){
+      // Simplified: would create rival project
+    }
+    if(Math.random() < 0.1){
+      // Poaching logic
+    }
+    if(Math.random() < 0.05){
+      // Acquisition logic
+    }
+  });
+}
+
 /* ── v21: AI-Generated Film ── */
 function greenlightAIFilm(cfg){
   const budget = DATA.AI_FILM.budget;
@@ -4943,6 +5043,8 @@ function advanceWeek(){
   if(typeof initWarMeter==="function") initWarMeter();
   // v22: Production chaos
   if(typeof triggerChaosEvent==="function") triggerChaosEvent();
+  // v24: Rival AI
+  if(typeof tickRivalAI==="function") tickRivalAI();
   if(typeof tickTheatrical==="function") tickTheatrical();
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();

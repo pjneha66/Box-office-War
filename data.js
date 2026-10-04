@@ -1175,3 +1175,42 @@ Return ONLY valid JSON with these exact keys:
 
 /* ── SAVE_VERSION bump for v22 ── */
 DATA.SAVE_VERSION = 12;
+
+/* ══════════════════════════════════════════════════════════
+   v24 — RIVAL AI PERSONALITIES + MEMORY
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Rival Personality Archetypes ── */
+DATA.RIVAL_PERSONALITIES = [
+  {id:"aggressive", name:"🦁 Aggressive", emoji:"🦁", 
+   traits:{riskTolerance:0.8, budgetMult:1.3, marketingMult:1.2, genrePref:["action","scifi","fantasy","horror"], 
+           poachChance:0.3, acquireChance:0.2, dealStyle:"hardball"},
+   desc:"Swings for the fences. Big budgets, big marketing, loves tentpoles. Will poach your stars."},
+  {id:"prestige", name:"🏛 Prestige", emoji:"🏛",
+   traits:{riskTolerance:0.3, budgetMult:0.9, marketingMult:1.1, genrePref:["drama","musical","war","western","documentary"],
+           poachChance:0.1, acquireChance:0.15, dealStyle:"selective"},
+   desc:"Quality over quantity. Awards bait, festival darlings. Rarely poaches, but buys libraries."},
+  {id:"volume", name:"🏭 Volume", emoji:"🏭",
+   traits:{riskTolerance:0.5, budgetMult:1.0, marketingMult:0.9, genrePref:["comedy","action","thriller","romance"],
+           poachChance:0.15, acquireChance:0.25, dealStyle:"pragmatic"},
+   desc:"High volume, mid-budget. Steady slate, grabs undervalued talent. Opportunistic acquirer."},
+  {id:"streamer", name:"📱 Streamer-First", emoji:"📱",
+   traits:{riskTolerance:0.6, budgetMult:1.1, marketingMult:1.3, genrePref:["horror","thriller","documentary","truecrime","animation"],
+           poachChance:0.2, acquireChance:0.3, dealStyle:"data-driven"},
+   desc:"OTT-focused. Data-driven greenlights, heavy marketing. Buys IP for streaming originals."},
+  {id:"opportunist", name:"🎲 Opportunist", emoji:"🎲",
+   traits:{riskTolerance:0.7, budgetMult:1.2, marketingMult:1.0, genrePref:["action","horror","concert","sports"],
+           poachChance:0.25, acquireChance:0.2, dealStyle:"aggressive"},
+   desc:"Reactive. Jumps on trends, buys distressed assets, poaches when you're weak. Unpredictable."}
+];
+
+/* ── Rival Memory System ── */
+DATA.RIVAL_MEMORY = {
+  // Memory types: "deal", "poach", "acquire", "war", "deal_rejected", "poach_failed"
+  maxEntries: 50,
+  decayRate: 0.98, // per week
+  weights: { deal: 1.0, poach: 1.5, acquire: 2.0, war: 1.5, deal_rejected: 0.8, poach_failed: 1.2 }
+};
+
+/* ── SAVE_VERSION bump for v24 ── */
+DATA.SAVE_VERSION = 13;
