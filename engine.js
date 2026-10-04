@@ -2646,6 +2646,137 @@ function greenlightAIFilm(cfg){
   return {ok:true, project:p};
 }
 
+/* ═══════════ v22: Production Chaos Engine ── */
+function triggerChaosEvent(){
+  // Only trigger during active production (shoot or post phase)
+  const inProd = G.projects.filter(p=>p.phase==="shoot" || p.phase==="post");
+  if(!inProd.length) return;
+  // ~1% chance per week per production
+  const target = pick(inProd);
+  if(chance(0.01)){
+    const evt = pick(DATA.CHAOS_EVENTS);
+    G.pendingChaos = { projectId:target.id, event:evt, week:G.week };
+    log("⚡ PRODUCTION CHAOS: \""+target.title+"\" — "+evt.name+". "+evt.desc,"bad");
+  }
+}
+
+function resolveChaosEvent(choice){
+  const c = G.pendingChaos;
+  if(!c) return {ok:false};
+  const p = G.projects.find(x=>x.id===c.projectId);
+  const evt = c.event;
+  if(!p || !evt) return {ok:false};
+  let result = {ok:true};
+  
+  if(evt.id==="location_fire"){
+    p.phaseLen.shoot = (p.phaseLen.shoot||0) + evt.delay;
+    if(p.insured){ earn("insurance", evt.cost); log("🔥 Location fire covered by insurance — $"+fmtM(evt.cost)+" refunded.","good"); }
+    else { spend("production", evt.cost); log("🔥 Location fire — +"+evt.delay+" weeks, −"+fmtM(evt.cost)+"M.","bad"); }
+  }else if(evt.id==="lead_injury"){
+    if(choice==="recast" && G.studio.cash >= evt.recastCost){
+      spend("production", evt.recastCost);
+      p.phaseLen.shoot = (p.phaseLen.shoot||0) + 1; // recast takes 1 week
+      log("🤕 Lead recast for $"+fmtM(evt.recastCost)+"M — +1 week delay.","");
+    }else{
+      p.phaseLen.shoot = (p.phaseLen.shoot||0) + evt.delay;
+      log("🤕 Lead injured — production paused "+evt.delay+" weeks.","bad");
+    }
+  }else if(evt.id==="director_walkout"){
+    if(choice==="pay" && G.studio.cash >= evt.cost){
+      spend("production", evt.cost);
+      log("🚪 Director retained for $"+fmtM(evt.cost)+"M.","good");
+    }else{
+      p.quality = (p.quality||{}).overall ? clamp(p.quality.overall - evt.qualityHit, 10, 99) : 50;
+      log("🚪 Director walked — quality −"+evt.qualityHit+".","bad");
+    }
+  }else if(evt.id==="budget_overrun"){
+    const overrun = Math.round((p.budget - (p.spent||0)) * evt.overrunPct * 10)/10;
+    p.overrun = (p.overrun||0) + overrun;
+    log("💸 Budget overrun — remaining budget +"+evt.overrunPct*100+"% ("+fmtM(overrun)+"M).","bad");
+  }else if(evt.id==="script_leak"){
+    p.buzzBonus = (p.buzzBonus||0) + evt.hype/100;
+    p.openingHit = (p.openingHit||0) + evt.openingHit;
+    log("📰 Script leaked — hype +"+evt.hype+" but opening −"+(evt.openingHit*100)+"%.","");
+  }else if(evt.id==="star_scandal"){
+    if(choice==="reshoot" && G.studio.cash >= evt.reshootCost){
+      spend("production", evt.reshootCost);
+      log("⭐ Star scandal — reshot without star for $"+fmtM(evt.reshootCost)+"M.","");
+    }else{
+      p.quality = (p.quality||{}).overall ? clamp(p.quality.overall - evt.scoreHit, 10, 99) : 50;
+      log("⭐ Star scandal — released as-is, quality −"+evt.scoreHit+".","bad");
+    }
+  }
+  
+  G.pendingChaos = null;
+  saveGame();
+  return result;
+}
+
+/* ── v22: Gemini AI Pitch Generator ── */
+async function geminiPitch(concept){
+  if(!process.env.GEMINI_API_KEY) return {ok:false, err:"GEMINI_API_KEY not set in environment"};
+  
+  const prompt = DATA.GEMINI.pitchPrompt + "\n\nUser concept: " + concept;
+  
+  try{
+    const res = await fetch(DATA.GEMINI.endpoint + "?key=" + process.env.GEMINI_API_KEY, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+    });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const json = JSON.parse(text);
+    return {ok:true, pitch:json};
+  }catch(e){
+    return {ok:false, err:e.message};
+  }
+}
+
+function openAIPitchModal(){
+  let h="<h3>🤖 AI Pitch Generator</h3>"+
+    "<div class='tiny muted' style='margin-bottom:12px'>Describe your film concept in plain English. Gemini will return a structured pitch.</div>"+
+    "<textarea id='aiPitchInput' placeholder='e.g. A retired stuntman discovers a portal to 1920s Hollywood...' style='width:100%;min-height:80px;background:#0b0f18;border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:10px;font-family:inherit;resize:vertical'></textarea>"+
+    "<div class='modal-actions' style='margin-top:12px'>"+
+    "<button class='btn btn-primary' onclick='generateAIPitch()'>Generate Pitch</button>"+
+    "<button class='btn btn-ghost' onclick='closeModal()'>Cancel</button></div>"+
+    "<div id='aiPitchResult' style='margin-top:12px'></div>";
+  openModal(h);
+}
+
+async function generateAIPitch(){
+  const input = document.getElementById("aiPitchInput");
+  const resultEl = document.getElementById("aiPitchResult");
+  if(!input?.value?.trim()){ beep("bad"); return; }
+  resultEl.innerHTML = "<div class='tiny muted'>Generating...</div>";
+  
+  const res = await geminiPitch(input.value.trim());
+  if(!res.ok){
+    resultEl.innerHTML = "<div class='tiny neg'>Error: "+esc(res.err)+"</div>";
+    beep("bad");
+    return;
+  }
+  
+  const p = res.pitch;
+  // Pre-fill greenlight wizard
+  WZ = {
+    mode:"filmPitch", genre:p.genre, scale:p.scale, budget:p.budgetEstimate,
+    rating:"PG-13", location:"home", pattern:"wide", rollout:"day", window:45,
+    imax:false, premium:false, soundtrack:false, dayAndDate:false, scriptPolish:false,
+    director:null, writer:null, producer:null, cast:[],
+    titleOverride:p.title
+  };
+  
+  resultEl.innerHTML = "<div class='card'><b>"+esc(p.title)+"</b> <span class='tag gold'>"+p.scale+"</span> <span class='tag'>"+p.genre+"</span>"+
+    "<div class='tiny muted' style='margin-top:4px'>"+esc(p.tagline)+"</div>"+
+    "<div class='cost-line'><span>Budget est.</span><b>"+fmtM(p.budgetEstimate)+"M</b></div>"+
+    "<div class='cost-line'><span>Pred. score</span><b>"+p.predictedScore+"/100</b></div>"+
+    "<div class='tiny muted' style='margin-top:6px'>Cast: "+p.castSuggestions.join(", ")+"</div>"+
+    "<div class='tiny muted'>"+esc(p.concept)+"</div>"+
+    "<button class='btn btn-sm btn-primary' style='margin-top:8px;width:100%' onclick='closeModal(); startFilmPitchWizard()'>Open in Greenlight Wizard</button></div>";
+  beep("gold");
+}
+
 /* ═══════════ box office depth (v12): daily split, screens, advance sales, chains ═══════════
    Everything here is either a read-only derivation from stored fields (same
    result every read) or a bounded tick. The opening weekend splits Fri/Sat/Sun
@@ -4708,6 +4839,8 @@ function advanceWeek(){
   if(typeof triggerCastingScandal==="function") triggerCastingScandal();
   // v21: War meter init
   if(typeof initWarMeter==="function") initWarMeter();
+  // v22: Production chaos
+  if(typeof triggerChaosEvent==="function") triggerChaosEvent();
   if(typeof tickTheatrical==="function") tickTheatrical();
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();

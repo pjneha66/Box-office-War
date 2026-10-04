@@ -1141,3 +1141,37 @@ DATA.AI_FILM = {
 
 /* ── SAVE_VERSION bump for v21 ── */
 DATA.SAVE_VERSION = 11;
+
+/* ══════════════════════════════════════════════════════════
+   v22 — PRODUCTION CHAOS & AI POLISH
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Production Chaos Events (fire during production) ── */
+DATA.CHAOS_EVENTS = [
+  {id:"location_fire",    name:"Location Fire",       emoji:"🔥",  delay:2, cost:5,   insurable:true,  desc:"Set ablaze — +2 weeks, +$5M. Insurable."},
+  {id:"lead_injury",      name:"Lead Injury",         emoji:"🤕",  delay:4, cost:0,   insurable:true,  recastCost:8, desc:"Star injured — +4 weeks delay OR recast for $8M."},
+  {id:"director_walkout", name:"Director Walkout",    emoji:"🚪",  delay:0, cost:15,  insurable:false, qualityHit:10, desc:"Director quits — quality −10 OR pay $15M to retain."},
+  {id:"budget_overrun",   name:"Budget Overrun",      emoji:"💸",  delay:0, cost:0,   insurable:false, overrunPct:0.15, desc:"Remaining budget balloons +15%."},
+  {id:"script_leak",      name:"Script Leak",         emoji:"📰",  delay:0, cost:0,   insurable:false, hype:+5, openingHit:0.08, desc:"Script leaks — hype +5 but opening −8% from spoilers."},
+  {id:"star_scandal",     name:"Star Scandal",        emoji:"⭐",  delay:0, cost:8,   insurable:false, reshootCost:8, scoreHit:15, desc:"Star scandal — reshoot without them ($8M) OR release as-is (−15 audience)."},
+];
+
+/* ── Gemini AI Pitch Generator ── */
+DATA.GEMINI = {
+  endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+  pitchPrompt: `You are a Hollywood development executive. Generate a film pitch from a user concept.
+Return ONLY valid JSON with these exact keys:
+{
+  "title": "string (max 60 chars)",
+  "tagline": "string (max 120 chars)",
+  "genre": "one of: action,scifi,fantasy,animation,comedy,horror,thriller,drama,romance,musical,western,war,sports,concert,truecrime,documentary",
+  "scale": "one of: indie,mid,tentpole",
+  "budgetEstimate": "number (millions)",
+  "castSuggestions": ["string (3-5 names)"],
+  "predictedScore": "number 1-100",
+  "concept": "string (1-2 sentences expanding the user's idea)"
+}`,
+};
+
+/* ── SAVE_VERSION bump for v22 ── */
+DATA.SAVE_VERSION = 12;

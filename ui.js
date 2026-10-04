@@ -1287,6 +1287,7 @@ function viewDevelop(){
   h+="<div class='spread'><div class='section-title' style='margin:0'>Script market</div>"+
      "<button class='btn btn-sm' id='btnPitchSeries'>📺 Pitch a Series</button>"+
      "<button class='btn btn-sm' id='btnPitchFilm' style='margin-left:8px'>🎬 Pitch a Film</button>"+
+     "<button class='btn btn-sm' id='btnAIPitch' style='margin-left:8px'>🤖 AI Pitch</button>"+
      "<button class='btn btn-sm' id='btnStarSign' style='margin-left:8px'>🌟 New superstar</button></div>";
   h+="<div class='row' style='margin:10px 0 6px;gap:6px;flex-wrap:wrap'><span class='small muted' style='align-self:center'>Filter:</span>"+
     "<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER==="all"?"btn-primary":"")+"' data-filter-genre='all'>All genres</button>"+
@@ -3747,6 +3748,7 @@ function bindView(){
   const ps=$("#btnPitchSeries"); if(ps) ps.onclick=()=>{ beep("click"); startSeriesWizard(); };
   const ss=$("#btnStarSign"); if(ss) ss.onclick=()=>{ beep("click"); superstarModal(); };
   const pf=$("#btnPitchFilm"); if(pf) pf.onclick=()=>{ beep("click"); startFilmPitchWizard(); };
+  const ai=$("#btnAIPitch"); if(ai) ai.onclick=()=>{ beep("click"); openAIPitchModal(); };
   const shc=$("#btnShareCard"); if(shc) shc.onclick=function(){ shareStudioCard(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
