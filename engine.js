@@ -2215,6 +2215,7 @@ function releaseFilm(p){
   /* v14: shipped work levels up the staff (§47) */
   if(G.btl){ ["dp","composer","vfx"].forEach(r=>{ if(G.btl[r]) G.btl[r].xp=(G.btl[r].xp||0)+1; }); }
   Object.keys(G.execs||{}).forEach(k=>{ const e=G.execs[k]; if(e&&typeof e==="object") e.xp=(e.xp||0)+1; });
+  if(typeof grantFilmXP==="function") grantFilmXP(film);
   if(opening>G.stats.bestOpen){ G.stats.bestOpen=opening; G.stats.bestFilm=film.title; }
   earn("theatrical", opening*0.53);
   if(typeof sfx==="function") sfx("fanfare");
@@ -2917,13 +2918,13 @@ function resolveChaosEvent(choice){
 /* ── v22: Gemini AI Pitch Generator ── */
 async function geminiPitch(concept){
   if(!process.env.GEMINI_API_KEY) return {ok:false, err:"GEMINI_API_KEY not set in environment"};
-  
+
   const prompt = DATA.GEMINI.pitchPrompt + "\n\nUser concept: " + concept;
-  
+
   try{
-    const res = await fetch(DATA.GEMINI.endpoint + "?key=" + process.env.GEMINI_API_KEY, {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent", {
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json", "x-goog-api-key": process.env.GEMINI_API_KEY},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
     });
     const data = await res.json();
@@ -4633,6 +4634,7 @@ function runAwards(){
     if(winner.mine){
       const f=winner.f;
       f.awards=f.awards||[]; f.awards.push("Best Picture");
+      if(typeof grantAwardXP==="function") grantAwardXP(f);
       f.dom+=15; f.ww+=20; f.studioRev+=15; earn("theatrical", 15);
       // v5: the Oscar bump — a post-win re-release gross worth ~25% of the P&A you spent
       const bump0 = DATA.OSCAR_BUMP? DATA.OSCAR_BUMP*(f.marketing||0)*0.6 : 0;
@@ -4658,6 +4660,7 @@ function runAwards(){
         const cat=pick(["Best Director","Best Actor","Best Actress"]);
         n.f.awards.push(cat); G.studio.rep=clamp(G.studio.rep+3,5,99);
         awardHeatBump(n.f);
+        if(typeof grantAwardXP==="function") grantAwardXP(n.f);
         G.stats.awards.push({year:yr, cat, film:n.f.title});
         const nudge = DATA.ACTING_BUMP? Math.round(DATA.ACTING_BUMP*(n.f.marketing||0)*0.6*10)/10 : 0;
         if(nudge>1){ n.f.dom+=nudge; n.f.ww+=nudge; earn("theatrical", nudge*0.53); n.f.studioRev+=nudge; }
@@ -5045,6 +5048,8 @@ function advanceWeek(){
   if(typeof triggerChaosEvent==="function") triggerChaosEvent();
   // v24: Rival AI
   if(typeof tickRivalAI==="function") tickRivalAI();
+  // Prototype RPG systems
+  if(typeof tickPrototypeSystems==="function") tickPrototypeSystems();
   if(typeof tickTheatrical==="function") tickTheatrical();
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();
@@ -6888,3 +6893,508 @@ function deployAntiPiracyRegion(territoryId){
   saveGame();
   return {ok:true};
 }
+
+/* ═══════════ PROTOTYPE RPG CHARACTER SYSTEM ── */
+
+/* Initialize prototype data for a talent */
+function initPrototypeTalent(talent){
+  if(!talent.prototype) talent.prototype = {};
+  const p = talent.prototype;
+  if(!p.alignment) p.alignment = pick(DATA.PROTOTYPE_ALIGNMENT_OPTIONS);
+  if(!p.attributes) p.attributes = {...DATA.PROTOTYPE_ATTRIBUTE_DEFAULTS};
+  if(!p.level) p.level = 1;
+  if(!p.xp) p.xp = 0;
+  if(!p.xpToNext) p.xpToNext = DATA.PROTOTYPE_BASE_XP;
+  if(!p.skillPoints) p.skillPoints = 0;
+  if(!p.equipment) p.equipment = { weapon: null, armor: null };
+  if(!p.events) p.events = [];
+  if(!p.skillTree) p.skillTree = { branch: null, nodes: [] };
+  if(!p.milestones) p.milestones = [];
+  if(!p.history) p.history = []; // Persistent history across saves
+  if(!p.fame) p.fame = 0;
+  if(!p.infamy) p.infamy = 0;
+  if(!p.industryRespect) p.industryRespect = 0;
+  if(!p.traits) p.traits = [];
+  if(!p.quirks) p.quirks = [];
+}
+
+/* Initialize prototype data for all talents */
+function initPrototypeSystem(){
+  if(!G.prototypeData) G.prototypeData = { version: 1 };
+  if(!G.talent) return;
+  G.talent.forEach(initPrototypeTalent);
+}
+
+/* Gain XP for a talent */
+function gainXP(talentId, amount, source){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return;
+  initPrototypeTalent(talent);
+  const p = talent.prototype;
+  const oldLevel = p.level;
+  p.xp = (p.xp||0) + amount;
+  
+  // Check for level up
+  while(p.xp >= (p.xpToNext||DATA.PROTOTYPE_BASE_XP)){
+    p.xp -= (p.xpToNext||DATA.PROTOTYPE_BASE_XP);
+    p.level = (p.level||1) + 1;
+    p.xpToNext = Math.round(DATA.PROTOTYPE_BASE_XP * Math.pow(p.level, DATA.PROTOTYPE_XP_CURVE));
+    p.skillPoints = (p.skillPoints||0) + 1;
+    log("⭐ "+talent.name+" leveled up to Level "+p.level+"! (+1 Skill Point)","gold");
+  }
+  
+  // Record in history
+  p.history.push({ week: G.week, type: "xp_gain", amount: amount, source: source, level: p.level });
+  
+  // Apply to film/game production if active
+  applyTalentStatsToProduction(talent);
+  
+  saveGame();
+}
+
+/* Apply talent stats to film/game production */
+function applyTalentStatsToProduction(talent){
+  const p = talent.prototype;
+  if(!p) return;
+  const attrs = p.attributes || DATA.PROTOTYPE_ATTRIBUTE_DEFAULTS;
+  
+  // Film production bonuses
+  if(talent.kind === "actor" || talent.kind === "director" || talent.kind === "writer" || talent.kind === "producer"){
+    // Charisma → marketing/hype boost
+    // Intellect → script/quality boost
+    // Creativity → originality/genre bonus
+    // Discipline → schedule/budget adherence
+    // Luck → random event modifiers
+  }
+}
+
+/* Level up talent and allocate skill point */
+function levelUpTalent(talentId, attributeChoice){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return {ok:false, err:"Talent not found"};
+  initPrototypeTalent(talent);
+  const p = talent.prototype;
+  
+  if(p.skillPoints <= 0) return {ok:false, err:"No skill points available"};
+  if(!attributeChoice) return {ok:false, err:"No attribute chosen"};
+  
+  const attr = p.attributes;
+  if(attr[attributeChoice] !== undefined){
+    attr[attributeChoice] = Math.min(100, (attr[attributeChoice]||50) + 5);
+    p.skillPoints--;
+    log("📈 "+talent.name+" increased "+attributeChoice+" to "+attr[attributeChoice],"gold");
+    saveGame();
+    return {ok:true, attribute: attributeChoice, newValue: attr[attributeChoice]};
+  }
+  return {ok:false, err:"Invalid attribute"};
+}
+
+/* Spend skill point on skill tree node */
+function unlockSkillNode(talentId, nodeId){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return {ok:false, err:"Talent not found"};
+  initPrototypeTalent(talent);
+  const p = talent.prototype;
+  
+  const tree = DATA.PROTOTYPE_SKILL_TREES[talent.kind];
+  if(!tree) return {ok:false, err:"No skill tree for this talent type"};
+  
+  const node = tree.nodes.find(n=>n.id===nodeId);
+  if(!node) return {ok:false, err:"Skill node not found"};
+  if(p.skillTree.nodes.includes(nodeId)) return {ok:false, err:"Already unlocked"};
+  
+  // Check prerequisites
+  if(node.req > 0){
+    const prereqNode = tree.nodes[node.req - 1];
+    if(!prereqNode || !p.skillTree.nodes.includes(prereqNode.id)){
+      return {ok:false, err:"Prerequisite not met"};
+    }
+  }
+  
+  if(p.skillPoints < node.cost) return {ok:false, err:"Not enough skill points"};
+  
+  p.skillPoints -= node.cost;
+  p.skillTree.nodes.push(nodeId);
+  p.skillTree.branch = tree.name;
+  
+  // Apply node effect
+  if(node.effect){
+    Object.entries(node.effect).forEach(([key,val])=>{
+      if(key.startsWith("cha") || key.startsWith("int") || key.startsWith("cre") || key.startsWith("dis") || key.startsWith("luk")){
+        talent.prototype.attributes[key] = (talent.prototype.attributes[key]||0) + val;
+      }
+    });
+  }
+  
+  log("✨ "+talent.name+" unlocked "+node.name,"gold");
+  saveGame();
+  return {ok:true, node: node.name};
+}
+
+/* Equip item to talent */
+function equipItem(talentId, slot, itemId){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return {ok:false, err:"Talent not found"};
+  initPrototypeTalent(talent);
+  
+  const item = DATA.PROTOTYPE_EQUIPMENT[slot]?.find(i=>i.id===itemId);
+  if(!item) return {ok:false, err:"Item not found"};
+  
+  talent.prototype.equipment[slot] = itemId;
+  log("🎒 "+talent.name+" equipped "+item.name,"gold");
+  saveGame();
+  return {ok:true, item: item.name};
+}
+
+/* Unequip item */
+function unequipItem(talentId, slot){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return {ok:false};
+  talent.prototype.equipment[slot] = null;
+  log("📦 "+talent.name+" unequipped "+slot,"");
+  saveGame();
+  return {ok:true};
+}
+
+/* Get equipment bonuses for a talent */
+function getEquipmentBonuses(talent){
+  initPrototypeTalent(talent);
+  const p = talent.prototype;
+  let bonuses = { quality: 0, scandalReduction: 0 };
+  
+  if(p.equipment.weapon){
+    const item = DATA.PROTOTYPE_EQUIPMENT.weapon.find(i=>i.id===p.equipment.weapon);
+    if(item) bonuses.quality += item.quality || 0;
+  }
+  if(p.equipment.armor){
+    const item = DATA.PROTOTYPE_EQUIPMENT.armor.find(i=>i.id===p.equipment.armor);
+    if(item) bonuses.scandalReduction += item.scandalReduction || 0;
+  }
+  return bonuses;
+}
+
+/* Trigger life event for a talent */
+function triggerLifeEvent(talentId){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return;
+  initPrototypeTalent(talent);
+  
+  // Roll for event (1 per week per talent max)
+  const lastEvent = talent.prototype.events[talent.prototype.events.length-1];
+  if(lastEvent && lastEvent.week === G.week) return; // Already had event this week
+  
+  const totalWeight = DATA.PROTOTYPE_LIFE_EVENTS.reduce((sum,e)=>sum+e.weight,0);
+  const roll = Math.random() * totalWeight;
+  let cumulative = 0;
+  let selectedEvent = null;
+  
+  for(const evt of DATA.PROTOTYPE_LIFE_EVENTS){
+    cumulative += evt.weight;
+    if(roll <= cumulative){
+      selectedEvent = evt;
+      break;
+    }
+  }
+  
+  if(!selectedEvent) return;
+  
+  // Pick template
+  const template = pick(selectedEvent.templates);
+  const effects = selectedEvent.effects || {};
+  
+  // Apply effects
+  const p = talent.prototype;
+  if(effects.xp) gainXP(talent.id, effects.xp, "life_event");
+  if(effects.rep !== undefined) G.studio.rep = clamp((G.studio.rep||0) + effects.rep, 5, 99);
+  if(effects.fame) talent.prototype.fame = (talent.prototype.fame||0) + effects.fame;
+  if(effects.infamy) talent.prototype.infamy = (talent.prototype.infamy||0) + effects.infamy;
+  if(effects.scandal) talent.prototype.scandal = (talent.prototype.scandal||0) + effects.scandal;
+  if(effects.discipline !== undefined) talent.prototype.attributes.dis = clamp((talent.prototype.attributes.dis||50) + effects.discipline, 1, 100);
+  
+  // Record event
+  const eventRecord = {
+    week: G.week,
+    type: selectedEvent.type,
+    icon: selectedEvent.icon,
+    desc: template,
+    effects: effects
+  };
+  talent.prototype.events.push(eventRecord);
+  if(talent.prototype.events.length > 10) talent.prototype.events.shift(); // Keep last 10
+  
+  // Log event
+  log(selectedEvent.icon+" "+selectedEvent.desc+": "+template,"gold");
+  saveGame();
+  
+  return eventRecord;
+}
+
+/* Tick life events for all talents */
+function tickLifeEvents(){
+  if(!G.talent) return;
+  G.talent.forEach(t=>triggerLifeEvent(t.id));
+}
+
+/* Add milestone to talent */
+function addMilestone(talentId, type, projectName){
+  const talent = G.talent.find(t=>t.id===talentId);
+  if(!talent) return;
+  initPrototypeTalent(talent);
+  
+  const milestone = { type, week: G.week, project: projectName };
+  talent.prototype.milestones.push(milestone);
+  
+  // Grant bonus XP for milestones
+  const xpRewards = { first_credit: 500, first_award: 2000, breakthrough: 3000 };
+  if(xpRewards[type]) gainXP(talent.id, xpRewards[type], "milestone");
+  
+  log("🏆 Milestone: "+type+" for "+talent.name,"gold");
+  saveGame();
+}
+
+/* Game Dev Lite - Single Project System */
+function unlockGameDevLite(){
+  if(G.prototypeData?.gameDevUnlocked) return {ok:false, err:"Already unlocked"};
+  if(!G.prototypeData) G.prototypeData = {};
+  G.prototypeData.gameDevUnlocked = true;
+  G.prototypeData.gameDevUnlockedWeek = G.week;
+  log("🎮 GAME DEVELOPMENT DIVISION UNLOCKED! Build your own games.","gold");
+  saveGame();
+  return {ok:true};
+}
+
+function startGameDevProject(genre){
+  if(!G.prototypeData?.gameDevUnlocked) return {ok:false, err:"Game Dev not unlocked"};
+
+  const project = {
+    id: nid(),
+    title: pick(["Realm Saga","Hero Chronicles","Dungeon Legends","Fate Odyssey","Crystal Quest","Ember Wanderer"]),
+    genre: genre || "rpg",
+    platform: "pc",
+    phase: "pre",
+    progress: 0,
+    quality: 50,
+    weekStarted: G.week,
+    choices: [],
+    team: [],
+    budget: 50,
+    spent: 0
+  };
+
+  G.prototypeData.currentProject = project;
+  log("🎮 Started game project: \""+project.title+"\" ("+genre+" · Pre-production)","gold");
+  saveGame();
+  return {ok:true, project};
+}
+
+function gameDevPhaseDef(phase){
+  return ((DATA.PROTOTYPE_GAME_DEV||{}).phases||[]).find(ph=>ph.id===phase);
+}
+
+function gameDevChoiceOption(phase, choiceId){
+  const defs = ((DATA.PROTOTYPE_GAME_DEV||{}).phaseChoices||{})[phase] || [];
+  for(const def of defs){
+    const opt = (def.options||[]).find(o=>o.id===choiceId);
+    if(opt) return opt;
+  }
+  return null;
+}
+
+function advanceGameDevPhase(choice){
+  if(!G.prototypeData?.currentProject) return {ok:false};
+  const project = G.prototypeData.currentProject;
+
+  const phaseIdx = ["pre", "prod", "launch"].indexOf(project.phase);
+  if(phaseIdx < 0) return {ok:false};
+
+  // Apply the phase choice's effects (fx: cost/quality/velocity/sales as +/- fractions)
+  if(choice){
+    const opt = gameDevChoiceOption(project.phase, choice);
+    if(opt){
+      project.choices.push({ phase: project.phase, choice, label: opt.label, week: G.week });
+      const fx = opt.fx || {};
+      if(fx.cost) project.budget = Math.max(5, Math.round(project.budget * (1 + fx.cost)));
+      if(fx.quality) project.quality = clamp(project.quality + fx.quality*100, 20, 100);
+      if(fx.velocity) project.fxVelocity = (project.fxVelocity||0) + fx.velocity;
+      if(fx.sales) project.fxSales = (project.fxSales||0) + fx.sales;
+    } else {
+      project.choices.push({ phase: project.phase, choice, week: G.week });
+    }
+  }
+
+  // Advance phase
+  const phases = ["pre", "prod", "launch"];
+  const nextIdx = phaseIdx + 1;
+  if(nextIdx >= phases.length){
+    // Project complete - launch!
+    const quality = Math.round(project.quality * (1 + Math.random() * 0.2));
+    const revenue = Math.round(project.budget * (0.5 + quality/200) * (1 + (project.fxSales||0)) * (1 + Math.random()));
+
+    earn("game_revenue", revenue);
+    G.prototypeData.releasedGames = G.prototypeData.releasedGames || [];
+    G.prototypeData.releasedGames.push({...project, quality, revenue, launchedWeek: G.week});
+    G.prototypeData.currentProject = null;
+
+    log("🎮 GAME LAUNCHED: \""+project.title+"\" — Quality: "+quality+"/100, Revenue: "+fmtM(revenue),"gold");
+    (project.team||[]).forEach(t=>{ if(t && t.id) addMilestone(t.id, "first_credit", project.title); });
+    unlockAchv("first_game", "🎮 Game On", "Launched your first in-house game");
+    saveGame();
+    return {ok:true, launched:true, quality, revenue};
+  }
+
+  project.phase = phases[nextIdx];
+  project.progress = 0;
+  log("🎮 Phase advanced to: "+project.phase,"gold");
+  saveGame();
+  return {ok:true, phase: project.phase};
+}
+
+function workOnGameDev(){
+  if(!G.prototypeData?.currentProject) return;
+  const project = G.prototypeData.currentProject;
+
+  const phaseDef = gameDevPhaseDef(project.phase);
+  const phaseLen = (phaseDef && phaseDef.duration) || 4;
+
+  // Weekly progress: finish the phase in its planned duration, sped up by team + choices
+  const base = 100 / phaseLen;
+  const teamBonus = Math.min(15, (project.team?.length||0) * 3);
+  const velocity = (base + teamBonus) * (1 + (project.fxVelocity||0));
+  project.progress = Math.min(100, project.progress + velocity);
+
+  // Burn a flat slice of the budget each week
+  const weeklyCost = Math.max(1, Math.round(project.budget * 0.02));
+  if(G.studio.cash < weeklyCost){
+    project.overBudget = (project.overBudget||0) + weeklyCost;
+  } else {
+    spend("production", weeklyCost);
+    project.spent = (project.spent||0) + weeklyCost;
+  }
+
+  // Quality varies by phase
+  if(project.phase === "prod"){
+    project.quality = clamp(project.quality + (Math.random()-0.3)*5, 20, 100);
+  }
+
+  saveGame();
+}
+
+/* Integration: Apply talent stats to film/game production */
+function applyTalentStatsToFilm(talent, film){
+  initPrototypeTalent(talent);
+  const attrs = talent.prototype.attributes || DATA.PROTOTYPE_ATTRIBUTE_DEFAULTS;
+  const equip = getEquipmentBonuses(talent);
+  
+  // Apply to film quality
+  if(film.quality){
+    film.quality.overall = (film.quality.overall||50) 
+      + (attrs.cha - 50) * 0.2  // Charisma → hype/marketing
+      + (attrs.int - 50) * 0.3  // Intellect → script/quality
+      + (attrs.cre - 50) * 0.2  // Creativity → originality
+      + (attrs.dis - 50) * 0.1  // Discipline → schedule
+      + (attrs.luk - 50) * 0.05 // Luck → random
+      + equip.quality;           // Equipment bonus
+    film.quality.overall = clamp(film.quality.overall, 10, 100);
+  }
+  
+  // Apply to scandal resistance
+  if(film.scandalResistance !== undefined){
+    film.scandalResistance += equip.scandalReduction;
+  }
+}
+
+/* Apply talent stats to game dev project */
+function applyTalentStatsToGameDev(talent, project){
+  initPrototypeTalent(talent);
+  const attrs = talent.prototype.attributes || DATA.PROTOTYPE_ATTRIBUTE_DEFAULTS;
+  
+  // Apply to game quality
+  if(project.quality !== undefined){
+    project.quality = clamp(project.quality 
+      + (attrs.int - 50) * 0.3   // Intellect → code quality
+      + (attrs.cre - 50) * 0.2   // Creativity → design
+      + (attrs.dis - 50) * 0.2   // Discipline → schedule
+      + (attrs.cha - 50) * 0.1   // Charisma → marketing
+      + (attrs.luk - 50) * 0.05, // Luck
+      20, 100);
+  }
+}
+
+/* Tick prototype systems */
+function tickPrototypeSystems(){
+  if(!G.talent) return;
+  
+  // Initialize prototype data for all talents
+  G.talent.forEach(initPrototypeTalent);
+  
+  // Tick life events
+  tickLifeEvents();
+  
+  // Tick game dev
+  if(G.prototypeData?.currentProject){
+    workOnGameDev();
+  }
+  
+  // Check game dev unlock
+  if(!G.prototypeData?.gameDevUnlocked && G.studio.rep >= 40 && G.studio.cash >= 250){
+    unlockGameDevLite();
+  }
+  
+  // Apply talent stats to active productions
+  G.projects.filter(p=>p.kind==="film" && p.phase!=="done").forEach(film=>{
+    if(film.director) applyTalentStatsToFilm(film.director, film);
+    if(film.writer) applyTalentStatsToFilm(film.writer, film);
+    if(film.producer) applyTalentStatsToFilm(film.producer, film);
+    (film.cast||[]).forEach(c=>applyTalentStatsToFilm(c, film));
+  });
+  
+  // Apply to game dev
+  if(G.prototypeData?.currentProject){
+    if(G.prototypeData.currentProject.director) applyTalentStatsToGameDev(G.prototypeData.currentProject.director, G.prototypeData.currentProject);
+    if(G.prototypeData.currentProject.writer) applyTalentStatsToGameDev(G.prototypeData.currentProject.writer, G.prototypeData.currentProject);
+    (G.prototypeData.currentProject.team||[]).forEach(t=>applyTalentStatsToGameDev(t, G.prototypeData.currentProject));
+  }
+}
+
+/* Save/Load with prototype data persistence */
+function savePrototypeData(){
+  if(!G.prototypeData) return;
+  // History is already in talent.prototype.history
+}
+
+/* Shipped film → XP for credited talent + one-time first-credit milestone */
+function grantFilmXP(film){
+  if(!G.talent || !film) return;
+  const q = (film.quality && typeof film.quality==="object") ? (film.quality.overall||50) : (film.quality||50);
+  const xp = Math.round(100 + q*2);
+  const crew = [film.director, film.writer, film.producer].concat(film.cast||[]).filter(Boolean);
+  crew.forEach(t=>{
+    if(!t || !t.id || !G.talent.some(x=>x.id===t.id)) return;
+    gainXP(t.id, xp, "film:"+film.title);
+    const live = G.talent.find(x=>x.id===t.id);
+    if(live && !(live.prototype.milestones||[]).some(m=>m.type==="first_credit")) addMilestone(t.id, "first_credit", film.title);
+  });
+}
+
+/* Award win → big XP for the winning film's credited talent */
+function grantAwardXP(film){
+  if(!G.talent || !film) return;
+  const crew = [film.director, film.writer, film.producer].concat(film.cast||[]).filter(Boolean);
+  crew.forEach(t=>{
+    if(!t || !t.id || !G.talent.some(x=>x.id===t.id)) return;
+    gainXP(t.id, 500, "award:"+film.title);
+    const live = G.talent.find(x=>x.id===t.id);
+    if(live && !(live.prototype.milestones||[]).some(m=>m.type==="first_award")) addMilestone(t.id, "first_award", film.title);
+  });
+}
+
+function loadPrototypeData(){
+  if(!G.prototypeData) return;
+  G.talent.forEach(t=>{
+    if(t.prototype && t.prototype.history){
+      // History already loaded
+    }
+  });
+}
+
+/* ─── End of Prototype RPG System ─── */

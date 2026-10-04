@@ -3,3 +3,4 @@ node_modules/
 .vercel
 .smoke-generated.js
 .mimosa/
+.slots-generated.js

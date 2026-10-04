@@ -9,11 +9,16 @@ const fs = require("fs"), path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(__dirname, ".smoke-generated.js");
 
-const SHIM = "global.localStorage={_s:{},getItem(k){return this._s[k]??null;},setItem(k,v){this._s[k]=v;},removeItem(k){delete this._s[k];}};\n";
+const SHIM = "global.localStorage={_s:{},getItem(k){return this._s[k]??null;},setItem(k,v){this._s[k]=v;},removeItem(k){delete this._s[k];}};\nif(typeof global.DATA === 'undefined') global.DATA = {};\n";
+
+const dataJs = fs.readFileSync(path.join(ROOT, "data.js"), "utf8").replace(/"use strict";/g, "");
+const engineJs = fs.readFileSync(path.join(ROOT, "engine.js"), "utf8").replace(/"use strict";/g, "");
+const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8").replace(/"use strict";/g, "");
+
 const bundle = SHIM +
-  fs.readFileSync(path.join(ROOT, "data.js"), "utf8") + "\n" +
-  fs.readFileSync(path.join(ROOT, "engine.js"), "utf8") + "\n" +
-  fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8") + "\n";
+  dataJs + "\n" +
+  engineJs + "\n" +
+  smokeBodyJs + "\n";
 
 fs.writeFileSync(OUT, bundle);
 try{

@@ -1212,5 +1212,181 @@ DATA.RIVAL_MEMORY = {
   weights: { deal: 1.0, poach: 1.5, acquire: 2.0, war: 1.5, deal_rejected: 0.8, poach_failed: 1.2 }
 };
 
+/* ═════════════════════════════════════════════════════════
+   PROTOTYPE RPG CHARACTER SYSTEM DATA
+   ════════════════════════════════════════════════════════ */
+
+// 3-axis alignment system (Lawful/Neutral/Chaotic)
+DATA.PROTOTYPE_ALIGNMENTS = [
+  {id:"lawful", name:"Lawful", emoji:"⚖️", desc:"Order, tradition, hierarchy. +10% contract compliance, -10% creative freedom"},
+  {id:"neutral", name:"Neutral", emoji:"⚪", desc:"Balance, pragmatism. No alignment bonuses or penalties"},
+  {id:"chaotic", name:"Chaotic", emoji:"🌪️", desc:"Freedom, innovation, rebellion. +15% creative output, -15% schedule adherence"}
+];
+
+// 5 core attributes (1-100 scale)
+DATA.PROTOTYPE_ATTRIBUTES = [
+  {id:"cha", name:"Charisma", emoji:"✨", desc:"Audience appeal, negotiation, star power"},
+  {id:"int", name:"Intellect", emoji:"🧠", desc:"Script quality, direction skill, problem solving"},
+  {id:"cre", name:"Creativity", emoji:"🎨", desc:"Originality, improvisation, artistic vision"},
+  {id:"dis", name:"Discipline", emoji:"📋", desc:"Reliability, schedule adherence, professionalism"},
+  {id:"luk", name:"Luck", emoji:"🍀", desc:"Random event modifiers, serendipity"}
+];
+
+// XP curve: XP = 1000 * level^1.5
+DATA.PROTOTYPE_XP_CURVE = 1.5;
+DATA.PROTOTYPE_BASE_XP = 1000;
+
+// 3-axis alignment effects on production
+DATA.PROTOTYPE_ALIGNMENT_EFFECTS = {
+  lawful: { contractCompliance: 0.10, creativeFreedom: -0.10, scheduleAdherence: 0.05 },
+  neutral: { contractCompliance: 0, creativeFreedom: 0, scheduleAdherence: 0 },
+  chaotic: { contractCompliance: -0.05, creativeFreedom: 0.15, scheduleAdherence: -0.15 }
+};
+
+// 5 core attributes (1-100)
+DATA.PROTOTYPE_ATTRIBUTE_DEFAULTS = { cha: 50, int: 50, cre: 50, dis: 50, luk: 50 };
+
+// 3-axis alignment for talents
+DATA.PROTOTYPE_ALIGNMENT_OPTIONS = ["lawful", "neutral", "chaotic"];
+
+// Equipment system (2 slots: Weapon, Armor) - 5 rarities
+DATA.PROTOTYPE_EQUIPMENT = {
+  weapon: [
+    { id: "script_basic", name: "Basic Script", rarity: "common", quality: 5, cost: 1 },
+    { id: "script_solid", name: "Solid Script", rarity: "uncommon", quality: 10, cost: 3 },
+    { id: "script_oscar", name: "Oscar Bait Script", rarity: "rare", quality: 20, cost: 10 },
+    { id: "script_franchise", name: "Franchise IP", rarity: "epic", quality: 30, cost: 30 },
+    { id: "script_legendary", name: "Legendary IP", rarity: "legendary", quality: 50, cost: 100 }
+  ],
+  armor: [
+    { id: "pr_basic", name: "Junior Publicist", rarity: "common", scandalReduction: 5, cost: 1 },
+    { id: "pr_agency", name: "PR Agency", rarity: "uncommon", scandalReduction: 15, cost: 5 },
+    { id: "pr_crisis", name: "Crisis Manager", rarity: "rare", scandalReduction: 25, cost: 15 },
+    { id: "pr_elite", name: "Elite Firm", rarity: "epic", scandalReduction: 40, cost: 40 },
+    { id: "pr_legendary", name: "Legendary Fixer", rarity: "legendary", scandalReduction: 60, cost: 100 }
+  ]
+};
+
+// Rarity tiers with colors
+DATA.PROTOTYPE_RARITY = {
+  common: { color: "#888", multiplier: 1.0 },
+  uncommon: { color: "#0f0", multiplier: 1.5 },
+  rare: { color: "#08f", multiplier: 2.0 },
+  epic: { color: "#f0f", multiplier: 3.0 },
+  legendary: { color: "#fd0", multiplier: 5.0 }
+};
+
+// Skill tree branches (1 per talent type)
+DATA.PROTOTYPE_SKILL_TREES = {
+  actor: {
+    name: "Star Power",
+    nodes: [
+      { id: "charisma_1", name: "Charisma Boost I", cost: 2, effect: { cha: 5 }, req: 0 },
+      { id: "charisma_2", name: "Charisma Boost II", cost: 4, effect: { cha: 10 }, req: 1 },
+      { id: "audience_draw", name: "Audience Draw", cost: 5, effect: { openingBonus: 0.10 }, req: 2 },
+      { id: "franchise_anchor", name: "Franchise Anchor", cost: 8, effect: { sequelNegotiation: 0.25 }, req: 3 }
+    ]
+  },
+  director: {
+    name: "Visual Storytelling",
+    nodes: [
+      { id: "visual_style", name: "Visual Style I", cost: 2, effect: { cre: 5 }, req: 0 },
+      { id: "auteur_sig", name: "Auteur Signature", cost: 5, effect: { criticBonus: 0.10 }, req: 1 },
+      { id: "genre_mastery", name: "Genre Mastery", cost: 8, effect: { genreQuality: 0.20 }, req: 2 }
+    ]
+  },
+  writer: {
+    name: "Craft Mastery",
+    nodes: [
+      { id: "script_craft", name: "Script Craft I", cost: 2, effect: { int: 5 }, req: 0 },
+      { id: "dialogue_master", name: "Dialogue Master", cost: 5, effect: { scriptQuality: 0.15 }, req: 1 },
+      { id: "genre_spec", name: "Genre Specialist", cost: 8, effect: { genreScriptBonus: 0.20 }, req: 2 }
+    ]
+  },
+  producer: {
+    name: "Dealmaking",
+    nodes: [
+      { id: "budget_wizard", name: "Budget Wizard I", cost: 2, effect: { dis: 5 }, req: 0 },
+      { id: "schedule_master", name: "Schedule Master", cost: 5, effect: { overrunReduction: 0.10 }, req: 1 },
+      { id: "studio_whisperer", name: "Studio Whisperer", cost: 8, effect: { greenlightBoost: 0.15 }, req: 2 }
+    ]
+  }
+};
+
+// Life events (3 types)
+DATA.PROTOTYPE_LIFE_EVENTS = [
+  { type: "career", weight: 50, icon: "🎬", desc: "Career Opportunity",
+    templates: [
+      "Offered lead role in {genre} tentpole",
+      "Director {name} wants you for passion project",
+      "Studio offers multi-picture deal",
+      "Casting director recommends you for {genre} film"
+    ],
+    effects: { xp: 200, rep: 2, fame: 3 }
+  },
+  { type: "personal", weight: 20, icon: "💔", desc: "Personal Crisis",
+    templates: [
+      "Health scare forces production delay",
+      "Relationship stress affects performance",
+      "Family emergency pulls you from set",
+      "Burnout requires mandatory hiatus"
+    ],
+    effects: { xp: -100, rep: -2, discipline: -5, scandal: 5 }
+  },
+  { type: "scandal", weight: 30, icon: "📰", desc: "Scandal Risk",
+    templates: [
+      "Leaked photos spark tabloid frenzy",
+      "Controversial quote goes viral",
+      "Legal trouble from past contract",
+      "Social media controversy erupts"
+    ],
+    effects: { rep: -10, fame: 5, scandal: 15, infamy: 10 }
+  }
+];
+
+// Game Dev Lite (single project)
+DATA.PROTOTYPE_GAME_DEV = {
+  genres: ["rpg"],
+  platforms: ["pc"],
+  phases: [
+    { id: "pre", name: "Pre-production", duration: 4, costMult: 0.2, desc: "Concept, prototype, team hiring" },
+    { id: "prod", name: "Production", duration: 8, costMult: 0.6, desc: "Core development, asset creation" },
+    { id: "launch", name: "Launch", duration: 2, costMult: 0.2, desc: "Polish, certification, marketing push" }
+  ],
+  phaseChoices: {
+    pre: [
+      { id: "scope", label: "Scope", options: [
+        { id: "tight", label: "Tight Scope", desc: "Focused vision, -20% cost, -10% quality", fx: { cost: -0.2, quality: -0.10 } },
+        { id: "standard", label: "Standard", desc: "Balanced scope", fx: {} },
+        { id: "ambitious", label: "Ambitious", desc: "Feature-rich, +30% cost, +15% quality", fx: { cost: 0.3, quality: 0.15 } }
+      ]},
+      { id: "team", label: "Team", options: [
+        { id: "small", label: "Small Core Team", desc: "5 people, -30% cost, -10% velocity", fx: { cost: -0.3, velocity: -0.10 } },
+        { id: "standard", label: "Standard Team", desc: "15 people, balanced", fx: {} },
+        { id: "large", label: "Large Team", desc: "40 people, +50% cost, +20% velocity", fx: { cost: 0.5, velocity: 0.20 } }
+      ]}
+    ],
+    prod: [
+      { id: "scope_creep", label: "Scope Changes", options: [
+        { id: "strict", label: "Strict Scope", desc: "No changes, -10% features, +20% schedule adherence", fx: { quality: -0.10, velocity: 0.20 } },
+        { id: "managed", label: "Managed Changes", desc: "Controlled additions, balanced", fx: {} },
+        { id: "flexible", label: "Flexible Scope", desc: "Add features freely, +25% features, -20% schedule", fx: { quality: 0.25, velocity: -0.20 } }
+      ]},
+      { id: "quality", label: "Quality Focus", options: [
+        { id: "polish", label: "Polish Focus", desc: "Extra QA, -10% speed, +15% quality", fx: { velocity: -0.10, quality: 0.15 } },
+        { id: "balanced", label: "Balanced", desc: "Standard QA", fx: {} },
+        { id: "speed", label: "Speed Focus", desc: "Ship fast, -15% quality, +20% speed", fx: { quality: -0.15, velocity: 0.20 } }
+      ]}
+],
+    launch: [
+      { id: "marketing", label: "Marketing Push", options: [
+        { id: "minimal", label: "Minimal", desc: "Word of mouth only, -50% marketing, -20% launch sales", fx: { sales: -0.20, cost: -0.10 } },
+        { id: "standard", label: "Standard", desc: "Normal campaign", fx: {} },
+        { id: "blitz", label: "Blitz", desc: "Massive campaign, +50% marketing, +25% launch sales", fx: { sales: 0.25, cost: 0.15 } }
+      ]}
+    ]
+  }
+};
+
 /* ── SAVE_VERSION bump for v24 ── */
 DATA.SAVE_VERSION = 13;

@@ -29,6 +29,10 @@ if (window.document.readyState !== "complete") {
 }
 await new Promise(r => setTimeout(r, 50));
 
+// render() debounces via setTimeout(0) — fine for humans, but this test drives steps
+// synchronously, so flush renders immediately instead of on a timer.
+window.eval("render = function(){ _renderImpl(); }");
+
 const g = () => window.eval("G");
 const errors = pageErrors.slice();
 const $ = s => window.document.querySelector(s);
@@ -39,7 +43,7 @@ const dismissSideModals = () => {
   // like a focused player mid-sprint: decline passively raised auctions, stall deepfakes, skip sports auctions
   if(g().pendingAuction){ const nb=$("#aucNo"); if(nb) click(nb); }
   if(g().pendingDeepfake){ const df=$("#dfDefer"); if(df) click(df); }
-  if(g().pendingSports){ const sk=$("#sportsSkip"); if(sk) click(sk); }
+  if(g().pendingSports){ const sk=$("#spPass")||$("#sportsSkip"); if(sk) click(sk); }
   // v8: dismiss the weekly report popup when it's the only thing on screen
   if(!g().pendingAuction && !g().pendingDeepfake && !g().pendingSports && !g().pendingChoice && !g().pendingReport && !g().pendingEarnings){
     const wk=$("#wkGo"); if(wk) click(wk);
@@ -209,6 +213,9 @@ step("run to release + theatrical", ()=>{
     if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
     if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
     dismissSideModals();
+    if(g().over) throw new Error("studio went bankrupt before release (wk "+g().week+")");
+    // like a real player: keep the war chest healthy while waiting for the date
+    window.eval("G.studio.cash=Math.max(G.studio.cash,150); G.weeksInDebt=0; G.studio.debt=Math.min(G.studio.debt||0, Math.round(maxDebt()*0.2))");
     if(g().films.some(f=>f.inTheaters)) break;
   }
   if(!g().films.some(f=>f.inTheaters)) throw new Error("never hit theaters");
@@ -523,6 +530,87 @@ step("v15 Fans tab: mail renders, fold opens and hides, state persists", ()=>{
   click(fb.querySelector("[data-fold]"));   // restore
   const readBtn=$("#btnMailRead");
   if(readBtn){ click(readBtn); if(window.eval("unreadMail()")!==0) throw new Error("mark-all-read failed"); }
+});
+
+/* ── prototype RPG: character sheet + in-house originals ── */
+step("v26 character sheet opens with tabs", ()=>{
+  const t=window.eval("G.talent[0]");
+  if(!t) throw new Error("no talent on roster");
+  click($(".tab[data-tab='develop']"));
+  const btn=$$("[onclick*='characterSheet']")[0];
+  if(!btn) throw new Error("RPG sheet button missing on talent card");
+  click(btn);
+  if(!$$("[data-cs-tab]").length) throw new Error("sheet tabs missing");
+  if(!window.document.querySelector("#modalRoot").innerHTML.includes("Attributes")) throw new Error("stats tab content missing");
+});
+step("v26 equip an item via Gear tab", ()=>{
+  click($$("[data-cs-tab]").find(b=>b.dataset.csTab==="equip"));
+  const eb=$$("[data-cs-equip]").find(b=>b.dataset.csEquip.startsWith("weapon:"));
+  if(!eb) throw new Error("weapon equip buttons missing");
+  const itemId=eb.dataset.csEquip.split(":")[1];
+  // the sheet may be open on any talent — resolve whose sheet it is from the state var
+  const who=window.eval("CS.id");
+  click(eb);
+  const eq=window.eval(`(G.talent.find(t=>t.id===CS.id)||{}).prototype?.equipment?.weapon`);
+  if(eq!==itemId) throw new Error("equip did not persist for talent "+who+": "+eq);
+  if(!window.document.querySelector("#modalRoot").innerHTML.includes("Equipped")) throw new Error("equipped state not shown");
+});
+step("v26 story tab shows event log", ()=>{
+  click($$("[data-cs-tab]").find(b=>b.dataset.csTab==="events"));
+  const root=window.document.querySelector("#modalRoot").innerHTML;
+  if(!root.includes("Life events")) throw new Error("events card missing");
+  click($$(".modal-x")[0]);
+});
+step("v26 in-house originals: unlock, start, ship a game", ()=>{
+  window.eval("G.studio.rep=55; G.studio.cash=500; if(typeof unlockGameDevLite==='function') unlockGameDevLite();");
+  click($(".tab[data-tab='games']"));
+  const start=$$("[data-pgdev-start]")[0];
+  if(!start) throw new Error("start button missing (unlock card wrong)");
+  click(start);
+  if(!window.eval("G.prototypeData.currentProject")) throw new Error("project not created");
+  // run weeks until the pre phase gate (progress 100) appears, then pick choices through launch
+  for(let i=0;i<80 && g(); i++){
+    click($("#btnFast"));
+    if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
+    if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
+    dismissSideModals();
+    const gate=$$("[data-pgdev-choice]")[0];
+    if(gate){ click(gate); }
+    if((window.eval("G.prototypeData.releasedGames||[]")).length) break;
+  }
+  const released=window.eval("G.prototypeData.releasedGames||[]");
+  if(!released.length){
+    const dbg=window.eval("JSON.stringify({wk:G.week, over:G.over, cash:G.studio.cash, proj:G.prototypeData.currentProject?{ph:G.prototypeData.currentProject.phase,pr:Math.round(G.prototypeData.currentProject.progress),ch:G.prototypeData.currentProject.choices.length}:null, rel:(G.prototypeData.releasedGames||[]).length, t0proto:!!(G.talent[0]&&G.talent[0].prototype), t0ms:G.talent.filter(t=>t.prototype&&(t.prototype.milestones||[]).length).length, talentN:G.talent.length})");
+    throw new Error("game never launched — state: "+dbg);
+  }
+  if(!Number.isFinite(g().studio.cash)) throw new Error("cash went NaN during dev");
+  if(released[0].quality===undefined) throw new Error("launched game missing quality");
+});
+step("v26 film release grants XP + first credit milestone", ()=>{
+  // deterministic: ensure a film with credited talent goes through the real release pipeline
+  window.eval(`
+    (function(){
+      if(G.talent.some(t=>t.prototype&&(t.prototype.milestones||[]).some(m=>m.type==='first_credit'))) return;
+      const d=G.talent.find(t=>t.kind==="director");
+      const w=G.talent.find(t=>t.kind==="writer");
+      const cast=G.talent.filter(t=>t.kind==="actor").slice(0,2);
+      G.projects.push({ id:9872, kind:"film", title:"XP Proof", genre:"drama", scale:"indie", script:70,
+        budget:30, spent:30, devCost:3, director:d, writer:w, producer:null, cast:cast,
+        phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:G.week+1,
+        marketing:5, marketingPaid:5, buzzBonus:0, quality:{overall:70,critic:70,aud:72}, targetRegion:"auto" });
+      G.studio.cash=Math.max(G.studio.cash,300);
+    })()
+  `);
+  for(let i=0;i<8 && g(); i++){
+    click($("#btnFast"));
+    if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
+    if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
+    dismissSideModals();
+    if(window.eval("G.talent.some(t=>t.prototype&&(t.prototype.milestones||[]).some(m=>m.type==='first_credit'))")) break;
+  }
+  const got=window.eval("G.talent.filter(t=>t.prototype&&(t.prototype.milestones||[]).some(m=>m.type==='first_credit')).length");
+  if(!got) throw new Error("no talent earned a first-credit milestone from a released film");
+  if(!window.eval("G.talent.some(t=>t.prototype.level>1)")) throw new Error("nobody leveled up from film XP");
 });
 step("run 30 more weeks stays stable", ()=>{
   for(let i=0;i<30 && g(); i++){
