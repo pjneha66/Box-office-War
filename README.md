@@ -2,7 +2,7 @@
 
 > **A deep Hollywood tycoon sim — run a studio, build franchises, launch your own streamer, and dominate the global box office.**
 
-[![Live Demo](https://img.shields.io/badge/▶%20Play%20Now-Vercel-black?style=for-the-badge&logo=vercel)](https://box-office-war.vercel.app)
+[![Live Demo](https://img.shields.io/badge/▶%20Play%20Now-box--office--war.vercel.app-black?style=for-the-badge&logo=vercel)](https://box-office-war.vercel.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Tests](https://img.shields.io/badge/Smoke%20Tests-Passing%20✅-brightgreen?style=for-the-badge)](#-development)
 
