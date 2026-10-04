@@ -2025,9 +2025,10 @@ function seriesModal(){
 
 /* ═══════════ film pitch wizard — like series pitch ═══════════ */
 function startFilmPitchWizard(){
-  WZ={mode:"filmPitch", genre:pick(["action","scifi","fantasy","animation","comedy","horror","thriller","drama","romance","musical","western","war","sports","concert","truecrime"]),
+  WZ={mode:"filmPitch", genre:pick(["action","scifi","fantasy","animation","comedy","horror","thriller","drama","romance","musical","western","war","sports","concert","truecrime","documentary"]),
       scale:"mid", budget:0, rating:"PG-13", location:"home", pattern:"wide", rollout:"day", window:45,
       imax:false, premium:false, soundtrack:false, dayAndDate:false, scriptPolish:false,
+      coProduction:false, coProdPartner:null,
       director:null, writer:null, producer:null, cast:[]};
   filmPitchModal();
 }
@@ -2083,7 +2084,15 @@ function filmPitchModal(){
     h+="<label class='btn btn-sm "+(WZ.soundtrack?"btn-primary":"")+"' data-soundtrack><input type='checkbox' style='display:none'>"+(WZ.soundtrack?"✓":"")+" Soundtrack</label>";
     h+="<label class='btn btn-sm "+(WZ.dayAndDate?"btn-primary":"")+"' data-dad><input type='checkbox' style='display:none'>"+(WZ.dayAndDate?"✓":"")+" Day-and-date</label>";
     h+="<label class='btn btn-sm "+(WZ.scriptPolish?"btn-primary":"")+"' data-polish><input type='checkbox' style='display:none'>"+(WZ.scriptPolish?"✓":"")+" Script polish</label>";
+    h+="<label class='btn btn-sm "+(WZ.coProduction?"btn-primary":"")+"' data-coprod><input type='checkbox' style='display:none'>"+(WZ.coProduction?"✓":"")+" Co-production</label>";
     h+="</div></div>";
+    if(WZ.coProduction){
+      h+="<div class='card'><div class='small muted'>Co-production partner</div><div class='row' id='fpCoprod'>";
+      DATA.COPRO_PARTNERS.forEach(p=>{
+        h+="<button class='btn btn-sm "+(WZ.coProdPartner===p.id?"btn-primary":"")+"' data-cp='"+p.id+"'>"+p.emoji+" "+p.name+"</button>";
+      });
+      h+="</div></div>";
+    }
     h+="<div class='small muted' style='margin:10px 0 8px'>Hire a writer — sharpens the script</div><div class='pick-list'>";
     freeTalent("writer").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(w){
       h+=crewCard(w,{genre:WZ.genre, sel:!!(WZ.writer&&WZ.writer.id===w.id), attr:"data-fpw='"+w.id+"'"});
@@ -2159,6 +2168,8 @@ function filmPitchModal(){
   v.querySelectorAll("[data-soundtrack]").forEach(b=>b.onclick=()=>{ WZ.soundtrack=!WZ.soundtrack; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-dad]").forEach(b=>b.onclick=()=>{ WZ.dayAndDate=!WZ.dayAndDate; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-polish]").forEach(b=>b.onclick=()=>{ WZ.scriptPolish=!WZ.scriptPolish; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-coprod]").forEach(b=>b.onclick=()=>{ WZ.coProduction=!WZ.coProduction; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{ WZ.coProdPartner=b.dataset.cp; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-fpd]").forEach(el=>el.onclick=()=>{ WZ.director=talentById(+el.dataset.fpd); beep("click"); filmPitchModal(); });
   const fpT=v.querySelector("#fpTitle"); if(fpT) fpT.oninput=()=>{ WZ.title=fpT.value; };
   if(step>=2){
@@ -2173,7 +2184,8 @@ function filmPitchModal(){
     const res=pitchFilm({titleOverride:tIn? (tIn.value.trim()||null) : null, genre:WZ.genre, scale:WZ.scale, budget:WZ.budget,
       rating:WZ.rating, location:WZ.location, pattern:WZ.pattern, rollout:WZ.rollout, window:WZ.window,
       imax:WZ.imax, premium:WZ.premium, soundtrack:WZ.soundtrack, dayAndDate:WZ.dayAndDate,
-      scriptPolish:WZ.scriptPolish, director:WZ.director, writer:WZ.writer, producer:WZ.producer, cast:WZ.cast, coProd:null});
+      scriptPolish:WZ.scriptPolish, director:WZ.director, writer:WZ.writer, producer:WZ.producer, cast:WZ.cast,
+      coProduction:WZ.coProduction, coProdPartner:WZ.coProdPartner});
     beep(res.ok?"gold":"bad"); flashes(G.flash);
     WZ=null; closeModal(); render();
   };
@@ -4228,6 +4240,8 @@ function viewEmpire(){
       ((G.licensedOut||[]).filter(L=>L.name===fr.name).length? "<div class='tiny gold' style='margin-top:6px'>📦 Licensed out to "+(G.licensedOut.filter(L=>L.name===fr.name).map(L=>L.rival).join(", "))+" — backend pending; merch shelf sags while away.</div>":"")+
       "<div class='fr-actions'>"+
       "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ Greenlight Sequel</button>"+
+      (fr.podcast? "<span class='tag green' style='align-self:center'>🎙️ Podcast live</span>"
+        : "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"'>🎙️ Launch Podcast · "+fmtM(DATA.PODCAST?.cost||0.5)+"M</button>")+
       (fr.merch<3? "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'>🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(merchCost(fr))+"</button>" : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
       (fr.park<3? (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'>🎡 "+(fr.park?(fr.park===2?"Resort district":"Expand park"):"Build attraction")+" · "+fmtM(parkCost(fr))+"</button>" : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
       (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights (Tier "+fr.tier+": +"+fmtM(fr.tier*20)+")</button>":"")+
@@ -5411,6 +5425,9 @@ function filmDetailModal(filmId){
     streamingHtml+
     franchiseHtml+
     "<div class='modal-actions'>"+
+    (isReleased && !f.directorsCut && (f.quality?.overall||0) >= 70 && (G.week - (f.releaseWeek||G.week)) >= 12 
+      ? "<button class='btn btn-primary' onclick='releaseDirectorsCut("+f.id+")'>🎬 Director's Cut ($5M)</button>"
+      : "")+
     (isReleased? "<button class='btn btn-primary' onclick='reReleaseFilm("+f.id+")'>🎞 Re-release</button>":"")+
     (f.streamingOriginal||f.soldTo? "<button class='btn btn-alt' onclick='viewStreamingDeal("+f.id+")'>📺 View Deal</button>":"")+
     "<button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";

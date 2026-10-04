@@ -1766,7 +1766,7 @@ function pitchFilm(cfg){
       writerBonus: writer? (writer.genreFit===cfg.genre?4:2) : 0,
       aiCast: false, aiScript: false,
       rebateEarned: 0,
-      coProd: cfg.coProd||null,
+      coProd: cfg.coProduction ? {partner:cfg.coProdPartner, share:0.5, upfront:0, territories:{}} : cfg.coProd||null,
       mktBoosts: [],
     };
     p.promoOwed = promoOwedFor(cast);   // v13: stars owe press; contract faces owe more
@@ -2039,6 +2039,8 @@ function beginReshoot(pid){
 function releaseFilm(p){
   firePendingDrops(p);   // v13: drops that never got their week fire compressed at release
   let expected = expectedOpening(p, G.week);
+  // v20: Animated fast-track bonus
+  if(typeof animatedFastTrackBonus==="function") expected *= animatedFastTrackBonus(p);
   if(p.soundtrack){
     if(chance(0.30)){ p.soundHit=true; expected*=1.10; log("🎵 The single from \""+p.title+"\" is CHARTING — +10% buzz!","gold"); }
     else log("🎵 The \""+p.title+"\" single stalled. No chart action.","");
@@ -2300,6 +2302,119 @@ function execOfficeState(){
     franchises: G.franchises.length,
     streamerSubs: G.streamer? G.streamer.subs : 0,
   };
+}
+
+/* ═══════════ v20: Director's Cut DLC ── */
+function releaseDirectorsCut(filmId){
+  const f = G.films.find(x=>x.id===filmId);
+  if(!f) return {ok:false, err:"Film not found"};
+  if(!f.director) return {ok:false, err:"No director attached"};
+  const age = G.week - (f.releaseWeek||G.week);
+  if(age < (DATA.DIRECTORS_CUT?.minFilmAge||12)) return {ok:false, err:"Film too recent (need 12+ weeks)"};
+  if((f.quality?.overall||0) < (DATA.DIRECTORS_CUT?.minScore||70)) return {ok:false, err:"Quality too low (need 70+)"};
+  if(f.directorsCut) return {ok:false, err:"Director's Cut already released"};
+  if(G.studio.cash < (DATA.DIRECTORS_CUT?.cost||5)) return {ok:false, err:"Insufficient funds"};
+  spend("marketing", DATA.DIRECTORS_CUT.cost);
+  f.directorsCut = true;
+  const opening = Math.round((f.opening||0) * (DATA.DIRECTORS_CUT.openingMult||0.30));
+  const runWeeks = DATA.DIRECTORS_CUT.runWeeks || 4;
+  const dcFilm = {
+    id:nid(), title:f.title+" (Director's Cut)", genre:f.genre, scale:"indie",
+    budget:DATA.DIRECTORS_CUT.cost, marketing:DATA.DIRECTORS_CUT.cost,
+    director:f.director, cast:f.cast, writer:f.writer, producer:f.producer,
+    opening, releaseWeek:G.week, week:G.week, inTheaters:true, weeksOut:0,
+    directorCut:true, parentId:f.id,
+  };
+  G.films.push(dcFilm);
+  log("🎬 DIRECTOR'S CUT: \""+f.title+"\" re-released — "+fmtM(opening)+" opening, 4-week run.","gold");
+  saveGame();
+  return {ok:true, film:dcFilm};
+}
+
+/* ── v20: Documentary Arm ── */
+function greenlightDocumentary(cfg){
+  const budget = cfg.budget || rint(DATA.DOCUMENTARY.budgetMin, DATA.DOCUMENTARY.budgetMax);
+  if(G.studio.cash < budget) return {ok:false, err:"Insufficient funds"};
+  spend("development", budget);
+  const doc = {
+    id:nid(), title:cfg.title||makeTitle("documentary"), genre:"documentary", scale:"indie",
+    budget, marketing:Math.round(budget*0.5), director:cfg.director, writer:cfg.writer,
+    producer:cfg.producer, cast:[], releaseWeek:0, inTheaters:false, streamingOriginal:false,
+    documentary:true, awardsWeight:DATA.DOCUMENTARY.awardsWeight||1.8,
+  };
+  G.projects.push(doc);
+  log("🎥 DOCUMENTARY GREENLIT: \""+doc.title+"\" — $"+budget+"M, awards prestige.","gold");
+  saveGame();
+  return {ok:true, project:doc};
+}
+
+/* ── v20: Podcast / Audio Drama ── */
+function launchPodcast(franchiseId){
+  const fr = G.franchises.find(x=>x.id===franchiseId);
+  if(!fr) return {ok:false, err:"Franchise not found"};
+  if(fr.podcast) return {ok:false, err:"Podcast already launched"};
+  const cost = DATA.PODCAST?.cost||0.5;
+  if(G.studio.cash < cost) return {ok:false, err:"Insufficient funds"};
+  spend("marketing", cost);
+  fr.podcast = true;
+  fr.podcastWeeks = 0;
+  G.studio.rep = clamp(G.studio.rep + (DATA.PODCAST.repGain||1), 5, 99);
+  log("🎙️ PODCAST LAUNCHED: "+fr.name+" — $"+cost+"M, +0.5M subs/wk for 12 weeks.","gold");
+  saveGame();
+  return {ok:true};
+}
+
+function tickPodcasts(){
+  for(const fr of G.franchises){
+    if(fr.podcast && !fr.podcastDone){
+      fr.podcastWeeks = (fr.podcastWeeks||0) + 1;
+      if(G.streamer){
+        const boost = DATA.PODCAST.subsPerWeek||0.5;
+        G.streamer.subs = Math.round((G.streamer.subs + boost)*100)/100;
+      }
+      if(fr.podcastWeeks >= 12){
+        fr.podcastDone = true;
+        log("🎙️ "+fr.name+" podcast completed its run.","gold");
+      }
+    }
+  }
+}
+
+/* ── v20: Animated Series → Film Pipeline ── */
+function checkAnimatedPipeline(){
+  for(const s of G.series){
+    if(s.genre==="animation" && s.seasons?.length >= (DATA.ANIMATED_PIPELINE.seasonsToUnlock||2) && !s.filmFastTrack){
+      s.filmFastTrack = true;
+      log("🎬 ANIMATED PIPELINE: \""+s.title+"\" unlocked theatrical fast-track (+15% opening, family bonus).","gold");
+    }
+  }
+}
+
+function animatedFastTrackBonus(film){
+  if(film.animatedFastTrack) return DATA.ANIMATED_PIPELINE.fastTrackOpeningMult||1.15;
+  if(film.genre==="animation" && film.familyBonus) return DATA.ANIMATED_PIPELINE.familyBonus||1.20;
+  return 1.0;
+}
+
+/* ── v20: Foreign Co-production ── */
+function addCoProduction(filmId, partnerId){
+  const f = G.projects.find(p=>p.id===filmId) || G.films.find(f=>f.id===filmId);
+  if(!f) return {ok:false, err:"Project not found"};
+  const partner = DATA.COPRO_PARTNERS.find(p=>p.id===partnerId);
+  if(!partner) return {ok:false, err:"Partner not found"};
+  if(f.coProduction) return {ok:false, err:"Already has co-production partner"};
+  const share = partner.budgetShare || 0.5;
+  const upfront = Math.round(f.budget * share * 10)/10;
+  f.coProduction = {partner:partnerId, share, upfront, territories:partner.territoryBoost||{}};
+  earn("financing", upfront);
+  // Apply territory boosts
+  for(const [tid, mult] of Object.entries(partner.territoryBoost||{})){
+    f.territoryBoost = f.territoryBoost||{};
+    f.territoryBoost[tid] = (f.territoryBoost[tid]||1) * mult;
+  }
+  log("🤝 CO-PRODUCTION: \""+f.title+"\" partnered with "+partner.name+" — +"+fmtM(upfront)+" upfront, territory boosts applied.","gold");
+  saveGame();
+  return {ok:true, upfront, boosts:partner.territoryBoost};
 }
 
 /* ═══════════ box office depth (v12): daily split, screens, advance sales, chains ═══════════
@@ -4354,6 +4469,10 @@ function advanceWeek(){
   if(typeof tickEconomyCycle==="function") tickEconomyCycle();
   // v17: Geopolitical events
   if(typeof tryGeoEvent==="function") tryGeoEvent();
+  // v20: Podcast ticks
+  if(typeof tickPodcasts==="function") tickPodcasts();
+  // v20: Animated pipeline check
+  if(typeof checkAnimatedPipeline==="function") checkAnimatedPipeline();
   if(typeof tickTheatrical==="function") tickTheatrical();
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();

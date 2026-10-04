@@ -1042,5 +1042,54 @@ DATA.UNIVERSE_NODE_TYPES = [
   {type:"merch",   label:"Merch",   emoji:"🧸", shape:"triangle",  color:"#ff5d6c"},
 ];
 
-/* ── SAVE_VERSION bump for v17 ── */
-DATA.SAVE_VERSION = 9;
+/* ═══════════════════════════════════════════════════════════
+   v20 — CONTENT EXPANSION
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Director's Cut DLC ── */
+DATA.DIRECTORS_CUT = {
+  cost: 5,           // $5M
+  openingMult: 0.30, // 30% of original opening
+  runWeeks: 4,       // 4-week limited run
+  minFilmAge: 12,    // weeks since release
+  minScore: 70,      // quality threshold
+};
+
+/* ── Documentary Arm ── */
+DATA.DOCUMENTARY = {
+  genre: "documentary",
+  budgetMin: 2,
+  budgetMax: 8,
+  noCast: true,
+  awardsWeight: 1.8,
+  streamingDelay: 4,
+};
+
+/* ── Podcast / Audio Drama ── */
+DATA.PODCAST = {
+  cost: 0.5,         // $500K
+  duration: 4,       // weeks to produce
+  subsPerWeek: 0.5,  // +0.5M subs/week for 12 weeks
+  repGain: 1,
+  awarenessBoost: 5, // franchise awareness +5%
+};
+
+/* ── Animated Series → Film Pipeline ── */
+DATA.ANIMATED_PIPELINE = {
+  seriesBudgetMin: 25,
+  seriesBudgetMax: 40,
+  seriesEps: 12,
+  seasonsToUnlock: 2,
+  fastTrackOpeningMult: 1.15,
+  familyBonus: 1.20,
+};
+
+/* ── Foreign Co-production Partners ── */
+DATA.COPRO_PARTNERS = [
+  {id:"bollywood", name:"Bollywood Partner", emoji:"🇮🇳", territoryBoost:{india:2.5}, budgetShare:0.60, risk:"Star dates locked", desc:"India 2.5× boost, 60/40 budget split."},
+  {id:"korean", name:"Korean Partner", emoji:"🇰🇷", territoryBoost:{korea:2.0, latam:1.3}, budgetShare:0.50, risk:"Theatrical hold 8 wks", desc:"Korea 2.0× + Asia 1.3×, 50/50 split."},
+  {id:"french", name:"French Partner", emoji:"🇫🇷", territoryBoost:{france:1.8, uk:1.2}, budgetShare:0.50, risk:"Public funding strings", desc:"France 1.8× + EU 1.2×, 50/50 split."},
+];
+
+/* ── SAVE_VERSION bump for v20 ── */
+DATA.SAVE_VERSION = 10;
