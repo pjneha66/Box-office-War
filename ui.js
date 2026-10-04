@@ -703,7 +703,15 @@ function setCashChip(v){
     else{ el.textContent=fmtM(v); cashRaf=null; }
   })();
 }
+let _renderTimer = null;
 function render(){
+  if(_renderTimer) return; // debounce
+  _renderTimer = setTimeout(() => {
+    _renderTimer = null;
+    _renderImpl();
+  }, 0);
+}
+function _renderImpl(){
   if(!G) return;
   const tStart = (typeof performance!=="undefined") ? performance.now() : 0;
   try {
@@ -4829,6 +4837,18 @@ function settingsModal(){
         "<button class='btn btn-xs btn-ghost' data-delslot='"+n+"' title='Wipe slot "+n+"'>🗑️</button>"+
       "</div>";
     }).join("")+"</div>"+
+    "<div class='section-title' style='margin-top:12px'>☁️ Named Slots + Cloud Sync</div>"+
+    "<div class='card' style='margin-top:4px'>"+
+      "<div class='row' style='gap:6px;margin-bottom:8px'>"+
+        "<input id='saveNameInput' type='text' placeholder='Save name (e.g. my-career)' style='flex:1;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px'>"+
+        "<button class='btn btn-sm btn-primary' id='btnSaveNamed'>☁️ Save Named</button>"+
+      "</div>"+
+      "<div id='namedSlotsList' style='margin-top:8px'></div>"+
+      "<div class='row' style='margin-top:8px;gap:6px'>"+
+        "<button class='btn btn-sm btn-alt' id='btnSyncIDB'>☁️ Sync to Cloud</button>"+
+        "<button class='btn btn-sm btn-alt' id='btnListIDB'>📋 List Cloud Saves</button>"+
+      "</div>"+
+    "</div>"+
     "<div class='row' style='margin-top:10px;gap:6px;flex-wrap:wrap'>"+
       "<button class='btn btn-sm btn-alt' id='btnRepairSlots'>🔧 Repair Save Slots</button>"+
       "<button class='btn btn-sm btn-alt' id='btnAboutChangelog'>📜 Changelog</button>"+
@@ -4914,7 +4934,56 @@ function settingsModal(){
     }
   });
   v.querySelector("#btnToMenu").onclick=()=>{ saveGame(); if(AUTO)toggleAuto(false); location.reload(); };
-}
+
+  // Named slots handlers
+  v.querySelector("#btnSaveNamed").onclick=async()=>{
+    const name = v.querySelector("#saveNameInput").value.trim();
+    if(!name){ toast("Enter a save name.","bad"); return; }
+    G.saveName = name.slice(0,30);
+    saveGame();
+    beep("gold");
+    toast("☁️ Saved as \""+G.saveName+"\"","good");
+    closeModal(); settingsModal();
+  };
+  v.querySelector("#btnSyncIDB").onclick=async()=>{
+    if(!G.saveName){ toast("Save a named slot first.","bad"); return; }
+    beep("click");
+    const ok = await saveToIDB(G.saveName, G);
+    toast(ok?"☁️ Synced to cloud":"☁️ Sync failed (private mode?)", ok?"good":"bad");
+  };
+  v.querySelector("#btnListIDB").onclick=async()=>{
+    beep("click");
+    const list = await listIDBSlots();
+    const el = v.querySelector("#namedSlotsList");
+    if(!list.length){ el.innerHTML = "<div class='tiny muted'>No cloud saves yet.</div>"; return; }
+    el.innerHTML = list.map(s=>"<div class='cost-line'><span>☁️ "+esc(s.id)+"</span><b class='tiny muted'>"+new Date(s.timestamp).toLocaleString()+"</b></div>").join("");
+  };
+  // Render named slots list on open
+  (async()=>{
+    const named = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k?.startsWith("bow_named_")) named.push(k.replace("bow_named_",""));
+    }
+    const el = v.querySelector("#namedSlotsList");
+    if(!named.length){ el.innerHTML = "<div class='tiny muted'>No named slots yet. Create one above.</div>"; return; }
+    el.innerHTML = named.map(n=>{
+      const m = namedSlotMeta(n);
+      return "<div class='cost-line'><span>☁️ "+esc(m.saveName)+"</span>"+
+        "<button class='btn btn-xs btn-alt' data-loadnamed='"+esc(n)+"'>Load</button>"+
+        "<button class='btn xs btn-ghost' data-delnamed='"+esc(n)+"'>🗑️</button></div>";
+    }).join("");
+    v.querySelectorAll("[data-loadnamed]").forEach(b=>b.onclick=async()=>{
+      beep("click");
+      await loadNamedSlot(b.dataset.loadnamed);
+      closeModal(); render();
+    });
+    v.querySelectorAll("[data-delnamed]").forEach(b=>b.onclick=async()=>{
+      beep("click");
+      localStorage.removeItem("bow_named_"+b.dataset.delnamed);
+      closeModal(); settingsModal();
+    });
+  })();
 
 function startSpinoff(fr){
   const idea={ id:nid(), genre:DATA.GENRES[fr.genre]?fr.genre:"action", scale:"mid", title:"(spin-off)",

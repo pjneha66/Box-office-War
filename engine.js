@@ -112,8 +112,75 @@ function spend(cat, amt){
 }
 function weekNet(tx){ let n=0; for(const k in tx){ if(k!=="financing") n+=tx[k]; } return Math.round(n*10)/10; }
 
-/* ═══════════ save / load — versioned schema + migrations (v4) ═══════════ */
+/* ═══════════ save / load — versioned schema + migrations (v4) + named slots + IndexedDB sync (v23) ═══════════ */
 const SAVE_KEY = "bow_save";
+const IDB_NAME = "BoxOfficeWar";
+const IDB_VERSION = 1;
+let _idb = null;
+let _saveIndicatorTimer = null;
+
+function initIDB(){
+  return new Promise((resolve, reject) => {
+    if(typeof indexedDB==="undefined") return resolve(false);
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains("saves")) db.createObjectStore("saves", {keyPath: "id"});
+      if(!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", {keyPath: "key"});
+    };
+    req.onsuccess = e => { _idb = e.target.result; resolve(true); };
+    req.onerror = e => resolve(false);
+  });
+}
+
+async function saveToIDB(slotName, data){
+  if(!_idb) await initIDB();
+  if(!_idb) return false;
+  return new Promise((resolve) => {
+    const tx = _idb.transaction("saves", "readwrite");
+    tx.objectStore("saves").put({id: slotName, data, timestamp: Date.now()});
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => resolve(false);
+  });
+}
+
+async function loadFromIDB(slotName){
+  if(!_idb) await initIDB();
+  if(!_idb) return null;
+  return new Promise((resolve) => {
+    const tx = _idb.transaction("saves", "readonly");
+    const req = tx.objectStore("saves").get(slotName);
+    req.onsuccess = () => resolve(req.result?.data || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function listIDBSlots(){
+  if(!_idb) await initIDB();
+  if(!_idb) return [];
+  return new Promise((resolve) => {
+    const tx = _idb.transaction("saves", "readonly");
+    const req = tx.objectStore("saves").getAll();
+    req.onsuccess = () => resolve(req.result.map(r => ({id: r.id, timestamp: r.timestamp})));
+    req.onerror = () => resolve([]);
+  });
+}
+
+function showSaveIndicator(msg){
+  const el = $("#saveIndicator");
+  if(!el){
+    const div = document.createElement("div");
+    div.id = "saveIndicator";
+    div.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:1000;padding:8px 12px;background:rgba(0,0,0,.8);color:var(--gold);border-radius:8px;font-size:12px;opacity:0;transition:opacity .2s";
+    document.body.appendChild(div);
+  }
+  const el2 = $("#saveIndicator");
+  el2.textContent = msg;
+  el2.style.opacity = "1";
+  if(_saveIndicatorTimer) clearTimeout(_saveIndicatorTimer);
+  _saveIndicatorTimer = setTimeout(()=>{ el2.style.opacity = "0"; }, 1500);
+}
+
 function saveGame(){
   try{
     if(typeof localStorage==="undefined" || !G) return;
@@ -122,6 +189,11 @@ function saveGame(){
     const raw = JSON.stringify(G); // perf: serialize once, write twice
     localStorage.setItem(SAVE_KEY, raw);
     try{ localStorage.setItem("bow_slot"+(G.slot||1), raw); }catch(e){}
+    // Named slot
+    if(G.saveName) localStorage.setItem("bow_named_"+G.saveName, raw);
+    // IndexedDB sync (async, fire-and-forget)
+    if(G.saveName) saveToIDB(G.saveName, G);
+    showSaveIndicator("💾 Saved" + (G.saveName?" as "+G.saveName:""));
   }catch(e){}
 }
 function hasSave(){
@@ -135,7 +207,15 @@ function slotMeta(n){
     return { name:j.studio.name, week:j.week, cash:j.studio.cash, scenario:j.scenario||"standard" };
   }catch(e){ return null; }
 }
-function loadSlot(n){
+function namedSlotMeta(name){
+  try{
+    const raw = localStorage.getItem("bow_named_"+name);
+    if(!raw) return null;
+    const j=JSON.parse(raw);
+    return { name:j.studio.name, week:j.week, cash:j.studio.cash, scenario:j.scenario||"standard", saveName:name };
+  }catch(e){ return null; }
+}
+async function loadSlot(n){
   try{
     const raw=localStorage.getItem("bow_slot"+n); if(!raw) return null;
     let parsed = JSON.parse(raw);
@@ -147,6 +227,27 @@ function loadSlot(n){
     const { save } = migrateSave(parsed);
     G = save; G.log=log; saveGame(); return G;
   }catch(e){ return null; }
+}
+async function loadNamedSlot(name){
+  try{
+    const raw=localStorage.getItem("bow_named_"+name); if(!raw) return null;
+    let parsed = JSON.parse(raw);
+    const problems = validateSave(parsed);
+    if(problems.length){
+      console.warn("Save rejected:", problems.join("; "));
+      return null;
+    }
+    const { save } = migrateSave(parsed);
+    G = save; G.log=log; saveGame(); return G;
+  }catch(e){ return null; }
+}
+async function loadIDBSlot(name){
+  const data = await loadFromIDB(name);
+  if(!data) return null;
+  const problems = validateSave(data);
+  if(problems.length) return null;
+  const { save } = migrateSave(data);
+  G = save; G.log=log; saveGame(); return G;
 }
 function validateSave(s){
   const problems=[];
@@ -2169,9 +2270,13 @@ function tickTheatrical(){
 }
 
 /* ── v17: Multi-Territory Box Office ── */
+const _territoryCache = new Map();
 function calcTerritoryGross(film, weekGross){
-  const territories = DATA.TERRITORIES || [];
   const genre = film.genre;
+  const cacheKey = genre + "|" + Math.round(weekGross);
+  if(_territoryCache.has(cacheKey)) return _territoryCache.get(cacheKey);
+  
+  const territories = DATA.TERRITORIES || [];
   const results = {};
   let total = 0;
   for(const t of territories){
@@ -2183,13 +2288,10 @@ function calcTerritoryGross(film, weekGross){
     results[t.id] = gross;
     total += gross;
   }
-  // Store per-territory breakdown
-  film.territoryGross = film.territoryGross || {};
-  for(const t of territories){
-    film.territoryGross[t.id] = (film.territoryGross[t.id]||0) + results[t.id];
-  }
-  film.ww = (film.ww||0) + total;
-  return { total, territories: results };
+  const result = { total, territories: results };
+  _territoryCache.set(cacheKey, result);
+  if(_territoryCache.size > 500) _territoryCache.clear(); // prevent memory bloat
+  return result;
 }
 
 /* ── v17: Economic Cycles ── */
