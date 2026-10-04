@@ -1,232 +1,211 @@
-# 🎬 Box Office War — Movie & Series Studio Tycoon
+# 🎬 Box Office War
 
-A realistic **movie-business simulation game** that runs in any browser — phone, tablet, or PC. No installs, no dependencies, no server: it's pure HTML/CSS/JS and works offline (just open `index.html`).
+> **A deep Hollywood tycoon sim — run a studio, build franchises, launch your own streamer, and dominate the global box office.**
 
-> Found a studio. Greenlight films. Date them like a pro. Survive the box office. Cash the OTT checks. Win awards. Build franchises. Launch your own streamer. Don't go bankrupt doing it.
+[![Live Demo](https://img.shields.io/badge/▶%20Play%20Now-Vercel-black?style=for-the-badge&logo=vercel)](https://box-office-war.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![Tests](https://img.shields.io/badge/Smoke%20Tests-Passing%20✅-brightgreen?style=for-the-badge)](#-development)
 
-## 🆕 What's new in v17 — Cinematic HUD 2.0 theme
+---
 
-A full visual pass over the game's chrome, taking the design language of [21st.dev's game-UI collection](https://21st.dev/community/components/s/game-ui) (HUD stat panels, segmented XP bars, achievement medallions) and [Uiverse](https://uiverse.io/) (glass panels, gradient borders, glow hovers) — rebuilt entirely in vanilla CSS, so the game stays 100% offline with zero external assets:
+## 🎮 What is Box Office War?
 
-- **HUD panels**: every card and stat wears a subtle gradient border ring that catches a gold glow on hover.
-- **HUD chips**: the topbar cash/debt/date chips get glass rings, a glowing signal dot, and hover sheen.
-- **Medallion stats**: the big stat values render in gradient gold with a soft drop glow.
-- **Segmented XP-style bars**: all progress bars gain game-style segment ticks under their shimmer.
-- **Quest-panel folds**: collapsible section headers glow gold on hover with a lit caret.
-- **Detail pass**: diamond section-title markers, glossy chart-bar caps, tag glow, a gold top indicator on the active mobile tab, modal gradient ring, toast polish, and a gold-whisper scrollbar. Every animation respects the existing reduced-motion switches.
+Box Office War is a **browser-based Hollywood studio management game** — no installs, no accounts, fully offline-capable as a PWA. You start with a modest production budget and must grow a global entertainment empire: greenlight films, sign talent, launch a streaming service, build theme parks, manage rival studios, and chase Oscar glory.
 
-## 🆕 What's new in v16 — 🎮 Game Studio tab
+Every decision compounds. A hit creates a franchise. A franchise funds a park. A park finances your next tentpole. Mismanage cash flow and the bank takes the lot.
 
-- **New Game Studio tab** (desktop nav; on mobile it's in the ⋯ More sheet): found your own movie-game division — adapt franchises (any tier) and 1.2× breakeven hits into video games.
-- **Pick a source + a developer house**: in-house team ($12M, scrappy), partner studio ($30M, solid) or the elite AAA house ($70M, delivers). Development burns weekly for 5–12 weeks, up to 3 games in dev at once.
-- **Launches land a review score** (hotter sources + better houses score higher) and a launch weekend plus a 12-week sales tail. A 70+ game re-heats its franchise brand, pleases the board, and duds get shredded in the forums. Sources already in development are locked out, and licensing rights out (Empire tab) still exists for the sell-out route.
+---
 
-## 🆕 What's new in v15 — Fans tab, fan mail & collapsible everything
+## ✨ Feature Highlights (v16)
 
-- **New 📬 Fans tab** (desktop nav + a sixth mobile bottom tab): the audience-facing desk — fan mail, the trending board (moved off the crowded control room), buzz panels for films in theaters, and an audience-pulse summary.
-- **Fan mail**: the people who buy the tickets write back, driven by real state — love letters for audience darlings, demands for the next entry of hot franchises, angry mail for flops and review bombs, scandal pushback, and subscriber notes for your streamer. Enough love mail on a film still in theaters pays +1% buzz, once per film. The mailbox keeps the 30 most recent letters with an unread count and mark-all-read.
-- **Collapsible sections everywhere**: every information-heavy panel is now a fold — tap the header to open or hide it (why-it-performed, week-by-week, daily split, international markets, demographics, social buzz, rivals, chains, regional summary, trending). Each section remembers how you left it between sessions. The wall-of-info is now a filing cabinet.
+### 🎬 Core Film Production
+- **Greenlight wizard** — pick genre, scale, format (standard / premium / IMAX / 3D), writer, director, cast & producer; set budget and production market
+- **Script & IP market** — rotating script pitches with genre/quality signals; bid on IP licenses (books, comics, games, real events)
+- **Shooting locations** — Atlanta / London / Australia rebates that pay weekly during the shoot
+- **MPAA ratings** — PG-13 vs R cuts affect audience size and word-of-mouth
+- **Test screenings & reshoots** — pay to iterate on rough-cut scores before wide release
+- **Release dating** — date-picker with rival tentpoles, holidays and genre clutter priced in
+- **Marketing** — Super Bowl spots, influencer junkets, review-embargo plans, BTL spend
 
-## 🆕 What's new in v14 (spec Phases 4–6 complete — people, business & legacy)
+### 🌍 Box Office & Distribution
+- **17 / 45 / 90-day theatrical windows** — exhibitor-relations meter, PVOD vs streaming tradeoffs
+- **Wide vs platform release patterns** — staggered international rollouts, foreign-language bonuses
+- **Box-office legs** — genre-specific decay curves, critic + audience score split, 4-week chart
+- **Library re-releases** — 104-week cooldown, classic re-releases
+- **Reboots & sequels** — franchise reboot with data-driven fatigue meter; sequel greenlight from game studio
 
-- **Agent negotiation (§29)**: stars with 4★+ offer a package choice in the cast wizard — pay the flat fee, or take 30% off the fee for +2% of rentals at the end of the run. Cheaper now, costlier on a hit.
-- **Board of directors (§44–45)**: three named seats with approval meters on the Finance tab. Tentpole greenlights go to a **real board vote** — approval moves with every hit and flop (money hawks swing harder), drifts back when things are quiet, and the tally lands in the log.
-- **Executive careers (§46) & staff skill trees (§47)**: your CMO/CFO/casting head now have tenure — they demand raises every ~2 years, can be poached by rivals, and eventually retire. They and the below-the-line crew level up (Lv 1–5) from shipped films; every effect scales with level.
-- **Espionage (§42)**: rivals leak your soft tracking to the trades and moles shop your shooting scripts. Fight back — $8M buys 8 weeks of a rival's full dated slate, marked right on their card.
-- **Legal disputes (§50)**: fee suits from your own stars and plagiarism claims from rivals land on your desk — settle quietly or fight in court and gamble rep + damages.
-- **Music label division (§32)**: launch your own label on the Empire tab ($60M), sign up to 3 acts from a fictional roster, collect weekly — when an act charts, money ×3 for a month and your in-production musicals & concert films catch +2% buzz.
-- **What-if sandbox (§56)**: a 🔮 button on dated films forks your entire studio into a sandbox (the real save is untouchable), rolls 16 weeks under three scenarios — as planned, slip 4 weeks, double the P&A — and reports cash/WW/rep for each.
-- **Hall of Fame (§57) + run seeds (§59)**: the More sheet gains a Hall of Fame — this run's records, top films, and every finished run carved with grade and gross. Each save now carries a run seed, and legacy entries are shaped for a future online leaderboard.
+### 📺 OTT & Streaming
+- **Your own streamer** — subs, ceiling, churn, day-and-date releases, library moves
+- **Subscription tiers** — ad-supported vs premium, tier upgrades
+- **Live sports rights** — esports, wrestling and sports slate auctions
+- **Reality / documentary / limited series** — separate production lane
+- **Output deals & rival platforms** — other studios enter the streaming market
 
-## 🆕 What's new in v13 (spec Phase 4 — living industry, buzz-facing)
+### 🏰 Empire Building
+- **Franchise lifecycle** — merch lines, theme parks → resort districts, DTV sequels, TV spin-offs, publishing arms
+- **Shared universes** — one-time crossover weave gives +15% franchise income forever
+- **Brand collabs & licensing-out** — seasonal toy spikes, licensing partners
+- **🕹 Game Studio (v16 NEW)** — commission a licensed game from your franchises; manage dev, launch, score reviews, earn royalties, and greenlight sequels
 
-- **Campaign sequence**: marketing channels no longer all fire at once — each drop lands on its own week before release (teaser 5 wks out → trailer 3 → TV 2 → social machine ×3) and rolls a **reception event**: viral (×1.5 hype), solid, or whiff (×0.5). The schedule modal shows each channel's drop weeks and the full drop sequence; ready cards show drops so far.
-- **Fictional social platforms + trending**: the Studio control room gains a 📣 Trending board — four platforms (CineTok, Blabber, Reelit, BoxMoji) with hashtags driven by real state: your chart leader trends, big openings spawn challenges, meme machines and acclaim trend on Reelit, scandals and feuds flood Blabber, and advance-sales countdowns hit BoxMoji.
-- **Promo obligations**: cast now owe press appearances while their film is dated (more for bigger stars and exclusive/multi contract faces). One fires per week pre-release (+1.5% buzz each) — unless the cast is scandal-hit or toxic, and then the promo stop becomes a liability (−1% buzz).
-- **Fixed**: the campaign legs bonus was silently dropped when a film released — `film.campaignLegs` now actually rides the run, so marketing WOM buys the longer tail it always promised.
+### 🧑‍🤝‍🧑 Talent & Agencies
+- **Three talent agencies** — Meridian / Crown / Sterling with exclusive rosters, packaging fees, first-look deals
+- **Yearly "New Faces" classes** — discover rising stars before they cost a fortune
+- **Loyalty discounts** — repeat collaborators come cheaper
+- **Star poaching & rehab arcs** — toxic-star scandals, career fade, comeback fund, cameo offers, concert tours
+- **📬 Fan Mail (v16 NEW)** — inbox of fan letters (love mail, angry mail, subscriber mail); reply to boost rep or ignore at your peril
 
-## 🆕 What's new in v12 (spec Phase 3 — box office depth)
+### 🎖 Board, Execs & Rivals
+- **🏛 Board of Directors (v16 NEW)** — 100-point approval score; hit milestones to keep the board happy or face pressure events; hire up to 3 executives (CMO / CFO / Casting Director) each with passive perks and level-up paths
+- **🕵 Rival Studios (v16 NEW)** — live scoreboard of competing studios; intel system (plant a mole, buy reports); rival AI takes real turns each week; fork rival strategy with your own counter-play
+- **📈 Social Trending (v16 NEW)** — Twitter-style trending ticker showing #Hashtags for your films and events; promo campaigns convert trending buzz into opening-weekend spikes
 
-- **Opening-weekend daily split**: every live run now shows the Fri/Sat/Sun breakdown of opening day — horror front-loads Friday, family films go Saturday-heavy, and audience word of mouth bends the back half of the weekend.
-- **Screens, per-screen averages & week-over-week rows**: the week-by-week table adds screen counts (they shrink as the run winds down), per-screen average, occupancy vs a sold-out week, and the WoW% column that exposes the decay.
-- **Five named theater chains**: Meridian Cinemas, NovaStar, Lumen Grand, Regent Arthouse and Starlight Drive-Ins control ~90% of domestic screens. Each has a booking relation you can **court** ($6–18M) — friendlier chains book more screens *and* a bigger opening, and they book their favorite genres generously.
-- **Advance-ticket curve**: dated films accrue advance sales weekly from hype, campaigns and chain relations; the schedule modal projects what will be banked by opening day, and the banked total lifts the opening (capped +6%).
-- **City-level box office**: the international panel breaks the top three release regions down to fictional cities (Bright Harbour, Roshanpur, Puerto Cielo…).
-- **Dubbing & localization line item**: targeting markets now shows the dubbing/subs/local-P&A cost upfront in the schedule modal and charges it — itemized — at release. Foreign-language productions print for less; staggered rollouts print for more.
+### 🏆 Awards
+- **Precursor awards** — Guilds, Critics Circle, Indies stack momentum into Oscar night
+- **FYC campaign slider** — $2–20M spend; Best Picture win triggers a +25%-of-P&A re-release
+- **Festival circuit** — four named festivals with genre tastes, prestige levels, and acquisitions frenzy
 
-## 🆕 What's new in v11 (spec Phase 2 — distribution)
+### 💼 Finance
+- **Weekly P&L** — box-office rentals, streaming revenue, merch & park income, loan interest
+- **12-week cash-flow forecast** — with scenario sliders
+- **IPO & stock price** — shareholders judge quarterly earnings calls
+- **Loans & mezzanine debt** — credit line, covenant breach risk
+- **M&A desk** — acquire rival slates, IP libraries, mini-streamers (rotating deal book)
+- **Export ledger as CSV** — download your full financial history
+- **Tax credits & guild contracts** — jurisdiction rebates, guild strike meter
 
-- **Own-streamer premieres are a first-class release path**: the greenlight wizard gains a "▶ Own-streamer premiere" distribution plan (with projected overnight subscribers), ready films get a "▶ Premiere on \<your platform\>" button with a full commitment summary, and finished `plan:"own"` projects deliver straight to your platform.
-- **Hybrid releases**: scheduling now has a "after the theatrical run → your streamer" toggle — the film keeps its full box office, then lands as an exclusive on your platform when the run ends (skipping pay-1/external OTT bids).
-- **Series on your own platform**: pitch straight to your streamer (guaranteed greenlight); seasons pay in subscribers and weekly ARPU instead of a license cheque, and renewals are self-funded.
-- **OTT tab opens with a "Your platform" board**: subscribers, churn, weekly revenue, ceiling, library size and originals count, plus a starved-content warning.
+### 🏴‍☠️ Piracy & Windowing
+- Studio piracy meter bleeds live theatrical runs
+- Anti-piracy upgrade (deploy once per game)
+- Windowing choices trade OTT speed for theatrical protection
 
-## 🆕 What's new in v9
+### 🎯 Scenarios & Meta
+- **Scenarios** — Standard / Turnaround / Golden Age / Indie Darling / Franchise Machine
+- **Difficulty levels** — Easy / Normal / Hard with sandbox mode
+- **30+ Achievements** — box-office, streamer, awards, empire & specialist feats
+- **3 Save slots** — export/import portable save codes, full schema migration chain (v1 → v8)
+- **Interactive tutorial** — 5-step banner walks your first film from script to receipts; pays +1 rep on completion
 
-- **Weekly report popup** now includes the ⚠ **Warnings** section (cash low, starved streamer, strikes, expiring offers…) right under the cash delta.
-- **Multi-country releases** — target ONE or SEVERAL international markets when scheduling; each adds +6%/+3% intl gross and ×1.8 share in that market.
-- **Talent & people**: multi-picture contracts (−25% fees, creative-control fights), star school training (young talent grows skill/power, homegrown −30%), cast chemistry (+buzz on reunions), tabloid feuds (never cast them together), muse directors (3+ films together → +5% buzz in their genre), and the **Walk of Fame** (a $150M+ worldwide run or a Best Picture carves permanent sidewalk stars).
-- **Production craft**: budget allocation sliders (VFX / stunts / cast / music / design reshape the critic-audience split and overrun risk), below-the-line crew (hire a cinematographer, composer and VFX house with weekly retainers), **rating appeal board** (fight an R for ~55% odds of PG-13), and **alt endings** after test screenings (critics' cut vs crowd-pleaser).
+### 📱 UX & Accessibility
+- **PWA** — installable, fully offline (cache-first service worker)
+- **Dark cinematic theme** — responsive; mobile bottom-nav, desktop tab bar; swipe between tabs
+- **Pull-to-advance** — pull down at top of feed to advance a week on mobile
+- **Haptic rumbles** — on hits/flops (toggleable)
+- **Reduced-motion** — Auto / On / Off; confetti is motion-aware
+- **Text size control** — Small / Medium / Large preview in Settings
+- **🌐 Hindi / English toggle** — full i18n dictionary
 
-## 🆕 What's new in v7
+---
 
-- **Fixed a fatal syntax error** that blanked the entire UI (`ui.js` never booted — the game was unplayable in any browser). Also rebuilt the film-pitch wizard's lost director/writer/producer/cast steps.
-- **Cinematic visual overhaul** of the whole stylesheet: film-grain shimmer, sweeping projector beams on the start screen, shimmering gold logo, glowing tab indicator, gradient cards with hover lift, shine-sweep primary buttons, animated progress bars with moving highlights.
-- **New animations**: the cash chip counts up and flashes green/red on change, tabs glide in with staggered card entrances, toasts spring in with a countdown strip, the bottom-nav icon bounces on the active tab, the close button spins on hover.
-- **Full reduced-motion support** — every animation respects `prefers-reduced-motion` and the in-game motion toggle.
-- **Stabilized the UI integration test** (was flaky: the board can pass on pitches, wizard bails on low cash, streamers can pre-buy your ready film — the test now plays those like a real player). `npm test` runs both suites.
+## 🖥 Screens
 
-## ▶ How to run
+| Tab | Contents |
+|-----|----------|
+| 🏛 **Studio** | Feed, market-share pie, festivals/FYC campaigns, achievements, share card, trending ticker |
+| 📝 **Develop** | Genre trend board, script market, IP market, writers/producers/directors/cast, talent business |
+| 🎬 **Productions** | Pipeline, rewrites, test screenings & reshoots, release dating, release scheduler |
+| 📊 **Box Office** | Weekly chart, runs, critic/audience split & reviews, library, re-releases/reboots |
+| 📺 **OTT & Series** | Your streamer + tiers, sports rights, offers, rival platforms |
+| 🏰 **Empire** | Franchises, merch, parks, lifecycle, shared-universe weave |
+| 🕹 **Games** *(v16)* | Game studio — dev pipeline, launch events, review scores, sequels |
+| 📬 **Fans** *(v16)* | Fan-mail inbox — love/angry/subscriber letters, read-all, reply actions |
+| 🏛 **Board** *(v16)* | Board approval meter, milestone tracker, executive hiring & levelling |
+| 🕵 **Rivals** *(v16)* | Rival scoreboard, intel system, mole plant, counter-strategy fork |
+| 💼 **Finance** | Live P&L, 12-week forecast, loans, mezzanine, IPO, execs, upgrades, CSV export |
 
-- **Easiest:** double-click `index.html` (yes, `file://` works).
-- **Or serve it:** `python3 -m http.server 8080` → open `http://localhost:8080`.
-- **Install as an app:** it's a PWA — in Chrome/Edge use *Install*, then play fully offline.
-- **On mobile:** host the folder anywhere static (GitHub Pages works) — the UI is fully responsive with a bottom tab bar.
+---
 
-Progress auto-saves to your browser's localStorage — into **3 save slots**, with **export/import codes** to move a studio between devices.
+## 🕹 Quick Strategy Tips
 
-## 🎮 What's in the game
-
-### The realistic business model
-| Mechanic | Real-world rule used |
-|---|---|
-| Opening weekend | star power × marketing (P&A) × release corridor × competition vs rival studios |
-| Legs (total ÷ opening) | driven by quality — horror opens big & dies fast; animation runs for months |
-| Revenue splits | studio keeps ≈53% domestic / ≈42% international (blended, incl. China's ~25%) |
-| Weekly cash flow | box office rentals (~53% of domestic gross) paid **every week a film plays**; every dollar itemized in a live P&L |
-| Windows & ladder | theatrical → PVOD → pay-1 TV (lands 6% of WW at week +6); 17/45/90-day windows trade PVOD for exhibitor goodwill |
-| Distribution choice | theatrical, streaming original (auction on delivery), or decide later; finished films shoppable anytime |
-| OTT deals | post-run licenses, pre-buys, output deals (+20% on next 3 sales), bidding wars you can counter |
-| Series | pitch → greenlight → license ≈115% of budget → buzz → renewals; reality/documentary are cheap & renew-friendly; limited events renew harder |
-| Franchise empire | hits unlock franchises: sequels, spin-offs (45% budget), merch, games, parks, resorts, publishing — with visible **brand heat & fatigue** |
-| Your own streamer | launch at rep 40 ($250M); subs pay weekly, grow toward a content ceiling, churn when starved; day-and-date & library moves feed it |
-| Live sports | quarterly sealed-bid auctions (soccer, hoops, racing, fights) buy instant subscribers + ceiling |
-| Talent economics | A-list backend points, intl pre-sales, filming rebates, loyalty discounts, poaching, cameos, toxic stars, career fade |
-| Seasons & inflation | summer/holiday corridors multiply openings; the whole market compounds +2%/yr |
-| Awards | 4 festivals a year + FYC campaigning + the year-end Golden Reels |
-| Everything else | rival slates, loans + mezzanine debt, executives, IPO, random events, achievements |
-
-### The v2 production & release craft update
-| Mechanic | Real-world rule used |
-|---|---|
-| Script rewrites | pay for extra polish in pre-production (+6 script score, +1 wk pre-prod, ~40% of dev rights) |
-| MPAA rating choice | 🎬 PG-13 for the masses vs **R** (−12% opening, critics +5) |
-| Test screenings & reshoots | screen a finished film, then reshoot weak spots (~12% of budget, +2–4 wks, big quality jump) |
-| Premium/IMAX formats | +12% opening for +8% P&A — pick it when you set the release date |
-| Shoot locations | 🌍 Los Angeles (0%), Atlanta (14%), London (18%) — the rebate offsets the weekly burn |
-| Executive hires | 👔 CMO (+12% hype), Head of Casting (−10% fees), CFO (−30% interest) |
-| Mezzanine debt | 🪜 emergency money at 0.5%/wk (≈26%/yr), no credit-line cap |
-| IPO | 📊 raise $400M at reputation ≥60; shareholders punish loss-making quarters |
-| Yearly talent class | 🌟 fresh faces hit the market every year ("New Faces of Year N") |
-| 2% yearly inflation | the whole market compounds ~2%/yr (budgets, offers & gross all scale) |
-| 12-week cash-flow forecast | 📈 Finance shows a rough 12-week projection of income vs commitments |
-
-### The v3 Studio-as-Empire update
-| Mechanic | Real-world rule used |
-|---|---|
-| Your own streamer | 📱 build a platform ($250M, rep ≥40). Subs pay $0.5/sub/wk; **subscriber ceiling** grows from your library, franchises, shows & sports |
-| Churn | starve the service and subs bleed (0.8%/wk) |
-| Day-and-date releases | 🎞 in theaters *and* on your streamer: −35% opening, +subs |
-| Library moves | push any unsold film onto your platform |
-| Live sports rights | 🏆 quarterly sealed-bid auctions (weeks 13/26/39/52) for soccer/hoops/racing/fights ($70–170M); instant sub bumps + sports power that raises your ceiling (decays ~1.5%/wk) |
-| Theatrical windows | 17 / 45 / 90-day: short = +15% PVOD, long = −15% PVOD |
-| Exhibitor relations meter | 🎞 short windows anger exhibitors; the meter swings openings ±5% |
-| PVOD → pay-1 TV ladder | pay-1 lands 6% of WW at week +6 after the run |
-
-### The v4 Craft, Cycles & Consequences update
-| Mechanic | Real-world rule used |
-|---|---|
-| ✍️ Writers | attach a writer at greenlight: skill + genre fit adds up to **+11 script**, and script is 30% of quality |
-| 🎫 Producers | they contain **cost overruns** (odds & size), add production value, and a great one shaves a week off the shoot — go without and every overrun is yours |
-| 📈 Genre trends | every genre carries a heat multiplier (0.78–1.28×) that re-rates **every quarter**; heat moves opening weekend and streaming appetite, hits warm a genre, flops cool it |
-| 🗞 Named critics | five named reviewers (own outlet, harshness, genre loves/hates) publish on opening day — their consensus becomes the critic score |
-| 🍅 Critic/audience split | separate critic & audience meters; **review bombing** events tank the audience score and the legs that come with it |
-| 😴 Franchise fatigue | each entry adds fatigue: smaller openings *and* worse reviews, healed only by resting the brand ~6 months |
-| 👵 Talent careers | everyone ages: skill peaks in the 30s–40s, star power fades late, veterans **retire**, scandals make talent radioactive (cheap to hire, −opening) and a **comeback** event can rehabilitate them |
-| 🎬 New genres | western, war, sports, concert film and true-crime docudrama, each with their own legs, intl mix and merch |
-| 💸 Streamer tiers | premium-only ($0.50/sub/wk) vs **ad tier + premium** (−24% ARPU, +32% ceiling, stickier) — plus a **password-sharing crackdown** event |
-| 📊 Post-IPO stock | a real share price, market cap, quarterly **earnings calls** (beat/miss vs the street), named analysts, downgrade streaks and **secondary offerings** |
-| 🤝 Co-financing | a partner covers 30% of a production for 35% of its net |
-| 🔊 Sound & motion | WebAudio stings — opening fanfare, cash register, award timpani, smash-hit chime, downgrade buzzer — plus animated chart bars and **confetti** on smash hits and Best Picture |
-| 📸 Studio card | generate a shareable PNG snapshot of your studio (or copy the summary) |
-| 💾 Save safety | versioned save schema with **validation + forward migrations**; corrupt saves are quarantined instead of crashing the game |
-
-### The v5 Global Studio update
-
-- **🤖 AI & synthetic media** — greenlight with a SynthScribe (free writer, flat page) or licensed digital doubles (no cast fees, audience can smell it); weekly backlash rolls, and a **deepfake spot-the-fake mini-game** when a fake clip of your star goes viral (2-week deadline before the internet decides for you)
-- **🌍 Global markets v2** — China's import quota rolls weekly, EU local-content quotas can freeze your OTT slate, India loves long legs & prestige, and a censor board can insist on cuts for R/horror titles
-- **🤝 Co-productions** — pick a co-financing partner in the greenlight wizard: they wire budget share at greenlight and keep a slice of net forever; foreign partners unlock treaty rebates
-- **🕴 Talent agencies** — three named agencies (Meridian/Crown/Sterling) with exclusive rosters, packaging fees when you stack their clients, poaching friction, signable first-look deals, and a town-wide truce
-- **🗳 Awards overhaul** — precursor awards (Guilds, Critics Circle, Indies) stack momentum into Oscar night, campaigns run on a **$2–20M FYC slider**, and Best Picture triggers a +25%-of-P&A re-release bump
-- **🎪 Festival circuit** — four named festivals with distinct genre tastes & prestige, foreign-language bonuses, and an acquisitions frenzy (streamers bid on festival winners)
-- **📣 Marketing campaigns** — Super Bowl spots, influencer junkets and review-embargo plans in the release scheduler; timeline clutter (holidays, rival tentpoles) priced into every week
-- **🏴‍☠️ Piracy & windowing** — a studio piracy meter that bleeds live runs, an anti-piracy upgrade, and windowing choices that trade OTT speed for theatrical protection
-- **🧸 Merch & parks depth** — toy lines, brand collabs, park expansion to a resort district, seasonal spikes, DTV sequels, publishing arms, licensing-out, crossover films and a one-time shared-universe weave (+15% franchise income forever)
-- **🏟 Live events** — esports joins the rights auctions alongside wrestling and the rest of the sports slate
-- **🏦 M&A desk** — quarterly rotating deal book in Finance: acquire rival slates, IP libraries and mini-streamers
-- **🧾 Tax credits v2 & guilds** — jurisdiction rebates with caps and audit risk, plus a guild strike meter you can buy peace from with guild contracts
-- **📈 Inflation v2 & trends** — wage inflation compounds with market inflation; the trend board now keeps sparkline history per genre
-- **🎭 Spin-off risk** — TV spin-offs can flop and ding the parent brand; franchise fatigue now has visible timeline management in the scheduler
-- **🎯 New scenarios** — *Indie Darling* and *Franchise Machine* join Standard / Turnaround / Golden Age
-- **🏆 Unified achievements** — one list (30+) covering box-office, streamer, awards, empire and v5 feats like Synthetic Dreams, The Dealmaker and Guild Diplomat
-- **📱 Feel** — haptic rumbles on hits/flops (toggleable), reduced-motion respect everywhere (Auto/On/Off), swipe between tabs on mobile, pull-down at the top of the feed to advance a week
-- **🎓 Interactive tutorial** — a skippable 5-step banner that walks your first film from script market to box-office receipts and pays +1 rep when it pans out
-
-### Screens
-🏛 Studio (feed, market share, festivals/FYC, achievements, share card) · 📝 Develop (genre trend board + script market + IP market + writers/producers/directors/cast + talent-business) · 🎬 Productions (pipeline, rewrites, test screenings & reshoots, release dating) · 📊 Box Office (weekly chart, runs, critic/audience split & reviews, library, re-releases/reboots) · 📺 OTT & Series (your streamer + tiers, sports, offers, platforms) · 🏰 Empire (franchises, merch, parks, lifecycle) · 💼 Finance (live weekly P&L, 12-week forecast, loans, mezzanine, IPO + stock price, execs, upgrades)
-
-## 🆕 What's new in the v2/v3 expansion
-
-**Content & creative** — script rewrites, MPAA rating (PG-13 vs R), test screenings & reshoots, Premium/IMAX formats, shoot-location rebates (Atlanta/London), foreign-language films, soundtrack gambles, cameos, China censor-board risk.
-
-**Talent & people** — yearly "New Faces" classes, loyalty discounts on repeat collaborators, star poaching, Discovery of the Year, auteurs (no sequels), toxic-star rehab arcs, career fade.
-
-**Box office & distribution** — release-date chicken (rivals blink), 17/45/90-day windows + exhibitor-relations meter, wide vs platform patterns, staggered intl rollouts, library re-releases (104-wk cooldown), reboots.
-
-**OTT & streaming** — your **own streamer** (subs, ceiling, churn, day-and-date, library moves, 25M-sub achievement), live sports rights auctions, reality/documentary & limited series, auction counters, output deals, rival platforms entering the market.
-
-**Franchise & empire** — spin-offs, shared universes (+15% forever), crossover events (+45% buzz), DTV sequels, TV spin-offs & film continuations, brand collabs, licensing-out, resorts & cruises, publishing arms, holiday toy spikes.
-
-**Business & finance** — IPO ($400M, shareholders judge quarters), mezzanine debt, CMO/casting/CFO executives, 12-week cash-flow forecast, wrap deals, agency exclusives.
-
-**Meta & UX** — 15 achievements, 3 scenarios (Standard/Turnaround/Golden Age), 3 difficulties, sandbox mode, 3 save slots, export/import codes, 🌐 Hindi/English toggle, text-size control, auto-play weeks, PWA install + offline.
-
-## 🕹 Quick strategy tips
 0. Read the **genre trend board** before you buy a script — a red-hot genre is worth more than a star.
 1. Start with an **indie or mid film** — tentpoles need ~$200M+ and a franchise to pay off.
 2. Pick your distribution: theatrical for upside, **streaming original** for guaranteed cash, or keep options open.
 3. Never release a genre film into a rival tentpole's weekend — check the dating calendar.
-4. Horror is the best ROI per dollar; animation has the best legs (and the best merch); drama wins awards.
-5. A hit film (2× breakeven + good reviews) unlocks a **franchise** — sequels open ~35% bigger, merch & parks pay weekly, and each release re-heats the brand.
-6. Cash-strapped? **International pre-sales** pay ~22% of budget on day one (you give up intl box office), and filming rebates arrive weekly during the shoot.
-7. Watch **Finance → This week's P&L**: box office rentals land every week a film is in theaters.
-8. Always attach a **producer** on anything over $50M: overruns compound faster than interest.
-9. Rest a franchise for two quarters when fatigue passes ~30% — sequels into fatigue open small and review badly.
-10. At **rep 40** launch your own streamer and feed it: library moves and day-and-date releases grow subs.
-11. Windows matter: 17-day boosts PVOD but angers exhibitors; 90-day does the reverse.
-12. Watch **Finance → forecast** and hire a CFO before you stack debt.
-13. Loans bridge production gaps; net debt beyond your credit line for 3 weeks = the bank takes the lot.
+4. **Horror** has the best ROI per dollar; **animation** has the best legs (and the best merch); **drama** wins awards.
+5. A hit film (2× breakeven + good reviews) unlocks a **franchise** — sequels open ~35% bigger.
+6. Cash-strapped? **International pre-sales** pay ~22% of budget on day one (you give up intl box office).
+7. Watch **Finance → This week's P&L**: box-office rentals land every week a film is in theaters.
+8. Always attach a **producer** on anything over $50M — overruns compound faster than interest.
+9. Rest a franchise when fatigue passes ~30% — sequels into fatigue open small and review badly.
+10. At **rep 40** launch your own streamer and feed it with library moves and day-and-date releases.
+11. Windows matter: **17-day** boosts PVOD but angers exhibitors; **90-day** does the reverse.
+12. Watch **Finance → Forecast** and hire a **CFO** before you stack debt.
+13. Keep the **Board approval** above 50 — dropping below triggers pressure events that cost cash and rep.
+14. Check the **Rivals** tab weekly — knowing what the competition is greenlighting helps you counter-schedule.
+15. Commission a **game** for your top franchise — royalties compound for years with no extra headcount.
+
+---
 
 ## 🛠 Development
 
+### File Structure
+
 ```
-index.html      shell (start screen + app)
-style.css       dark cinematic theme, responsive (mobile bottom-nav / desktop tabs)
-data.js         genres, scales, calendar, OTT platforms, talent pools, critics, trends, tiers, events, scenarios, achievements,
-                agencies, AI/co-production/piracy/guild/M&A configs, festival circuit, tutorial steps
-                save schema version (DATA.SAVE_VERSION) — bump it and add a migration step
-engine.js       the simulation (quality, hype, legs, splits, offers, rivals, awards + precursors, finance, streamer, sports,
-                lifecycle, stock, trends, piracy, guilds, M&A, AI scandals, empire/licensing)
-ui.js           rendering, wizards, modals (auction/deepfake/FYC/empire/settings), toasts, WebAudio stings + haptics,
-                confetti (motion-aware), studio card, i18n, achievements, tutorial, touch gestures
-i18n.js         Hindi/English dictionary + chrome translation
-icon.svg /      PWA icon + manifest + service worker (offline cache-first)
-manifest.webmanifest / sw.js
-test/smoke.js   headless 5-year economy simulation (node test/smoke.js)
-test/ui-test.mjs jsdom click-through of the full game flow (npm i jsdom; node test/ui-test.mjs)
+index.html              Shell (start screen + app scaffolding + modal scaffolds)
+style.css               Dark cinematic theme, responsive (mobile bottom-nav / desktop tabs)
+data.js                 Genres, scales, calendar, OTT platforms, talent pools, critics, trends,
+                        tiers, events, scenarios, achievements, agencies, AI/co-production/
+                        piracy/guild/M&A configs, festival circuit, tutorial steps,
+                        game-studio data, fan-mail templates, board/exec defs
+                        (DATA.SAVE_VERSION — bump + add migration step for schema changes)
+engine.js               The simulation: quality, hype, legs, splits, offers, rivals, awards +
+                        precursors, finance, streamer, sports, lifecycle, stock, trends,
+                        piracy, guilds, M&A, AI scandals, empire/licensing,
+                        game-studio lifecycle, fan-mail system, board/exec mechanics,
+                        social-trending engine, anti-piracy deploy, exportLedgerCSV,
+                        schema v8 save migration
+ui.js                   Rendering, wizards, modals (auction/deepfake/FYC/empire/settings/
+                        help/game-over), toasts, WebAudio stings + haptics,
+                        confetti (motion-aware), studio card, i18n, achievements, tutorial,
+                        touch gestures, viewGames, viewFans, viewBoard, viewRivals,
+                        viewFinance panels, piracy meter, prod-filter chips, trending ticker
+i18n.js                 Hindi/English dictionary + chrome translation
+icon.svg                PWA icon
+manifest.webmanifest    PWA manifest
+sw.js                   Service worker (offline cache-first)
+test/smoke.js           Headless 5-year economy simulation runner
+test/smoke-body.js      Smoke assertions (node test/smoke.js)
+test/ui-test.mjs        jsdom click-through of the full game flow
+test/validate-slots.js  Save-slot count validation
 ```
 
-Balance target: an average tentpole opens ~$125M domestic; disciplined slates compound; reckless leverage kills you in about a year. Tuned via headless Monte-Carlo runs (`test/smoke.js`) — healthy studios reach $1–2B cumulative WW gross over 5 years.
+### Running Tests
+
+```bash
+# Headless 5-year economy simulation
+node test/smoke.js
+
+# Full UI click-through (requires jsdom)
+npm i jsdom
+node test/ui-test.mjs
+
+# Save-slot validation
+node test/validate-slots.js
+```
+
+### Balance Target
+
+An average tentpole opens ~$125M domestic; disciplined slates compound; reckless leverage kills you in about a year.  
+Tuned via headless Monte-Carlo runs — healthy studios reach **$1–2B cumulative WW gross** over 5 years.
+
+---
+
+## 🚀 Deploy Your Own
+
+This is a **static site** — just serve `index.html` and its siblings.
+
+### Vercel (one command)
+```bash
+npx vercel --prod
+```
+
+### GitHub Pages
+Push to your repo and enable Pages from `Settings → Pages → Deploy from branch (main / root)`.
+
+### Any static host
+Upload all files (no build step needed).
+
+---
 
 ## 📄 License
+
 MIT — have fun, fork it, reskin it.
