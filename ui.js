@@ -317,6 +317,19 @@ function studioRecentReleasesCard(){
   "</div>";
 }
 
+/* v27: influence currency card — earned from awards, hits and game launches */
+function influenceCard(){
+  const infl=G.studio.influence||0;
+  const sources="Awards +5 · Smashes +2 · Acclaimed game launches +10 · Game of the Year +10";
+  return "<div class='card' style='border-left:3px solid var(--blue)'>"+
+    "<div class='spread'><b>🌐 Influence</b><span class='tag blue'>"+infl+"</span></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Industry goodwill you can spend. "+esc(sources)+".</div>"+
+    "<div class='row' style='gap:6px;margin-top:6px;flex-wrap:wrap'>"+
+      "<button class='btn btn-xs btn-alt' data-infl-masterclass='"+(infl>=10?"1":"0")+"' "+(infl>=10?"":"disabled")+">🎓 Masterclass +1000 XP (10)</button>"+
+      "<button class='btn btn-xs btn-alt' data-infl-hype='"+(infl>=15?"1":"0")+"' "+(infl>=15?"":"disabled")+">📣 Hype surge +10% opening (15)</button>"+
+    "</div></div>";
+}
+
 function talentFeudMap(){
   const feuds = G.feuds || [];
   if(!feuds.length) return "";
@@ -499,7 +512,11 @@ function enterApp(fresh){
   const app=$("#app");
   app.style.display="flex";
   try{ if(motionOK()){ app.style.animation="viewIn .45s cubic-bezier(.2,.85,.3,1)"; } }catch(e){}
-  if(fresh) setTimeout(helpModal, 400);
+  if(fresh){
+    let consented=false;
+    try{ consented = !!localStorage.getItem("bow_privacy_ok"); }catch(e){}
+    setTimeout(()=>{ if(consented) helpModal(); else privacyModal(true); }, 400);
+  }
   render();
   if(G.pendingEarnings) earningsModal();
   else if(G.pendingChoice) choiceModal();
@@ -512,7 +529,11 @@ function enterApp(fresh){
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   TAB=t; beep("click");
-  $$(".tab,.btab").forEach(b=>b.classList.toggle("active", b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"))));
+  $$(".tab,.btab").forEach(b=>{
+    const match = b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
+    b.classList.toggle("active", match);
+    b.setAttribute("aria-current", match?"true":"false");   // v27 a11y
+  });
   render();
   const v=$("#view");   // v7: replay the entrance so the new tab glides in
   if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
@@ -1015,6 +1036,7 @@ function viewStudio(){
   try{ if(typeof repBoard==="function") h+=repBoard(); }catch(e){}
   try{ h+=studioDnaCard(); }catch(e){}
   try{ h+=studioRecentReleasesCard(); }catch(e){}
+  try{ h+=influenceCard(); }catch(e){}
   try{ h+=talentFeudMap(); }catch(e){}
   try{ if(typeof specBoard==="function") h+=specBoard(); }catch(e){}
   try{ if(typeof econBoard==="function") h+=econBoard(); }catch(e){}
@@ -3943,13 +3965,21 @@ function bindView(){
     if(startGameDev(GAMES.src, GAMES.dev)){ beep("gold"); flashes(G.flash); render(); } else beep("bad");
   };
   /* ── prototype RPG: character sheets + in-house originals ── */
-  $$("[data-pgdev-start]").forEach(b=>b.onclick=()=>{
-    const r=(typeof startGameDevProject==="function")?startGameDevProject("rpg"):{ok:false,err:"RPG system offline"};
-    if(r.ok){ beep("gold"); flashes(G.flash); render(); } else { beep("bad"); if(r.err) toast(r.err,"bad"); }
-  });
+  $$("[data-pgdev-gdd]").forEach(b=>b.onclick=()=>{ beep("click"); gameDevGDDModal(); });
   $$("[data-pgdev-choice]").forEach(b=>b.onclick=()=>{
     const r=(typeof advanceGameDevPhase==="function")?advanceGameDevPhase(b.dataset.pgdevChoice):{ok:false,err:"RPG system offline"};
     if(r.ok){ beep("gold"); flashes(G.flash); if(r.launched) toast("🎮 Game launched!","good"); render(); } else { beep("bad"); if(r.err) toast(r.err,"bad"); }
+  });
+  /* ── v27 influence spends ── */
+  $$("[data-infl-masterclass='1']").forEach(b=>b.onclick=()=>{
+    const r=spendInfluence(10);
+    if(r.ok){ const t=(G.talent||[]).slice().sort((a,b)=>((b.prototype||{}).level||1)-((a.prototype||{}).level||1))[0]; if(t&&t.id) gainXP(t.id,1000,"masterclass intensive"); beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); if(r.err) toast(r.err,"bad"); }
+  });
+  $$("[data-infl-hype='1']").forEach(b=>b.onclick=()=>{
+    const r=spendInfluence(15);
+    if(r.ok){ G.studio.hypeSurge=true; toast("📣 Hype surge armed — +10% on your next theatrical opening.","good"); beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); if(r.err) toast(r.err,"bad"); }
   });
 
   /* ── v20 interactive expansion bindings ── */
@@ -5032,6 +5062,9 @@ function settingsModal(){
     ["auto","on","off"].map(m=>"<button class='btn btn-sm "+((MOTION||"auto")===m?"btn-primary":"")+"' data-motion='"+m+"'>"+({auto:"Auto",on:"On",off:"Off"})[m]+"</button>").join("")+
     "<button class='btn btn-sm btn-alt' id='btnTestMotion'>✨ Test</button></div></div>"+
     "<div class='tiny muted' style='margin-top:4px'>“Auto” follows your OS reduced-motion setting; confetti and slide-ins pause when motion is off.</div></div>";
+  /* v27: privacy & data (GDPR-style controls — everything is local) */
+  h+="<div class='card'><div class='spread'><b>🔒 Privacy &amp; your data</b><button class='btn btn-sm btn-alt' id='btnPrivacy'>Manage</button></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Box Office War stores everything on this device only — no accounts, no trackers, no analytics. Export or delete your data anytime.</div></div>";
   h+="<div class='card'><div class='spread'><b>📳 Haptics</b><div class='row'>"+
     "<button class='btn btn-sm "+(HAPTICS?"btn-primary":"")+"' data-hap='1'>On</button>"+
     "<button class='btn btn-sm "+(!HAPTICS?"btn-primary":"")+"' data-hap='0'>Off</button></div></div>"+
@@ -5104,6 +5137,7 @@ function settingsModal(){
   v.querySelector("#btnTestMotion").onclick=()=>{ confetti({count:60}); beep("gold"); };
   v.querySelectorAll("[data-motion]").forEach(b=>b.onclick=()=>{ MOTION=b.dataset.motion; localStorage.setItem("bow_motion",MOTION); applyMotionPref(); beep("click"); closeModal(); settingsModal(); });
   v.querySelectorAll("[data-theme]").forEach(b=>b.onclick=()=>{ applyTheme(b.dataset.theme); beep("click"); closeModal(); settingsModal(); });   // v19 theme picker
+  v.querySelector("#btnPrivacy").onclick=()=>{ beep("click"); privacyModal(); };
   v.querySelectorAll("[data-hap]").forEach(b=>b.onclick=()=>{ HAPTICS=b.dataset.hap==="1"; localStorage.setItem("bow_hap",HAPTICS?"1":"0"); if(HAPTICS) rumble([20,40,20]); beep("click"); closeModal(); settingsModal(); });
   v.querySelectorAll("[data-wksum]").forEach(b=>b.onclick=()=>{ localStorage.setItem("bow_wksum",b.dataset.wksum); beep("click"); closeModal(); settingsModal(); });
   const stn=v.querySelector("#stNameSave");
@@ -5282,6 +5316,9 @@ function viewStreamerCard(){
   }else{
     const s=G.streamer, ceil=streamerCeiling();
     const starved=G.week-(s.lastContent||0)>6;
+    const churn=churnRisk();
+    const churnTag = churn.level==="high"? "<span class='tag red'>📉 churn risk "+churn.pct+"%</span>"
+      : churn.level==="medium"? "<span class='tag gold'>📉 churn "+churn.pct+"%</span>" : "";
     h+="<div class='stat-hero'>"+
       statCard(fmtSubs(s.subs),t("stat.subs")+" · "+esc(s.name),"var(--purple)")+
       statCard(fmtSubs(ceil),"Subscriber ceiling")+
@@ -5291,7 +5328,7 @@ function viewStreamerCard(){
       statCard((G.mySports.length? G.mySports.map(x=>DATA.SPORTS.find(d=>d.id===x.kind).emoji).join(" "):"—"),"Sports held")+
     "</div>"+
     "<div class='card'>"+meter(s.subs, ceil, "linear-gradient(90deg,#b48bff,#e0c3ff)")+
-    "<div class='tiny muted' style='margin-top:4px'>"+(starved? "⚠️ Content-starved: churn is bleeding subscribers. Drop a library title or release day-and-date.":"Feeding schedule healthy. New content pauses churn.")+" Next sports auction: weeks 13/26/39/52.</div></div>";
+    "<div class='tiny muted' style='margin-top:4px'>"+(churnTag? churnTag+" ":"")+(starved? "⚠️ Content-starved: churn is bleeding subscribers. Drop a library title or release day-and-date.":"Feeding schedule healthy. New content pauses churn.")+" Next sports auction: weeks 13/26/39/52.</div></div>";
     const movable=G.films.filter(f=>!f.soldTo&&!f.streamingOriginal&&!f.inTheaters&&!f.onOwnPlatform).slice(0,6);
     if(movable.length){
       h+="<div class='card'><b>📚 Library moves</b> <span class='tiny muted'>— push unsold films onto "+esc(s.name)+" (+subs)</span><div class='row' style='margin-top:6px'>";
@@ -5338,6 +5375,8 @@ function tutTrack(){
   if(until==="ready")    ok = projs.some(p=>p.phase==="ready") || films.length>0;
   if(until==="dated")    ok = projs.some(p=>p.phase==="ready" && p.releaseWeek) || films.length>0;
   if(until==="released") ok = films.length>0;
+  if(until==="rpg_sheet") ok = films.length>0 && (G.talent||[]).some(t=>t.prototype && (t.prototype.history||[]).length);
+  if(until==="game_gdd") ok = !!((G.prototypeData||{}).gameDevUnlocked);
   if(!ok) return;
   T.step++;
   if(T.step>=DATA.TUT_STEPS.length){
@@ -5949,9 +5988,12 @@ let CS={id:null, tab:"stats"};
 function csRole(t){ return {writer:"Writer",producer:"Producer",director:"Director",actor:"Actor"}[t.kind]||t.kind; }
 function csRarity(r){ return (DATA.PROTOTYPE_RARITY||{})[r] || {color:"#888"}; }
 function csItemStat(it){
-  if(it.quality) return "+"+it.quality+" film quality";
-  if(it.scandalReduction) return it.scandalReduction+"% scandal shield";
-  return "";
+  const parts=[];
+  if(it.quality) parts.push("+"+it.quality+" film quality");
+  if(it.scandalReduction) parts.push(it.scandalReduction+"% scandal shield");
+  if(it.xpRate) parts.push("+"+Math.round(it.xpRate*100)+"% XP");
+  ["cha","int","cre","dis","luk"].forEach(k=>{ if(it[k]) parts.push("+"+it[k]+" "+k.toUpperCase()); });
+  return parts.join(" · ")||"";
 }
 function csAttrRow(key, val, canSpend){
   const def=(DATA.PROTOTYPE_ATTRIBUTES||[]).find(a=>a.id===key)||{name:key,emoji:"•"};
@@ -5992,29 +6034,66 @@ function characterSheet(id, tab){
     if(typeof unequipItem==="function") unequipItem(t.id, b.dataset.csUnequip);
     beep("click"); characterSheet(CS.id,"equip");
   });
+  v.querySelectorAll("[data-cs-branch]").forEach(b=>b.onclick=()=>{ CS.branch=b.dataset.csBranch; beep("click"); characterSheet(CS.id,"stats"); });
+  v.querySelectorAll("[data-cs-mentor]").forEach(b=>b.onclick=()=>{
+    const r=(typeof formMentorship==="function")?formMentorship(+b.dataset.csMentor, t.id):{ok:false,err:"RPG system offline"};
+    if(r.ok){ beep("gold"); flashes(G.flash); characterSheet(CS.id,"stats"); } else { beep("bad"); if(r.err) toast(r.err,"bad"); }
+  });
+  v.querySelectorAll("[data-cs-unmentor]").forEach(b=>b.onclick=()=>{
+    if(typeof endMentorship==="function") endMentorship(t.id);
+    beep("click"); characterSheet(CS.id,"stats");
+  });
+  v.querySelectorAll("[data-cs-guild]").forEach(b=>b.onclick=()=>{
+    const r=(typeof joinGuild==="function")?joinGuild(t.id, b.dataset.csGuild):{ok:false,err:"RPG system offline"};
+    if(r.ok){ beep("gold"); flashes(G.flash); characterSheet(CS.id,"stats"); } else { beep("bad"); if(r.err) toast(r.err,"bad"); }
+  });
+  const unguild=v.querySelector("[data-cs-unguild]");
+  if(unguild) unguild.onclick=()=>{ if(typeof leaveGuild==="function") leaveGuild(t.id); beep("click"); characterSheet(CS.id,"stats"); };
+  // Influence spend: masterclass intensive (+1000 XP for 10 influence)
+  const infl=v.querySelector("[data-cs-intensive]");
+  if(infl) infl.onclick=()=>{
+    const r=(typeof spendInfluence==="function")?spendInfluence(10):{ok:false,err:"No influence system"};
+    if(r.ok){ if(typeof gainXP==="function") gainXP(t.id, 1000, "masterclass intensive"); beep("gold"); flashes(G.flash); characterSheet(CS.id,"stats"); }
+    else { beep("bad"); if(r.err) toast(r.err,"bad"); }
+  };
 }
 
 function csStatsHTML(t,p){
   const align=(DATA.PROTOTYPE_ALIGNMENTS||[]).find(a=>a.id===p.alignment)||{name:p.alignment||"—",emoji:"",desc:""};
+  const moral=(DATA.PROTOTYPE_MORALS||[]).find(a=>a.id===p.moral)||{name:"Neutral",emoji:"🌗",desc:""};
   const eq=(typeof getEquipmentBonuses==="function")?getEquipmentBonuses(t):{quality:0,scandalReduction:0};
   let h="";
-  h+="<div class='card'><div class='spread'><div><b>"+align.emoji+" "+esc(align.name)+"</b>"+
-    "<div class='tiny muted' style='margin-top:2px'>"+esc(align.desc||"")+"</div></div>"+
-    "<div style='text-align:right'><span class='tag gold'>🔥 fame "+(p.fame||0)+"</span> <span class='tag red'>☠ infamy "+(p.infamy||0)+"</span></div></div>"+
+  h+="<div class='card'><div class='spread'><div><b>"+align.emoji+" "+esc(align.name)+" · "+moral.emoji+" "+esc(moral.name)+"</b>"+
+    "<div class='tiny muted' style='margin-top:2px'>"+esc(align.desc||"")+"</div>"+
+    "<div class='tiny muted'>"+esc(moral.desc||"")+"</div></div>"+
+    "<div style='text-align:right'><span class='tag gold'>🔥 fame "+(p.fame||0)+"</span> <span class='tag red'>☠ infamy "+(p.infamy||0)+"</span>"+
+    (p.guild? "<div class='tiny muted' style='margin-top:4px'>🤝 "+esc(((DATA.GUILDS||[]).find(g=>g.id===p.guild)||{}).name||"")+"</div>":"")+
+    "</div></div>"+
     "<div style='margin-top:8px'><div class='cost-line'><span>XP to level "+((p.level||1)+1)+"</span><b>"+Math.round(p.xp||0)+" / "+Math.round(p.xpToNext||1)+"</b></div>"+
     meter(p.xp||0, p.xpToNext||1, "var(--gold)")+"</div>"+
-    "<div class='tiny muted' style='margin-top:4px'>Equipment: +"+eq.quality+" film quality · "+eq.scandalReduction+"% scandal shield</div></div>";
+    "<div class='tiny muted' style='margin-top:4px'>Equipment: +"+eq.quality+" film quality · "+eq.scandalReduction+"% scandal shield"+(eq.xpRate? " · +"+Math.round(eq.xpRate*100)+"% XP rate":"")+"</div>"+
+    "<div class='row' style='gap:6px;margin-top:6px;flex-wrap:wrap'>"+
+      (p.guild
+        ? "<button class='btn btn-xs btn-ghost' data-cs-unguild='1'>Leave "+esc(((DATA.GUILDS||[]).find(g=>g.id===p.guild)||{}).name||"guild")+"</button>"
+        : (DATA.GUILDS||[]).filter(g=>g.kinds.includes(t.kind)).map(g=>"<button class='btn btn-xs btn-alt' data-cs-guild='"+g.id+"' title='Weekly dues $"+g.dues+"M · "+esc(g.perk)+"'>Join "+esc(g.name)+"</button>").join(""))+
+      ((G.studio.influence||0)>=10 ? "<button class='btn btn-xs btn-primary' data-cs-intensive='1' title='Spend 10 influence on a private masterclass'>🌐 Masterclass (+1000 XP · 10 infl)</button>" : "")+
+    "</div></div>";
   const canSpend=(p.skillPoints||0)>0;
   h+="<div class='card' style='margin-top:8px'><div class='spread'><b class='small'>🧬 Attributes</b><span class='tag "+(canSpend?"gold":"")+"'>"+(p.skillPoints||0)+" SP</span></div>";
   (DATA.PROTOTYPE_ATTRIBUTES||[]).forEach(a=>{ h+=csAttrRow(a.id, (p.attributes||{})[a.id]||50, canSpend); });
   h+="<div class='tiny muted'>"+(canSpend? "Spend skill points: +5 to an attribute, or unlock a skill node below." : "Earn XP to level up — each level grants 1 skill point.")+"</div></div>";
-  const tree=(DATA.PROTOTYPE_SKILL_TREES||{})[t.kind];
-  if(tree){
-    h+="<div class='card' style='margin-top:8px'><b class='small'>✨ Skill tree — "+esc(tree.name)+"</b>";
+  // 3 skill branches with selector
+  const branches=skillBranches(t.kind);
+  if(branches.length){
+    CS.branch = CS.branch && branches.some(b=>b.id===CS.branch) ? CS.branch : branches[0].id;
+    const cur=branches.find(b=>b.id===CS.branch);
+    h+="<div class='card' style='margin-top:8px'><b class='small'>✨ Skill trees</b>"+
+      "<div class='row' style='gap:4px;margin:6px 0'>"+branches.map(b=>
+        "<button class='btn btn-xs "+(b.id===CS.branch?"btn-primary":"btn-ghost")+"' data-cs-branch='"+b.id+"'>"+esc(b.name)+"</button>").join("")+"</div>";
     const owned=p.skillTree.nodes||[];
-    tree.nodes.forEach(n=>{
+    cur.nodes.forEach(n=>{
       const isOwned=owned.includes(n.id);
-      const prereqOk=n.req===0 || (tree.nodes[n.req-1] && owned.includes(tree.nodes[n.req-1].id));
+      const prereqOk=n.req===0 || (cur.nodes[n.req-1] && owned.includes(cur.nodes[n.req-1].id));
       h+="<div class='cost-line'><span>"+(isOwned?"✅":prereqOk?"🔓":"🔒")+" "+esc(n.name)+"</span>"+
         (isOwned? "<span class='tag green tiny'>Owned</span>"
                 : "<button class='btn btn-xs "+(prereqOk&&p.skillPoints>=n.cost?"btn-primary":"btn-ghost")+"' data-cs-node='"+n.id+"'>"+(prereqOk? "Unlock · "+n.cost+" SP" : "Locked")+"</button>")+
@@ -6022,6 +6101,22 @@ function csStatsHTML(t,p){
     });
     h+="</div>";
   }
+  // Mentorship panel
+  h+="<div class='card' style='margin-top:8px'><b class='small'>🧑‍🏫 Mentorship</b>";
+  if(p.mentor){
+    const m=(G.talent||[]).find(x=>x.id===p.mentor);
+    h+="<div class='cost-line'><span>Learning from "+esc(m?m.name:"—")+"</span><button class='btn btn-xs btn-ghost' data-cs-unmentor='1'>End</button></div>"+
+      "<div class='tiny muted'>+40 XP/week flows to this talent while the mentorship runs.</div>";
+  } else if(p.mentee){
+    const j=(G.talent||[]).find(x=>x.id===p.mentee);
+    h+="<div class='cost-line'><span>Teaching "+esc(j?j.name:"—")+"</span><button class='btn btn-xs btn-ghost' data-cs-unmentor='1'>End</button></div>"+
+      "<div class='tiny muted'>The mentee gains weekly XP; you gain a little and a loyal ally.</div>";
+  } else {
+    h+="<div class='tiny muted' style='margin:4px 0'>No mentorship yet — open a higher-level talent's sheet to take a mentee, or this talent's sheet on a senior colleague.</div>"+
+      "<div class='row' style='gap:4px'>"+(G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>=(p.level||1)+3 && !x.prototype.mentee).slice(0,3).map(m=>
+        "<button class='btn btn-xs btn-alt' data-cs-mentor='"+m.id+"'>Ask "+esc(m.name.split(" ")[0])+" (Lv "+(m.prototype.level||1)+")</button>").join("")+"</div>";
+  }
+  h+="</div>";
   const ms=p.milestones||[];
   if(ms.length) h+="<div class='tiny muted' style='margin-top:6px'>🏆 "+ms.length+" milestone"+(ms.length===1?"":"s")+" — see the Story tab.</div>";
   return h;
@@ -6029,7 +6124,7 @@ function csStatsHTML(t,p){
 
 function csEquipHTML(t,p){
   let h="";
-  [["weapon","🗡 Weapon"],["armor","🛡 Armor"]].forEach(pair=>{
+  [["weapon","🗡 Weapon"],["armor","🛡 Armor"],["accessory","💎 Accessory"],["prop","🎭 Prop"]].forEach(pair=>{
     const slot=pair[0], label=pair[1];
     const curId=p.equipment[slot];
     const cur=curId? (DATA.PROTOTYPE_EQUIPMENT[slot]||[]).find(i=>i.id===curId) : null;
@@ -6057,18 +6152,28 @@ function csEventsHTML(t,p){
   h+="<div class='card'><b class='small'>📜 Life events</b>"+
     (evs.length? evs.map(e=>"<div class='cost-line'><span>"+(e.icon||"•")+" "+esc(e.desc||e.type)+"</span><b class='tiny muted'>W"+e.week+"</b></div>").join("")
     : "<div class='tiny muted' style='margin-top:4px'>Nothing yet — life events roll each week.</div>")+"</div>";
+  // Relationship web
+  const rels=Object.entries(p.relationships||{}).map(([id,r])=>({ id:+id, ...r }))
+    .map(r=>({ ...r, t:(G.talent||[]).find(x=>x.id===r.id) })).filter(r=>r.t)
+    .sort((a,b)=>Math.abs(b.strength)-Math.abs(a.strength)).slice(0,6);
+  h+="<div class='card' style='margin-top:8px'><b class='small'>🕸 Relationships</b>"+
+    (rels.length? rels.map(r=>{
+      const face = r.strength>=5?"🤜🤛 friend": r.strength<=-5?"⚔️ rival": r.strength>0?"🙂 warm": r.strength<0?"😒 frosty":"➖ neutral";
+      return "<div class='cost-line'><span>"+face+" "+esc(r.t.name)+"</span><b class='tiny muted'>"+(r.strength>0?"+":"")+r.strength+"</b></div>";
+    }).join("")
+    : "<div class='tiny muted' style='margin-top:4px'>No bonds yet — ship films together and the web grows.</div>")+"</div>";
   const ms=(p.milestones||[]).slice().reverse();
   h+="<div class='card' style='margin-top:8px'><b class='small'>🏆 Milestones</b>"+
     (ms.length? ms.map(m=>"<div class='cost-line'><span>"+esc(String(m.type||"").replace(/_/g," "))+(m.project?" — "+esc(m.project):"")+"</span><b class='tiny muted'>W"+m.week+"</b></div>").join("")
     : "<div class='tiny muted' style='margin-top:4px'>Ship a film to earn first credits.</div>")+"</div>";
   const hist=(p.history||[]).slice(-8).reverse();
   h+="<div class='card' style='margin-top:8px'><b class='small'>📈 XP log</b>"+
-    (hist.length? hist.map(x=>"<div class='cost-line'><span>"+(x.amount>=0?"+":"")+x.amount+" XP"+(x.source?" · "+esc(String(x.source).replace("film:","🎬 ").replace("award:","🏆 ")):"")+"</span><b class='tiny muted'>W"+x.week+"</b></div>").join("")
+    (hist.length? hist.map(x=>"<div class='cost-line'><span>"+(x.amount>=0?"+":"")+x.amount+" XP"+(x.source?" · "+esc(String(x.source).replace("film:","🎬 ").replace("award:","🏆 ").replace("mentorship:","🧑‍🏫 ")):"")+"</span><b class='tiny muted'>W"+x.week+"</b></div>").join("")
     : "<div class='tiny muted' style='margin-top:4px'>No XP yet.</div>")+"</div>";
   return h;
 }
 
-/* ── Game Dev Lite: in-house original games (separate from the v16 adaptation studio) ── */
+/* ── Game Dev: GDD-driven in-house originals (separate from the v16 adaptation studio) ── */
 function gameDevLiteHTML(){
   const PD=G.prototypeData||{};
   if(!PD.gameDevUnlocked){
@@ -6079,15 +6184,21 @@ function gameDevLiteHTML(){
   const pr=PD.currentProject;
   if(!pr){
     h+="<div class='card'><div class='spread'><div><b>Start an original game</b>"+
-      "<div class='tiny muted' style='margin-top:4px'>One production line: pre-production → production → launch. Your roster's stats shape quality; phase choices shape cost and sales.</div></div>"+
-      "<button class='btn btn-primary' data-pgdev-start='1'>🎮 Start RPG</button></div></div>";
+      "<div class='tiny muted' style='margin-top:4px'>Write a Game Design Doc: genre × platform × theme × mechanic × business model, then shepherd it through 8 dev phases.</div></div>"+
+      "<button class='btn btn-primary' data-pgdev-gdd='1'>🎮 Write GDD</button></div></div>";
   } else {
-    const phaseDef=((DATA.PROTOTYPE_GAME_DEV||{}).phases||[]).find(x=>x.id===pr.phase)||{};
+    const phases=(DATA.PROTOTYPE_GAME_DEV||{}).phases||[];
+    const phaseIdx=phases.findIndex(x=>x.id===pr.phase);
+    const phaseDef=phases[phaseIdx]||{};
     const pct=Math.round(pr.progress||0);
-    h+="<div class='card'><div class='spread'><div><b>🕹 "+esc(pr.title||"Untitled")+"</b> <span class='tag'>"+esc(phaseDef.name||pr.phase)+"</span>"+
-      "<div class='tiny muted' style='margin-top:4px'>Quality "+Math.round(pr.quality||50)+"/100 · spent "+fmtM(pr.spent||0)+" of "+fmtM(pr.budget||50)+" budget · team "+((pr.team||[]).length)+"</div></div>"+
+    const gdef=(DATA.PROTOTYPE_GAME_DEV.genres||[]).find(g=>g.id===pr.genre)||{};
+    const pdef=(DATA.PROTOTYPE_GAME_DEV.platforms||[]).find(p=>p.id===pr.platform)||{};
+    const mdef=(DATA.PROTOTYPE_GAME_DEV.monetization||[]).find(m=>m.id===pr.monetization)||{};
+    h+="<div class='card'><div class='spread'><div><b>🕹 "+esc(pr.title||"Untitled")+"</b> <span class='tag'>"+(gdef.emoji||"")+" "+esc(gdef.name||pr.genre)+"</span> <span class='tag'>"+(pdef.emoji||"")+" "+esc(pdef.name||pr.platform)+"</span> <span class='tag'>"+(mdef.emoji||"")+" "+esc(mdef.name||pr.monetization)+"</span>"+
+      "<div class='tiny muted' style='margin-top:4px'>Quality "+Math.round(pr.quality||50)+"/100 · spent "+fmtM(pr.spent||0)+" of "+fmtM(pr.budget||50)+" · team "+((pr.team||[]).length)+"</div></div>"+
       "<span class='tag'>"+pct+"%</span></div>"+
-      "<div style='height:8px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden'><div style='height:100%;width:"+pct+"%;background:linear-gradient(90deg,var(--gold),var(--gold2))'></div></div>";
+      "<div style='display:flex;gap:3px;margin-top:8px'>"+phases.map((ph,i)=>
+        "<div style='flex:1;text-align:center' title='"+esc(ph.name)+"'><div style='height:8px;border-radius:4px;background:"+(i<phaseIdx?"var(--green)":i===phaseIdx?"linear-gradient(90deg,var(--gold),var(--gold2) "+pct+"%,rgba(255,255,255,.08) "+pct+"%)":"rgba(255,255,255,.08)")+"'></div><div class='tiny muted' style='font-size:9px;margin-top:2px'>"+esc(ph.name.split(" ")[0])+"</div></div>").join("")+"</div>";
     if(pct>=100){
       h+="<div class='tiny muted' style='margin-top:8px'><b>Phase gate</b> — pick an approach to move forward:</div>";
       (((DATA.PROTOTYPE_GAME_DEV||{}).phaseChoices||{})[pr.phase]||[]).forEach(def=>{
@@ -6096,14 +6207,98 @@ function gameDevLiteHTML(){
         h+="</div>";
       });
     } else {
-      h+="<div class='tiny muted' style='margin-top:6px'>In development — advancing weeks makes progress. Phase choices unlock at 100%.</div>";
+      h+="<div class='tiny muted' style='margin-top:6px'>"+esc(phaseDef.desc||"In development")+" — advancing weeks makes progress. Choices unlock at 100%.</div>";
     }
     h+="</div>";
   }
-  (PD.releasedGames||[]).slice(-4).reverse().forEach(g=>{
-    h+="<div class='card'><div class='spread'><div><b>🎮 "+esc(g.title||"Game")+"</b> <span class='tag'>launched W"+(g.launchedWeek||0)+"</span>"+
-      "<div class='tiny muted'>Quality "+(g.quality||0)+"/100 · earned "+fmtM(g.revenue||0)+"</div></div>"+
+  (PD.releasedGames||[]).slice(-5).reverse().forEach(g=>{
+    const mdef=(DATA.PROTOTYPE_GAME_DEV.monetization||[]).find(m=>m.id===g.monetization)||{};
+    h+="<div class='card'><div class='spread'><div><b>🎮 "+esc(g.title||"Game")+"</b>"+(g.goty?" <span class='tag gold'>🏆 GOTY</span>":"")+" <span class='tag'>"+(mdef.emoji||"")+" "+esc(mdef.name||g.monetization||"")+"</span> <span class='tag'>launched W"+(g.launchedWeek||0)+"</span>"+
+      "<div class='tiny muted'>Quality "+(g.quality||0)+"/100 · "+fmtM(g.salesTotal||0)+" earned"+(g.salesLeft>0? " · +"+fmtM(g.weeklyBase||0)+"/wk for "+g.salesLeft+" more wks":" · tail ended")+
+      ((g.liveOps||[]).length? " · "+(g.liveOps||[]).length+" live-ops events":"")+"</div></div>"+
       "<div style='font-size:18px;font-weight:700' class='"+((g.quality||0)>=70?"pos":(g.quality||0)<45?"neg":"gold")+"'>"+(g.quality||0)+"/100</div></div></div>";
   });
   return h;
+}
+
+/* GDD modal: genre × platform × theme × mechanic × monetization + title + team */
+let GDD=null;
+function gameDevGDDModal(){
+  const GD=DATA.PROTOTYPE_GAME_DEV;
+  GDD=GDD||{ genre:"rpg", platform:"pc", theme:"fantasy", mechanic:"narrative", monetization:"premium", title:"", team:[] };
+  const g=GD.genres.find(x=>x.id===GDD.genre)||GD.genres[0];
+  const p=GD.platforms.find(x=>x.id===GDD.platform)||GD.platforms[0];
+  const themeFit=(GD.themes.find(t=>t.id===GDD.theme)||{fit:[]}).fit.includes(GDD.genre);
+  const mechFit=(GD.mechanics.find(m=>m.id===GDD.mechanic)||{fit:[]}).fit.includes(GDD.genre);
+  const budget=Math.round(50*g.costMult*p.costMult);
+  let h="<h3>📋 Game Design Doc</h3>";
+  h+="<input type='text' id='gddTitle' placeholder='Working title (optional)' maxlength='40' value='"+esc(GDD.title)+"' style='width:100%;padding:9px 12px;border-radius:10px;background:#0b0f18;border:1px solid var(--line2);color:var(--text);margin-bottom:8px'>";
+  h+=gddRow("Genre", GD.genres.map(x=>({id:x.id, label:x.emoji+" "+x.name, title:x.blurb})), "genre");
+  h+=gddRow("Platform", GD.platforms.map(x=>({id:x.id, label:x.emoji+" "+x.name, title:"cost ×"+x.costMult+" · reach ×"+x.reach})), "platform");
+  h+=gddRow("Theme", GD.themes.map(x=>({id:x.id, label:x.emoji+" "+x.name, title:(x.fit.includes(GDD.genre)?"✓ fits "+g.name:"no synergy")})), "theme");
+  h+=gddRow("Core Mechanic", GD.mechanics.map(x=>({id:x.id, label:x.emoji+" "+x.name, title:(x.fit.includes(GDD.genre)?"✓ fits "+g.name:"no synergy")})), "mechanic");
+  h+=gddRow("Business Model", GD.monetization.map(x=>({id:x.id, label:x.emoji+" "+x.name, title:x.desc})), "monetization");
+  h+="<div class='card' style='margin-top:8px'><div class='cost-line'><span>Dev budget</span><b>"+fmtM(budget)+"</b></div>"+
+    "<div class='cost-line'><span>GDD synergy</span><b class='"+(themeFit&&mechFit?"pos":themeFit||mechFit?"gold":"neg")+"'>"+(themeFit?"theme ✓ ":"")+(mechFit?"mechanic ✓":"")+(themeFit&&mechFit?" — strong concept":(themeFit||mechFit)?"partial fit":"no fit — quality will suffer")+"</b></div></div>";
+  h+="<div class='card' style='margin-top:8px'><b class='small'>👥 Team</b> <span class='tiny muted'>(pick up to 5 — their RPG stats shape quality)</span>"+
+    "<div class='row' style='gap:4px;margin-top:6px;flex-wrap:wrap'>"+(G.talent||[]).slice(0,12).map(t=>
+      "<button class='btn btn-xs "+(GDD.team.includes(t.id)?"btn-primary":"btn-ghost")+"' data-gdd-team='"+t.id+"'>"+esc(t.name.split(" ")[0])+" Lv"+((t.prototype||{}).level||1)+"</button>").join("")+"</div></div>";
+  h+="<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Cancel</button>"+
+    "<button class='btn btn-primary' id='gddGo'>🎮 Greenlight Game</button></div>";
+  const v=openModal(h);
+  v.querySelector("#gddTitle").oninput=e=>{ GDD.title=e.target.value; };
+  v.querySelectorAll("[data-gdd]").forEach(b=>b.onclick=()=>{ GDD[b.dataset.gdd]=b.dataset.gddVal; beep("click"); gameDevGDDModal(); });
+  v.querySelectorAll("[data-gdd-team]").forEach(b=>b.onclick=()=>{
+    const id=+b.dataset.gddTeam;
+    if(GDD.team.includes(id)) GDD.team=GDD.team.filter(x=>x!==id);
+    else if(GDD.team.length<5) GDD.team.push(id);
+    beep("click"); gameDevGDDModal();
+  });
+  v.querySelector("#gddGo").onclick=()=>{
+    const r=startGameDevProject({...GDD, team: GDD.team});
+    if(r.ok){ GDD=null; beep("gold"); flashes(G.flash); closeModal(); render(); }
+    else { beep("bad"); if(r.err) toast(r.err,"bad"); }
+  };
+}
+function gddRow(label, options, key){
+  return "<div class='small muted' style='margin-top:8px'><b>"+label+"</b></div><div class='row' style='gap:4px;margin-top:2px;flex-wrap:wrap'>"+
+    options.map(o=>"<button class='btn btn-xs "+(GDD[key]===o.id?"btn-primary":"btn-ghost")+"' data-gdd='"+key+"' data-gdd-val='"+o.id+"' title='"+esc(o.title||"")+"'>"+esc(o.label)+"</button>").join("")+"</div>";
+}
+
+/* ── v27: privacy & data controls (GDPR-style; everything is device-local) ── */
+function privacyModal(consent){
+  let h="";
+  if(consent) h+="<h3>👋 Welcome to Box Office War</h3>";
+  else h+="<h3>🔒 Privacy &amp; Your Data</h3>";
+  h+="<div class='card'><b class='small'>What we store</b>"+
+    "<div class='tiny muted' style='margin-top:4px'>Your saves, settings and game progress live <b>only in this browser</b> (localStorage + optional IndexedDB cloud slot). There are no accounts, no analytics, no trackers, no third-party requests from the game itself.</div></div>"+
+    "<div class='card' style='margin-top:8px'><b class='small'>Your controls</b>"+
+    "<div class='row' style='gap:6px;margin-top:6px;flex-wrap:wrap'>"+
+      "<button class='btn btn-sm btn-alt' id='pvExport'>⬇️ Export all data (JSON)</button>"+
+      "<button class='btn btn-sm btn-ghost' id='pvWipe'>🗑️ Delete everything</button>"+
+    "</div>"+
+    "<div class='tiny muted' style='margin-top:6px'>Export downloads every save slot, setting and slot name as one JSON file. Delete wipes all Box Office War keys from this device and reloads — permanent, so export first.</div></div>"+
+    "<div class='tiny muted' style='margin-top:8px'>Playing offline changes nothing: the game never phones home.</div>"+
+    "<div class='modal-actions'><button class='btn btn-primary' id='pvOk'>"+(consent? "Got it — let's make movies":"Done")+"</button></div>";
+  const v=openModal(h,{noX:!!consent, locked:!!consent});
+  v.querySelector("#pvOk").onclick=()=>{ try{ localStorage.setItem("bow_privacy_ok","1"); }catch(e){} closeModal(); if(consent) helpModal(); };
+  v.querySelector("#pvExport").onclick=()=>{
+    const dump={};
+    for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.startsWith("bow_")) dump[k]=localStorage.getItem(k); }
+    const blob=new Blob([JSON.stringify(dump,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="box-office-war-export-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("⬇️ Data exported — check your downloads.","good"); beep("gold");
+  };
+  v.querySelector("#pvWipe").onclick=()=>{
+    const really=confirm("Delete ALL Box Office War data on this device? This cannot be undone.");
+    if(!really) return;
+    const keys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.startsWith("bow_")) keys.push(k); }
+    keys.forEach(k=>localStorage.removeItem(k));
+    if(typeof indexedDB!=="undefined" && indexedDB.deleteDatabase){ try{ indexedDB.deleteDatabase("bow_idb"); }catch(e){} }
+    toast("🗑️ All local data deleted.","bad");
+    setTimeout(()=>location.reload(), 400);
+  };
 }

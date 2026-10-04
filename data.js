@@ -530,8 +530,17 @@ DATA.ACH = [
   {id:"ipo",       icon:"🔔", name:"Going Public",    desc:"Ring the bell — complete an IPO",       check:G=>!!G.ipo},
   {id:"year3",     icon:"⏳", name:"Survivor",        desc:"Reach Year 3",                          check:G=>yearOf(G.week)>=3},
   {id:"warchest",  icon:"🏦", name:"War Chest",       desc:"$500M cash with no debt",               check:G=>G.studio.cash>=500&&G.studio.debt<=0.5},
-  {id:"fullslate", icon:"🖐", name:"Full Slate",      desc:"5 of your films in theaters same week", check:G=>G.films.filter(f=>f.inTheaters).length>=5},
-];
+   {id:"fullslate", icon:"🖐", name:"Full Slate",      desc:"5 of your films in theaters same week", check:G=>G.films.filter(f=>f.inTheaters).length>=5},
+   /* ── v27 RPG + game dev achievements ── */
+   {id:"level10",   icon:"⭐", name:"A-List Evolution", desc:"Raise a talent to Level 10",           check:G=>(G.talent||[]).some(t=>t.prototype&&t.prototype.level>=10)},
+   {id:"games3",    icon:"🕹", name:"Triple Play",      desc:"Launch 3 in-house games",              check:G=>((G.prototypeData||{}).releasedGames||[]).length>=3},
+   {id:"mentor",    icon:"🧑‍🏫", name:"Passing the Torch", desc:"Run an active mentorship",            check:G=>(G.talent||[]).some(t=>t.prototype&&t.prototype.mentor)},
+   {id:"slots4",    icon:"🎒", name:"Fully Kitted",     desc:"All 4 equipment slots filled on one talent", check:G=>(G.talent||[]).some(t=>t.prototype&&t.prototype.equipment&&Object.values(t.prototype.equipment).every(Boolean))},
+   {id:"genres7",   icon:"🧭", name:"Genre Explorer",   desc:"Launch in-house games in 4 different genres", check:G=>new Set(((G.prototypeData||{}).releasedGames||[]).map(g=>g.genre)).size>=4},
+   {id:"influence", icon:"🌐", name:"Power Broker",     desc:"Bank 50 influence",                    check:G=>(G.studio||{}).influence>=50},
+   {id:"guilded",   icon:"🤝", name:"Union Made",       desc:"3 talents in their guilds",            check:G=>(G.talent||[]).filter(t=>t.prototype&&t.prototype.guild).length>=3},
+   {id:"liveops",   icon:"🔧", name:"Games as a Service", desc:"Run 3 live-ops events on one game",  check:G=>((G.prototypeData||{}).releasedGames||[]).some(g=>(g.liveOps||[]).length>=3)}
+ ];
 
 /* ── Fictional "real world" flavor news (rival headlines) ── */
 DATA.FLAVOR = [
@@ -858,6 +867,10 @@ DATA.TUT_STEPS = [
    text:"Your film is in the can! In Productions tap Theatrical Release, set your P&A, and pick a clean weekend — summer and the holidays open bigger; rival tentpoles split the audience."},
   {icon:"📊", title:"Cash the receipts", until:"released",
    text:"Rentals (~53% of domestic gross) arrive every week it plays. Track it in 📊 Box Office and read the itemized P&L in 💼 Finance. Cash beats everything."},
+  {icon:"📊", title:"Level up your people", until:"rpg_sheet",
+   text:"Every talent is an RPG character now. Open a 📊 RPG sheet on the Develop tab — spend skill points, gear up, and watch XP flow from every release."},
+  {icon:"🎮", title:"Games beyond adaptations", until:"game_gdd",
+   text:"At rep 40 & $250M cash the games tab unlocks In-House Originals — write a GDD (genre × platform × theme × model) and ship your own IP."}
 ];
 DATA.TUT_REWARD = { rep:1, text:"🎓 Tutorial complete — +1 rep. Now go build an empire." };
 
@@ -1216,12 +1229,28 @@ DATA.RIVAL_MEMORY = {
    PROTOTYPE RPG CHARACTER SYSTEM DATA
    ════════════════════════════════════════════════════════ */
 
-// 3-axis alignment system (Lawful/Neutral/Chaotic)
+// 3-axis alignment system (Lawful/Neutral/Chaotic) + moral axis (Good/Neutral/Evil) = 9-grid
 DATA.PROTOTYPE_ALIGNMENTS = [
   {id:"lawful", name:"Lawful", emoji:"⚖️", desc:"Order, tradition, hierarchy. +10% contract compliance, -10% creative freedom"},
   {id:"neutral", name:"Neutral", emoji:"⚪", desc:"Balance, pragmatism. No alignment bonuses or penalties"},
   {id:"chaotic", name:"Chaotic", emoji:"🌪️", desc:"Freedom, innovation, rebellion. +15% creative output, -15% schedule adherence"}
 ];
+DATA.PROTOTYPE_MORALS = [
+  {id:"kind", name:"Good", emoji:"☀️", desc:"Beloved professional. +fan loyalty, scandals fade 25% faster, asks +5%"},
+  {id:"neutral", name:"Neutral", emoji:"🌗", desc:"No moral lean. No bonuses or penalties"},
+  {id:"ruthless", name:"Ruthless", emoji:"🌑", desc:"Feared operator. +negotiation power (fees −5%), +scandal risk, rivals respect them"}
+];
+// 9-grid effects: [lawful][kind] → production + personal modifiers
+DATA.PROTOTYPE_ALIGNMENT_GRID = {
+  lawful:   { kind: { contractCompliance:0.10, creativeFreedom:-0.10, scheduleAdherence:0.05 }, ruthless:{}, neutral:{} },
+  neutral:  { kind: {}, neutral:{}, ruthless:{} },
+  chaotic:  { kind: { contractCompliance:-0.05, creativeFreedom:0.15, scheduleAdherence:-0.15 }, ruthless:{}, neutral:{} }
+};
+DATA.PROTOTYPE_MORAL_EFFECTS = {
+  kind:     { scandalDecay: 0.25, fanLoyalty: 0.10, feeMult: 1.05 },
+  neutral:  { scandalDecay: 0, fanLoyalty: 0, feeMult: 1 },
+  ruthless: { scandalDecay: -0.25, feeMult: 0.95, scandalRisk: 0.15 }
+};
 
 // 5 core attributes (1-100 scale)
 DATA.PROTOTYPE_ATTRIBUTES = [
@@ -1232,9 +1261,9 @@ DATA.PROTOTYPE_ATTRIBUTES = [
   {id:"luk", name:"Luck", emoji:"🍀", desc:"Random event modifiers, serendipity"}
 ];
 
-// XP curve: XP = 1000 * level^1.5
-DATA.PROTOTYPE_XP_CURVE = 1.5;
-DATA.PROTOTYPE_BASE_XP = 1000;
+// XP curve: XP = BASE * level^1.35 (softened in v27 balance pass)
+DATA.PROTOTYPE_XP_CURVE = 1.35;
+DATA.PROTOTYPE_BASE_XP = 800;
 
 // 3-axis alignment effects on production
 DATA.PROTOTYPE_ALIGNMENT_EFFECTS = {
@@ -1249,7 +1278,7 @@ DATA.PROTOTYPE_ATTRIBUTE_DEFAULTS = { cha: 50, int: 50, cre: 50, dis: 50, luk: 5
 // 3-axis alignment for talents
 DATA.PROTOTYPE_ALIGNMENT_OPTIONS = ["lawful", "neutral", "chaotic"];
 
-// Equipment system (2 slots: Weapon, Armor) - 5 rarities
+// Equipment system (4 slots: Weapon, Armor, Accessory, Prop) - 5 rarities
 DATA.PROTOTYPE_EQUIPMENT = {
   weapon: [
     { id: "script_basic", name: "Basic Script", rarity: "common", quality: 5, cost: 1 },
@@ -1264,6 +1293,20 @@ DATA.PROTOTYPE_EQUIPMENT = {
     { id: "pr_crisis", name: "Crisis Manager", rarity: "rare", scandalReduction: 25, cost: 15 },
     { id: "pr_elite", name: "Elite Firm", rarity: "epic", scandalReduction: 40, cost: 40 },
     { id: "pr_legendary", name: "Legendary Fixer", rarity: "legendary", scandalReduction: 60, cost: 100 }
+  ],
+  accessory: [
+    { id: "acc_lucky_pen", name: "Lucky Fountain Pen", rarity: "common", luk: 2, cost: 1 },
+    { id: "acc_wardrobe", name: "Signature Wardrobe", rarity: "uncommon", cha: 4, cost: 5 },
+    { id: "acc_watch", name: "Legendary Watch", rarity: "rare", cha: 6, luk: 4, cost: 15 },
+    { id: "acc_entourage", name: "Loyal Entourage", rarity: "epic", cha: 8, dis: 4, cost: 40 },
+    { id: "acc_mythic", name: "Mythmaker Ring", rarity: "legendary", cha: 10, luk: 8, xpRate: 0.10, cost: 100 }
+  ],
+  prop: [
+    { id: "prop_planner", name: "Bullet Planner", rarity: "common", dis: 2, cost: 1 },
+    { id: "prop_coach", name: "Acting Coach", rarity: "uncommon", dis: 4, int: 2, cost: 5 },
+    { id: "prop_muse", name: "Personal Muse", rarity: "rare", cre: 6, cost: 15 },
+    { id: "prop_archive", name: "Idea Archive", rarity: "epic", cre: 8, int: 4, cost: 40 },
+    { id: "prop_grimoire", name: "Craft Grimoire", rarity: "legendary", int: 8, cre: 8, xpRate: 0.15, cost: 100 }
   ]
 };
 
@@ -1276,39 +1319,85 @@ DATA.PROTOTYPE_RARITY = {
   legendary: { color: "#fd0", multiplier: 5.0 }
 };
 
-// Skill tree branches (1 per talent type)
+// Skill trees — 3 branches per talent type (Phase 1 full scope)
 DATA.PROTOTYPE_SKILL_TREES = {
   actor: {
-    name: "Star Power",
-    nodes: [
-      { id: "charisma_1", name: "Charisma Boost I", cost: 2, effect: { cha: 5 }, req: 0 },
-      { id: "charisma_2", name: "Charisma Boost II", cost: 4, effect: { cha: 10 }, req: 1 },
-      { id: "audience_draw", name: "Audience Draw", cost: 5, effect: { openingBonus: 0.10 }, req: 2 },
-      { id: "franchise_anchor", name: "Franchise Anchor", cost: 8, effect: { sequelNegotiation: 0.25 }, req: 3 }
+    branches: [
+      { id:"star", name:"Star Power", nodes: [
+        { id: "charisma_1", name: "Charisma Boost I", cost: 2, effect: { cha: 5 }, req: 0 },
+        { id: "charisma_2", name: "Charisma Boost II", cost: 4, effect: { cha: 10 }, req: 1 },
+        { id: "audience_draw", name: "Audience Draw", cost: 5, effect: { openingBonus: 0.10 }, req: 2 },
+        { id: "franchise_anchor", name: "Franchise Anchor", cost: 8, effect: { sequelNegotiation: 0.25 }, req: 3 }
+      ]},
+      { id:"method", name:"Method Craft", nodes: [
+        { id: "m_immerse", name: "Deep Immersion", cost: 2, effect: { int: 4 }, req: 0 },
+        { id: "m_range", name: "Chameleon Range", cost: 4, effect: { cre: 6 }, req: 1 },
+        { id: "m_critdar", name: "Critic Darling", cost: 5, effect: { criticBonus: 0.10 }, req: 2 },
+        { id: "m_transformation", name: "The Transformation", cost: 8, effect: { genreQuality: 0.15, criticBonus: 0.05 }, req: 3 }
+      ]},
+      { id:"magnet", name:"Box Office Magnet", nodes: [
+        { id: "b_openings", name: "Opening Magnet", cost: 2, effect: { openingBonus: 0.05 }, req: 0 },
+        { id: "b_intl", name: "International Pull", cost: 4, effect: { intlBonus: 0.08 }, req: 1 },
+        { id: "b_payday", name: "Backend Player", cost: 5, effect: { backendEase: 0.20 }, req: 2 },
+        { id: "b_event", name: "Event Film Status", cost: 8, effect: { openingBonus: 0.15, intlBonus: 0.10 }, req: 3 }
+      ]}
     ]
   },
   director: {
-    name: "Visual Storytelling",
-    nodes: [
-      { id: "visual_style", name: "Visual Style I", cost: 2, effect: { cre: 5 }, req: 0 },
-      { id: "auteur_sig", name: "Auteur Signature", cost: 5, effect: { criticBonus: 0.10 }, req: 1 },
-      { id: "genre_mastery", name: "Genre Mastery", cost: 8, effect: { genreQuality: 0.20 }, req: 2 }
+    branches: [
+      { id:"visual", name:"Visual Storytelling", nodes: [
+        { id: "visual_style", name: "Visual Style I", cost: 2, effect: { cre: 5 }, req: 0 },
+        { id: "auteur_sig", name: "Auteur Signature", cost: 5, effect: { criticBonus: 0.10 }, req: 1 },
+        { id: "genre_mastery", name: "Genre Mastery", cost: 8, effect: { genreQuality: 0.20 }, req: 2 }
+      ]},
+      { id:"whisperer", name:"Actor Whisperer", nodes: [
+        { id: "w_trust", name: "Set Trust", cost: 2, effect: { cha: 4 }, req: 0 },
+        { id: "w_perf", name: "Career Performances", cost: 5, effect: { castLift: 0.15 }, req: 1 },
+        { id: "w_ensemble", name: "Ensemble Alchemy", cost: 8, effect: { castLift: 0.10, criticBonus: 0.08 }, req: 2 }
+      ]},
+      { id:"tech", name:"Technical Innovation", nodes: [
+        { id: "t_schedules", name: "Shot-list Discipline", cost: 2, effect: { dis: 5 }, req: 0 },
+        { id: "t_fx", name: "FX Innovation", cost: 5, effect: { genreQuality: 0.10 }, req: 1 },
+        { id: "t_under_budget", name: "Under-Budget Wizard", cost: 8, effect: { overrunReduction: 0.20, scheduleAdherence: 0.10 }, req: 2 }
+      ]}
     ]
   },
   writer: {
-    name: "Craft Mastery",
-    nodes: [
-      { id: "script_craft", name: "Script Craft I", cost: 2, effect: { int: 5 }, req: 0 },
-      { id: "dialogue_master", name: "Dialogue Master", cost: 5, effect: { scriptQuality: 0.15 }, req: 1 },
-      { id: "genre_spec", name: "Genre Specialist", cost: 8, effect: { genreScriptBonus: 0.20 }, req: 2 }
+    branches: [
+      { id:"craft", name:"Craft Mastery", nodes: [
+        { id: "script_craft", name: "Script Craft I", cost: 2, effect: { int: 5 }, req: 0 },
+        { id: "dialogue_master", name: "Dialogue Master", cost: 5, effect: { scriptQuality: 0.15 }, req: 1 },
+        { id: "genre_spec", name: "Genre Specialist", cost: 8, effect: { genreScriptBonus: 0.20 }, req: 2 }
+      ]},
+      { id:"voice", name:"Distinct Voice", nodes: [
+        { id: "v_perspective", name: "Fresh Perspective", cost: 2, effect: { cre: 5 }, req: 0 },
+        { id: "v_prestige", name: "Prestige Pen", cost: 5, effect: { criticBonus: 0.12 }, req: 1 },
+        { id: "v_original", name: "Totally Original", cost: 8, effect: { genreScriptBonus: 0.12, scriptQuality: 0.10 }, req: 2 }
+      ]},
+      { id:"bankable", name:"Bankable Pages", nodes: [
+        { id: "k_hook", name: "Killer Hook", cost: 2, effect: { openingBonus: 0.05 }, req: 0 },
+        { id: "k_leaning", name: "Four-Quadrant Polish", cost: 5, effect: { intlBonus: 0.08 }, req: 1 },
+        { id: "k_universe", name: "Universe Builder", cost: 8, effect: { sequelNegotiation: 0.15, scriptQuality: 0.08 }, req: 2 }
+      ]}
     ]
   },
   producer: {
-    name: "Dealmaking",
-    nodes: [
-      { id: "budget_wizard", name: "Budget Wizard I", cost: 2, effect: { dis: 5 }, req: 0 },
-      { id: "schedule_master", name: "Schedule Master", cost: 5, effect: { overrunReduction: 0.10 }, req: 1 },
-      { id: "studio_whisperer", name: "Studio Whisperer", cost: 8, effect: { greenlightBoost: 0.15 }, req: 2 }
+    branches: [
+      { id:"dealmaking", name:"Dealmaking", nodes: [
+        { id: "budget_wizard", name: "Budget Wizard I", cost: 2, effect: { dis: 5 }, req: 0 },
+        { id: "schedule_master", name: "Schedule Master", cost: 5, effect: { overrunReduction: 0.10 }, req: 1 },
+        { id: "studio_whisperer", name: "Studio Whisperer", cost: 8, effect: { greenlightBoost: 0.15 }, req: 2 }
+      ]},
+      { id:"logistics", name:"Iron Logistics", nodes: [
+        { id: "l_permits", name: "Permits Whisperer", cost: 2, effect: { dis: 4 }, req: 0 },
+        { id: "l_bond", name: "Completion Bond", cost: 5, effect: { overrunReduction: 0.15 }, req: 1 },
+        { id: "l_army", name: "Crew Army", cost: 8, effect: { scheduleAdherence: 0.15, overrunReduction: 0.10 }, req: 2 }
+      ]},
+      { id:"money", name:"Money Machine", nodes: [
+        { id: "m_rebates", name: "Rebate Hunter", cost: 2, effect: { dis: 3 }, req: 0 },
+        { id: "m_cofin", name: "Co-Finance Network", cost: 5, effect: { greenlightBoost: 0.10 }, req: 1 },
+        { id: "m_pre_sales", name: "Pre-Sales Ace", cost: 8, effect: { intlBonus: 0.10, greenlightBoost: 0.08 }, req: 2 }
+      ]}
     ]
   }
 };
@@ -1341,17 +1430,88 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "Social media controversy erupts"
     ],
     effects: { rep: -10, fame: 5, scandal: 15, infamy: 10 }
+  },
+  { type: "social", weight: 25, icon: "🤝", desc: "Industry Buzz",
+    templates: [
+      "Spotted lunching with {name} — collaboration rumors swirl",
+      "Praises {name}'s latest work in an interview",
+      "{name} sends a public thank-you gift",
+      "Co-hosts a charity gala with {name}"
+    ],
+    effects: { xp: 80, fame: 2 },
+    social: { with: "collaborator", bond: 2 }
+  },
+  { type: "mentorship", weight: 15, icon: "🧑‍🏫", desc: "Craft Moment",
+    templates: [
+      "Late-night script session with {name} pays off",
+      "Shadows {name} on set to study the craft",
+      "{name} shares hard-won career advice",
+      "Runs lines with {name} until dawn"
+    ],
+    effects: { xp: 150 },
+    social: { with: "mentor", bond: 3 }
+  },
+  { type: "feud", weight: 10, icon: "⚡", desc: "Creative Tension",
+    templates: [
+      "Clashes with {name} over a rewritten scene",
+      "Press asks about the {name} rivalry — handles it badly",
+      "{name} takes a swing at their process in an interview",
+      "Walks off a shared project after creative differences with {name}"
+    ],
+    effects: { xp: 40, rep: -2, fame: 3 },
+    social: { with: "collaborator", bond: -3 }
   }
 ];
 
-// Game Dev Lite (single project)
+// Game Dev full expansion (single active project, 8 dev phases, GDD, 7 genres, 5 platforms)
 DATA.PROTOTYPE_GAME_DEV = {
-  genres: ["rpg"],
-  platforms: ["pc"],
+  genres: [
+    { id:"rpg", name:"RPG", emoji:"⚔️", costMult:1.2, quality:0.05, blurb:"Deep systems, long dev, devoted fans" },
+    { id:"strategy", name:"Strategy", emoji:"♟️", costMult:1.0, quality:0.03, blurb:"Systems-heavy, critics love polish" },
+    { id:"sim", name:"Simulation", emoji:"🏗️", costMult:1.1, quality:0.04, blurb:"Slow burn, strong long tail" },
+    { id:"roguelike", name:"Roguelike", emoji:"💀", costMult:0.8, quality:0.02, blurb:"Cheap, replayable, cult appeal" },
+    { id:"horror", name:"Horror", emoji:"👻", costMult:0.7, quality:0.0, blurb:"Low cost, spiky word of mouth" },
+    { id:"puzzle", name:"Puzzle", emoji:"🧩", costMult:0.5, quality:-0.05, blurb:"Tiny budgets, mobile darling" },
+    { id:"sports", name:"Sports", emoji:"🏟️", costMult:1.3, quality:0.0, blurb:"Annualized, license-hungry, reliable" }
+  ],
+  platforms: [
+    { id:"pc", name:"PC", emoji:"🖥️", costMult:1.0, reach:1.0, price:1.0 },
+    { id:"console", name:"Console", emoji:"🎮", costMult:1.4, reach:1.2, price:1.2 },
+    { id:"mobile", name:"Mobile", emoji:"📱", costMult:0.6, reach:1.8, price:0.4 },
+    { id:"hybrid", name:"Hybrid Handheld", emoji:"🔀", costMult:1.1, reach:1.1, price:1.1 },
+    { id:"cloud", name:"Cloud Streaming", emoji:"☁️", costMult:0.9, reach:1.4, price:0.7 }
+  ],
+  themes: [
+    { id:"fantasy", name:"High Fantasy", emoji:"🐉", fit:["rpg","strategy"], quality:0.05 },
+    { id:"scifi", name:"Sci-Fi", emoji:"🚀", fit:["strategy","roguelike"], quality:0.05 },
+    { id:"noir", name:"Noir", emoji:"🕵️", fit:["horror","puzzle"], quality:0.05 },
+    { id:"cozy", name:"Cozy", emoji:"🌻", fit:["sim","puzzle"], quality:0.05 },
+    { id:"gritty", name:"Gritty Realism", emoji:"🩸", fit:["sports","horror"], quality:0.05 }
+  ],
+  mechanics: [
+    { id:"turnbased", name:"Turn-Based Depth", emoji:"🎯", fit:["strategy","rpg"], quality:0.06 },
+    { id:"realtime", name:"Real-Time Action", emoji:"⚡", fit:["roguelike","sports"], quality:0.06 },
+    { id:"building", name:"Base Building", emoji:"🧱", fit:["sim","strategy"], quality:0.06 },
+    { id:"narrative", name:"Story-Driven", emoji:"📖", fit:["rpg","horror"], quality:0.06 },
+    { id:"procedural", name:"Procedural Generation", emoji:"🎲", fit:["roguelike","puzzle"], quality:0.06 }
+  ],
+  monetization: [
+    { id:"premium", name:"Premium", emoji:"💳", desc:"One price. Steady tail, no boost.", mult:1.0, tail:12, spike:0 },
+    { id:"premium_dlc", name:"Premium + DLC", emoji:"📦", desc:"Paid expansions refresh the tail twice.", mult:1.0, tail:16, spike:0.5 },
+    { id:"f2p_iap", name:"Free-to-Play + IAP", emoji:"🎁", desc:"Huge reach, whale revenue, review risk.", mult:1.5, tail:20, spike:0.8, qualityPenalty:8 },
+    { id:"subscription", name:"Subscription (Game Pass)", emoji:"🎫", desc:"Flat license up front, small tail.", mult:0.6, tail:6, upfront:1.6 },
+    { id:"ad_supported", name:"Ad-Supported", emoji:"📺", desc:"Free game, ad pennies pile up.", mult:0.8, tail:18, spike:0.2, qualityPenalty:4 },
+    { id:"freemium", name:"Freemium", emoji:"🪙", desc:"Base free, cosmetics paid.", mult:1.2, tail:15, spike:0.4 }
+  ],
   phases: [
-    { id: "pre", name: "Pre-production", duration: 4, costMult: 0.2, desc: "Concept, prototype, team hiring" },
-    { id: "prod", name: "Production", duration: 8, costMult: 0.6, desc: "Core development, asset creation" },
-    { id: "launch", name: "Launch", duration: 2, costMult: 0.2, desc: "Polish, certification, marketing push" }
+    { id:"pre", name:"Pre-production", duration: 3, costMult: 0.10, desc: "Concept, GDD, team hiring" },
+    { id:"prototype", name:"Prototype", duration: 3, costMult: 0.10, desc: "Core loop on screen" },
+    { id:"vertical", name:"Vertical Slice", duration: 4, costMult: 0.15, desc: "One polished level proves the game" },
+    { id:"alpha", name:"Alpha", duration: 5, costMult: 0.20, desc: "Feature complete, rough everywhere" },
+    { id:"beta", name:"Beta", duration: 5, costMult: 0.15, desc: "Content complete, bug hunting" },
+    { id:"content", name:"Content Complete", duration: 4, costMult: 0.10, desc: "Final art, audio, localization" },
+    { id:"gold", name:"Gold Master", duration: 3, costMult: 0.10, desc: "Certification, day-one patch" },
+    { id:"launch", name:"Launch", duration: 2, costMult: 0.10, desc: "Marketing push, release" }
   ],
   phaseChoices: {
     pre: [
@@ -1366,27 +1526,66 @@ DATA.PROTOTYPE_GAME_DEV = {
         { id: "large", label: "Large Team", desc: "40 people, +50% cost, +20% velocity", fx: { cost: 0.5, velocity: 0.20 } }
       ]}
     ],
-    prod: [
-      { id: "scope_creep", label: "Scope Changes", options: [
-        { id: "strict", label: "Strict Scope", desc: "No changes, -10% features, +20% schedule adherence", fx: { quality: -0.10, velocity: 0.20 } },
-        { id: "managed", label: "Managed Changes", desc: "Controlled additions, balanced", fx: {} },
-        { id: "flexible", label: "Flexible Scope", desc: "Add features freely, +25% features, -20% schedule", fx: { quality: 0.25, velocity: -0.20 } }
-      ]},
-      { id: "quality", label: "Quality Focus", options: [
-        { id: "polish", label: "Polish Focus", desc: "Extra QA, -10% speed, +15% quality", fx: { velocity: -0.10, quality: 0.15 } },
-        { id: "balanced", label: "Balanced", desc: "Standard QA", fx: {} },
-        { id: "speed", label: "Speed Focus", desc: "Ship fast, -15% quality, +20% speed", fx: { quality: -0.15, velocity: 0.20 } }
+    prototype: [
+      { id: "core_loop", label: "Core Loop", options: [
+        { id: "tight_loop", label: "Tight Loop", desc: "Small and fun, +velocity, -features", fx: { velocity: 0.15, quality: -0.05 } },
+        { id: "systems_loop", label: "Systems Soup", desc: "Everything at once, slow start, +quality", fx: { velocity: -0.15, quality: 0.10 } }
       ]}
-],
+    ],
+    vertical: [
+      { id: "art_style", label: "Art Direction", options: [
+        { id: "stylized", label: "Stylized", desc: "Cheaper, timeless look", fx: { cost: -0.10, quality: 0.0 } },
+        { id: "realistic", label: "Realistic", desc: "Expensive, impressive", fx: { cost: 0.25, quality: 0.10 } }
+      ]}
+    ],
+    alpha: [
+      { id: "freeze", label: "Feature Discipline", options: [
+        { id: "freeze_now", label: "Freeze Features", desc: "Ship what works, +velocity, -quality", fx: { velocity: 0.20, quality: -0.08 } },
+        { id: "one_more", label: "One More Feature", desc: "Scope creep risk, +quality", fx: { velocity: -0.15, quality: 0.12 } }
+      ]}
+    ],
+    beta: [
+      { id: "testing", label: "Testing Strategy", options: [
+        { id: "open_beta", label: "Open Beta", desc: "Hype + free QA, review risk", fx: { quality: -0.05, sales: 0.10, velocity: 0.10 } },
+        { id: "closed_beta", label: "Closed Beta", desc: "Quiet polish", fx: { quality: 0.08, velocity: -0.10 } }
+      ]}
+    ],
+    content: [
+      { id: "pace", label: "Pace", options: [
+        { id: "crunch", label: "Crunch", desc: "Fast, quality suffers, team hates it", fx: { velocity: 0.25, quality: -0.15 } },
+        { id: "steady", label: "Steady Pace", desc: "Healthy and predictable", fx: {} },
+        { id: "polish", label: "Extra Polish", desc: "Slow, gleaming", fx: { velocity: -0.15, quality: 0.12 } }
+      ]}
+    ],
+    gold: [
+      { id: "cert", label: "Certification", options: [
+        { id: "day_one_patch", label: "Day-One Patch", desc: "Ship now, fix fast, review risk", fx: { quality: -0.06, velocity: 0.20 } },
+        { id: "clean_gold", label: "Clean Gold", desc: "Delay to polish", fx: { quality: 0.08, velocity: -0.15 } }
+      ]}
+    ],
     launch: [
       { id: "marketing", label: "Marketing Push", options: [
-        { id: "minimal", label: "Minimal", desc: "Word of mouth only, -50% marketing, -20% launch sales", fx: { sales: -0.20, cost: -0.10 } },
+        { id: "minimal", label: "Minimal", desc: "Word of mouth only, -20% launch sales", fx: { sales: -0.20, cost: -0.10 } },
         { id: "standard", label: "Standard", desc: "Normal campaign", fx: {} },
-        { id: "blitz", label: "Blitz", desc: "Massive campaign, +50% marketing, +25% launch sales", fx: { sales: 0.25, cost: 0.15 } }
+        { id: "blitz", label: "Blitz", desc: "Massive campaign, +25% launch sales", fx: { sales: 0.25, cost: 0.15 } }
       ]}
     ]
-  }
+  },
+  liveOps: [
+    { id:"patch", label:"Balance Patch", icon:"🔧", desc:"+small sales refresh, +quality", quality:2, sales:0.05, weight:40 },
+    { id:"content_drop", label:"Content Drop", icon:"📦", desc:"+medium sales refresh", quality:0, sales:0.15, weight:30 },
+    { id:"expansion", label:"Expansion", icon:"🌍", desc:"+big spike, extends tail", quality:3, sales:0.30, weight:15 },
+    { id:"crossover", label:"Film Crossover Event", icon:"🎬", desc:"Your studio's films advertise the game", quality:0, sales:0.25, weight:15 }
+  ]
 };
+
+// Talent guilds (Phase 6) — membership costs weekly dues, grants professional perks
+DATA.GUILDS = [
+  { id:"sag", name:"Screen Performers Guild", kinds:["actor"], icon:"🎭", dues:0.4, perk:"+1 SP per 10 weeks · scandals heal faster · +3% minimum fee" },
+  { id:"lodge", name:"Writers Lodge", kinds:["writer"], icon:"✍️", dues:0.2, perk:"+1 SP per 10 weeks · script credit bonus · +3% minimum fee" },
+  { id:"circle", name:"Directors Circle", kinds:["director"], icon:"🎬", dues:0.3, perk:"+1 SP per 10 weeks · critic goodwill · +3% minimum fee" },
+  { id:"alliance", name:"Producers Alliance", kinds:["producer"], icon:"🎫", dues:0.25, perk:"+1 SP per 10 weeks · smoother overruns · +3% minimum fee" }
+];
 
 /* ── SAVE_VERSION bump for v24 ── */
 DATA.SAVE_VERSION = 13;

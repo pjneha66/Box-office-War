@@ -33,6 +33,8 @@ const I18N = {
     "set.saves":"💾 Save export / import","set.export":"Copy export code","set.import":"Import code",
     "set.slot":"Save to slot","set.menu":"🚪 Back to start screen","set.on":"ON","set.off":"OFF",
     "ach.title":"🏆 Achievements","ach.locked":"Locked",
+    "sec.inhouse":"🧪 In-house originals","cs.stats":"📈 Stats","cs.gear":"🎒 Gear","cs.story":"📜 Story",
+    "pv.title":"🔒 Privacy & Your Data","pv.note":"Everything stays on this device — no accounts, no trackers.",
     "emp.how":"How the empire works",
     "help.title":"❓ How the movie business works here",
   },
@@ -62,6 +64,8 @@ const I18N = {
     "set.saves":"💾 सेव निर्यात / आयात","set.export":"एक्सपोर्ट कोड कॉपी करें","set.import":"कोड आयात करें",
     "set.slot":"स्लॉट में सेव करें","set.menu":"🚪 स्टार्ट स्क्रीन पर वापस","set.on":"चालू","set.off":"बंद",
     "ach.title":"🏆 उपलब्धियाँ","ach.locked":"बंद",
+    "sec.inhouse":"🧪 इन-हाउस ओरिजिनल्स","cs.stats":"📈 आँकड़े","cs.gear":"🎒 साज़-सामान","cs.story":"📜 कहानी",
+    "pv.title":"🔒 गोपनीयता और आपका डेटा","pv.note":"सब कुछ इसी डिवाइस पर रहता है — न अकाउंट, न ट्रैकिंग।",
     "emp.how":"साम्राज्य कैसे काम करता है",
     "help.title":"❓ यहाँ फ़िल्म बिज़नेस कैसे चलता है",
   }

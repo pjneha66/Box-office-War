@@ -7,9 +7,11 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node test/smoke.js && node test/ui-test.mjs",
+    "test": "node test/smoke.js && node test/ui-test.mjs && node test/balance.js",
     "test:engine": "node test/smoke.js",
-    "test:ui": "node test/ui-test.mjs"
+    "test:ui": "node test/ui-test.mjs",
+    "test:balance": "node test/balance.js",
+    "validate:slots": "node test/validate-slots.js"
   },
   "keywords": ["game", "tycoon", "simulation", "box-office", "browser-game"],
   "author": "pjneha66",
