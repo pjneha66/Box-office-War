@@ -2147,6 +2147,10 @@ function tickTheatrical(){
     // v17: Multi-territory gross breakdown
     if(typeof calcTerritoryGross==="function"){
       calcTerritoryGross(f, gross);
+      f.dom += gross; // track domestic (US/CA) gross
+      const rentals = gross*0.53;
+      earn("theatrical", rentals);
+      f.rentalsDom = (f.rentalsDom||0) + rentals;
     }else{
       f.dom += gross;
       const rentals = gross*0.53;
