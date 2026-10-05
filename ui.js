@@ -834,6 +834,7 @@ function _renderImpl(){
     else if(TAB==="library") h=viewLibrary();
     else if(TAB==="games") h=viewGames();
     else if(TAB==="finance") h=viewFinance();
+    else if(TAB==="notifications") h=viewNotifications();
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     v.innerHTML = (tb? tb : "") + h;
     bindView();
@@ -1974,7 +1975,7 @@ function wizardModal(){
       "<span class='done'>1 · Script</span>"+
       "<span class='"+(step===2?"on":WZ.writer?"done":"")+"'>2 · Writer</span>"+
       "<span class='"+(step===3?"on":WZ.director?"done":"")+"'>3 · Director</span>"+
-      "<span class='"+(step===4?"on":WZ.cast.length?"done":"")+"'>4 · Cast</span>"+
+      "<span class='"+(step===4?"on":WZ.cast.length?"done":"")+"'>8 · Cast</span>"+
       "<span class='"+(step===5?"on":WZ.producer?"done":"")+"'>5 · Producer</span>"+
       "<span class='"+(step===6?"on":"")+"'>6 · Budget</span>"+
     "</div>";
@@ -2487,7 +2488,7 @@ function filmPitchModal(){
       h+=crewCard(p,{genre:WZ.genre, sel:!!(WZ.producer&&WZ.producer.id===p.id), attr:"data-fpp='"+p.id+"'"});
     });
     h+="</div>";
-    h+="<div class='small muted' style='margin:10px 0 8px'>Cast ("+WZ.cast.length+"/4) — stars multiply the opening</div><div class='pick-list'>";
+    h+="<div class='small muted' style='margin:10px 0 8px'>Cast ("+WZ.cast.length+"/8) — stars multiply the opening</div><div class='pick-list'>";
     freeTalent("actor").sort((a,b)=>(b.power*30+b.skill)-(a.power*30+a.skill)).slice(0,10).forEach(function(a){
       h+=crewCard(a,{genre:WZ.genre, sel:WZ.cast.some(c=>c.id===a.id), attr:"data-fpc='"+a.id+"'"});
     });
@@ -2515,7 +2516,7 @@ function filmPitchModal(){
   if(step>=2){
     v.querySelectorAll("[data-fpw]").forEach(el=>el.onclick=()=>{ WZ.writer=talentById(+el.dataset.fpw); beep("click"); filmPitchModal(); });
     v.querySelectorAll("[data-fpp]").forEach(el=>el.onclick=()=>{ WZ.producer=talentById(+el.dataset.fpp); beep("click"); filmPitchModal(); });
-    v.querySelectorAll("[data-fpc]").forEach(el=>el.onclick=()=>{ const t=talentById(+el.dataset.fpc); if(t){ const idx=WZ.cast.findIndex(c=>c.id===t.id); if(idx>=0) WZ.cast.splice(idx,1); else if(WZ.cast.length<4) WZ.cast.push(t); beep("click"); filmPitchModal(); }});
+    v.querySelectorAll("[data-fpc]").forEach(el=>el.onclick=()=>{ const t=talentById(+el.dataset.fpc); if(t){ const idx=WZ.cast.findIndex(c=>c.id===t.id); if(idx>=0) WZ.cast.splice(idx,1); else if(WZ.cast.length<8) WZ.cast.push(t); beep("click"); filmPitchModal(); }});
   }
   const bk=v.querySelector("#fpBack"); if(bk) bk.onclick=filmPitchModal;
   const go=v.querySelector("#fpGo");
@@ -3895,6 +3896,27 @@ function viewOTT(){
       "<div class='tiny muted'>"+p.blurb+"</div><div class='tiny muted' style='margin-top:4px'>pays "+Math.round((p.generosity-1)*100+100)+"% · renews above "+p.renew+" buzz</div></div></div>";
   });
   h+="</div>";
+  }
+  return h;
+}
+
+/* ═══════════ VIEW: notifications ═══════════ */
+function viewNotifications(){
+  if(!G.notifications || !G.notifications.length){
+    return "<div class='card'><h3>🔔 Notifications</h3><div class='tiny muted'>No notifications yet. Events, offers, and alerts will appear here.</div></div>";
+  }
+  let h="<h3>🔔 Notifications</h3>";
+  h+="<div style='max-height:60vh;overflow-y:auto'>";
+  G.notifications.slice().reverse().forEach(n=>{
+    const time = dateLabel(n.week);
+    const cls = n.read ? "muted" : "";
+    h+="<div class='card "+cls+"' style='margin-bottom:6px'><div class='spread'><span>"+esc(n.text)+"</span><span class='tiny muted'>"+time+"</span></div>";
+    if(!n.read) h+="<div class='row' style='margin-top:6px'><button class='btn btn-sm btn-alt' onclick='markNotifRead("+n.id+")'>Mark read</button></div>";
+    h+="</div>";
+  });
+  h+="</div>";
+  if(G.notifications.some(n=>!n.read)){
+    h+="<div class='modal-actions'><button class='btn btn-primary' onclick='markAllNotifRead()'>Mark all read</button></div>";
   }
   return h;
 }

@@ -199,6 +199,65 @@ function saveGame(){
     showSaveIndicator("💾 Saved" + (G.saveName?" as "+G.saveName:""));
   }catch(e){}
 }
+
+/* ── v28.11: Notifications system ── */
+function addNotification(text, type){
+  if(!G.notifications) G.notifications = [];
+  G.notifications.push({ id:nid(), text, type, week:G.week, read:false, time:Date.now() });
+  if(G.notifications.length > 100) G.notifications.shift(); // cap at 100
+  saveGame();
+}
+function markNotifRead(id){
+  const n = (G.notifications||[]).find(x=>x.id===id);
+  if(n){ n.read = true; saveGame(); }
+}
+function markAllNotifRead(){
+  (G.notifications||[]).forEach(n=>{ n.read = true; });
+  saveGame();
+}
+function clearAllNotifications(){
+  G.notifications = [];
+  saveGame();
+}
+
+/* ── v28: CEMO/demo event notifications ── */
+function notifyCEMOEvent(type, details){
+  const messages = {
+    "demo_shift": "🎯 Audience shift: strongest demo is now "+details.demo+" ("+details.pct+"%)",
+    "demo_campaign_boost": "📈 Campaign boost on "+details.demo+" demo: +"+details.boost+"%",
+    "demo_competitor": "⚠️ Rival targeting "+details.demo+" demo: "+details.impact,
+    "cemo_alert": "🎬 CEMO Alert: "+details.msg
+  };
+  if(messages[type]) addNotification(messages[type], "cemo");
+}
+function notifyDemoShift(demo, pct){
+  notifyCEMOEvent("demo_shift", { demo, pct });
+}
+function notifyDemoCampaignBoost(demo, boost){
+  notifyCEMOEvent("demo_campaign_boost", { demo, boost });
+}
+function notifyCompetitorDemo(demo, impact){
+  notifyCEMOEvent("demo_competitor", { demo, impact });
+}
+function notifyCEMOAlert(msg){
+  notifyCEMOEvent("cemo_alert", { msg });
+}
+
+function saveGame(){
+  try{
+    if(typeof localStorage==="undefined" || !G) return;
+    if(G._noSave) return;   // v14: a what-if fork never writes over the real run
+    G.v = DATA.SAVE_VERSION||4;
+    const raw = JSON.stringify(G); // perf: serialize once, write twice
+    localStorage.setItem(SAVE_KEY, raw);
+    try{ localStorage.setItem("bow_slot"+(G.slot||1), raw); }catch(e){}
+    // Named slot
+    if(G.saveName) localStorage.setItem("bow_named_"+G.saveName, raw);
+    // IndexedDB sync (async, fire-and-forget)
+    if(G.saveName) saveToIDB(G.saveName, G);
+    showSaveIndicator("💾 Saved" + (G.saveName?" as "+G.saveName:""));
+  }catch(e){}
+}
 function hasSave(){
   try{ return typeof localStorage!=="undefined" && !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
 }
@@ -1032,9 +1091,11 @@ function shiftTrends(){
   const up=movers[0], down=movers[movers.length-1];
   if(up && up.delta>0.05){
     log("📈 "+pick(DATA.TREND.headlines.hot).replace("{g}", DATA.GENRES[up.g].name)+" (heat "+G.trends[up.g].toFixed(2)+"×)","good");
+    notifyDemoShift(DATA.GENRES[up.g].name, Math.round(up.delta*100));
   }
   if(down && down.delta<-0.05){
     log("📉 "+pick(DATA.TREND.headlines.cold).replace("{g}", DATA.GENRES[down.g].name)+" (heat "+G.trends[down.g].toFixed(2)+"×)","bad");
+    notifyDemoShift(DATA.GENRES[down.g].name, Math.round(-down.delta*100));
   }
 }
 function tickTrends(){
@@ -5079,6 +5140,7 @@ DATA.CELEB_EVENTS=[
      t.heat=Math.min(3,(t.heat||0)+1);
      const p=G.projects.find(x=>x.title===(t.booked||"").replace(" (writer)","").replace(" (producer)","").replace(" (cameo)",""));
      if(p) p.buzzBonus=Math.round(((p.buzzBonus||0)+0.05)*100)/100;
+     notifyDemoCampaignBoost(p.genre, 5);
      histEv(t.name+" goes viral","good");
      G.log("🎙️ "+t.name+" goes viral — charming, everywhere (+heat"+(p?", +buzz on \""+p.title+"\"":"")+").","good"); }},
   {id:"celeb_comeback", w:2, icon:"🌅", title:"Surprise comeback", kind:"choice",
@@ -6824,7 +6886,7 @@ function tourArtist(artistId){
 function offerCameo(talentId){
   const t = talentById(talentId);
   if(!t || t.power < 5) return false;
-  const pay = Math.round(t.power * 0.7 * 10)/10;
+  const pay = Math.round(actorFee(t) * 0.3 * 10)/10; // 30% of actor's fee
   earn("talent", pay);
   G.studio.rep = clamp(G.studio.rep + 1, 5, 99);
   log("🎭 Cameo Deal: "+t.name+" made a surprise weekend cameo in a rival blockbuster. Earned +"+fmtM(pay)+", studio rep +1.","gold");
