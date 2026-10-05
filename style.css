@@ -53,9 +53,6 @@ button{font-family:inherit}
 input[type=text]{font-family:inherit}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#2c3550,#232c40); border-radius:9px; border:2px solid var(--bg)}
-::-webkit-scrollbar-thumb:hover{background:#3a4763}
-::-webkit-scrollbar-track{background:transparent}
-
 /* ─────────── generic bits ─────────── */
 .btn{
   border:1px solid var(--line2); background:var(--card2); color:var(--text);
@@ -63,7 +60,6 @@ input[type=text]{font-family:inherit}
   cursor:pointer; min-height:40px; position:relative; overflow:hidden;
   transition:transform .08s var(--ease-out), background .18s, border-color .18s, box-shadow .18s;
 }
-.btn:hover{border-color:#41506e; transform:translateY(-1px); box-shadow:var(--shadow-sm)}
 .btn:active{transform:scale(.96) translateY(0); transition-duration:.04s}
 .btn-primary{
   background:linear-gradient(135deg,#ffd479,#f0a51e 55%,#d98f10); color:#1a1204; border-color:#f5b942;
@@ -75,7 +71,6 @@ input[type=text]{font-family:inherit}
   transform:skewX(-18deg); animation:shine 3.6s ease-in-out infinite;
 }
 @keyframes shine{ 0%,55%{left:-70%} 85%,100%{left:150%} }
-.btn-primary:hover{filter:brightness(1.06)}
 .btn-danger{background:linear-gradient(135deg,#ff5d6c,#d63c4c); color:#fff; border-color:#ff5d6c; box-shadow:0 4px 18px rgba(255,93,108,.25)}
 .btn-ghost{background:transparent}
 .btn-alt{background:linear-gradient(135deg,#24334e,#1b2539); border-color:#33456a}
@@ -104,7 +99,6 @@ input[type=text]{font-family:inherit}
   border-radius:var(--r); padding:14px; position:relative;
   transition:transform .18s var(--ease-out), border-color .18s, box-shadow .18s;
 }
-.card:hover{border-color:var(--line2)}
 .card+.card{margin-top:10px}
 .grid{display:grid; gap:10px}
 .g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
@@ -199,7 +193,6 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 #studioName:focus{border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,185,66,.14)}
 .name-suggests{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
 .name-suggests button{background:#101522; border:1px solid var(--line); color:var(--dim); font-size:11.5px; border-radius:99px; padding:4px 10px; cursor:pointer; transition:all .15s}
-.name-suggests button:hover{color:var(--text); border-color:var(--goldDim); transform:translateY(-1px)}
 .arch-list{display:grid; gap:8px}
 .arch{
   border:1px solid var(--line); border-radius:13px; padding:12px; cursor:pointer; background:#101522;
@@ -222,7 +215,6 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   font-size:11px; color:var(--dim); border:1px solid var(--line); padding:3px 10px; border-radius:99px;
   background:rgba(19,24,38,.6); transition:all .2s;
 }
-.start-feats span:hover{border-color:var(--goldDim); color:var(--gold2); transform:translateY(-1px)}
 
 /* ─────────── app layout ─────────── */
 .app{display:flex; flex-direction:column; min-height:100vh; position:relative; z-index:2}
@@ -407,6 +399,46 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 .offer-card{border-left:3px solid var(--purple) !important}
 .modal-offer-val{font-size:30px; font-weight:900; color:var(--purple)}
 
+/* Desktop #btnFast styles (mobile styles in @media block below) */
+#btnFast{
+  min-height:40px; min-width:44px; padding:8px 10px;
+  font-size:12.5px; font-weight:800;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+
+/* Hover-only styles — only apply on hover-capable devices (desktop) */
+@media (hover: hover){
+  ::-webkit-scrollbar-thumb:hover{background:#3a4763}
+  .btn:hover{border-color:#41506e; transform:translateY(-1px); box-shadow:var(--shadow-sm)}
+  .btn-primary:hover{filter:brightness(1.06)}
+  .card:hover{border-color:var(--line2)}
+  .name-suggests button:hover{color:var(--text); border-color:var(--goldDim); transform:translateY(-1px)}
+  .arch:hover{border-color:var(--line2); transform:translateY(-2px)}
+  .start-feats span:hover{border-color:var(--goldDim); color:var(--gold2); transform:translateY(-1px)}
+  .tab:hover{color:var(--text)}
+  .stat:hover{transform:translateY(-2px); border-color:var(--line2); box-shadow:var(--shadow-sm)}
+  .stat[data-tooltip]:hover::after,
+  .stat[data-tooltip]:hover::before{opacity:1; visibility:visible}
+  .news-item:hover{border-color:var(--line2)}
+  .talent-card:hover .t-avatar{transform:scale(1.18) rotate(-4deg)}
+  .pick-list .card:hover, .sel-card{transform:translateY(-2px)}
+  .pick-list .card:hover{border-color:var(--goldDim); box-shadow:var(--shadow-sm)}
+  .calendar-row:hover{border-color:var(--line2); transform:translateX(2px)}
+  .platform-card:hover .platform-logo{transform:scale(1.08) rotate(-3deg)}
+  .modal-x:hover{color:var(--red); background:rgba(255,93,108,.1); transform:rotate(90deg)}
+  .bid-card:hover{border-color:var(--purple); transform:translateY(-2px); box-shadow:0 6px 20px rgba(180,139,255,.15)}
+  .plan-opt:hover{border-color:var(--line2); transform:translateY(-1px)}
+  .review-card:hover{ border-left-color:var(--gold); transform:translateX(2px) }
+  .scen:hover{border-color:var(--line2); transform:translateY(-1px)}
+  .fold-head:hover{border-color:var(--line2)}
+  .card:hover, .stat:hover{border-color:var(--line2); transform:translateY(-2px); box-shadow:var(--shadow-sm)}
+  .chip:hover{box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 16px rgba(245,185,66,.14)}
+  .btn:hover, .btn-alt:hover{border-color:rgba(245,185,66,.35)}
+  .btn-danger:hover{border-color:var(--red)}
+  .fold-head:hover{border-color:rgba(245,185,66,.4); background:linear-gradient(180deg, rgba(28,34,52,.8), rgba(14,18,28,.5))}
+  .news-item:hover{border-color:rgba(245,185,66,.28); transform:translateX(2px)}
+}
+
 /* ─────────── finance ─────────── */
 .loan-row input[type=range]{width:100%; accent-color:var(--gold); min-height:36px}
 .upg-card{display:flex; gap:12px; align-items:flex-start}
@@ -497,6 +529,7 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 .forecast-bars .fg{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%}
 .forecast-bars .fg i{width:100%; background:linear-gradient(180deg,#f5b942,#c78a1f); border-radius:4px 4px 0 0; min-height:3px}
 .forecast-bars .fg span{font-size:9px; color:var(--dim2); margin-top:4px}
+
 /* v3: streamer subs + sports rights + windows */
 .meter-sub{display:flex; align-items:center; gap:8px}
 .meter-sub .sub-cnt{font-weight:900; font-size:15px; color:var(--gold2)}
@@ -1176,13 +1209,4 @@ body[data-theme="silver"]{
 .territory-stack-bar{display:flex; height:18px; border-radius:4px; overflow:hidden; background:#0a0e16}
 .territory-stack-seg{height:100%; transition:width .5s var(--ease-out)}
 .territory-stack-label{display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:2px}
-
-/* ── Mobile calendar adjustments ── */
-@media(max-width:760px){
-  .calendar-grid{grid-template-columns:repeat(7,1fr); gap:2px}
-  .cal-cell{min-height:55px; padding:2px}
-  .cal-week{font-size:9px}
-  .cal-mine,.cal-rival{font-size:8px}
-  .exec-office{grid-template-columns:1fr}
-}
 

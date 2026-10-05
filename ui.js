@@ -506,6 +506,9 @@ window.addEventListener("DOMContentLoaded", ()=>{
   let lp=null;
   $("#btnWeek").addEventListener("touchstart",()=>{ lp=setTimeout(()=>{ doWeek(4); lp="done"; },600); },{passive:true});
   $("#btnWeek").addEventListener("touchend",()=>{ if(lp&&lp!=="done"){clearTimeout(lp);} lp=null; });
+  let lp2=null;
+  $("#btnFast").addEventListener("touchstart",()=>{ lp2=setTimeout(()=>{ doWeek(4); lp2="done"; },600); },{passive:true});
+  $("#btnFast").addEventListener("touchend",()=>{ if(lp2&&lp2!=="done"){clearTimeout(lp2);} lp2=null; });
   const fab=$("#fabWeek"); if(fab) fab.onclick=()=>{ doWeek(1); };
 });
 function enterApp(fresh){
