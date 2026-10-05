@@ -49,6 +49,7 @@ function newGame(archId, name, opts){
     outputDeal:0, wrapDeal:0, agencyExcl:0,
     sportsPower:0, mySports:[],
     public:null,
+    prototype: !!opts.sandbox,   // v28: prototype debug mode
     sfx:[],
     /* ── v5 state ── */
     piracy: (DATA.PIRACY? DATA.PIRACY.start : 18),
@@ -7846,7 +7847,7 @@ function savePrototypeData(){
 function grantFilmXP(film){
   if(!G.talent || !film) return;
   const q = (film.quality && typeof film.quality==="object") ? (film.quality.overall||50) : (film.quality||50);
-  const xp = Math.round(200 + q*3);
+  const xp = Math.round(300 + q*5);  // v28 balance: increased from 200+3q to 300+5q
   const crew = [film.director, film.writer, film.producer].concat(film.cast||[]).filter(Boolean);
   crew.forEach(t=>{
     if(!t || !t.id || !G.talent.some(x=>x.id===t.id)) return;

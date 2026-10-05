@@ -499,6 +499,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
     else if(e.key==="s" || e.key==="S"){ e.preventDefault(); saveGame(); toast("💾 Game saved"); }
     else if(e.key==="l" || e.key==="L"){ e.preventDefault(); const g=loadGame(); if(g){ render(); toast("📂 Game loaded"); } }
     else if(e.key==="h" || e.key==="H"){ e.preventDefault(); helpModal(); }
+    else if(e.key==="p" && e.ctrlKey && e.shiftKey){ e.preventDefault(); if(G.prototype){ prototypeDebugModal(); } }
     else if(e.key==="Escape"){ closeModal(); }
   });
   // long-press fast on mobile
@@ -5031,6 +5032,134 @@ function helpModal(){
       });
     };
   }
+}
+
+/* v28: Prototype RPG debug panel (Ctrl+Shift+P) — visible when G.prototype is true */
+function prototypeDebugModal(){
+  if(!G.prototype){ toast("Prototype mode not enabled (start with sandbox option)","bad"); return; }
+  const xpCurve = DATA.PROTOTYPE_XP_CURVE;
+  const baseXp = DATA.PROTOTYPE_BASE_XP;
+  const lifeWeights = (DATA.PROTOTYPE_LIFE_EVENTS||[]).map(e=>e.weight);
+  const lifeTotal = lifeWeights.reduce((a,b)=>a+b,0);
+
+  let h="<h3>🧪 Prototype Debug Panel</h3>"+
+    "<div class='tiny muted' style='margin-bottom:8px'>Live tuning — changes apply immediately to the running prototype.</div>";
+
+  // XP Curve
+  h+="<div class='card'><div class='spread'><b>📈 XP Curve</b></div>"+
+    "<div class='cost-line'><span>Base XP (L1→L2)</span><b>"+baseXp+"</b></div>"+
+    "<div class='slider-row'><span class='small muted' style='min-width:120px'>Curve exponent</span>"+
+      "<input type='range' id='dbgXpCurve' min='1.0' max='1.5' step='0.01' value='"+xpCurve+"'>"+
+      "<span class='slider-val' id='dbgXpCurveV'>"+xpCurve+"</span></div>"+
+    "<div class='tiny muted'>XP to next = Base × level^exponent. Lower = faster leveling.</div></div>";
+
+  // Life event weights
+  h+="<div class='card' style='margin-top:8px'><div class='spread'><b>🎭 Life Event Weights</b></div>"+
+    (DATA.PROTOTYPE_LIFE_EVENTS||[]).map((e,i)=>
+      "<div class='slider-row'><span class='small muted' style='min-width:120px'>"+e.icon+" "+e.desc+"</span>"+
+        "<input type='range' class='dbgLifeWeight' data-idx='"+i+"' min='0' max='100' step='1' value='"+e.weight+"'>"+
+        "<span class='slider-val'>"+e.weight+"</span>"+
+        "<span class='tiny muted'> ~"+Math.round(e.weight/lifeTotal*100)+"%</span></div>"
+    ).join("")+"</div>";
+
+  // Equipment scaling
+  h+="<div class='card' style='margin-top:8px'><div class='spread'><b>🎒 Equipment Quality Multiplier</b></div>"+
+    "weapon,armor,accessory,prop".split(",").map(slot=>
+      "<div class='slider-row'><span class='small muted' style='min-width:120px'>"+slot+"</span>"+
+        "<input type='range' class='dbgEquipMult' data-slot='"+slot+"' min='0.5' max='3.0' step='0.1' value='1.0'>"+
+        "<span class='slider-val'>1.0×</span></div>"
+    ).join("")+"</div>";
+
+  // Quick actions
+  h+="<div class='card' style='margin-top:8px'><div class='spread'><b>⚡ Quick Actions</b></div>"+
+    "<div class='row' style='gap:6px;flex-wrap:wrap'>"+
+      "<button class='btn btn-sm btn-primary' id='dbgGiveXp'>Give selected talent +500 XP</button>"+
+      "<button class='btn btn-sm btn-alt' id='dbgTriggerEvent'>Force life event on all</button>"+
+      "<button class='btn btn-sm btn-alt' id='dbgUnlockAll'>Unlock all skill nodes</button>"+
+      "<button class='btn btn-sm btn-alt' id='dbgMaxEquip'>Equip best gear on all</button>"+
+    "</div></div>";
+
+  h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
+
+  const v=openModal(h);
+
+  // XP curve slider
+  const xpS=v.querySelector("#dbgXpCurve");
+  const xpV=v.querySelector("#dbgXpCurveV");
+  if(xpS && xpV){
+    xpS.oninput=()=>{ DATA.PROTOTYPE_XP_CURVE=parseFloat(xpS.value); xpV.textContent=xpS.value; };
+    xpS.onchange=()=>{ toast("XP curve set to "+DATA.PROTOTYPE_XP_CURVE); };
+  }
+
+  // Life event weight sliders
+  v.querySelectorAll(".dbgLifeWeight").forEach(s=>{
+    s.oninput=()=>{
+      const idx=+s.dataset.idx;
+      DATA.PROTOTYPE_LIFE_EVENTS[idx].weight=+s.value;
+      s.nextElementSibling.textContent=s.value;
+      s.nextElementSibling.nextElementSibling.textContent="~"+Math.round(s.value/lifeTotal*100)+"%";
+    };
+  });
+
+  // Equipment multipliers
+  v.querySelectorAll(".dbgEquipMult").forEach(s=>{
+    s.oninput=()=>{ s.nextElementSibling.textContent=s.value+"×"; };
+    s.onchange=()=>{
+      const slot=s.dataset.slot;
+      const mult=+s.value;
+      (DATA.PROTOTYPE_EQUIPMENT[slot]||[]).forEach(item=>{
+        item.quality=Math.round(item.quality*mult);
+        item.scandalReduction=Math.round((item.scandalReduction||0)*mult);
+        item.xpRate=Math.round((item.xpRate||0)*mult);
+        ["cha","int","cre","dis","luk"].forEach(k=>{ item[k]=Math.round((item[k]||0)*mult); });
+      });
+      toast(slot+" equipment scaled by "+mult+"×");
+    };
+  });
+
+  // Quick action buttons
+  const give=v.querySelector("#dbgGiveXp");
+  if(give) give.onclick=()=>{
+    const sel = document.querySelector(".talent-card.sel-card");
+    if(sel && sel.dataset.talentId){
+      const t = G.talent.find(x=>x.id==+sel.dataset.talentId);
+      if(t){ gainXP(t.id, 500, "debug"); toast("Gave +500 XP to "+t.name,"gold"); }
+    } else toast("Select a talent card first","bad");
+  };
+
+  const trigger=v.querySelector("#dbgTriggerEvent");
+  if(trigger) trigger.onclick=()=>{
+    (G.talent||[]).forEach(t=>triggerLifeEvent(t.id));
+    toast("Forced life events on all talents","gold");
+  };
+
+  const unlock=v.querySelector("#dbgUnlockAll");
+  if(unlock) unlock.onclick=()=>{
+    (G.talent||[]).forEach(t=>{
+      if(t.prototype){
+        ["star","method","magnet","visual","whisperer","tech","craft","voice","bankable","dealmaking","logistics","money"]
+          .flatMap(b=> (DATA.PROTOTYPE_SKILL_TREES[t.kind]||{}).branches? (DATA.PROTOTYPE_SKILL_TREES[t.kind].branches.find(x=>x.id===b)||{nodes:[]}).nodes : [])
+          .forEach(n=>{ if(n && !t.prototype.skillTree.nodes.includes(n.id)) t.prototype.skillTree.nodes.push(n.id); });
+        t.prototype.skillPoints = 99;
+      }
+    });
+    toast("All skill nodes unlocked + 99 skill points","gold");
+    render();
+  };
+
+  const maxEq=v.querySelector("#dbgMaxEquip");
+  if(maxEq) maxEq.onclick=()=>{
+    (G.talent||[]).forEach(t=>{
+      if(t.prototype){
+        ["weapon","armor","accessory","prop"].forEach(slot=>{
+          const items = DATA.PROTOTYPE_EQUIPMENT[slot]||[];
+          if(items.length) equipItem(t.id, slot, items[items.length-1].id);
+        });
+      }
+    });
+    toast("Best equipment equipped on all","gold");
+    render();
+  };
 }
 
 /* v2/v3 additions */

@@ -1333,9 +1333,9 @@ DATA.PROTOTYPE_ATTRIBUTES = [
   {id:"luk", name:"Luck", emoji:"🍀", desc:"Random event modifiers, serendipity"}
 ];
 
-// XP curve: XP = BASE * level^1.35 (softened in v27 balance pass)
-DATA.PROTOTYPE_XP_CURVE = 1.35;
-DATA.PROTOTYPE_BASE_XP = 800;
+// XP curve: XP = BASE * level^1.15 (flattened from 1.35 for prototype balance)
+DATA.PROTOTYPE_XP_CURVE = 1.15;
+DATA.PROTOTYPE_BASE_XP = 600;
 
 // 3-axis alignment effects on production
 DATA.PROTOTYPE_ALIGNMENT_EFFECTS = {
@@ -1483,7 +1483,7 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "Studio offers multi-picture deal",
       "Casting director recommends you for {genre} film"
     ],
-    effects: { xp: 200, rep: 2, fame: 3 }
+    effects: { xp: 300, rep: 2, fame: 3 }
   },
   { type: "personal", weight: 20, icon: "💔", desc: "Personal Crisis",
     templates: [
@@ -1492,7 +1492,7 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "Family emergency pulls you from set",
       "Burnout requires mandatory hiatus"
     ],
-    effects: { xp: -100, rep: -2, discipline: -5, scandal: 5 }
+    effects: { xp: -50, rep: -2, discipline: -5, scandal: 5 }
   },
   { type: "scandal", weight: 30, icon: "📰", desc: "Scandal Risk",
     templates: [
@@ -1501,7 +1501,7 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "Legal trouble from past contract",
       "Social media controversy erupts"
     ],
-    effects: { rep: -10, fame: 5, scandal: 15, infamy: 10 }
+    effects: { xp: 50, rep: -10, fame: 5, scandal: 15, infamy: 10 }
   },
   { type: "social", weight: 25, icon: "🤝", desc: "Industry Buzz",
     templates: [
@@ -1510,7 +1510,7 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "{name} sends a public thank-you gift",
       "Co-hosts a charity gala with {name}"
     ],
-    effects: { xp: 80, fame: 2 },
+    effects: { xp: 120, fame: 2 },
     social: { with: "collaborator", bond: 2 }
   },
   { type: "mentorship", weight: 15, icon: "🧑‍🏫", desc: "Craft Moment",
@@ -1520,7 +1520,7 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "{name} shares hard-won career advice",
       "Runs lines with {name} until dawn"
     ],
-    effects: { xp: 150 },
+    effects: { xp: 200 },
     social: { with: "mentor", bond: 3 }
   },
   { type: "feud", weight: 10, icon: "⚡", desc: "Creative Tension",
@@ -1530,7 +1530,7 @@ DATA.PROTOTYPE_LIFE_EVENTS = [
       "{name} takes a swing at their process in an interview",
       "Walks off a shared project after creative differences with {name}"
     ],
-    effects: { xp: 40, rep: -2, fame: 3 },
+    effects: { xp: 80, rep: -2, fame: 3 },
     social: { with: "collaborator", bond: -3 }
   }
 ];
