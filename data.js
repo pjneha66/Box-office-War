@@ -322,6 +322,17 @@ DATA.comboOf = (genre, theme)=>{
   return "neutral";
 };
 
+/* ── v28: Custom Creator pools (studio/person/franchise) ── */
+DATA.CUSTOM_POOLS = {
+  studios: [],
+  people: [],
+  franchises: []
+};
+DATA.customStudio = (name, desc)=> ({ id:nid(), name, desc, created:G?.week||1, films:0, value:0 });
+DATA.customPerson = (name, kind, desc)=> ({ id:nid(), name, kind, desc, created:G?.week||1, power:3, skill:70, fee:5 });
+DATA.customFranchise = (name, genre, desc)=> ({ id:nid(), name, genre, desc, created:G?.week||1, films:0, value:0 });
+DATA.customPools = ()=> DATA.CUSTOM_POOLS;
+
 /* ── v16 game studio platform options ── */
 DATA.GAME_PLATFORMS = [
   {id:"mobile",  name:"Mobile",  emoji:"📱", cost:8,  weeks:14, mult:0.9,  targetAud:"Casual & Microtransactions", desc:"Low dev cost, fast ship, steady ad/IAP revenue."},

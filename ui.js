@@ -1327,7 +1327,8 @@ function viewDevelop(){
      "<button class='btn btn-sm' id='btnPitchSeries'>📺 Pitch a Series</button>"+
      "<button class='btn btn-sm' id='btnPitchFilm' style='margin-left:8px'>🎬 Pitch a Film</button>"+
      "<button class='btn btn-sm' id='btnAIPitch' style='margin-left:8px'>🤖 AI Pitch</button>"+
-     "<button class='btn btn-sm' id='btnStarSign' style='margin-left:8px'>🌟 New superstar</button></div>";
+     "<button class='btn btn-sm' id='btnStarSign' style='margin-left:8px'>🌟 New superstar</button>"+
+     "<button class='btn btn-sm btn-alt' id='btnCustomCreator' style='margin-left:8px'>✨ Custom Creator</button></div>";
   h+="<div class='row' style='margin:10px 0 6px;gap:6px;flex-wrap:wrap'><span class='small muted' style='align-self:center'>Filter:</span>"+
     "<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER==="all"?"btn-primary":"")+"' data-filter-genre='all'>All genres</button>"+
     Object.keys(DATA.GENRES).map(gk=>"<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER===gk?"btn-primary":"")+"' data-filter-genre='"+gk+"'>"+DATA.GENRES[gk].emoji+" "+DATA.GENRES[gk].name+"</button>").join("")+
@@ -3871,6 +3872,7 @@ function bindView(){
   const ss=$("#btnStarSign"); if(ss) ss.onclick=()=>{ beep("click"); superstarModal(); };
   const pf=$("#btnPitchFilm"); if(pf) pf.onclick=()=>{ beep("click"); startFilmPitchWizard(); };
   const ai=$("#btnAIPitch"); if(ai) ai.onclick=()=>{ beep("click"); openAIPitchModal(); };
+  const cc=$("#btnCustomCreator"); if(cc) cc.onclick=()=>{ beep("click"); customCreatorModal(); };
   const shc=$("#btnShareCard"); if(shc) shc.onclick=function(){ shareStudioCard(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
@@ -5036,6 +5038,64 @@ function helpModal(){
       });
     };
   }
+}
+
+/* ── v28: Custom Creator modal ── */
+function customCreatorModal(){
+  const pools = getCustomPools();
+  let h="<h3>✨ Custom Creator</h3>"+
+    "<div class='tiny muted' style='margin-bottom:12px'>Create custom studios, people, or franchises that integrate into the game world.</div>"+
+    "<div class='card' style='margin-bottom:8px'><div class='spread'><b>🏛 Studio</b></div>"+
+      "<input type='text' id='ccStudioName' placeholder='Studio name (e.g. Silver Screen Pictures)' style='width:100%;margin-bottom:6px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text)'>"+
+      "<textarea id='ccStudioDesc' placeholder='Description (optional)' style='width:100%;margin-bottom:8px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text);min-height:60px'></textarea>"+
+      "<button class='btn btn-primary' onclick='createCustomStudioFromModal()'>Create Studio</button></div>"+
+    "<div class='card' style='margin-bottom:8px'><div class='spread'><b>👤 Person</b></div>"+
+      "<input type='text' id='ccPersonName' placeholder='Name (e.g. Jordan Lee)' style='width:100%;margin-bottom:6px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text)'>"+
+      "<select id='ccPersonKind' style='width:100%;margin-bottom:6px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text)'>"+
+        "<option value='actor'>Actor</option>"+
+        "<option value='director'>Director</option>"+
+        "<option value='writer'>Writer</option>"+
+        "<option value='producer'>Producer</option>"+
+      "</select>"+
+      "<textarea id='ccPersonDesc' placeholder='Bio/notes (optional)' style='width:100%;margin-bottom:8px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text);min-height:60px'></textarea>"+
+      "<button class='btn btn-primary' onclick='createCustomPersonFromModal()'>Create Person</button></div>"+
+    "<div class='card'><div class='spread'><b>🌍 Franchise</b></div>"+
+      "<input type='text' id='ccFranchiseName' placeholder='Franchise name (e.g. The Shadowverse)' style='width:100%;margin-bottom:6px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text)'>"+
+      "<select id='ccFranchiseGenre' style='width:100%;margin-bottom:6px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text)'>"+
+        Object.keys(DATA.GENRES).map(g=>"<option value='"+g+"'>"+DATA.GENRES[g].emoji+" "+DATA.GENRES[g].name+"</option>").join("")+
+      "</select>"+
+      "<textarea id='ccFranchiseDesc' placeholder='Lore/description (optional)' style='width:100%;margin-bottom:8px;padding:10px;border-radius:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text);min-height:60px'></textarea>"+
+      "<button class='btn btn-primary' onclick='createCustomFranchiseFromModal()'>Create Franchise</button></div>"+
+    "<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
+  
+  const v=openModal(h);
+  v.querySelector("#ccStudioName")?.focus();
+}
+function createCustomStudioFromModal(){
+  const name = document.getElementById("ccStudioName")?.value?.trim();
+  const desc = document.getElementById("ccStudioDesc")?.value?.trim() || "";
+  if(!name){ toast("Enter a studio name","bad"); return; }
+  createCustomStudio(name, desc);
+  toast("🏛 Studio created: "+name,"gold");
+  closeModal(); customCreatorModal();
+}
+function createCustomPersonFromModal(){
+  const name = document.getElementById("ccPersonName")?.value?.trim();
+  const kind = document.getElementById("ccPersonKind")?.value || "actor";
+  const desc = document.getElementById("ccPersonDesc")?.value?.trim() || "";
+  if(!name){ toast("Enter a name","bad"); return; }
+  createCustomPerson(name, kind, desc);
+  toast("👤 Person created: "+name+" ("+kind+")","gold");
+  closeModal(); customCreatorModal();
+}
+function createCustomFranchiseFromModal(){
+  const name = document.getElementById("ccFranchiseName")?.value?.trim();
+  const genre = document.getElementById("ccFranchiseGenre")?.value || "action";
+  const desc = document.getElementById("ccFranchiseDesc")?.value?.trim() || "";
+  if(!name){ toast("Enter a franchise name","bad"); return; }
+  createCustomFranchise(name, genre, desc);
+  toast("🌍 Franchise created: "+name,"gold");
+  closeModal(); customCreatorModal();
 }
 
 /* v28: Prototype RPG debug panel (Ctrl+Shift+P) — visible when G.prototype is true */

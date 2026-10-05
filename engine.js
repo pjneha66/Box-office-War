@@ -272,6 +272,7 @@ const SAVE_MIGRATIONS = {
     s.ach=s.ach||{}; s.festWins=s.festWins||[];
     s.extraPlatforms=s.extraPlatforms||[]; s.ipMarket=s.ipMarket||[];
     s.comboKnown=s.comboKnown||{}; s.watchlist=s.watchlist||[]; s.pendingSale=s.pendingSale||null;
+    s.custom = s.custom || { studios:[], people:[], franchises:[] };
     (s.talent||[]).forEach(t=>{ if(t.ability===undefined){ t.ability=genAbilityFor(t.kind, t.power||2); t.abilityKnown=false; } });
     s.streamer=s.streamer||null; s.sportsAuction=null; s.sportsPower=s.sportsPower||0; s.mySports=s.mySports||[];
     s.exhibRel=s.exhibRel||70; s.exhibitor=s.exhibitor||50;
@@ -7154,6 +7155,36 @@ function initPrototypeSystem(){
   if(!G.prototypeData) G.prototypeData = { version: 1 };
   if(!G.talent) return;
   G.talent.forEach(initPrototypeTalent);
+}
+
+/* ── v28: Custom Creator ── */
+function createCustomStudio(name, desc){
+  if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
+  const s = DATA.customStudio(name, desc);
+  G.custom.studios.push(s);
+  log("🏛 Custom studio created: "+name,"gold");
+  saveGame();
+  return s;
+}
+function createCustomPerson(name, kind, desc){
+  if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
+  const p = DATA.customPerson(name, kind, desc);
+  G.custom.people.push(p);
+  log("👤 Custom person created: "+name+" ("+kind+")","gold");
+  saveGame();
+  return p;
+}
+function createCustomFranchise(name, genre, desc){
+  if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
+  const f = DATA.customFranchise(name, genre, desc);
+  G.custom.franchises.push(f);
+  log("🌍 Custom franchise created: "+name,"gold");
+  saveGame();
+  return f;
+}
+function getCustomPools(){
+  if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
+  return G.custom;
 }
 
 /* Gain XP for a talent */
