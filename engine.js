@@ -273,7 +273,7 @@ const SAVE_MIGRATIONS = {
     s.extraPlatforms=s.extraPlatforms||[]; s.ipMarket=s.ipMarket||[];
     s.comboKnown=s.comboKnown||{}; s.watchlist=s.watchlist||[]; s.pendingSale=s.pendingSale||null;
     s.custom = s.custom || { studios:[], people:[], franchises:[] };
-    (s.talent||[]).forEach(t=>{ if(t.ability===undefined){ t.ability=genAbilityFor(t.kind, t.power||2); t.abilityKnown=false; } });
+    (s.talent||[]).forEach(t=>{ if(t.ability===undefined){ t.ability=genAbilityFor(t.kind, t.power||2); t.abilityKnown=false; } if(!t.powerByRegion){ t.powerByRegion={NA:t.power, EU:t.power, AS:t.power, LA:t.power, AF:t.power}; } });
     s.streamer=s.streamer||null; s.sportsAuction=null; s.sportsPower=s.sportsPower||0; s.mySports=s.mySports||[];
     s.exhibRel=s.exhibRel||70; s.exhibitor=s.exhibitor||50;
     s.stats=s.stats||{}; s.stats.streamSales=s.stats.streamSales||0;
@@ -527,6 +527,7 @@ function genActor(hot, opts){
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null,
            age: hot? rint(24,38) : (typeof startAge==="function"? startAge() : rint(26,52)), scandal:0,
            pics:0, joinedYear: yearOf(G?G.week:1),
+           powerByRegion: {NA:power, EU:power, AS:power, LA:power, AF:power},
            ability:genAbilityFor("actor", power), abilityKnown:false };
 }
 
@@ -540,6 +541,7 @@ function genDirector(hot, fitGenre, opts){
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0,
            genreFit: fitGenre || pick(fits), age: hot? rint(28,42) : (typeof startAge==="function"? startAge() : rint(26,52)), scandal:0,
            pics:0, joinedYear: yearOf(G?G.week:1), auteur: !!(opts&&opts.auteur),
+           powerByRegion: {NA:power, EU:power, AS:power, LA:power, AF:power},
            ability:genAbilityFor("director", power), abilityKnown:false };
 }
 
@@ -553,6 +555,7 @@ function genWriter(hot, fitGenre){
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0,
            genreFit: fitGenre || pick(Object.keys(DATA.GENRES)),
            trait: pick(DATA.WRITER_TRAITS), age: startAge(), scandal:0,
+           powerByRegion: {NA:power, EU:power, AS:power, LA:power, AF:power},
            ability:genAbilityFor("writer", power), abilityKnown:false };
 }
 /* ── v4: PRODUCERS — they keep the shoot on budget and on schedule ── */
@@ -564,6 +567,7 @@ function genProducer(hot){
            agency:(DATA.AGENCIES? pick(DATA.AGENCIES).id : null),
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null,
            trait: pick(DATA.PROD_TRAITS), age: startAge(), scandal:0,
+           powerByRegion: {NA:power, EU:power, AS:power, LA:power, AF:power},
            ability:genAbilityFor("producer", power), abilityKnown:false };
 }
 function genTalentPool(){
@@ -582,6 +586,16 @@ function spawnWriterHot(){ if(G) G.talent.push(genWriter(true)); }
 function talentById(id){ return G.talent.find(t=>t.id===id); }
 function talentByKind(kind){ return G.talent.filter(t=>t.kind===kind); }
 function freeTalent(kind){ return G.talent.filter(t=>t.kind===kind && !t.bookedUntil && !(t.retired)); }
+
+/* ── v28: Per-region star power (v28 follow-up) ── */
+function effectivePower(t, region){
+  if(!t) return 0;
+  const base = t.power || 0;
+  const byRegion = t.powerByRegion;
+  if(!byRegion) return base;
+  const r = byRegion[region];
+  return r !== undefined ? r : base;
+}
 
 /* ── v28 ability helpers: effects are pure data summed off the attached talent ── */
 function talentAbility(t){ return (t && t.ability)? DATA.abilityOf(t.ability) : null; }
@@ -875,6 +889,7 @@ function signContract(tid, type){
   spend("studio", def.cost);
   t.contract={type, week:G.week,
     filmsLeft:type==="multi"?3:null,
+    weeksLeft:type==="exclusive"?104:null,
     until:type==="exclusive"?G.week+104:null};
   log(def.icon+" "+t.name+" signed a "+def.name.toLowerCase()+" deal (−"+fmtM(def.cost)+"). "+def.desc,"gold");
   if(type==="exclusive") log("📰 STAR SIGNS EXCLUSIVE DEAL: "+t.name+" is off the market for 2 years — rivals react.","gold");
@@ -887,7 +902,20 @@ function talentFilmsEngine(t){
 function tickContracts(){
   for(const t of (G.talent||[])){
     const c=t.contract; if(!c) continue;
-    if(c.type==="exclusive"&&c.until&&G.week>=c.until){ t.contract=null; log("🔓 "+t.name+"'s exclusive lapsed — back on the open market.",""); }
+    // Weekly decrement for weeksLeft (all contract types)
+    if(c.weeksLeft!==null && c.weeksLeft!==undefined){
+      c.weeksLeft--;
+      if(c.weeksLeft <= 0){
+        t.contract=null;
+        log("🔓 "+t.name+"'s contract lapsed (time elapsed) — back on the open market.","");
+        continue;
+      }
+    }
+    // Exclusive expiry by time (backward compatibility)
+    if(c.type==="exclusive" && c.until && G.week>=c.until){
+      t.contract=null;
+      log("🔓 "+t.name+"'s exclusive lapsed — back on the open market.","");
+    }
   }
 }
 /* ── v4 careers: ageing, prime-years drift, retirement, scandals ── */
@@ -1737,7 +1765,7 @@ function expectedOpening(p, weekAbs){
   if(p.genre==="action") base*=1+specBonus("action");
   if(p.genre==="animation"||p.genre==="fantasy") base*=1+specBonus("family");
   if(p.foreignLang) base *= 0.75;
-  const starP = p.cast.reduce((s,c)=>s+c.power,0);
+  const starP = p.cast.reduce((s,c)=>s+effectivePower(c, "NA"),0);
   let starF = 1 + 0.075*Math.min(starP, 6);
   const scandalous = p.cast.filter(c=>c.scandal>0).length;
   if(scandalous) starF *= Math.max(0.82, 1 - 0.06*scandalous);
@@ -2326,6 +2354,17 @@ function releaseFilm(p){
   G.films.push(film);
   G.projects = G.projects.filter(x=>x!==p);
   freeProjectTalent(p);
+  // v28: decrement filmsLeft on multi-film contracts when a film is completed
+  const crew = [p.director, p.writer, p.producer].concat(p.cast||[]).filter(Boolean);
+  crew.forEach(t=>{
+    if(t && t.contract && t.contract.type==="multi" && t.contract.filmsLeft!==null){
+      t.contract.filmsLeft = Math.max(0, (t.contract.filmsLeft||3) - 1);
+      if(t.contract.filmsLeft <= 0){
+        t.contract = null;
+        log("🔓 "+t.name+"'s multi-film contract fulfilled — back on the open market.","");
+      }
+    }
+  });
   G.stats.films++;
   if(film.reviews && film.reviews.length){
     const top=film.reviews[0];
@@ -5601,6 +5640,11 @@ function interestRate(){ return 0.0018*(G.execs.cfo?0.7:1); }
 function intlShareOf(f){
   let s = DATA.GENRES[f.genre].intlShare;
   s += projectAbilities(f).intl;                // v28: Global Icon travels
+  /* v28: per-region star power boosts intl share — avg non-NA regional power */
+  if(f.cast && f.cast.length){
+    const nonNA = f.cast.reduce((s,c)=>s+effectivePower(c,"AS")+effectivePower(c,"EU")+effectivePower(c,"LA")+effectivePower(c,"AF"),0)/(f.cast.length*4);
+    s += nonNA * 0.015;  // each point of regional power adds ~1.5% intl share
+  }
   if(f.foreignLang) s += 0.10;                  // v3: foreign-language travels
   if(f.censorCut) s = Math.max(0.15, s-0.08);   // v3: China censor board
   if(f.chinaDenied) s = Math.max(0.10, s-(DATA.GENRES[f.genre].china||0));  // v5: missed the quota slot

@@ -556,8 +556,8 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   .brand{font-size:14px; max-width:38vw}
   .chip{font-size:11.5px; padding:4px 8px; min-height:28px}
   .chip-row{gap:4px}
-  .topbar-actions{margin-left:auto; gap:5px}
-  .topbar-actions .btn{padding:8px 10px; min-height:40px; min-width:40px}
+  .topbar-actions{margin-left:auto; gap:5px; display:flex; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:60%; padding-bottom:4px; scrollbar-width:thin}
+  .topbar-actions .btn{padding:8px 10px; min-height:40px; min-width:40px; flex-shrink:0}
   #btnWeek{min-height:44px; font-size:14.5px; flex:1; min-width:120px}
   #btnFast{min-height:40px; min-width:44px; padding:8px 10px; font-size:12.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center}
   .tabs{display:none}
@@ -604,15 +604,20 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   .card{padding:15px}
   .card+.card{margin-top:12px}
   .btn{min-height:44px}
-  .btn-sm{min-height:38px; font-size:13px; padding:7px 12px}
-  .btn-xs{min-height:32px; font-size:12px; padding:4px 10px}
+  .btn-sm{min-height:44px; font-size:13px; padding:7px 12px}
+  .btn-xs{min-height:40px; font-size:12px; padding:4px 10px}
   .news-item{padding:11px 12px; font-size:13.5px}
   .talent-card .t-avatar{font-size:30px; width:48px}
   .cost-line{padding:7px 0; font-size:14px}
   .wk-cash{font-size:36px}
   .fab-week{display:block}
-}
 
+  /* Mobile P2: minimum font sizes */
+  .tiny{font-size:12px !important}
+  .small{font-size:12.5px !important}
+  .muted{font-size:12px !important}
+  button, select, input, textarea{font-size:12px !important}
+}
 /* ─────────── tiny phone breakpoint (<= 400px) ─────────── */
 @media(max-width:400px){
   body{font-size:14px}
