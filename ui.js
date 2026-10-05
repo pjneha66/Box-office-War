@@ -500,6 +500,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
     else if(e.key==="l" || e.key==="L"){ e.preventDefault(); const g=loadGame(); if(g){ render(); toast("📂 Game loaded"); } }
     else if(e.key==="h" || e.key==="H"){ e.preventDefault(); helpModal(); }
     else if(e.key==="p" && e.ctrlKey && e.shiftKey){ e.preventDefault(); if(G.prototype){ prototypeDebugModal(); } }
+    else if((e.metaKey || e.ctrlKey) && e.key==="k"){ e.preventDefault(); openCommandPalette(); }
     else if(e.key==="Escape"){ closeModal(); }
   });
   // long-press fast on mobile

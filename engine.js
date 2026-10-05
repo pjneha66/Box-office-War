@@ -6430,7 +6430,7 @@ function maLicenseBids(f){
   const legs=clamp(1.6+(f.quality-30)*0.028+(DATA.GENRES[f.genre] ? DATA.GENRES[f.genre].legsAdj : 0),1.45,4.0);
   const open=f.opening||f.weight||6;
   const intl=clamp((DATA.GENRES[f.genre] && DATA.GENRES[f.genre].intlShare) || 0.5, 0.05, 0.92);
-  const ww=open*legs/(1-intl);
+  const ww=open*legs/Math.max(0.05, 1-intl);  // guard div-by-zero
   const base=Math.max(2, Math.round(ww*0.42*clamp((f.quality||50)/60,0.55,1.15)));
   const plats=DATA.PLATFORMS.slice().sort(()=>rnd()-0.5).slice(0,3);
   return plats.map(p=>({platform:p.id, value:Math.max(2, Math.round(base*(p.generosity||1)*(0.9+rnd()*0.25)))}));
@@ -6528,11 +6528,13 @@ function tickMaVault(){
       const legs=clamp(1.6+(f.quality-30)*0.028+(DATA.GENRES[f.genre]?DATA.GENRES[f.genre].legsAdj:0),1.45,4.0);
       const gross=f.opening*Math.pow(1-1/legs, f.weeksOut);
       f.weeksOut++;
-      if(gross<Math.max(0.3,f.opening*0.006)||f.weeksOut>16){
+      f.totalGross = (f.totalGross||0) + gross;  // track cumulative gross
+      // End run if cumulative gross < 5% of opening OR single week too low OR max weeks
+      if(f.totalGross < f.opening*0.05 || gross<Math.max(0.3,f.opening*0.006) || f.weeksOut>16){
         f.live=false; f.dead=true; f.completedTheatrical=true;
         const intlShare=clamp((DATA.GENRES[f.genre]&&DATA.GENRES[f.genre].intlShare)||0.5, 0.1, 0.85);
         const intlGross=(f.dom/(1-intlShare) - f.dom) * econM("intl");
-        const intlRentals=Math.round(intlGross*0.42*10)/10;
+        const intlRentals=Math.round(intlGross*0.53*10)/10;  // match regular films (53%)
         if(intlRentals>0){ earn("theatrical", intlRentals); }
         f.ww=Math.round((f.dom+intlGross)*10)/10;
         G.stats.totalWW+=intlGross;
