@@ -3941,6 +3941,37 @@ function tickRivals(){
         else f.dom+=gross;
       }
     }
+    /* v28: rival slates integration - inject custom studios/franchises */
+    if(G.custom && G.custom.studios && r.slate.length < 5 && chance(0.1)){
+      const customStudio = pick(G.custom.studios);
+      if(customStudio){
+        r.slate.push({ 
+          title:customStudio.name, 
+          genre:pick(Object.keys(DATA.GENRES)), 
+          scale:pick(["indie","mid","wide"]), 
+          weight:Math.round((3+rnd()*8)*10)/10, 
+          week:G.week+rint(8,20), 
+          live:false, dead:false, 
+          custom:true, 
+          studio:customStudio.name 
+        });
+      }
+    }
+    if(G.custom && G.custom.franchises && r.slate.length < 5 && chance(0.1)){
+      const customFr = pick(G.custom.franchises);
+      if(customFr){
+        r.slate.push({ 
+          title:customFr.name+" "+rint(2,5), 
+          genre:customFr.genre, 
+          scale:pick(["indie","mid","wide"]), 
+          weight:Math.round((4+rnd()*6)*10)/10, 
+          week:G.week+rint(8,20), 
+          live:false, dead:false, 
+          custom:true, 
+          franchise:customFr.name 
+        });
+      }
+    }
     r.ytd = r.slate.filter(f=>f.week>(yearOf(G.week)-1)*52).reduce((a,f)=>a+(f.dead||f.live? f.dom:0),0);
   }
 }
@@ -5281,6 +5312,20 @@ function advanceWeek(){
   if(typeof refreshIdeas==="function") refreshIdeas();
   if(typeof refreshIpMarket==="function") refreshIpMarket();
   if(chance(.18)) G.talent.push(chance(.6)?genActor(chance(.2)):genDirector(chance(.2)));
+  /* v28: custom people integration - add custom people to talent pool */
+  if(G.custom && G.custom.people){
+    G.custom.people.forEach(cp=>{
+      if(!G.talent.some(t=>t.id===cp.id) && chance(0.25)){
+        const p = { ...cp, id:cp.id||nid(), kind:cp.kind||"actor", power:cp.power||3, 
+          skill:cp.skill||70, fee:cp.fee||5, bookedUntil:0, heat:0, genreFit:null,
+          age:cp.age||30, scandal:0, pics:0, joinedYear:yearOf(G.week),
+          powerByRegion:{NA:cp.power||3, EU:cp.power||3, AS:cp.power||3, LA:cp.power||3, AF:cp.power||3},
+          ability:genAbilityFor(cp.kind||"actor", cp.power||3), abilityKnown:false,
+          prototype:{}, custom:true };
+        G.talent.push(p);
+      }
+    });
+  }
   G.talent=G.talent.filter(t=>!t.bookedUntil||t.bookedUntil>=G.week-30).slice(-52);
   if(typeof tickPoaching==="function") tickPoaching();
   if(typeof checkContractRenegotiation==="function") checkContractRenegotiation();
@@ -5406,12 +5451,13 @@ function buildResort(id){
 
 function buyIp(id){
   const it=(G.ipMarket||[]).find(x=>x.id===id); if(!it) return;
-  /* v28: legacy franchise listing — buy straight into the franchise stable */
-  if(it.kind==="legacy"){
+  /* v28: legacy/custom franchise listing — buy straight into the franchise stable */
+  if(it.kind==="legacy" || it.kind==="custom"){
     if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return; }
     spend("development", it.price);
     G.franchises.push({ id:nid(), name:it.title, tier:1, entries:[], ww:0, merch:0, park:0, gameSold:0,
-                        decay:1, genre:it.genre, earned:0, built:G.week, purchased:true, purchasedLeft:1 });
+                        decay:1, genre:it.genre, earned:0, built:G.week, purchased:true, purchasedLeft:1,
+                        custom: it.kind==="custom" });
     G.ipMarket = G.ipMarket.filter(x=>x!==it);
     log("🌍 Bought the \""+it.title+"\" franchise rights ("+fmtM(it.price)+") — proven IP with a ready fanbase. Your next entry gets a buzz bump. See Franchises.","gold");
     saveGame(); return;
@@ -5853,6 +5899,16 @@ function refreshIpMarket(seed){
   G.ipMarket = (G.ipMarket||[]).filter(i=>i.born+16>G.week);
   /* v28: legacy franchise listings surface mid-run, never in the opening market */
   if(G.week>=10 && chance(0.18) && !G.ipMarket.some(i=>i.kind==="legacy")) G.ipMarket.push(genLegacyListing());
+  /* v28: custom franchise integration - add custom franchises to IP market */
+  if(G.custom && G.custom.franchises){
+    G.custom.franchises.forEach(fr=>{
+      if(!G.ipMarket.some(i=>i.id===fr.id) && chance(0.15)){
+        G.ipMarket.push({ id:fr.id, kind:"legacy", genre:fr.genre, title:fr.name, 
+          price:Math.round((fr.value||0)*2.5), boost:Math.round(5+(fr.value||0)*0.1), 
+          buzz:0.12, born:G.week, custom:true });
+      }
+    });
+  }
   while(G.ipMarket.length<4){ const it=genIpItem(); it.born=G.week; G.ipMarket.push(it); }
   if(!seed && G.ipMarket.length>6) G.ipMarket.length=6;
 }
@@ -7223,6 +7279,14 @@ function createCustomStudio(name, desc){
   if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
   const s = DATA.customStudio(name, desc);
   G.custom.studios.push(s);
+  /* v28 polish: custom studios enter the M&A deal book as rival acquisition targets */
+  const rival = (G.rivals||[]).find(r=>r.name===name);
+  if(!rival && G.rivals && G.rivals.length){
+    // add to a random rival's slate as a co-production target
+    const r = pick(G.rivals);
+    r.slate.push({title: name+" Co-Production", genre: pick(Object.keys(DATA.GENRES)), scale:"mid", week: G.week+rint(20,50), live:false, dead:false, custom:true});
+    log("🤝 "+r.name+" wants to co-produce with "+name+" — watch Films tab.","");
+  }
   log("🏛 Custom studio created: "+name,"gold");
   saveGame();
   return s;
@@ -7231,7 +7295,24 @@ function createCustomPerson(name, kind, desc){
   if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
   const p = DATA.customPerson(name, kind, desc);
   G.custom.people.push(p);
-  log("👤 Custom person created: "+name+" ("+kind+")","gold");
+  /* v28 polish: custom people join the real talent pool */
+  const kindDefs = { actor:{skill:rint(55,80), feeBase:2}, director:{skill:rint(60,85), feeBase:3}, writer:{skill:rint(55,80), feeBase:1.5}, producer:{skill:rint(55,80), feeBase:2} };
+  const kd = kindDefs[kind] || kindDefs.actor;
+  const power = rint(2,4);
+  const newTalent = {
+    id: nid(), kind, name,
+    power, skill: kd.skill,
+    agency: (DATA.AGENCIES? pick(DATA.AGENCIES).id : null),
+    fee: Math.round(kd.feeBase * power * 10)/10,
+    bookedUntil:0, heat:1, genreFit: pick(Object.keys(DATA.GENRES)),
+    age: rint(26,45), scandal:0, pics:0, joinedYear: yearOf(G.week),
+    custom:true, customDesc: desc,
+    powerByRegion: {NA:power, EU:power, AS:power, LA:power, AF:power},
+    ability: genAbilityFor(kind, power), abilityKnown: false
+  };
+  G.talent.push(newTalent);
+  initPrototypeTalent(newTalent);
+  log("👤 "+name+" joins the talent pool ("+kind+", "+power+"★) — see Develop → Talent.","gold");
   saveGame();
   return p;
 }
@@ -7239,7 +7320,12 @@ function createCustomFranchise(name, genre, desc){
   if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
   const f = DATA.customFranchise(name, genre, desc);
   G.custom.franchises.push(f);
-  log("🌍 Custom franchise created: "+name,"gold");
+  /* v28 polish: custom franchises surface in the IP market as a buyable listing */
+  if(!G.ipMarket.some(i=>i.kind==="custom")){
+    G.ipMarket.push({ id:nid(), kind:"custom", genre, title:name, price:rint(15,45),
+      boost:Math.round(5+rnd()*8), buzz:0.08, born:G.week });
+    log("🌍 Custom franchise \""+name+"\" listed in the IP Market.","gold");
+  }
   saveGame();
   return f;
 }

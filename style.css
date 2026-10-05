@@ -1215,3 +1215,18 @@ body[data-theme="silver"]{
 .territory-stack-seg{height:100%; transition:width .5s var(--ease-out)}
 .territory-stack-label{display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:2px}
 
+
+/* ── Mobile P3: perf — replace expensive backdrop-filter with solid backgrounds ── */
+@media(max-width:760px){
+  .chip{backdrop-filter:none !important; background:rgba(19,24,38,.97) !important}
+  .topbar{backdrop-filter:none !important; background:rgba(8,11,17,.99) !important}
+  .modal-veil{backdrop-filter:none !important; background:rgba(4,6,10,.88) !important}
+  .modal{backdrop-filter:none !important; background:#10141f !important}
+  .bottomnav{backdrop-filter:none !important; background:rgba(10,13,20,.99) !important}
+  .start-card{backdrop-filter:none !important; background:rgba(16,20,31,.99) !important}
+  /* hide full-screen noise overlay on mobile (GPU cost) */
+  body::after{display:none !important}
+}
+
+/* ── Mobile P4: screen-reader-only helper ── */
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}

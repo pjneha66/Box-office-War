@@ -496,6 +496,14 @@ window.addEventListener("DOMContentLoaded", ()=>{
   // v10 spec §5: tappable HUD
   const cw=$("#chipCashWrap"); if(cw) cw.onclick=()=>{ beep("click"); financeOverviewSheet(); };
   const dw=$("#chipDateWrap"); if(dw) dw.onclick=()=>{ beep("click"); calendarModal(); };
+  /* v28 SR audit: role="button" divs need Enter/Space activation */
+  [[cw,()=>financeOverviewSheet()],[dw,()=>calendarModal()]].forEach(([el,fn])=>{
+    if(!el) return;
+    el.setAttribute("tabindex","0");
+    el.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); beep("click"); fn(); }
+    });
+  });
   $("#btnAch") && ($("#btnAch").onclick=()=>{ beep("click"); achievementsModal(); });
   // tabs
   $$(".tab,.btab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
@@ -1414,6 +1422,7 @@ function viewDevelop(){
       h+="<div class='section-title'>📚 IP Market</div><div class='grid g3'>";
       (G.ipMarket||[]).forEach(it=>{
         const k=(it.kind==="legacy")? {emoji:"🌍", name:"Legacy franchise — proven IP with a built-in fanbase"}
+              : (it.kind==="custom")? {emoji:"✨", name:"Custom franchise — your created IP"}
               : (DATA.IPKINDS? DATA.IPKINDS.find(x=>x.id===it.kind) : null) || {emoji:"📚",name:it.kind};
         h+="<div class='card"+(it.kind==="legacy"?" gold":"")+"'><div class='spread'><b>"+k.emoji+" "+esc(it.title)+"</b><span class='tag gold'>"+fmtM(it.price)+"</span></div>"+
           "<div class='tiny muted'>"+esc(k.name||"")+" · "+gTag(it.genre)+" · script +"+it.boost+" · awareness +"+Math.round(it.buzz*100)+"%</div>"+
@@ -1529,6 +1538,7 @@ function viewDevelopIP(){
       h+="<div class='section-title'>📚 IP Market</div><div class='grid g3'>";
       (G.ipMarket||[]).forEach(it=>{
         const k=(it.kind==="legacy")? {emoji:"🌍", name:"Legacy franchise — proven IP with a built-in fanbase"}
+              : (it.kind==="custom")? {emoji:"✨", name:"Custom franchise — your created IP"}
               : (DATA.IPKINDS? DATA.IPKINDS.find(x=>x.id===it.kind) : null) || {emoji:"📚",name:it.kind};
         h+="<div class='card"+(it.kind==="legacy"?" gold":"")+"'><div class='spread'><b>"+k.emoji+" "+esc(it.title)+"</b><span class='tag gold'>"+fmtM(it.price)+"</span></div>"+
           "<div class='tiny muted'>"+esc(k.name||"")+" · "+gTag(it.genre)+" · script +"+it.boost+" · awareness +"+Math.round(it.buzz*100)+"%</div>"+
@@ -6474,6 +6484,15 @@ function installGestures(){
         if(G && !G.over){
           toast("💡 Tip: Swipe ⇄ to switch tabs · pull down at top to advance week", "info");
           try{ localStorage.setItem("bow_gesture_hint", "1"); }catch(e){}
+        }
+      }, 1600);
+    }
+    /* v28: desktop keyboard coach mark — one-time Cmd+K hint */
+    else if(!("ontouchstart" in window) && !(navigator && navigator.maxTouchPoints>0) && !localStorage.getItem("bow_kb_hint")){
+      setTimeout(()=>{
+        if(G && !G.over){
+          toast("⌨️ Tip: ⌘K/Ctrl+K opens the command palette · Space advances a week", "info");
+          try{ localStorage.setItem("bow_kb_hint", "1"); }catch(e){}
         }
       }, 1600);
     }

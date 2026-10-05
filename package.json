@@ -7,10 +7,12 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node test/smoke.js && node test/ui-test.mjs && node test/balance.js",
+    "test": "node test/smoke.js && node test/ui-test.mjs && node test/balance.js && node test/scenario-playthrough.mjs",
     "test:engine": "node test/smoke.js",
     "test:ui": "node test/ui-test.mjs",
     "test:balance": "node test/balance.js",
+    "test:scenarios": "node test/scenario-playthrough.mjs",
+    "test:library": "node test/verify-library.mjs",
     "validate:slots": "node test/validate-slots.js"
   },
   "keywords": [
