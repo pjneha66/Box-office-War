@@ -377,6 +377,10 @@ step("film pitch wizard", ()=>{
 });
 step("ott view", ()=>{
   click($(".tab[data-tab='ott']"));
+  if(!$("#view").innerHTML.includes("Deal offers") && !$("#view").innerHTML.includes("Your platform")) throw new Error("ott home missing");
+  // v28.9 §15: platforms live under the Market sub-tab now
+  const mkt=$$("[data-ottsub]").find(b=>b.dataset.ottsub==="market");
+  if(mkt){ click(mkt); }
   if(!$("#view").innerHTML.includes("The platforms")) throw new Error("platforms missing");
 });
 step("save exists in localStorage", ()=>{
@@ -438,7 +442,11 @@ step("v3 IP market renders & buys", ()=>{
   if(!$$("[data-ip]").length) throw new Error("IP market items missing");
   window.eval("G.studio.cash=200");
   const before=g().ideas.length;
-  click($$("[data-ip]")[0]);
+  // v28.9 pin: legacy/custom franchise listings buy into the franchise stable, not ideas —
+  // pick a regular rights item so this test asserts the idea pipeline deterministically.
+  const regId=window.eval("(G.ipMarket.find(i=>i.kind!=='legacy'&&i.kind!=='custom')||{}).id");
+  const btn=(regId!=null)? $$("[data-ip]").find(b=>String(b.dataset.ip)===String(regId)) : null;
+  click(btn || $$("[data-ip]")[0]);
   if(g().ideas.length<=before) throw new Error("IP buy did not add an idea");
 });
 step("v2 rewrite / test-screening flows", ()=>{
@@ -477,11 +485,11 @@ step("v7 acquired media: license to streamer + re-date", ()=>{
     G.maVault=G.maVault||[]; G.maVault.push({id:99001, title:"Vault Film", genre:"drama", quality:55, weight:6, week:G.week+10, opening:0, dom:0, live:false, dead:false, weeksOut:0, soldTo:null, source:"library"});`);
   click($(".tab[data-tab='productions']"));
   if(!$("#view").innerHTML.includes("Acquired media")) throw new Error("acquired media section missing");
-  const sell=$$("[data-masell]").find(b=>b.dataset.masell==="rival:Firesale Film");
+  const sell=$$("[data-masell]").find(b=>b.dataset.masell==="rival:Firesale Film" || b.dataset.masell.indexOf("rival:")===0);
   if(!sell) throw new Error("license button missing");
   click(sell);
   if(!$$(".bid-card").length) throw new Error("license bids missing");
-  click($$(".bid-card")[0]);
+  click($$(".bid-card").find(b=>!b.querySelector("[data-macounter]")) || $$(".bid-card")[0]);
   const rf=window.eval("G.rivals[0].slate.find(f=>f.title==='Firesale Film')");
   if(!rf.soldTo || rf.distBy!=="ott") throw new Error("license sale failed");
   const dt=$$("[data-madate]").find(b=>b.dataset.madate.indexOf("vault:")===0);

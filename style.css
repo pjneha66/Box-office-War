@@ -587,12 +587,20 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   .modal{max-height:93vh; border-radius:22px 22px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); overscroll-behavior:contain}
   .modal-head h3{font-size:19px}
   .modal-actions .btn{min-height:48px; font-size:15px}
-  .pick-list{grid-template-columns:1fr; max-height:340px}
+  .pick-list{grid-template-columns:1fr; max-height:min(45vh, 460px)}
   .pick-list .card{padding:12px}
   .stat{padding:14px}
   .stat .s-v{font-size:19px}
   .stat-hero{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
   .chart-bar{grid-template-columns:22px minmax(0,1fr) auto}
+  /* v28.9 mobile P2 leftovers */
+  .weekly-gross-chart .wg span{font-size:10.5px; top:-17px}
+  .trend-board .trend-row{grid-template-columns:minmax(72px,96px) minmax(0,1fr) auto}
+  .trend-board .trend-row .tr-name{overflow:visible; text-overflow:clip; white-space:normal; line-height:1.25}
+  .row .btn{flex:1 1 auto; min-width:0}
+  .start-card{padding:18px 16px}
+  .start-inner{padding:14px 10px}
+  .logo-title{font-size:30px}
   .chart-bar .cb-fill{font-size:10.5px; padding-right:6px}
   .plan-opt{padding:12px}
   .calendar-row{grid-template-columns:72px minmax(0,1fr); row-gap:6px}

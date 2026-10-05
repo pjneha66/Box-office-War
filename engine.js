@@ -6220,7 +6220,7 @@ function startResearch(id){
   if(def.req&&!G.tech.done[def.req]) return false;
   if(G.studio.cash<def.cost){ log("💸 "+def.name+" research costs "+fmtM(def.cost)+".","bad"); return false; }
   spend("studio", def.cost);
-  G.tech.active={id, left:def.weeks};
+  G.tech.active={id, left:def.weeks, total:def.weeks};   // v28.9: keep total for the % progress bar
   if(id==="ai"&&typeof unionAdjust==="function") unionAdjust(4,"AI research lab");
   log("🔬 Research started: "+def.name+" ("+def.weeks+" wks). "+def.benefit,"gold");
   saveGame(); return true;
@@ -6531,8 +6531,8 @@ function maSlateFilms(){
   const out=[];
   for(const r of G.rivals) for(const f of r.slate){
     if(f.distBy==="me" && !f.live && !f.dead) {
-      const uid = f.id || f.title;
-      out.push({src:"rival", id:uid, title:f.title, genre:f.genre, quality:f.quality, weight:f.opening||f.weight||6, week:f.week, ref:f});
+      if(!f.id) f.id = nid();   // v28.9: stable vault id — titles collide across rivals
+      out.push({src:"rival", id:f.id, title:f.title, genre:f.genre, quality:f.quality, weight:f.opening||f.weight||6, week:f.week, ref:f});
     }
   }
   for(const f of (G.maVault||[])){
@@ -6581,6 +6581,22 @@ function maToOwnStreamer(src, id){
 }
 
 /* ── Acquired Library Bulk Operations (Sell Upfront, Bulk License, Rival Sale) ── */
+/* v28.9: firesale counter-offer — lowball a rival; 40% chance they cave at −25% */
+function maCounterRival(rivalName){
+  const r=(G.rivals||[]).find(x=>x.name===rivalName); if(!r) return false;
+  const films=(r.slate||[]).filter(f=>f.distBy==="me" && !f.live && !f.dead);
+  if(!films.length) return false;
+  const full=Math.round(maVaultValue() * 2.1 * 10) / 10;
+  const countered=Math.round(full*0.75*10)/10;
+  if(chance(0.4)){
+    earn("licensing", countered);
+    films.forEach(f=>{ f.dead=true; f.soldTo=rivalName; f.soldValue=Math.round(countered/films.length*10)/10; });
+    log("🪙 "+rivalName+" took your −25% counter: the "+films.length+"-film package closes at "+fmtM(countered)+".","gold");
+    saveGame(); return true;
+  }
+  log("🚫 "+rivalName+" rejects the counter — full price ("+fmtM(full)+") or nothing.","bad");
+  saveGame(); return false;
+}
 function maVaultActive(){
   return (G.maVault||[]).filter(f=>!f.dead && !f.soldTo);
 }

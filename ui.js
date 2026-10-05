@@ -595,16 +595,23 @@ function enterApp(fresh){
 }
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
-  TAB=t; beep("click");
+  TAB=t; try{ beep("click"); }catch(e){}   // v28.9: never let audio/haptics kill the render flush
   $$(".tab,.btab").forEach(b=>{
     const match = b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
     b.classList.toggle("active", match);
     b.setAttribute("aria-current", match?"true":"false");   // v27 a11y
   });
-  render();
+  /* v28.9: flush the debounced render immediately on tab switch — fixes the
+     race where a fast click (or the UI test) hits a not-yet-rendered view */
+  if(_renderTimer){ clearTimeout(_renderTimer); _renderTimer=null; }
+  /* v28.9 mobile P2: remember per-tab scroll position */
+  try{ TAB_SCROLL[TAB]=window.scrollY; }catch(e){}
+  _renderImpl();
+  try{ if(TAB_SCROLL[t]!=null) window.scrollTo(0, TAB_SCROLL[t]); else window.scrollTo(0,0); }catch(e){}
   const v=$("#view");   // v7: replay the entrance so the new tab glides in
   if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
 }
+const TAB_SCROLL={};   // v28.9: tab → last scrollY
 /* v10 spec §3: More — secondary systems as a bottom sheet */
 /* v15: fold — one collapsible pattern for every wall-of-info section. The head
    row toggles the body in place (no re-render); open/closed state persists in
@@ -810,7 +817,10 @@ function _renderImpl(){
     $("#chipDebtWrap").style.display = G.studio.debt>0.5? "":"none";
     const xp = typeof studioXpLevel==="function" ? studioXpLevel() : null;
     $("#chipRep").textContent=Math.round(G.studio.rep) + (xp ? " · " + xp.badge : "");
-    $("#chipDate").textContent="Y"+yearOf(G.week)+" · "+DATA.seasonOf(woyOf(G.week)).month+" W"+woyOf(G.week);
+    const hiM = (typeof hiMonth==="function")? hiMonth(woyOf(G.week)) : null;
+    $("#chipDate").textContent = hiM
+      ? "साल "+yearOf(G.week)+" · "+hiM+" · सप्ताह "+woyOf(G.week)
+      : "Y"+yearOf(G.week)+" · "+DATA.seasonOf(woyOf(G.week)).month+" W"+woyOf(G.week);
     const v=$("#view");
     let h="";
     if(TAB==="dashboard") h=viewDashboard();
@@ -1374,8 +1384,18 @@ function marketReport(){
   return h+"</div>";
 }
 let SCRIPT_GENRE_FILTER = "all";
+let DEVELOP_SUB = "scripts";   // v28.9: Develop sub-tab state
+let OTT_SUB = "home";          // v28.9 §15: streamer sub-tab state
 function viewDevelop(){
-  let h="";
+  /* v28.9: Develop sub-tabs — Scripts (default) / IP Market / Talent Business / Combos Codex.
+     Restored after the v28.7 file restore reverted the routing (helpers stayed, bar was lost). */
+  if(!DEVELOP_SUB) DEVELOP_SUB="scripts";
+  const DEV_TABS=[["scripts","📝 Scripts"],["ip","📚 IP Market"],["talent","🎫 Talent Business"],["combos","🧩 Combos Codex"]];
+  let h="<div class='row' style='gap:4px;flex-wrap:wrap;margin:4px 0 10px'>"+
+    DEV_TABS.map(x=>"<button class='btn btn-sm "+(DEVELOP_SUB===x[0]?"btn-primary":"btn-alt")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+"</div>";
+  if(DEVELOP_SUB==="combos") return h+viewCombosCodex();
+  if(DEVELOP_SUB==="ip") return h+viewDevelopIP();
+  if(DEVELOP_SUB==="talent") return h+viewDevelopTalent();
   try{ if(typeof trendBoard==="function") h+=trendBoard(); }catch(e){}
   try{ if(typeof seasonCorridorHeatmap==="function") h+=seasonCorridorHeatmap(); }catch(e){}
   try{ if(typeof marketReport==="function") h+=marketReport(); }catch(e){}
@@ -2529,6 +2549,7 @@ function acquiredMediaSection(){
       "<div class='spread'><div><b>🏛 Acquired Vault Portfolio ("+vaultFilms.length+" titles)</b>"+
       "<div class='tiny muted'>Catalog valuation: <b class='gold'>"+fmtM(vaultVal)+"</b> · Instant buyout: <b class='pos'>"+fmtM(buyoutVal)+"</b></div></div>"+
       "<div class='row' style='gap:6px'>"+
+      "<button class='btn btn-sm btn-alt' id='btnMaBrowse'>📖 Browse vault</button>"+
       "<button class='btn btn-sm btn-primary' id='btnMaBulkSell'>💰 Sell Outright ("+fmtM(buyoutVal)+")</button>"+
       "<button class='btn btn-sm btn-alt' id='btnMaBulkLicense'>📺 Bulk Streamer Deal</button>"+
       "<button class='btn btn-sm btn-ghost' id='btnMaFlipRival'>🤝 Flip to Rival</button>"+
@@ -2623,22 +2644,68 @@ function maFlipRivalModal(){
   if(!films.length) return;
   const val = typeof maVaultValue==="function" ? maVaultValue() : 0;
   let h="<h3>🤝 Flip Catalog to Rival Studio</h3>"+
-    "<div class='tiny muted' style='margin-bottom:10px'>Offload the entire "+films.length+"-film vault package to a competitor for quick liquidity.</div>";
+    "<div class='tiny muted' style='margin-bottom:10px'>Offload the entire "+films.length+"-film vault package to a competitor for quick liquidity. Tap a rival's 🪙 to lowball — 40% chance they take −25%.</div>";
   (G.rivals||[]).forEach(r=>{
     const flipVal = Math.round(val * 2.1 * 10) / 10;
     h+="<div class='bid-card' data-marival='"+esc(r.name)+"'><div class='platform-logo' style='background:"+r.color+"'>⚔️</div>"+
       "<div style='flex:1;min-width:0'><b>"+esc(r.name)+"</b><div class='tiny muted'>Buys package outright into their library</div></div>"+
-      "<b class='pos' style='font-size:16px'>"+fmtM(flipVal)+"</b></div>";
+      "<div class='row' style='gap:6px'><button class='btn btn-xs btn-ghost' data-macounter='"+esc(r.name)+"' title='Counter-offer: 40% chance they accept −25%'>🪙 −25%</button>"+
+      "<b class='pos' style='font-size:16px'>"+fmtM(flipVal)+"</b></div></div>";
   });
   h+="<div class='modal-actions'><button class='btn btn-ghost' id='maFlipClose'>Cancel</button></div>";
   const v=openModal(h);
-  v.querySelectorAll("[data-marival]").forEach(el=>el.onclick=()=>{
+  v.querySelectorAll("[data-marival]").forEach(el=>el.onclick=(e)=>{
+    if(e.target.closest("[data-macounter]")) return;   // counter button handles itself
     const rname = el.dataset.marival;
     const earned = maSellToRival(rname);
     if(earned){ beep("cash"); toast("🤝 Vault flipped to "+rname+": +"+fmtM(earned),"gold"); }
     closeModal(); render();
   });
+  v.querySelectorAll("[data-macounter]").forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
+    const rname = el.dataset.macounter;
+    const ok = maCounterRival(rname);
+    if(ok){ beep("cash"); } else { beep("bad"); }
+    closeModal(); render();
+  });
   const c=v.querySelector("#maFlipClose"); if(c) c.onclick=closeModal;
+}
+
+/* v28.9: M&A library browser — sortable vault with per-film value breakdown */
+function maVaultBrowser(sortKey){
+  const films = typeof maVaultActive==="function" ? maVaultActive() : [];
+  if(!films.length){ toast("Vault is empty — acquire a library from the M&A desk first.","bad"); return; }
+  sortKey = sortKey || "value";
+  const rows = films.map(f=>{
+    const g=DATA.GENRES[f.genre]||{};
+    const legs=clamp(1.6+(f.quality-30)*0.028+(g.legsAdj||0),1.45,3.8);
+    const intl=clamp((g.intlShare)||0.5,0.1,0.85);
+    const estWW=(f.opening||f.weight||6)*legs/(1-intl);
+    const val=Math.max(1.5,Math.round(estWW*0.35*10)/10);
+    return {f, legs:Math.round(legs*100)/100, estWW:Math.round(estWW*10)/10, val};
+  });
+  rows.sort((a,b)=>{
+    if(sortKey==="quality") return b.f.quality-a.f.quality;
+    if(sortKey==="title") return a.f.title.localeCompare(b.f.title);
+    if(sortKey==="date") return (a.f.week||0)-(b.f.week||0);
+    return b.val-a.val;
+  });
+  const total=rows.reduce((s,r)=>s+r.val,0);
+  const sorts=[["value","💰 Value"],["quality","⭐ Quality"],["date","📅 Date"],["title","🔤 Title"]];
+  let h="<h3>📖 Vault Browser — "+films.length+" titles</h3>"+
+    "<div class='tiny muted' style='margin-bottom:8px'>Catalog value <b class='gold'>"+fmtM(Math.round(total*10)/10)+"</b> · valuation = projected WW × 35% library rate. Sort:</div>"+
+    "<div class='row' style='gap:4px;margin-bottom:8px'>"+sorts.map(s=>"<button class='btn btn-xs "+(sortKey===s[0]?"btn-primary":"btn-alt")+"' data-masort='"+s[0]+"'>"+s[1]+"</button>").join("")+"</div>"+
+    "<div style='max-height:340px;overflow-y:auto;overscroll-behavior:contain'>";
+  rows.forEach(r=>{
+    h+="<div class='card' style='margin-bottom:6px'><div class='spread'>"+
+      "<div style='min-width:0'><b>"+(DATA.GENRES[r.f.genre]?DATA.GENRES[r.f.genre].emoji:"🎬")+" "+esc(r.f.title)+"</b>"+
+      "<div class='tiny muted'>"+(DATA.GENRES[r.f.genre]?DATA.GENRES[r.f.genre].name:r.f.genre)+" · quality "+Math.round(r.f.quality)+" · est. open "+fmtG(r.f.opening||r.f.weight||6)+
+      " · legs ×"+r.legs+" · est. WW "+fmtG(r.estWW)+(r.f.week&&r.f.week>G.week?" · opens "+dateLabel(r.f.week):"")+"</div></div>"+
+      "<b class='gold'>"+fmtM(r.val)+"</b></div></div>";
+  });
+  h+="</div><div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
+  const v=openModal(h);
+  v.querySelectorAll("[data-masort]").forEach(b=>b.onclick=()=>{ beep("click"); maVaultBrowser(b.dataset.masort); });
 }
 
 /* ═══════════ v8: week summary popup (pops after every Next Week) ═══════════ */
@@ -3721,6 +3788,12 @@ function viewOTT(){
   let h="";
   try{ h+=ownStreamerBoard(); }catch(e){}
   try{ h+=streamMarketBoard(); }catch(e){}
+  /* ── v28.9 §15: streamer sub-tabs (Home/Originals/Deals/Sports/Market) ── */
+  if(!OTT_SUB) OTT_SUB="home";
+  const OTT_TABS=[["home","🏠 Home"],["originals","🎬 Originals"],["deals","📄 Deals"],["sports","🏆 Sports"],["market","🌍 Market"]];
+  h+="<div class='row' style='gap:4px;flex-wrap:wrap;margin:4px 0 10px'>"+
+    OTT_TABS.map(x=>"<button class='btn btn-sm "+(OTT_SUB===x[0]?"btn-primary":"btn-alt")+"' data-ottsub='"+x[0]+"'>"+x[1]+"</button>").join("")+"</div>";
+  if(OTT_SUB==="deals"){
   h+="<div class='section-title'>Deal offers ("+G.offers.length+")</div>";
   if(!G.offers.length) h+="<div class='card muted small'>No offers on the table. Hits and finished runs attract bidders — especially during streaming wars.</div>";
   for(const o of G.offers){
@@ -3735,6 +3808,8 @@ function viewOTT(){
       (o.countered?"":"<button class='btn btn-alt btn-sm' data-cnt='"+o.id+"'>📈 Counter</button>")+
       "<button class='btn btn-ghost btn-sm' data-dec='"+o.id+"'>✕ Decline</button></div></div>";
   }
+  }
+  if(OTT_SUB==="originals"){
   h+="<div class='section-title'>Your series ("+G.series.length+")</div>";
   if(!G.series.length) h+="<div class='card muted small'>No shows yet. Series = steady license income + renewals. Pitch one from 📝 Develop.</div>";
   for(const s of G.series){
@@ -3759,6 +3834,8 @@ function viewOTT(){
       "</div>";
     h+="</div>";
   }
+  }
+  if(OTT_SUB==="home"){
   // YOUR OWN STREAMER (v3)
   h+="<div class='section-title'>✨ Your platform</div>";
   if(!G.streamer){
@@ -3793,6 +3870,8 @@ function viewOTT(){
     });
     h+="</div>";
   }
+  }
+  if(OTT_SUB==="sports"){
   // LIVE SPORTS (v3)
   const won=G.sportsWon||[];
   h+="<div class='section-title'>🏆 Live sports rights"+(won.length? " · "+won.length+" held":"")+"</div>";
@@ -3806,12 +3885,15 @@ function viewOTT(){
     else h+="<div class='tiny muted'>No sports rights yet. An auction will arrive near week 13, 26, 39 or 52.</div></div>";
     if(held.length) h+="</div>";
   }
+  }
+  if(OTT_SUB==="market"){
   h+="<div class='section-title'>The platforms</div><div class='grid g3'>";
   DATA.PLATFORMS.forEach(p=>{
     h+="<div class='card platform-card'><div class='platform-logo' style='background:"+p.color+"'>"+p.logo+"</div><div><b>"+p.name+"</b>"+
       "<div class='tiny muted'>"+p.blurb+"</div><div class='tiny muted' style='margin-top:4px'>pays "+Math.round((p.generosity-1)*100+100)+"% · renews above "+p.renew+" buzz</div></div></div>";
   });
   h+="</div>";
+  }
   return h;
 }
 
@@ -3870,6 +3952,15 @@ function viewFinance(){
 
   h+=plCard();
   h+="<div class='row' style='margin:8px 0'><button class='btn btn-sm btn-alt' id='btnExportCSV'>📥 Export P&L Ledger (CSV)</button></div>";
+  /* v28.9: transaction search/filter over the trailing 12 weeks */
+  const txWeeks=(G.txHistory||[]);
+  if(txWeeks.length){
+    h+="<div class='section-title'>🔎 Transaction search <span class='tiny muted'>(last "+txWeeks.length+" weeks)</span></div>"+
+      "<div class='card'><input type='text' id='txSearch' placeholder='🔍 Filter by category (e.g. theatrical, marketing, talent)…' style='width:100%;padding:9px 12px;border-radius:10px;background:#0d1119;border:1px solid var(--line2);color:var(--text);font-size:13px' aria-label='Search transactions'>"+
+      "<div id='txRows' style='margin-top:8px;max-height:280px;overflow-y:auto;overscroll-behavior:contain'>"+
+      fnLedgerRows(txWeeks,"")+
+      "</div></div>";
+  }
 
   h+="<div class='grid g2'><div class='card'><h4>🏦 Credit facility</h4>"+
     "<p class='tiny muted'>Weekly interest 0.18% (≈9%/yr). Borrow to bridge production, but breakevens don't care about your loans.</p>"+
@@ -3997,8 +4088,19 @@ function hqBoard(st){
   h+="</div>";
   /* technology tree: locked / available / researching / researched */
   const activeT=(G.tech&&G.tech.active)||null;
+  /* v28.9: weekly % progress bar for the active research */
+  let researchBar="";
+  if(activeT){
+    const total=activeT.total||techDefs().find(t=>t.id===activeT.id)?.weeks||activeT.left||1;
+    const pct=Math.round(clamp((total-activeT.left)/total,0,1)*100);
+    const def0=techDefs().find(t=>t.id===activeT.id);
+    researchBar="<div class='card' style='margin-bottom:8px'><div class='spread'><b>🔬 "+esc((def0&&def0.name)||activeT.id)+" — "+pct+"% complete</b><span class='tag gold'>"+activeT.left+"w left</span></div>"+
+      "<div style='height:8px;background:#0a0e16;border-radius:99px;overflow:hidden;border:1px solid var(--line);margin-top:6px'><div style='height:100%;width:"+pct+"%;background:linear-gradient(90deg,var(--gold),#ffdf9a);transition:width .5s'></div></div>"+
+      "<div class='tiny muted' style='margin-top:4px'>"+activeT.left+" of "+total+" weeks remaining — breakthrough lands automatically.</div></div>";
+  }
   h+="<div class='section-title'>🔬 Technology tree</div>"+
-    "<div class='tiny muted' style='margin:-4px 0 6px'>One lab slot. Research takes weeks after you pay."+(activeT?" Researching: <b>"+activeT.id+" ("+activeT.left+"w left)</b>.":" Lab idle.")+"</div><div class='grid g3'>";
+    (researchBar||"<div class='tiny muted' style='margin:-4px 0 6px'>One lab slot. Research takes weeks after you pay. Lab idle.</div>")+
+    "<div class='grid g3'>";
   techDefs().forEach(t=>{
     const done=techDone(t.id), isActive=activeT&&activeT.id===t.id;
     const avail=!done&&!isActive&&(!t.req||techDone(t.req));
@@ -4013,6 +4115,22 @@ function hqBoard(st){
 }
 
 const PL_LABELS={theatrical:"🎬 Box office rentals", pvod:"🏠 Premium VOD", streaming:"📺 Streaming deals", series:"📺 Series licenses", empire:"🏰 Franchise & parks", library:"📚 Library licensing", presales:"🌍 Intl pre-sales", incentives:"🧾 Production incentives", production:"🎬 Production spend", marketing:"📣 Marketing (P&A)", talent:"🌟 Talent & fees", development:"📝 Development", overhead:"🏛 Overhead", interest:"🏦 Interest", studio:"🏗 Studio investment", streamer:"📱 Platform subs", pay1:"📺 Pay-1 TV", music:"🎵 Soundtrack", video:"📀 Home video/DTV", cofinance:"🤝 Co-finance in", other:"❓ Other"};
+/* v28.9: trailing-week transaction rows with a text filter (used by Finance search) */
+function fnLedgerRows(txWeeks, q){
+  q=(q||"").toLowerCase();
+  let rows=[];
+  txWeeks.slice().reverse().forEach(w=>{
+    Object.keys(w.cats||{}).forEach(k=>{
+      const label=PL_LABELS[k]||k;
+      if(q && !label.toLowerCase().includes(q) && !k.includes(q)) return;
+      rows.push({week:w.week, key:k, label, amt:w.cats[k]});
+    });
+  });
+  if(!rows.length) return "<div class='tiny muted'>No matching transactions.</div>";
+  return rows.slice(0,80).map(r=>
+    "<div class='cost-line'><span>"+dateLabel(r.week)+" · "+esc(r.label)+"</span><b class='"+(r.amt>=0?"pos":"neg")+"'>"+(r.amt>=0?"+":"")+fmtM(r.amt)+"</b></div>"
+  ).join("")+(rows.length>80? "<div class='tiny muted' style='text-align:center'>…"+(rows.length-80)+" more — refine the filter</div>":"");
+}
 /* Finance rollups: read-only sums over trailing txHistory. Buckets mirror earn/spend cats. */
 function finTrail(){
   const rev={boxoffice:0, streaming:0, licensing:0, merch:0, other:0}, exp={prod:0, mkt:0, talent:0, overhead:0, interest:0, studio:0, other:0};
@@ -4318,6 +4436,21 @@ function bindView(){
   if(expCsv) expCsv.onclick=()=>{
     exportLedgerCSV();
     beep("click");
+  };
+  /* v28.9: develop/OTT sub-tabs, vault browser, firesale counter, ledger search */
+  $$("[data-devsub]").forEach(b=>b.onclick=()=>{ DEVELOP_SUB=b.dataset.devsub; beep("click"); render(); });
+  $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
+  const mab=$("#btnMaBrowse"); if(mab) mab.onclick=()=>{ beep("click"); maVaultBrowser(); };
+  $$("[data-macounter]").forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    const ok=maCounterRival(b.dataset.macounter);
+    if(ok){ beep("cash"); } else { beep("bad"); }
+    closeModal(); render();
+  });
+  const txs=$("#txSearch");
+  if(txs) txs.oninput=()=>{
+    const box=$("#txRows"); if(!box) return;
+    box.innerHTML=fnLedgerRows(G.txHistory||[], txs.value);
   };
   $$("[data-tour]").forEach(b=>b.onclick=()=>{
     if(tourArtist(b.dataset.tour)){ beep("gold"); flashes(G.flash); render(); }

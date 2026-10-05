@@ -52,5 +52,7 @@ Status snapshot for the full Shippable Product Plan (Phases 1–6). Everything b
 - [x] Repeated-run stability (3× clean)
 - [x] Deployed to production (Vercel)
 - [x] Save migration from v13 schema (prototype fields ride the whole-G snapshot)
-- [ ] Store listing assets (screenshots, icons — PWA PNG icons still pending from mobile audit)
+- [x] Store listing assets — PWA PNG icons (icon-512/192/180.png, v28.4) + store screenshots (assets/store/: start-desktop, studio-desktop, develop-desktop, studio-mobile — rendered v28.9)
+- [ ] Screen-reader pass with a real NVDA/VoiceOver run (static ARIA audit + keyboard nav done in v28.7/28.9; needs human ears)
+- [ ] §83 modularization — incremental by design (new systems get their own engine sections); no big-bang rewrite planned
 - [ ] 30-min human playtest vs. Go/No-Go criteria in `.opencode/plans/prototype_plan.md`
