@@ -3424,7 +3424,9 @@ function regionPanel(f){
   regs.forEach(r=>{
     const openEst=f.opening? Math.max(0,Math.round(f.opening*(r.gross/Math.max(1,((f.ww||0)-(f.dom||0))))*10)/10):0;
     const wkEst=live? Math.max(0,Math.round(lastWk*(r.gross/Math.max(1,((f.ww||0)-(f.dom||0))))*10)/10):0;
-    h+="<div class='cost-line'><span>"+r.emoji+" "+r.name+" <span class='tiny muted'>aud "+r.aud+" · "+r.share+"% of WW"+(r.note?" · "+r.note:"")+"</span></span>"+
+    /* v28.9: per-region audience score = base + regional modifiers */
+    const regAud = Math.round(clamp((r.aud || 50) + (r.audAdj || 0) + (f.foreignLang && r.id==="europe"? 5:0) - (f.genre==="horror" && r.id==="eastasia"? 8:0) - (f.genre==="comedy" && r.id==="eastasia"? 5:0), 20, 95));
+    h+="<div class='cost-line'><span>"+r.emoji+" "+r.name+" <span class='tiny muted'>aud "+regAud+" · "+r.share+"% of WW"+(r.note?" · "+r.note:"")+"</span></span>"+
       "<b>"+fmtG(r.gross)+"<span class='tiny muted'> tot</span>"+(live?" · "+fmtG(wkEst)+"<span class='tiny muted'>/wk</span>":" · open ≈ "+fmtG(openEst))+"</b></div>";
     const cr=cities.find(x=>x.region.id===r.id);
     if(cr) h+="<div class='tiny muted' style='margin:-2px 0 4px 14px'>🏙 "+cr.cities.map(c=>esc(c.name)+" "+fmtG(c.gross)).join(" · ")+"</div>";

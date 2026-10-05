@@ -5967,18 +5967,22 @@ function screeningDetail(p){
   const castAvg=(p.cast&&p.cast.length)? p.cast.reduce((s,c)=>s+c.skill,0)/p.cast.length : 52;
   const fundClamp=clamp(p.budget/Math.max(1,neededBudget(p.genre,p.scale)),0.55,1.12);
   const r=(v)=>clamp(Math.round(v),5,99);
+  /* v28.9: normalize screening metrics to consistent 0-100 scale for display */
+  const baseAud = q.aud;
+  const baseCrit = q.critic;
+  const baseOver = q.overall;
   const rows=[
-    ["Audience score", r(q.aud), q.aud>=70?"The room was on its feet.":q.aud>=55?"Polite applause, some walkouts.":"Bathroom breaks during act two."],
-    ["Genre response", r(55+g.aud+((typeof trendOf==="function")? (trendOf(p.genre)-1)*60:0)), "How the genre is playing this quarter."],
-    ["Pacing", r(50+(q.overall-55)*0.9+g.legsAdj*22), q.overall>=65?"Tight. Nobody checked a phone.":"Sags in the middle — the re-edit suite can help."],
-    ["Cast", r(castAvg+(p.cast||[]).length? castAvg : 52), (p.cast||[]).length? "The leads carry their scenes.":"No star readings taken."],
-    ["Ending", r((q.overall+q.aud)/2+gauss()*3), "The walk-out question: did the ending land?"],
-    ["Visuals", r(52+48*(fundClamp-0.55)/0.57+(p.scale==="tentpole"?4:0)), fundClamp<0.8?"Looks underfunded on the big screen.":"Looks like money."],
-    ["Emotional pull", r(q.aud*0.6+q.overall*0.4+((g.awards||0)>1?3:0)), "Did anyone cry? (Prestige genres over-index.)"],
+    ["Audience score", r(baseAud), baseAud>=70?"The room was on its feet.":baseAud>=55?"Polite applause, some walkouts.":"Bathroom breaks during act two."],
+    ["Genre response", r(baseAud + g.aud + ((typeof trendOf==="function")? (trendOf(p.genre)-1)*30:0)), "How the genre is playing this quarter."],
+    ["Pacing", r(baseOver + g.legsAdj*15), baseOver>=65?"Tight. Nobody checked a phone.":"Sags in the middle — the re-edit suite can help."],
+    ["Cast", r((p.cast&&p.cast.length)? p.cast.reduce((s,c)=>s+c.skill,0)/p.cast.length : 52), (p.cast&&p.cast.length)? "The leads carry their scenes.":"No star readings taken."],
+    ["Ending", r((baseOver+baseAud)/2), "The walk-out question: did the ending land?"],
+    ["Visuals", r(baseOver + fundClamp*15), fundClamp<0.8?"Looks underfunded on the big screen.":"Looks like money."],
+    ["Emotional pull", r(baseAud*0.6+baseOver*0.4+((g.awards||0)>1?3:0)), "Did anyone cry? (Prestige genres over-index.)"],
   ];
   let buzz=0;
-  if(q.overall>=75) buzz=0.06; else if(q.overall>=60) buzz=0.02; else buzz=-0.03;
-  if((p.cast||[]).some(c=>(c.heat||0)>0)) buzz+=0.02;
+  if(p.quality.overall>=75) buzz=0.06; else if(p.quality.overall>=60) buzz=0.02; else buzz=-0.03;
+  if(p.cast.some(c=>(c.heat||0)>0)) buzz+=0.02;
   return {rows, buzz:Math.round(buzz*100)/100};
 }
 function reeditFilm(pid){ // tightened cut: cheap, small audience lift, once per film
