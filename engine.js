@@ -42,6 +42,7 @@ function newGame(archId, name, opts){
     infl:1, execs:{}, lastClass:yearOf(1),
     streamer:null, pendingSports:null, sportsAuction:null, sportsWon:[], exhibitor:50, exhibRel:70,
     achv:[], ach:{}, festWins:[], extraPlatforms:[], ipMarket:[], trends:{}, trendShiftAt:0, pendingEarnings:null, retired:[],
+    comboKnown:{}, watchlist:[], pendingSale:null,
     over:null, pendingReport:null, pendingChoice:null,
     weeksInDebt:0,
     ipo:false, quarterNet:0, mezz:0,
@@ -269,6 +270,8 @@ const SAVE_MIGRATIONS = {
     s.outputDeal=s.outputDeal||0; s.wrapDeal=s.wrapDeal||0; s.agencyExcl=s.agencyExcl||0;
     s.ach=s.ach||{}; s.festWins=s.festWins||[];
     s.extraPlatforms=s.extraPlatforms||[]; s.ipMarket=s.ipMarket||[];
+    s.comboKnown=s.comboKnown||{}; s.watchlist=s.watchlist||[]; s.pendingSale=s.pendingSale||null;
+    (s.talent||[]).forEach(t=>{ if(t.ability===undefined){ t.ability=genAbilityFor(t.kind, t.power||2); t.abilityKnown=false; } });
     s.streamer=s.streamer||null; s.sportsAuction=null; s.sportsPower=s.sportsPower||0; s.mySports=s.mySports||[];
     s.exhibRel=s.exhibRel||70; s.exhibitor=s.exhibitor||50;
     s.stats=s.stats||{}; s.stats.streamSales=s.stats.streamSales||0;
@@ -497,6 +500,21 @@ function talentName(kind){
   const f = chance(.5)? pick(DATA.FIRST_M) : pick(DATA.FIRST_F);
   return f+" "+pick(DATA.LAST);
 }
+/* ── v28: hidden rarity-tiered abilities (mechanics study in REFERENCE-NOTES.md; original implementation) ── */
+function genAbilityFor(kind, power){
+  if(!DATA.ABILITIES) return null;
+  const p = power||2;
+  const odds = p>=5? 0.85 : p===4? 0.6 : p===3? 0.4 : 0.22;
+  if(!chance(odds)) return null;
+  const pool = DATA.ABILITIES.filter(a=>a.kind===kind);
+  if(!pool.length) return null;
+  const shift = p>=5? 26 : p===4? 14 : 0;
+  const roll = rint(1,100) + shift;
+  const rar = roll>=95? ["legendary"] : roll>=82? ["epic"] : roll>=55? ["rare"] : ["common"];
+  const cands = pool.filter(a=>rar.includes(a.rarity));
+  const chosen = pick(cands.length? cands : pool.filter(a=>a.rarity==="common"));
+  return chosen? chosen.id : null;
+}
 function startAge(){ return rint(DATA.CAREER.minAge, DATA.CAREER.maxStartAge); }
 function genActor(hot, opts){
   const power = hot? rint(3,5) : rint(1,5);
@@ -506,7 +524,8 @@ function genActor(hot, opts){
            agency:(DATA.AGENCIES? pick(DATA.AGENCIES).id : null),
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null,
            age: hot? rint(24,38) : (typeof startAge==="function"? startAge() : rint(26,52)), scandal:0,
-           pics:0, joinedYear: yearOf(G?G.week:1) };
+           pics:0, joinedYear: yearOf(G?G.week:1),
+           ability:genAbilityFor("actor", power), abilityKnown:false };
 }
 
 function genDirector(hot, fitGenre, opts){
@@ -518,7 +537,8 @@ function genDirector(hot, fitGenre, opts){
            power, skill, agency:(DATA.AGENCIES? pick(DATA.AGENCIES).id : null),
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0,
            genreFit: fitGenre || pick(fits), age: hot? rint(28,42) : (typeof startAge==="function"? startAge() : rint(26,52)), scandal:0,
-           pics:0, joinedYear: yearOf(G?G.week:1), auteur: !!(opts&&opts.auteur) };
+           pics:0, joinedYear: yearOf(G?G.week:1), auteur: !!(opts&&opts.auteur),
+           ability:genAbilityFor("director", power), abilityKnown:false };
 }
 
 /* ── v4: WRITERS — they drive the script score ── */
@@ -530,7 +550,8 @@ function genWriter(hot, fitGenre){
            agency:(DATA.AGENCIES? pick(DATA.AGENCIES).id : null),
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0,
            genreFit: fitGenre || pick(Object.keys(DATA.GENRES)),
-           trait: pick(DATA.WRITER_TRAITS), age: startAge(), scandal:0 };
+           trait: pick(DATA.WRITER_TRAITS), age: startAge(), scandal:0,
+           ability:genAbilityFor("writer", power), abilityKnown:false };
 }
 /* ── v4: PRODUCERS — they keep the shoot on budget and on schedule ── */
 function genProducer(hot){
@@ -540,7 +561,8 @@ function genProducer(hot){
   return { id:nid(), kind:"producer", name:pick(DATA.PROD_FIRST)+" "+pick(DATA.LAST), power, skill,
            agency:(DATA.AGENCIES? pick(DATA.AGENCIES).id : null),
            fee:Math.round(fee*10)/10, bookedUntil:0, heat:hot?1:0, genreFit:null,
-           trait: pick(DATA.PROD_TRAITS), age: startAge(), scandal:0 };
+           trait: pick(DATA.PROD_TRAITS), age: startAge(), scandal:0,
+           ability:genAbilityFor("producer", power), abilityKnown:false };
 }
 function genTalentPool(){
   G.talent = [];
@@ -558,6 +580,52 @@ function spawnWriterHot(){ if(G) G.talent.push(genWriter(true)); }
 function talentById(id){ return G.talent.find(t=>t.id===id); }
 function talentByKind(kind){ return G.talent.filter(t=>t.kind===kind); }
 function freeTalent(kind){ return G.talent.filter(t=>t.kind===kind && !t.bookedUntil && !(t.retired)); }
+
+/* ── v28 ability helpers: effects are pure data summed off the attached talent ── */
+function talentAbility(t){ return (t && t.ability)? DATA.abilityOf(t.ability) : null; }
+function projectAbilities(p){
+  const sum={overall:0,critic:0,aud:0,award:0,open:0,legs:0,intl:0,overrun:0};
+  if(!p) return sum;
+  const isSeq = !!(p.sequelOf || p.franchiseName);
+  const add=(t)=>{
+    const a=talentAbility(t); if(!a) return;
+    if(a.specOnly && !["scifi","fantasy","action"].includes(p.genre)) return;
+    if(a.bigOnly && p.scale!=="tentpole") return;
+    if(a.seqOnly && !isSeq) return;
+    const c=a.craft||{};
+    sum.overall+=c.overall||0; sum.critic+=c.critic||0; sum.aud+=c.aud||0;
+    sum.award+=a.award||0; sum.open+=a.open||0; sum.legs+=a.legs||0; sum.intl+=a.intl||0;
+    sum.overrun+=a.overrun||0;
+  };
+  (p.cast||[]).forEach(add); add(p.director); add(p.writer); add(p.producer);
+  return sum;
+}
+function abilityOpenMult(p){
+  let m=1;
+  m += projectAbilities(p).open;
+  if(p && p.theme && DATA.comboOf(p.genre,p.theme)==="love") m+=0.08;
+  return m;
+}
+/* v28: audition — pay a small read fee to reveal a candidate's hidden ability */
+function auditionCost(t){ return Math.max(0.05, Math.round((actorFee(t)||0)*0.03*10)/10); }
+function doAudition(id){
+  const t=talentById(id); if(!t || t.abilityKnown) return false;
+  const c=auditionCost(t);
+  if(G.studio.cash < c){ log("💸 Not enough cash to stage an audition read on "+t.name+".","bad"); return false; }
+  spend("development", c);
+  t.abilityKnown=true;
+  const a=talentAbility(t);
+  log(a? "🎭 Audition read on "+t.name+": "+a.emoji+" "+a.name+" ("+DATA.ABILITY_RARITY[a.rarity].name+") — "+a.blurb+"."
+      : "🎭 Audition read on "+t.name+": no special ability surfaced. Solid, not surprising.", a? "good":"");
+  saveGame(); return true;
+}
+/* v28: talent watchlist — pin anyone for quick access from the talent hub */
+function toggleWatch(id){
+  G.watchlist=G.watchlist||[];
+  const i=G.watchlist.indexOf(id);
+  if(i>=0) G.watchlist.splice(i,1); else G.watchlist.push(id);
+  saveGame();
+}
 
 /* ── v8: create-your-own superstar ── */
 const STAR_FEE = { actor:[0.3,1.2,4,12,25], director:[0.8,2,5,10,18], writer:[0.4,1.1,2.8,6,12], producer:[0.5,1.4,3.2,7,13] };
@@ -685,12 +753,13 @@ function applyGreenlightRelationships(p){
       }
     }
   }
-  // fresh feuds: two big stars, no chemistry, hot sets
+  // fresh feuds: two big stars, no chemistry, hot sets (v28: a Talent Wrangler producer keeps the set calm)
+  const calmProd = p.producer && (talentAbility(p.producer)||{}).calm;
   for(let i=0;i<cast.length;i++) for(let j=i+1;j<cast.length;j++){
     const a=cast[i], b=cast[j], k=pairKey(a.id,b.id);
-    if(a.power>=4 && b.power>=4 && (G.chem[k]||0)<2 && !(G.feuds||[]).includes(k) && chance(0.15)){
+    if(a.power>=4 && b.power>=4 && (G.chem[k]||0)<2 && !(G.feuds||[]).includes(k) && chance(calmProd?0.07:0.15)){
       G.feuds.push(k);
-      log("⚔️ A tabloid feud erupts between "+a.name+" and "+b.name+" on the \""+p.title+"\" set — never cast them together.","bad");
+      log("⚔️ A tabloid feud erupts between "+a.name+" and "+b.name+" on the \""+p.title+"\" set — never cast them together."+(calmProd?" (Your producer half-contained it.)":""),"bad");
     }
   }
   // muse director: 3+ films together names them your muse for that genre
@@ -845,7 +914,10 @@ function ageTalent(){
 function kindLabel(k){ return {actor:"actor", director:"director", writer:"writer", producer:"producer"}[k]||k; }
 function scandalHit(t, weeks){
   if(!t) return;
-  t.scandal = (t.scandal||0) + (weeks||DATA.CAREER.scandalCooldown);
+  const a=talentAbility(t);
+  let w = weeks||DATA.CAREER.scandalCooldown;
+  if(a && a.scandal) w *= 2;   // v28: Tabloid Magnet lives in the feed
+  t.scandal = (t.scandal||0) + w;
   t.heat = 0;
 }
 function tickCareers(){
@@ -968,7 +1040,11 @@ function neededBudget(genre, scale){
 }
 function computeQuality(p){
   const g = DATA.GENRES[p.genre];
-  const dirScore = p.director ? p.director.skill*(p.director.genreFit===p.genre?1.1:0.95) : 55;
+  /* v28: abilities reshape fit math — Genre Shapeshifter counts as fit, Genre Savant doubles the fit bonus */
+  const dAb=talentAbility(p.director);
+  const dirFit = p.director ? ((p.director.genreFit===p.genre) || !!(dAb&&dAb.fitAll)) : false;
+  const dirScore = p.director ? p.director.skill*(dirFit? ((dAb&&dAb.fitX2)?1.2:1.1) : 0.95) : 55;
+  const castFitBonus = (p.cast||[]).some(c=>{ const a=talentAbility(c); return a&&a.fitAll; })? 3 : 0;
   // v5 AI: a synthetic cast acts at a fixed, slightly-off level
   const castScore = p.aiCast ? (DATA.AI? DATA.AI.castSkill:58)
                     : p.cast.length? p.cast.reduce((s,c)=>s+c.skill,0)/p.cast.length : 52;
@@ -984,10 +1060,18 @@ function computeQuality(p){
   if(p.director && p.director.auteur) craft += 5;
   const fat = fatigueOfName(p.franchiseName);
   if(fat>0) craft -= fat/DATA.FATIGUE.max * DATA.FATIGUE.qualityHit;
+  /* v28: talent ability craft points + genre×theme affinity (love +5 / clash −4) */
+  const abSum=projectAbilities(p);
+  craft += abSum.overall + castFitBonus;
+  if(p.theme){
+    const mood=DATA.comboOf(p.genre,p.theme);
+    if(mood==="love") craft+=5;
+    if(mood==="clash") craft-=4;
+  }
   craft += gauss()*5.5;
   const overall = clamp(Math.round(craft), 8, 97);
   const rate = DATA.rating ? DATA.rating(p.rating) : null;
-  let criticBias = g.critic + (rate?rate.critic:0);
+  let criticBias = g.critic + abSum.critic + (rate?rate.critic:0);
   if(!rate){
     if(p.rating==="R") criticBias += 4;
     if(p.foreignLang) criticBias += 3;
@@ -995,7 +1079,7 @@ function computeQuality(p){
     if(p.foreignLang) criticBias += 3;
   }
   const critic = clamp(Math.round(overall + criticBias + gauss()*3), 5, 99);
-  let audRaw = overall + g.aud + Math.min(p.cast.reduce((s,c)=>s+c.power,0),8)*1.2 + gauss()*3;
+  let audRaw = overall + g.aud + abSum.aud + Math.min(p.cast.reduce((s,c)=>s+c.power,0),8)*1.2 + gauss()*3;
   if(p.aiCast) audRaw -= (DATA.AI? DATA.AI.audPenalty:9);          // v5: audiences smell the pixels
   // v9: budget allocation emphasis + below-the-line crew lean on the split
   let alAud=0, alCrit=0;
@@ -1751,6 +1835,7 @@ function legsOf(film){
   if(film.campaignLegs) legs+=film.campaignLegs; // marketing WOM buys a longer tail
   // v5: review embargo — anticipation helps when critics would have been kind; cover-ups get punished
   if(film.embargoActive) legs += (film.quality.critic>=55? 0.05 : -0.10);
+  legs += projectAbilities(film).legs;   // v28: Legs Engine & friends stretch the tail
   return clamp(legs, 1.45, 4.4);
 }
 
@@ -1930,6 +2015,7 @@ function greenlight(cfg){
     awareness: idea.awareness||0,
     strikePause:0,
     rating: cfg.rating||"PG-13",
+    theme: cfg.theme||null,
     location: cfg.location||"home",
     foreignLang: !!cfg.foreignLang,
     rewritten:false, tested:false, reshoot:false,
@@ -2032,6 +2118,8 @@ function tickProjects(){
       let risk = clamp(0.15 - (prodSkill-45)/300, 0.03, 0.20) * (techDone("sets")?0.8:1);
       if(p.alloc) risk = clamp(risk + (p.alloc.stunts-20)*0.0012, 0.02, 0.26);   // v9: stunt-heavy shoots risk more
       if(p.feudSet) risk = clamp(risk+0.02, 0.02, 0.28);                          // v9: feuding co-stars destabilize the set
+      const ovAdj = [p.producer, p.director].reduce((m,t)=>{ const a=talentAbility(t); return (a&&a.overrun)? m*(1+a.overrun):m; },1);
+      risk = clamp(risk*ovAdj, 0.02, 0.26);                                       // v28: Budget Hawk / Crisis Fixer contain overruns
       if(G.btl && G.btl.vfx) risk *= Math.max(0.85, 1-0.08*lvlMult(G.btl.vfx));   // v14: a leveled VFX house keeps even more shots on budget
       if(chance(risk)){
         const size = Math.round(p.budget*(0.008+rnd()*0.017)*(p.producer? 0.6:1)*10)/10;
@@ -2087,12 +2175,38 @@ function tickProjects(){
           p.phase="ready";
           if(p.festStrategy){
             const fest = (DATA.FESTIVALS||[]).find(x=>x.id===p.festStrategy) || (DATA.FESTIVALS||[])[0];
-            const prest = fest ? fest.prestige : 1.2;
-            p.festPrestige = (p.festPrestige||0) + Math.round(8 * prest);
-            p.buzzBonus = (p.buzzBonus||0) + 0.08 * prest;
-            p.campaign = (p.campaign||0) + Math.round(5 * prest);
-            log("🎪 Festival Premiere: \""+p.title+"\" held its world premiere at "+(fest?fest.emoji+" "+fest.name:"the festival")+"! Critical buzz +"+Math.round(8*prest)+"%, awards momentum primed.","gold");
+            const mode = p.festMode || "premiere";
+            if(mode==="auction" && fest){
+              /* v28: market auction — rivals bid for the finished picture; cash now, no theatrical upside */
+              G.pendingSale = { projectId:p.id, festId:fest.id, bids:makeSaleBids(p, fest) };
+              log("🎪 \""+p.title+"\" entered the "+fest.emoji+" "+fest.name+" market. Buyers are circling — take an offer or walk away.","gold");
+            }else{
+              /* v28: competition slots require the film to have shot in the festival's home region */
+              const elig = mode!=="competition" || p.location===(fest&&fest.region);
+              const prest = (fest? fest.prestige : 1.2) * (mode==="competition"? (elig?1.6:0.6) : 1);
+              p.festPrestige = (p.festPrestige||0) + Math.round(8 * prest);
+              p.buzzBonus = (p.buzzBonus||0) + 0.08 * prest;
+              p.campaign = (p.campaign||0) + Math.round(5 * prest);
+              log("🎪 Festival "+(mode==="competition"?"Competition":"Premiere")+": \""+p.title+"\" "
+                +(mode==="competition"
+                  ? (elig? "competes at" : "screens out of competition at (not shot in-region — reduced bump)")
+                  : "held its world premiere at")
+                +" "+(fest?fest.emoji+" "+fest.name:"the festival")+"! Critical buzz +"+Math.round(8*prest)+"%, awards momentum primed.","gold");
+            }
           }
+          /* v28: ship a genre×theme pairing once and its affinity is remembered forever */
+          if(p.theme){
+            const ckey=DATA.comboKey(p.genre,p.theme), mood=DATA.comboOf(p.genre,p.theme);
+            if(mood!=="neutral" && !G.comboKnown[ckey]){
+              G.comboKnown[ckey]=mood;
+              const th=DATA.themeOf(p.theme);
+              log(mood==="love"
+                ? "🧩 Combo discovered: "+DATA.GENRES[p.genre].name+" × "+th.name+" is a GREAT match — +5 quality, +8% opening on every future pairing!"
+                : "🧩 Combo discovered: "+DATA.GENRES[p.genre].name+" × "+th.name+" clashes — the pairing fell flat (−4 quality).","gold");
+            }
+          }
+          /* v28: one film together reveals a collaborator's hidden ability */
+          [p.director,p.writer,p.producer].concat(p.cast||[]).forEach(t=>{ if(t) t.abilityKnown=true; });
           log("🎞 \""+p.title+"\" is finished! Score: "+p.quality.overall+"/100. Date it theatrically or shop it to streamers.","good");
           maybePrebuyOffer(p);
         }
@@ -2141,6 +2255,8 @@ function beginReshoot(pid){
 function releaseFilm(p){
   firePendingDrops(p);   // v13: drops that never got their week fire compressed at release
   let expected = expectedOpening(p, G.week);
+  const abOpen = abilityOpenMult(p);   // v28: Opening Draw, Movie Star Incarnate, great combos
+  if(abOpen>1) expected *= abOpen;
   // v20: Animated fast-track bonus
   if(typeof animatedFastTrackBonus==="function") expected *= animatedFastTrackBonus(p);
   if(p.soundtrack){
@@ -2199,6 +2315,7 @@ function releaseFilm(p){
     campaignLegs:p.campaignLegs||0,   // v13: campaign WOM now actually rides the released film's tail
     advanceTotal:advTotal, advance:(p.advance||[]).slice(), locCost,
     inTheaters:true, weeksOut:1, franchiseable:false, soldTo:null,
+    theme:p.theme||null,
     piracyPenalty:0, awardsEligible:true, year:yearOf(G.week),
     franchiseName:p.franchiseName||null, sequelOf:p.sequelOf,
     franchiseableChecked:false, censorChecked:false,
@@ -3427,6 +3544,49 @@ function declineAuction(){
   }
   G.pendingAuction=null; saveGame();
 }
+
+/* ── v28: festival market auction — sell a finished picture outright to a rival studio ── */
+function makeSaleBids(p, fest){
+  const q=p.quality.overall;
+  const buyers=(G.rivals||[]).slice();
+  const bids=[];
+  const n=Math.min(buyers.length, rint(2,3));
+  for(let i=0;i<n;i++){
+    const r=buyers.splice(rint(0,buyers.length-1),1)[0];
+    const mult=(0.45+rnd()*0.25) * (fest && fest.market? fest.market/1.2 : 1) * (1+(q-55)/120);
+    bids.push({ rival:r, value:Math.max(1, Math.round(p.budget*Math.max(0.6,mult)*10)/10) });
+  }
+  return bids.sort((a,b)=>b.value-a.value);
+}
+function acceptSale(i){
+  const a=G.pendingSale; if(!a) return;
+  const bid=a.bids[i]; const p=G.projects.find(x=>x.id===a.projectId);
+  G.pendingSale=null;
+  if(!p||!bid) return;
+  earn("other", bid.value);
+  const fest=(DATA.FESTIVALS||[]).find(x=>x.id===a.festId);
+  const f={ id:p.id, title:p.title, genre:p.genre, scale:p.scale, budget:p.budget,
+    marketing:p.marketingPaid||0, devCost:p.devCost||0, quality:p.quality,
+    streamingOriginal:true, platform:(fest? fest.name : "a rival studio"), soldTo:(bid.rival? bid.rival.name : "rival"),
+    releaseWeek:G.week, weekly:[], dom:0, ww:0, rentalsDom:0, studioRev:bid.value,
+    profit:bid.value-p.budget-(p.devCost||0)-(p.marketingPaid||0),
+    inTheaters:false, awardsEligible:false, year:yearOf(G.week), reviews:[] };
+  G.films.push(f);
+  G.projects=G.projects.filter(x=>x!==p);
+  if(bid.rival) bid.rival.slate.push({title:p.title, genre:p.genre, scale:p.scale, week:G.week+rint(8,20), live:false, dead:false});
+  G.studio.rep=clamp(G.studio.rep+2,5,99);
+  G.stats.films++;
+  freeProjectTalent(p);
+  log("🤝 Sold \""+p.title+"\" to "+(bid.rival? bid.rival.name : "a rival studio")+" at the "+(fest?fest.name:"festival")+" market for "+fmtM(bid.value)+". Prestige +2, but they own the picture now.","gold");
+  saveGame();
+}
+function declineSale(){
+  const a=G.pendingSale; if(!a) return;
+  const p=G.projects.find(x=>x.id===a.projectId);
+  G.pendingSale=null;
+  if(p && p.phase==="ready") log("🎥 Walked away from the "+(DATA.FESTIVALS.find(x=>x.id===a.festId)||{}).name+" market — \""+p.title+"\" is yours to date.","");
+  saveGame();
+}
 /* ── streaming wars: platform stats derived from real deals, no new state ──
    Library = licensed + originals on each service. Subs/ARPU/churn are labeled
    estimates from library size and platform generosity/renew rates. */
@@ -4366,6 +4526,12 @@ function upsertFranchise(f){
   fr.tier++; fr.ww += f.ww||0;
   fr.entries.push({ filmId:f.id, title:f.title, ww:f.ww, week:G.week });
   fr.decay = 1;
+  /* v28: a purchased legacy franchise shows its built-in fanbase on the first entry */
+  if(fr.purchased && fr.purchasedLeft>0){
+    fr.purchasedLeft=0;
+    fr.ww += 15;
+    log("🌍 The built-in fanbase of the purchased \""+fr.name+"\" universe shows up at the box office.","good");
+  }
   addFatigue(fr);   // v4: every entry burns a little audience goodwill
   G.studio.rep = clamp(G.studio.rep+1, 5, 99);
   if(fr.entries.length===1) log("🏰 FRANCHISE ANNOUNCED: \""+fr.name+"\" is now a universe — sequels, merch, parks.","gold");
@@ -4484,7 +4650,7 @@ function tickEmpire(){
    Prestige mirrors runAwards exactly so the dashboard never promises a win. */
 function awardPrestige(f){
   const g=DATA.GENRES[f.genre]||{awards:0.5};
-  return (f.quality.critic+(f.campaign||0))*(0.6+g.awards*0.5);
+  return (f.quality.critic+(f.campaign||0))*(0.6+g.awards*0.5)*(1+projectAbilities(f).award);  // v28: Awards Darling & co.
 }
 function awardSeason(){
   const yr=yearOf(G.week);
@@ -4616,7 +4782,7 @@ function runAwards(){
   const noms=[];
   for(const f of mine){
     const g=DATA.GENRES[f.genre];
-    const prestige=(f.quality.critic + (f.campaign||0))*(0.6+g.awards*0.5);
+    const prestige=(f.quality.critic + (f.campaign||0))*(0.6+g.awards*0.5)*(1+projectAbilities(f).award);   // v28: award-season abilities
     if(prestige>=55) noms.push({title:f.title, f, prestige, mine:true});
   }
   // rival prestige entries
@@ -5182,6 +5348,16 @@ function buildResort(id){
 
 function buyIp(id){
   const it=(G.ipMarket||[]).find(x=>x.id===id); if(!it) return;
+  /* v28: legacy franchise listing — buy straight into the franchise stable */
+  if(it.kind==="legacy"){
+    if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return; }
+    spend("development", it.price);
+    G.franchises.push({ id:nid(), name:it.title, tier:1, entries:[], ww:0, merch:0, park:0, gameSold:0,
+                        decay:1, genre:it.genre, earned:0, built:G.week, purchased:true, purchasedLeft:1 });
+    G.ipMarket = G.ipMarket.filter(x=>x!==it);
+    log("🌍 Bought the \""+it.title+"\" franchise rights ("+fmtM(it.price)+") — proven IP with a ready fanbase. Your next entry gets a buzz bump. See Franchises.","gold");
+    saveGame(); return;
+  }
   if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return; }
   spend("development", it.price);
   const idea = genIdea();
@@ -5389,12 +5565,40 @@ function genIpItem(){
 }
 
 
+/* ── v28: IP transfer market — rival buy-out offers for one of your franchises ── */
+function franchiseOffers(fr){
+  const base = Math.max(6, Math.round(((fr.ww||0)*0.07 + (fr.merch||0)*0.4 + (fr.tier||0)*3)*10)/10);
+  const offs=[];
+  for(let i=0;i<2;i++){
+    const r=(G.rivals||[]).length? pick(G.rivals) : null;
+    offs.push({ rival:r, value: Math.round(base*(0.75+rnd()*0.5)*10)/10 });
+  }
+  return offs.sort((a,b)=>b.value-a.value);
+}
+function sellFranchise(frId, offer){
+  const fr=G.franchises.find(x=>x.id===frId); if(!fr || !offer) return false;
+  const o=offer;
+  earn("other", o.value);
+  G.studio.rep=clamp(G.studio.rep-2,5,99);
+  if(o.rival) o.rival.ytd=(o.rival.ytd||0);
+  G.franchises=G.franchises.filter(x=>x!==fr);
+  log("🤝 Sold the \""+fr.name+"\" franchise to "+(o.rival? o.rival.name : "a rival studio")+" for "+fmtM(o.value)+". The merch checks stop coming — rep takes a small hit.","gold");
+  saveGame(); return true;
+}
+/* v28: rival-held legacy franchises occasionally hit the transfer market */
+function genLegacyListing(){
+  const genre=pick(Object.keys(DATA.GENRES));
+  return { id:nid(), kind:"legacy", genre, title:makeTitle(genre), price:rint(22,64),
+           boost:Math.round(6+rnd()*8), buzz:0.10, born:G.week };
+}
+
 function infl(){ return Math.pow(1.02, yearOf(G?G.week:1)-1); }
 
 function interestRate(){ return 0.0018*(G.execs.cfo?0.7:1); }
 
 function intlShareOf(f){
   let s = DATA.GENRES[f.genre].intlShare;
+  s += projectAbilities(f).intl;                // v28: Global Icon travels
   if(f.foreignLang) s += 0.10;                  // v3: foreign-language travels
   if(f.censorCut) s = Math.max(0.15, s-0.08);   // v3: China censor board
   if(f.chinaDenied) s = Math.max(0.10, s-(DATA.GENRES[f.genre].china||0));  // v5: missed the quota slot
@@ -5584,6 +5788,8 @@ function rebootFilm(fid){
 
 function refreshIpMarket(seed){
   G.ipMarket = (G.ipMarket||[]).filter(i=>i.born+16>G.week);
+  /* v28: legacy franchise listings surface mid-run, never in the opening market */
+  if(G.week>=10 && chance(0.18) && !G.ipMarket.some(i=>i.kind==="legacy")) G.ipMarket.push(genLegacyListing());
   while(G.ipMarket.length<4){ const it=genIpItem(); it.born=G.week; G.ipMarket.push(it); }
   if(!seed && G.ipMarket.length>6) G.ipMarket.length=6;
 }

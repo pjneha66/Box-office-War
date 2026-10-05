@@ -239,16 +239,88 @@ DATA.EXECS = [
    loves   : premiere a film in a loved genre and your win odds + buzz jump
    prestige: multiplies prize money, buzz and awards momentum from a win
    market  : strength of the acquisitions floor — a win invites premium streamer auctions/offers  */
+/* ── v28 festival entry modes: region ties a Competition slot to a shoot location (see festModesOf) ── */
 DATA.FESTIVALS = [
-  {id:"snowfall",  woy:9,  name:"Snowfall Festival",      emoji:"❄️", blurb:"The indie marketplace. Scrappy discoveries get bought here.",
+  {id:"snowfall",  woy:9,  name:"Snowfall Festival",      emoji:"❄️", region:"london",    blurb:"The indie marketplace. Scrappy discoveries get bought here.",
    loves:["drama","thriller","truecrime","horror","romance"], prestige:1.0, market:1.5},
-  {id:"azure",     woy:20, name:"Azure Coast Festival",   emoji:"🌴", blurb:"The pale-blue carpet. Auterurs, foreign-language gems and scandal.",
+  {id:"azure",     woy:20, name:"Azure Coast Festival",   emoji:"🌴", region:"australia", blurb:"The pale-blue carpet. Auterurs, foreign-language gems and scandal.",
    loves:["drama","musical","romance","fantasy","western"], prestige:1.4, market:1.1, foreign:true},
-  {id:"laguna",    woy:36, name:"Laguna Film Festival",   emoji:"🛶", blurb:"Old-world prestige: where awards season quietly begins.",
+  {id:"laguna",    woy:36, name:"Laguna Film Festival",   emoji:"🛶", region:"la",        blurb:"Old-world prestige: where awards season quietly begins.",
    loves:["drama","war","musical","animation","romance"], prestige:1.2, market:1.2},
-  {id:"telluride", woy:43, name:"Harvest Telluride",      emoji:"🍂", blurb:"No market, no fuss — pure awards-momentum screening room.",
+  {id:"telluride", woy:43, name:"Harvest Telluride",      emoji:"🍂", region:"atlanta",   blurb:"No market, no fuss — pure awards-momentum screening room.",
    loves:["drama","western","war","thriller","truecrime"], prestige:0.9, market:0.7},
 ];
+
+/* ── v28 TALENT ABILITIES — hidden rarity-tiered passives, revealed by audition or first collaboration.
+   Pure data: engine sums craft/open/legs/intl/award/overrun across attached talent. ── */
+DATA.ABILITY_RARITY = {
+  common:   {name:"Common",   cls:"tag",     weight:70},
+  rare:     {name:"Rare",     cls:"tag blue", weight:22},
+  epic:     {name:"Epic",     cls:"tag purple", weight:7},
+  legendary:{name:"Legendary",cls:"tag gold", weight:1},
+};
+DATA.ABILITIES = [
+  /* actors */
+  {id:"crowd",      kind:"actor",   rarity:"common",   name:"Crowd-Pleaser",       emoji:"🍿", craft:{aud:2},  blurb:"+2 audience score"},
+  {id:"critfav",    kind:"actor",   rarity:"common",   name:"Critics' Favorite",   emoji:"🖋", craft:{critic:2}, blurb:"+2 critic score"},
+  {id:"grinder",    kind:"actor",   rarity:"common",   name:"First On Set",        emoji:"⏱", craft:{overall:1}, blurb:"+1 overall"},
+  {id:"tabloid",    kind:"actor",   rarity:"common",   name:"Tabloid Magnet",      emoji:"📰", scandal:1, blurb:"Scandal risk doubles"},
+  {id:"opendraw",   kind:"actor",   rarity:"rare",     name:"Opening Draw",        emoji:"🎟", open:0.06, blurb:"+6% opening weekend"},
+  {id:"chameleon",  kind:"actor",   rarity:"rare",     name:"Method Chameleon",    emoji:"🦎", craft:{overall:3}, blurb:"+3 overall"},
+  {id:"genremag",   kind:"actor",   rarity:"rare",     name:"Genre Shapeshifter",  emoji:"🎭", fitAll:1, blurb:"Counts as genre-fit in any genre"},
+  {id:"globalicon", kind:"actor",   rarity:"epic",     name:"Global Icon",         emoji:"🌍", intl:0.10, craft:{aud:2}, blurb:"+10% international share, +2 audience"},
+  {id:"awardsdar",  kind:"actor",   rarity:"epic",     name:"Awards Darling",      emoji:"🏆", award:0.10, craft:{critic:3}, blurb:"+10% award odds, +3 critics"},
+  {id:"legsengine", kind:"actor",   rarity:"epic",     name:"Legs Engine",         emoji:"🏃", legs:0.12, blurb:"+12% box-office legs"},
+  {id:"moviestar",  kind:"actor",   rarity:"legendary",name:"Movie Star Incarnate",emoji:"✨", open:0.08, craft:{aud:4, critic:2}, blurb:"+8% opening, +4 audience, +2 critics"},
+  /* directors */
+  {id:"steady",     kind:"director",rarity:"common",   name:"Steady Hand",         emoji:"🧭", overrun:-0.03, blurb:"−3% weekly overrun risk"},
+  {id:"visualsty",  kind:"director",rarity:"common",   name:"Visual Stylist",      emoji:"🖼", craft:{overall:2}, specOnly:1, blurb:"+2 overall on spectacle genres"},
+  {id:"actorwhis",  kind:"director",rarity:"rare",     name:"Actor Whisperer",     emoji:"🫱", craft:{aud:3}, blurb:"+3 audience (casts perform better)"},
+  {id:"genresav",   kind:"director",rarity:"rare",     name:"Genre Savant",        emoji:"🧠", fitX2:1, blurb:"Genre-fit bonus doubled"},
+  {id:"auteurvoice",kind:"director",rarity:"epic",     name:"Auteur Voice",        emoji:"🎙", craft:{critic:5}, blurb:"+5 critics"},
+  {id:"spectacle",  kind:"director",rarity:"epic",     name:"Spectacle Architect", emoji:"🌉", craft:{aud:4}, bigOnly:1, blurb:"+4 audience on tentpoles"},
+  {id:"generational",kind:"director",rarity:"legendary",name:"Generational Talent",emoji:"🕯", craft:{overall:6}, award:0.08, blurb:"+6 overall, +8% award odds"},
+  /* writers */
+  {id:"punchup",    kind:"writer",  rarity:"common",   name:"Punch-Up Artist",     emoji:"🥊", craft:{aud:2}, blurb:"+2 audience"},
+  {id:"prestigepen",kind:"writer",  rarity:"common",   name:"Prestige Pen",        emoji:"🪶", craft:{critic:2}, blurb:"+2 critics"},
+  {id:"twist",      kind:"writer",  rarity:"rare",     name:"Twist Specialist",    emoji:"🌀", craft:{overall:3}, blurb:"+3 overall"},
+  {id:"franchiseau",kind:"writer",  rarity:"rare",     name:"Saga Architect",      emoji:"🏛", craft:{overall:3}, seqOnly:1, blurb:"+3 overall on sequels"},
+  {id:"voicegen",   kind:"writer",  rarity:"epic",     name:"Voice Of A Generation",emoji:"📣", craft:{critic:5, aud:2}, blurb:"+5 critics, +2 audience"},
+  /* producers */
+  {id:"budgethawk", kind:"producer",rarity:"common",   name:"Budget Hawk",         emoji:"🦅", overrun:-0.04, blurb:"−4% weekly overrun risk"},
+  {id:"schedsav",   kind:"producer",rarity:"common",   name:"Schedule Savant",     emoji:"📅", overrun:-0.02, craft:{overall:1}, blurb:"−2% overruns, +1 overall"},
+  {id:"crisisfix",  kind:"producer",rarity:"rare",     name:"Crisis Fixer",        emoji:"🧯", overrun:-0.05, blurb:"−5% weekly overrun risk"},
+  {id:"talentwrang",kind:"producer",rarity:"rare",     name:"Talent Wrangler",     emoji:"🪢", calm:1, blurb:"Calms one active feud"},
+  {id:"awardsop",   kind:"producer",rarity:"epic",     name:"Awards-Season Operator",emoji:"🎰", award:0.12, blurb:"+12% award odds"},
+];
+DATA.abilityOf = (id)=> (DATA.ABILITIES||[]).find(a=>a.id===id) || null;
+
+/* ── v28 THEMES — Kairosoft-style hidden genre×theme affinities, discovered by shipping ── */
+DATA.THEMES = [
+  {id:"heist",     name:"Heist",            emoji:"💰", loves:["action","thriller","comedy","truecrime"],    hates:["musical","animation"]},
+  {id:"revenge",   name:"Revenge",          emoji:"🗡", loves:["thriller","drama","action","western"],       hates:["comedy","concert"]},
+  {id:"firstlove", name:"First Love",       emoji:"🌸", loves:["romance","drama","musical"],                 hates:["horror","war"]},
+  {id:"dystopia",  name:"Dystopia",         emoji:"🏚", loves:["scifi","thriller","war"],                    hates:["comedy","romance"]},
+  {id:"buddies",   name:"Buddy Adventure",  emoji:"🤝", loves:["comedy","action","animation"],               hates:["truecrime","drama"]},
+  {id:"haunted",   name:"Haunted House",    emoji:"🕯", loves:["horror","thriller","truecrime"],             hates:["musical","sports"]},
+  {id:"courtroom", name:"Courtroom",        emoji:"⚖️", loves:["drama","thriller","truecrime"],              hates:["fantasy","animation"]},
+  {id:"space",     name:"Space Frontier",   emoji:"🛰", loves:["scifi","action","fantasy"],                  hates:["romance","western"]},
+  {id:"biopic",    name:"Rise & Fall",      emoji:"📈", loves:["drama","musical","sports","war"],            hates:["horror","scifi"]},
+  {id:"zombies",   name:"Outbreak",         emoji:"🧟", loves:["horror","action","thriller"],                hates:["romance","musical"]},
+  {id:"underdog",  name:"Underdog Story",   emoji:"🔔", loves:["sports","drama","comedy"],                   hates:["scifi","fantasy"]},
+  {id:"timeloop",  name:"Time Loop",        emoji:"⏳", loves:["scifi","comedy","romance","fantasy"],        hates:["western","war"]},
+  {id:"spy",       name:"Spy Conspiracy",   emoji:"🕶", loves:["action","thriller","war"],                   hates:["animation","musical"]},
+  {id:"homecoming",name:"Family Homecoming",emoji:"🏡", loves:["drama","romance","comedy"],                  hates:["horror","action"]},
+];
+DATA.themeOf = (id)=> (DATA.THEMES||[]).find(t=>t.id===id) || null;
+/* affinity: love → +5 craft & +8% opening; clash → −4 craft. Key "genre|theme". */
+DATA.comboKey = (genre, theme)=> genre+"|"+theme;
+DATA.comboOf = (genre, theme)=>{
+  const th=DATA.themeOf(theme); if(!th) return "neutral";
+  if(th.loves.includes(genre)) return "love";
+  if(th.hates.includes(genre)) return "clash";
+  return "neutral";
+};
 
 /* ── v16 game studio platform options ── */
 DATA.GAME_PLATFORMS = [

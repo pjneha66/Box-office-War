@@ -522,6 +522,7 @@ function enterApp(fresh){
   else if(G.pendingChoice) choiceModal();
   else if(G.pendingDeepfake) deepfakeModal();
   else if(G.pendingAuction) auctionModal();
+  else if(G.pendingSale) saleModal();
   else if(G.pendingSports) sportsModal();
   else if(G.pendingReport) reportModal();
   else if(G.over) gameOverModal();
@@ -697,6 +698,7 @@ function afterTick(){
   else if(G.pendingChoice) choiceModal();
   else if(G.pendingDeepfake) deepfakeModal();
   else if(G.pendingAuction) auctionModal();
+  else if(G.pendingSale) saleModal();
   else if(G.pendingSports) sportsModal();
   else if(G.pendingReport) reportModal();
   else if(G.over) gameOverModal();
@@ -887,6 +889,7 @@ function opsWarnings(){
     if(G.streamer && G.week-(G.streamer.lastContent||0)>6) warns.push("Streamer starved — churn bleeding subs.");
     if(G.pendingChoice) warns.push("A decision needs you (event choice pending).");
     if(G.pendingAuction) warns.push("Streaming auction waiting — pick a bid or keep theatrical.");
+    if(G.pendingSale) warns.push("Festival market offer waiting — sell the picture or walk away.");
     if(G.pendingSports) warns.push("Sports rights auction expires W"+(G.pendingSports.expires||"?")+".");
     if(G.pendingDeepfake) warns.push("Deepfake drill open — 2-week clock running.");
     (G.offers||[]).filter(o=>o.expires-G.week<=1).forEach(o=>{ warns.push("Offer expiring: "+(o.filmTitle||o.seriesTitle||"deal")+" ("+fmtM(o.value)+")."); });
@@ -1351,10 +1354,11 @@ function viewDevelop(){
     if(G.ipMarket && G.ipMarket.length){
       h+="<div class='section-title'>📚 IP Market</div><div class='grid g3'>";
       (G.ipMarket||[]).forEach(it=>{
-        const k=DATA.IPKINDS? DATA.IPKINDS.find(x=>x.id===it.kind) : {emoji:"📚",name:it.kind};
-        h+="<div class='card'><div class='spread'><b>"+k.emoji+" "+esc(it.title)+"</b><span class='tag gold'>"+fmtM(it.price)+"</span></div>"+
-          "<div class='tiny muted'>"+k.name+" · "+gTag(it.genre)+" · script +"+it.boost+" · awareness +"+Math.round(it.buzz*100)+"%</div>"+
-          "<button class='btn btn-sm btn-primary' style='margin-top:8px' data-ip='"+it.id+"'>Buy rights</button></div>";
+        const k=(it.kind==="legacy")? {emoji:"🌍", name:"Legacy franchise — proven IP with a built-in fanbase"}
+              : (DATA.IPKINDS? DATA.IPKINDS.find(x=>x.id===it.kind) : null) || {emoji:"📚",name:it.kind};
+        h+="<div class='card"+(it.kind==="legacy"?" gold":"")+"'><div class='spread'><b>"+k.emoji+" "+esc(it.title)+"</b><span class='tag gold'>"+fmtM(it.price)+"</span></div>"+
+          "<div class='tiny muted'>"+esc(k.name||"")+" · "+gTag(it.genre)+" · script +"+it.boost+" · awareness +"+Math.round(it.buzz*100)+"%</div>"+
+          "<button class='btn btn-sm btn-primary' style='margin-top:8px' data-ip='"+it.id+"'>"+(it.kind==="legacy"?"Buy franchise rights":"Buy rights")+"</button></div>";
       });
       h+="</div>";
     }
@@ -1368,6 +1372,19 @@ function viewDevelop(){
       (G.agencyExcl>G.week? "<span class='tag green'>"+(G.agencyExcl-G.week)+" weeks left</span>" : "<button class='btn btn-sm btn-alt' id='btnAgency'>Sign truce</button>")+"</div>";
     h+="<div class='card'><b>🌟 Cameos</b><div class='tiny muted'>While greenlighting, add a superstar cameo for 30% of their fee — +6% buzz.</div></div>";
     h+="</div>";
+    /* v28: talent watchlist + long-term deals overview (mechanics study: REFERENCE-NOTES.md) */
+    const watch=(G.watchlist||[]).map(id=>(G.talent||[]).find(t=>t.id===id)).filter(Boolean);
+    const deals=(G.talent||[]).filter(t=>t.multiDeal);
+    if(watch.length || deals.length){
+      h+="<div class='section-title'>⭐ Watchlist &amp; 📜 Active Deals</div><div class='grid g2'>";
+      h+="<div class='card'><b class='small'>⭐ Watchlist</b>"+
+        (watch.length? watch.map(t=>"<div class='cost-line'><span><span class='link' style='cursor:pointer' onclick='talentModal("+t.id+")'>"+esc(t.name)+"</span></span><b class='tiny'>"+stars(t.power)+" · "+fmtM(actorFee(t))+"</b></div>").join("")
+        : "<div class='tiny muted'>Pin talent from their profile (☆ watch) to track them here.</div>")+"</div>";
+      h+="<div class='card'><b class='small'>📜 Active multi-film deals</b>"+
+        (deals.length? deals.map(t=>"<div class='cost-line'><span>"+esc(t.name)+"</span><b class='tiny'>"+t.multiDeal.left+" film(s) left · −25% fees</b></div>").join("")
+        : "<div class='tiny muted'>No long-term deals running. Sign a 3-film deal from any talent card.</div>")+"</div>";
+      h+="</div>";
+    }
     /* v5: named talent agencies — packaging fees, exclusives, poaching wars */
     if(DATA.AGENCIES){
       h+="<div class='section-title'>🕴 The Agencies</div><div class='tiny muted' style='margin:-4px 0 6px'>Package two clients of the same agency in one film and they bill a packaging fee. An exclusive first-look deal waives their fee and cuts their clients' quotes.</div><div class='grid g3'>";
@@ -1526,6 +1543,20 @@ function talentModal(id){
     });
     h+="</div>";
   } else h+="<div class='card muted small' style='margin-top:8px'>No releases on record — price is potential, not proof.</div>";
+  /* v28: hidden ability panel — audition to reveal, or it surfaces after one collaboration */
+  {
+    const ab=talentAbility(t);
+    h+="<div class='card' style='margin-top:8px'><b class='small'>🎭 Ability</b>";
+    if(ab && t.abilityKnown){
+      h+="<div class='cost-line'><span>"+ab.emoji+" "+esc(ab.name)+" <span class='tag tiny "+(DATA.ABILITY_RARITY[ab.rarity]||{}).cls+"'>"+(DATA.ABILITY_RARITY[ab.rarity]||{}).name+"</span></span><b class='tiny'>"+esc(ab.blurb)+"</b></div>";
+    }else if(ab){
+      h+="<div class='tiny muted' style='margin:4px 0'>This candidate carries an <b>undisclosed ability</b>. Stage an audition read to find out — or work with them once and it will show itself.</div>"+
+        "<button class='btn btn-sm btn-alt' onclick='auditionClick(event,"+t.id+")'>🎭 Audition read · "+fmtM(auditionCost(t))+"</button>";
+    }else{
+      h+="<div class='tiny muted' style='margin:4px 0'>No special ability on file — what you see (skill, power) is what you get.</div>";
+    }
+    h+="</div>";
+  }
   const fit = t.genreFit? "Genre fit "+(DATA.GENRES[t.genreFit]?DATA.GENRES[t.genreFit].name:"")+". " : "";
   const risk = (t.scandal>0)?"Risk: radioactive — cheap but taxes openings. ":((t.toxic&&!t.rehabbed)?"Risk: toxic until rehabbed. ":"");
   h+="<div class='card' style='margin-top:8px'><b class='small'>Hiring read</b><div class='tiny muted' style='margin-top:4px'>Cost "+fmtM(fee)+". "+fit+risk+
@@ -1554,7 +1585,8 @@ function talentModal(id){
       (chems.length?"<div class='tiny muted'>Chemistry: "+chems.map(x=>{ const o=(G.talent||[]).find(y=>y.id===x.id); return esc(o?o.name:"#"+x.id)+" "+(x.v>=3?"🔥".repeat(Math.min(3,x.v)):"×"+x.v); }).join(" · ")+"</div>":"")+
       "<div class='tiny muted'>Reunited co-stars (×3+ together) open +2% buzz — logged at greenlight.</div></div>";
   }
-  h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
+  h+="<div class='modal-actions'><button class='btn btn-alt' onclick='watchClick(event,"+t.id+")'>"+((G.watchlist||[]).includes(t.id)?"⭐ Remove from watchlist":"☆ Add to watchlist")+"</button>"+
+    "<button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
   const vm=openModal(h);
   vm.querySelectorAll("[data-contract]").forEach(b=>b.onclick=()=>{ if(signContract(t.id,b.dataset.contract)){ beep("gold"); flashes(G.flash); talentModal(t.id); } else beep("bad"); });
 }
@@ -1611,7 +1643,7 @@ function startWizard(idea){
   WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], sub:2,
       budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false, deals:{},
       rating:"PG-13", location:"la", scriptPolish:false, premium:false,
-      aiCast:false, aiScript:false, coProd:"none"};
+      aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
   wizardModal();
 }
 function startSequel(film){
@@ -1620,7 +1652,7 @@ function startSequel(film){
   WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], sub:2, seqBudgetFixed:true,
       budget:Math.round(film.budget*1.3),
       rating:"PG-13", location:"la", scriptPolish:false, premium:false, plan:"theatrical", presales:false,
-      aiCast:false, aiScript:false, coProd:"none"};
+      aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
   wizardModal();
 }
 /* v4: one card renderer for every crew kind */
@@ -1656,6 +1688,12 @@ function crewCard(t, opts){
   if(t.power>=4 || (typeof WZ!=="undefined" && WZ && WZ.deals && WZ.deals[t.id]==="backend")) rel+=" <span class='tag tiny' title='Standard Hollywood backend package'>Backend: 2% rentals</span>";
   // v9 roster actions (inline handlers work inside modals too)
   let acts="";
+  /* v28: hidden ability — audition to reveal, or it surfaces after one film together */
+  const ab=talentAbility(t);
+  if(ab && t.abilityKnown) rel+=" <span class='"+(DATA.ABILITY_RARITY[ab.rarity]||{}).cls+"' title='"+esc(ab.blurb)+"'>"+ab.emoji+" "+esc(ab.name)+"</span>";
+  if(ab && !t.abilityKnown && (typeof auditionCost==="function")) acts+="<button class='btn btn-xs btn-alt' onclick='auditionClick(event,"+t.id+")' title='Stage a read to reveal their hidden ability (3% of fee)'>🎭 Audition ("+fmtM(auditionCost(t))+")</button>";
+  if(t.ability && !t.abilityKnown) rel+=" <span class='tag' title='Unknown ability — audition or work with them once to find out'>🎭 hidden ability</span>";
+  if(typeof toggleWatch==="function") acts+="<button class='btn btn-xs btn-alt' onclick='watchClick(event,"+t.id+")' title='Pin to your watchlist'>"+((G.watchlist||[]).includes(t.id)?"⭐ watching":"☆ watch")+"</button>";
   if(!t.multiDeal && (typeof contractCost==="function")) acts+="<button class='btn btn-xs btn-alt' onclick='contractClick(event,"+t.id+")' title='Lock 3 films at −25% fees'>📜 3-film deal ("+fmtM(contractCost(t))+")</button>";
   if(t.age<=34 && !t.training && (typeof trainCost==="function")) acts+="<button class='btn btn-xs btn-alt' onclick='trainClick(event,"+t.id+")' title='Star school: skill +4-9, maybe +1★ ("+(t.homegrown?"homegrown −30%":"")+")'>🎓 Train ("+fmtM(trainCost(t))+")</button>";
   if(t.retired || t.age>=60 || (stg && stg.s==="Retired")) acts+="<button class='btn btn-xs btn-alt' data-comeback='"+t.id+"' title='Stage a comeback: $1.5M upfront, 60% chance to restore star power'>🌟 Fund Comeback ($1.5M)</button>";
@@ -1838,12 +1876,36 @@ function wizardModal(){
       "<div class='tiny muted'>A fresh-eyes rewrite pass lifts the writing (quality) but adds pre-production time. Worth it on weak scripts.</div></div>";
     h+="</div>";
 
-    // Festival Strategy Picker
-    h+="<div class='small muted' style='margin:10px 0 6px'><b>🎪 Festival premiere strategy</b> <span class='tiny'>(boosts award odds & buzz)</span></div>"+
+    /* v28: theme picker — hidden genre×theme affinities, discovered by shipping */
+    if(DATA.THEMES && DATA.THEMES.length){
+      const gname0=WZ.idea.genre;
+      h+="<div class='small muted' style='margin:10px 0 6px'><b>🎨 Attach a theme</b> <span class='tiny'>(affinity is hidden until you ship a pairing — ⭐ great match, ✖ clash)</span></div><div class='row' id='wzTheme' style='flex-wrap:wrap;gap:4px'>"+
+        "<button class='btn btn-sm "+(!WZ.theme?"btn-primary":"")+"' data-theme='none'>➖ No theme</button>"+
+        DATA.THEMES.map(function(th){
+          const key=DATA.comboKey(gname0,th.id), known=(G.comboKnown||{})[key];
+          const mark = known==="love"? " <span class='gold'>⭐</span>" : known==="clash"? " <span class='neg'>✖</span>" : " <span class='muted'>?</span>";
+          return "<button class='btn btn-sm "+(WZ.theme===th.id?"btn-primary":"")+"' data-theme='"+th.id+"'>"+th.emoji+" "+th.name+mark+"</button>";
+        }).join("")+"</div>"+
+        "<div class='tiny muted' style='margin-top:2px'>A great pairing adds quality and opening heat; a clash quietly hurts. Discover them the Kairosoft way: by shipping.</div>";
+    }
+
+    // Festival Strategy Picker (v28: premiere / competition / market-auction entry modes)
+    const festMode=WZ.festMode||"premiere";
+    h+="<div class='small muted' style='margin:10px 0 6px'><b>🎪 Festival entry strategy</b> <span class='tiny'>(premiere for buzz · competition needs a regional shoot · auction sells the picture)</span></div>"+
       "<div class='row' id='wzFest' style='flex-wrap:wrap;gap:4px'>"+
       "<button class='btn btn-sm "+(!WZ.festStrategy?"btn-primary":"")+"' data-fest='none'>🚫 Direct Release</button>"+
-      DATA.FESTIVALS.map(f=>"<button class='btn btn-sm "+(WZ.festStrategy===f.id?"btn-primary":"")+"' data-fest='"+f.id+"'>"+f.emoji+" "+f.name+" ("+f.season+") · +"+f.buzz+" buzz</button>").join("")+
+      DATA.FESTIVALS.map(f=>"<button class='btn btn-sm "+(WZ.festStrategy===f.id?"btn-primary":"")+"' data-fest='"+f.id+"'>"+f.emoji+" "+f.name+" · prestige ×"+f.prestige+"</button>").join("")+
       "</div>";
+    if(WZ.festStrategy){
+      const selF=DATA.FESTIVALS.find(f=>f.id===WZ.festStrategy);
+      const locOk = WZ.location===selF.region;
+      h+="<div class='row' id='wzFestMode' style='flex-wrap:wrap;gap:4px;margin-top:4px'>"+
+        "<button class='btn btn-sm btn-alt "+(festMode==="premiere"?"btn-primary":"")+"' data-festmode='premiere'>🎞 World Premiere</button>"+
+        "<button class='btn btn-sm btn-alt "+(festMode==="competition"?"btn-primary":"")+"' data-festmode='competition' title='"+(locOk? "Shot in-region — full eligibility, ×1.6 prestige":"This festival only accepts films shot in "+(DATA.location(selF.region)||{}).name+" — out-of-competition entries get a reduced bump")+"'>🏆 Competition"+(locOk?"":" ⚠")+"</button>"+
+        "<button class='btn btn-sm btn-alt "+(festMode==="auction"?"btn-primary":"")+"' data-festmode='auction'>🔨 Market Auction <span class='tiny'>(cash now, no theatrical)</span></button>"+
+        "</div>"+
+        "<div class='tiny muted' style='margin-top:2px'>"+esc(selF.blurb)+"</div>";
+    }
 
     if(DATA.COPROD_PARTNERS && WZ.mode==="film"){
       h+="<div class='small muted' style='margin:10px 0 6px'><b>Co-production</b> — split budget &amp; risk with a partner</div><div class='plan-pick'>";
@@ -1949,6 +2011,13 @@ function wizardModal(){
     WZ.festStrategy = b.dataset.fest==="none"? null : b.dataset.fest;
     beep("click"); wizardModal();
   });
+  v.querySelectorAll("[data-festmode]").forEach(b=>b.onclick=()=>{
+    WZ.festMode=b.dataset.festmode; beep("click"); wizardModal();
+  });
+  v.querySelectorAll("[data-theme]").forEach(b=>b.onclick=()=>{
+    WZ.theme = b.dataset.theme==="none"? null : b.dataset.theme;
+    beep("click"); wizardModal();
+  });
   const nx=v.querySelector("#wzNext"); if(nx) nx.onclick=()=>{ WZ.sub=Math.min(6,WZ.sub+1); wizardModal(); };
   const skw=v.querySelector("#wzSkipWriter"); if(skw) skw.onclick=()=>{ WZ.writer=null; WZ.sub=3; wizardModal(); };
   const bw=v.querySelector("#wzBackWriter"); if(bw) bw.onclick=()=>{ WZ.sub=2; wizardModal(); };
@@ -1989,7 +2058,8 @@ function wizardModal(){
       rating:WZ.rating, location:WZ.location, scriptPolish:WZ.scriptPolish, premium:WZ.premium,
       aiCast:WZ.aiCast, aiScript:WZ.aiScript, coProd:(WZ.coProd==="none"? null : WZ.coProd),
       crossover: WZ.idea.crossover, spinoffFr: WZ.idea.spinoffFr,
-      festStrategy: WZ.festStrategy, universe: WZ.universe });
+      theme: WZ.theme||null,
+      festStrategy: WZ.festStrategy, festMode: WZ.festMode||"premiere", universe: WZ.universe });
     beep("gold"); WZ=null; closeModal(); render();
   };
 }
@@ -2466,6 +2536,21 @@ function trainClick(e,id){
   e.stopPropagation();
   if(startTraining(id)){ beep("gold"); toast("🎓 Off to star school","good"); }
   else { beep("bad"); flashes(G.flash); }
+  refreshTalentSurfaces();
+}
+/* v28: audition — pay a read fee to reveal a candidate's hidden ability */
+function auditionClick(e,id){
+  e.stopPropagation();
+  if(doAudition(id)){ beep("gold"); }
+  else { beep("bad"); flashes(G.flash); }
+  refreshTalentSurfaces();
+}
+/* v28: talent watchlist pin */
+function watchClick(e,id){
+  e.stopPropagation();
+  toggleWatch(id);
+  const on=(G.watchlist||[]).includes(id);
+  beep("click"); toast(on? "⭐ Added to watchlist" : "Removed from watchlist","");
   refreshTalentSurfaces();
 }
 function refreshTalentSurfaces(){
@@ -3820,6 +3905,7 @@ function bindView(){
   $$("[data-fr]").forEach(b=>b.onclick=()=>{ viewFranchiseDetail(b.dataset.fr); beep("click"); });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
   $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
+  $$("[data-fr-sell]").forEach(b=>b.onclick=()=>{ franchiseSaleModal(+b.dataset.frSell); beep("click"); });
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
   $$("[data-fr-seq]").forEach(b=>b.onclick=()=>{
     const fr=frById(+b.dataset.frSeq);
@@ -4095,6 +4181,48 @@ function auctionModal(){
   if(st) st.onclick=()=>{ if(stokeAuction()){ beep("gold"); flashes(G.flash); closeModal(); render(); auctionModal(); } };
   const no=v.querySelector("#aucNo");
   if(no) no.onclick=()=>{ declineAuction(); beep("click"); closeModal(); render(); };
+}
+
+/* v28: franchise transfer modal — rival buy-out offers for one of your brands */
+function franchiseSaleModal(frId){
+  const fr=(G.franchises||[]).find(x=>x.id===frId); if(!fr) return;
+  const offs=franchiseOffers(fr);
+  let h="<h3>🤝 Sell the “"+esc(fr.name)+"” franchise?</h3>"+
+    "<div class='tiny muted' style='margin-bottom:6px'>Selling banks cash today but kills its merch/park income forever, hands the brand to a rival, and costs a little rep.</div>";
+  offs.forEach((o,i)=>{
+    h+="<div class='bid-card'><div class='platform-logo' style='background:#2a3142'>🏢</div>"+
+      "<div style='flex:1'><b>"+esc(o.rival? o.rival.name : "Unnamed buyer")+"</b><div class='tiny muted'>Outright purchase of all rights and future entries.</div></div>"+
+      "<b class='modal-offer-val'>"+fmtM(o.value)+"</b>"+
+      "<button class='btn btn-primary btn-sm' data-froff='"+i+"'>Sell</button></div>";
+  });
+  h+="<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Not for sale</button></div>";
+  const v=openModal(h);
+  v.querySelectorAll("[data-froff]").forEach(b=>b.onclick=()=>{
+    if(sellFranchise(frId, offs[+b.dataset.froff])){ beep("gold"); flashes(G.flash); closeModal(); render(); }
+    else beep("bad");
+  });
+}
+
+/* v28: festival market-auction modal — rival buyout offers for a finished picture */
+function saleModal(){
+  const a=G.pendingSale; if(!a) return;
+  const p=G.projects.find(x=>x.id===a.projectId);
+  const fest=(DATA.FESTIVALS||[]).find(x=>x.id===a.festId);
+  let h="<h3>🔨 "+(fest? esc(fest.emoji+" "+fest.name)+" market" : "Festival market")+" — “"+esc(p?p.title:"?")+"”</h3>";
+  if(p) h+="<div class='tiny muted' style='margin-bottom:4px'>"+DATA.GENRES[p.genre].name+" · score "+p.quality.overall+"/100 · budget "+fmtM(p.budget)+" · selling means <b>they keep the picture</b> — you bank cash and rep now</div>";
+  a.bids.forEach((b,i)=>{
+    h+="<div class='bid-card'><div class='platform-logo' style='background:#2a3142'>🏢</div>"+
+      "<div style='flex:1'><b>"+esc(b.rival? b.rival.name : "Unnamed buyer")+"</b><div class='tiny muted'>Wants it for their slate — film counts for them, not you.</div></div>"+
+      "<b class='modal-offer-val'>"+fmtM(b.value)+"</b>"+
+      "<button class='btn btn-primary btn-sm' data-sale='"+i+"'>Sell</button></div>";
+  });
+  h+="<div class='modal-actions'><button class='btn btn-ghost' id='saleNo'>🎥 Walk away — keep the picture</button></div>";
+  const v=openModal(h,{locked:true});
+  v.querySelectorAll("[data-sale]").forEach(b=>b.onclick=()=>{
+    acceptSale(+b.dataset.sale); beep("gold"); flashes(G.flash); closeModal(); render();
+  });
+  const no=v.querySelector("#saleNo");
+  if(no) no.onclick=()=>{ declineSale(); beep("click"); closeModal(); render(); };
 }
 
 /* ═══════════ live sports rights auction modal (v3) ═══════════ */
@@ -4508,6 +4636,7 @@ function viewEmpire(){
       ((fr.fatigue||0)>0.1? "<button class='btn btn-sm btn-alt' data-fr-reboot='"+fr.id+"'>✨ Brand Reboot ($25M)</button>":"")+
       "<button class='btn btn-sm btn-alt' data-fr-spin='"+fr.id+"'>🎬 Spin-off film</button>"+
       (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-tv='"+fr.id+"'>📺 TV spin-off</button>":"")+
+      "<button class='btn btn-sm btn-alt' data-fr-sell='"+fr.id+"'>🤝 Sell IP · from "+fmtM((franchiseOffers(fr)[0]||{}).value||0)+"</button>"+
       "<button class='btn btn-sm' data-fr-more='"+fr.id+"'>⋯ More moves</button>"+
       "</div></div>";
   }

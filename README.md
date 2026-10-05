@@ -16,6 +16,16 @@ Every decision compounds. A hit creates a franchise. A franchise funds a park. A
 
 ---
 
+## 🆕 v28 — Reference Update (talent abilities · themes · festival modes · IP market)
+
+Studied four reference tycoon games (see [REFERENCE-NOTES.md](REFERENCE-NOTES.md) — mechanics only, all code original):
+
+- **🎭 Talent Abilities** — every actor, director, writer and producer can carry a hidden, rarity-tiered ability (Crowd-Pleaser → Movie Star Incarnate) that quietly bends quality, openings, legs, international share, overruns and award odds. **Audition reads** (3% of fee) reveal them early; otherwise one film together does.
+- **🎨 Themes & Combo Discovery** — attach a theme at greenlight; hidden genre×theme affinities are remembered the moment you ship a pairing (⭐ great match: +5 quality, +8% opening · ✖ clash: −4).
+- **🎪 Festival Entry Modes** — per festival choose **World Premiere**, **Competition** (film must have shot in the festival's home region; ×1.6 prestige), or **Market Auction** (rival studios bid real money for the finished picture — cash and rep now, they keep the film).
+- **🌍 IP Transfer Market** — rivals make buy-out offers on your franchises (sell = cash now, lose merch/park income); rival-held **legacy franchises** surface for sale mid-run with a built-in fanbase.
+- **⭐ Watchlist & 📜 Active Deals** — pin talent from any profile; the talent hub tracks your watchlist and every running multi-film deal.
+
 ## ✨ Feature Highlights (v16)
 
 ### 🎬 Core Film Production
