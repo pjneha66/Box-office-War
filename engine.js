@@ -50,6 +50,7 @@ function newGame(archId, name, opts){
     sportsPower:0, mySports:[],
     public:null,
     prototype: !!opts.sandbox,   // v28: prototype debug mode
+    scenarioProgress: {}, // v28: track scenario wins/completions
     sfx:[],
     /* ── v5 state ── */
     piracy: (DATA.PIRACY? DATA.PIRACY.start : 18),
@@ -273,6 +274,7 @@ const SAVE_MIGRATIONS = {
     s.extraPlatforms=s.extraPlatforms||[]; s.ipMarket=s.ipMarket||[];
     s.comboKnown=s.comboKnown||{}; s.watchlist=s.watchlist||[]; s.pendingSale=s.pendingSale||null;
     s.custom = s.custom || { studios:[], people:[], franchises:[] };
+    s.scenarioProgress = s.scenarioProgress || {};
     (s.talent||[]).forEach(t=>{ if(t.ability===undefined){ t.ability=genAbilityFor(t.kind, t.power||2); t.abilityKnown=false; } if(!t.powerByRegion){ t.powerByRegion={NA:t.power, EU:t.power, AS:t.power, LA:t.power, AF:t.power}; } });
     s.streamer=s.streamer||null; s.sportsAuction=null; s.sportsPower=s.sportsPower||0; s.mySports=s.mySports||[];
     s.exhibRel=s.exhibRel||70; s.exhibitor=s.exhibitor||50;
@@ -5335,16 +5337,31 @@ function advanceWeek(){
   G.repHistory.push(G.studio.rep);
   if(G.repHistory.length > 52) G.repHistory.shift();
   if(typeof boardAvg==="function"){
-    G.boardHistory = G.boardHistory || [];
-    G.boardHistory.push(boardAvg());
-    if(G.boardHistory.length > 26) G.boardHistory.shift();
+G.boardHistory = G.boardHistory || [];
+  G.boardHistory.push(boardAvg());
+  if(G.boardHistory.length > 26) G.boardHistory.shift();
+}
+if(typeof performance!=="undefined" && performance.mark && performance.measure){
+  performance.mark("bow_advance_end");
+  try{ performance.measure("bow_advance_week", "bow_advance_start", "bow_advance_end"); }catch(e){}
+}
+// v28: Scenario progress tracking
+if(G.scenario && !G.sandbox){
+  const sc = G.scenarioProgress || (G.scenarioProgress = {});
+  if(!sc[G.scenario]){
+    sc[G.scenario] = { started: G.week, bestRep: G.studio.rep, won: false };
   }
-  if(typeof performance!=="undefined" && performance.mark && performance.measure){
-    performance.mark("bow_advance_end");
-    try{ performance.measure("bow_advance_week", "bow_advance_start", "bow_advance_end"); }catch(e){}
+  const sp = sc[G.scenario];
+  sp.bestRep = Math.max(sp.bestRep || 0, G.studio.rep);
+  // Win condition: rep >= 75 or survive 200 weeks
+  if(!sp.won && (G.studio.rep >= 75 || G.week >= 200)){
+    sp.won = true;
+    sp.wonAt = G.week;
+    log("🏆 SCENARIO COMPLETE: "+DATA.SCENARIOS[G.scenario].name+" won at week "+G.week+" (rep: "+G.studio.rep+")","gold");
   }
-  saveGame();
-  return G.flash;
+}
+saveGame();
+return G.flash;
 }
 
 function advanceWeeks(n){

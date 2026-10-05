@@ -13,11 +13,18 @@
     "test:balance": "node test/balance.js",
     "validate:slots": "node test/validate-slots.js"
   },
-  "keywords": ["game", "tycoon", "simulation", "box-office", "browser-game"],
+  "keywords": [
+    "game",
+    "tycoon",
+    "simulation",
+    "box-office",
+    "browser-game"
+  ],
   "author": "pjneha66",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "jsdom": "^30.1.0"
+    "jsdom": "^30.1.0",
+    "sharp": "^0.35.5"
   }
 }

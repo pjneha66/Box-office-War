@@ -69,6 +69,64 @@ const I18N = {
     "emp.how":"साम्राज्य कैसे काम करता है",
     "help.title":"❓ यहाँ फ़िल्म बिज़नेस कैसे चलता है",
   }
+}
+
+/* ── v28: Hindi number/date formatting ── */
+function fmtHI(n){
+  if(LANG!=="hi") return n;
+  // Convert to Indian numbering system (lakhs/crores)
+  const abs = Math.abs(n);
+  if(abs >= 1e7) return (n/1e7).toFixed(2).replace(".", "॰") + " करोड़";
+  if(abs >= 1e5) return (n/1e5).toFixed(2).replace(".", "॰") + " लाख";
+  if(abs >= 1e3) return (n/1e3).toFixed(2).replace(".", "॰") + " हज़ार";
+  return n.toString().replace(/\./g, "॰");
+}
+function fmtHIDate(d){
+  if(LANG!=="hi") return d;
+  const months = ["जनवरी","फरवरी","मार्च","अप्रैल","मई","जून","जुलाई","अगस्त","सितंबर","अक्टूबर","नवंबर","दिसंबर"];
+  const day = d.getDate();
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return day + " " + month + " " + year;
+}
+function fmtHIWeek(w){
+  if(LANG!=="hi") return "W"+w;
+  return "सप्ताह "+w;
+}
+function fmtHIMoney(n){
+  if(LANG!=="hi") return n;
+  // For money display in Hindi - use Indian numbering
+  return "₹" + fmtHI(n) + (n>=1e7?" Cr":n>=1e5?" L":n>=1e3?" K":"");
+}
+
+/* Dynamic content translation helpers */
+function tEvent(type, params={}){
+  if(LANG!=="hi") return null;
+  const events = {
+    "film_release": "🎬 \""+params.title+"\" रिलीज़ हुई! ओपनिंग: "+fmtHIMoney(params.opening),
+    "film_complete": "🎞 \""+params.title+"\" पूरी हुई! गुणवत्ता: "+params.quality+"/100",
+    "franchise_created": "🏰 नई फ्रैंचाइज़ी: "+params.name,
+    "milestone": "🏆 मील का पत्थर: "+params.type,
+    "scandal": "📰 स्कैंडल: "+params.name,
+    "award_nom": "🏆 नामांकन: "+params.title,
+    "award_win": "🏆 पुरस्कार जीता: "+params.title,
+    "streamer_launch": "🚀 स्ट्रीमर लॉन्च: "+params.name,
+  };
+  return events[params.type] || null;
+}
+function tNews(key, params={}){
+  if(LANG!=="hi") return null;
+  const news = {
+    "rival_release": params.rival+" ने \""+params.title+"\" रिलीज़ की",
+    "scandal": params.name+" विवाद में फंसे",
+    "award": params.title+" ने पुरस्कार जीता",
+  };
+  return news[key] || null;
+}
+
+/* Export for use in other modules */
+if(typeof module!=="undefined" && module.exports){
+  module.exports = { t, setLang, LANG, fmtHI, fmtHIDate, fmtHIWeek, fmtHIMoney, tEvent, tNews };
 };
 
 let LANG = "en";

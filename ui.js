@@ -348,18 +348,26 @@ function talentFeudMap(){
 /* ═══════════ modal ═══════════ */
 function openModal(html, opts){
   opts=opts||{};
+  // Store the element that triggered the modal for focus restoration
+  const triggerEl = document.activeElement;
   closeModal();
   if(typeof document!=="undefined" && document.body) document.body.style.overflow="hidden";
   const veil=document.createElement("div"); veil.className="modal-veil";
   if(opts.locked) veil.dataset.locked="true";
-  veil.innerHTML="<div class='modal' role='dialog' aria-modal='true'>"+(opts.noX?"":"<div class='modal-head'><div></div><button class='modal-x' aria-label='Close modal'>✕</button></div>")+html+"</div>";
-  if(!opts.noX) veil.querySelector(".modal-x").onclick=()=>{ closeModal(); if(opts.onClose) opts.onClose(); };
-  if(!opts.locked) veil.addEventListener("click", e=>{ if(e.target===veil){ closeModal(); if(opts.onClose) opts.onClose(); } });
+  // Add ARIA attributes for accessibility
+  const modalId = "modal-" + Date.now();
+  veil.innerHTML="<div class='modal' role='dialog' aria-modal='true' id='"+modalId+"' aria-labelledby='"+modalId+"-title'>"+(opts.noX?"":"<div class='modal-head'><div id='"+modalId+"-title'></div><button class='modal-x' aria-label='Close modal'>✕</button></div>")+html+"</div>";
+  if(!opts.noX) veil.querySelector(".modal-x").onclick=()=>{ closeModal(triggerEl); if(opts.onClose) opts.onClose(); };
+  if(!opts.locked) veil.addEventListener("click", e=>{ if(e.target===veil){ closeModal(triggerEl); if(opts.onClose) opts.onClose(); } });
+  // Store trigger element reference on veil for focus restoration
+  veil._triggerEl = triggerEl;
   $("#modalRoot").appendChild(veil);
   const focusables = veil.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
   if(focusables.length){
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
+    // Auto-focus first focusable element
+    first.focus();
     veil.addEventListener("keydown", function(e){
       if(e.key === "Tab"){
         if(e.shiftKey && document.activeElement === first){
@@ -374,8 +382,14 @@ function openModal(html, opts){
   }
   return veil;
 }
-function closeModal(){
+function closeModal(triggerEl){
   if(typeof document!=="undefined" && document.body) document.body.style.overflow="";
+  const veil = document.querySelector("#modalRoot .modal-veil");
+  // Restore focus to trigger element (prefer passed, then veil's stored)
+  const restoreEl = triggerEl || (veil && veil._triggerEl);
+  if(restoreEl && typeof restoreEl.focus === "function"){
+    restoreEl.focus();
+  }
   $("#modalRoot").innerHTML="";
 }
 function openCommandPalette(){
@@ -501,6 +515,36 @@ window.addEventListener("DOMContentLoaded", ()=>{
     else if(e.key==="h" || e.key==="H"){ e.preventDefault(); helpModal(); }
     else if(e.key==="p" && e.ctrlKey && e.shiftKey){ e.preventDefault(); if(G.prototype){ prototypeDebugModal(); } }
     else if((e.metaKey || e.ctrlKey) && e.key==="k"){ e.preventDefault(); openCommandPalette(); }
+    else if(e.key==="ArrowLeft" || e.key==="ArrowRight"){
+      const tabKeys = ["studio","develop","productions","boxoffice","fans","ott","empire","games","finance"];
+      const idx = tabKeys.indexOf(TAB);
+      if(idx !== -1){
+        e.preventDefault();
+        const nextIdx = (idx + (e.key==="ArrowRight"?1:-1) + tabKeys.length) % tabKeys.length;
+        switchTab(tabKeys[nextIdx]);
+      }
+    }
+    // Arrow key navigation for card grids (when focused)
+    else if(e.key==="ArrowUp" || e.key==="ArrowDown" || e.key==="ArrowLeft" || e.key==="ArrowRight"){
+      const active = document.activeElement;
+      const card = active?.closest?.(".idea-card, .talent-card, .card[data-focusable]");
+      if(card){
+        const grid = card.closest(".grid, .pick-list, .grid.g2, .grid.g3");
+        if(grid){
+          e.preventDefault();
+          const cards = Array.from(grid.querySelectorAll(".idea-card, .talent-card, .card[data-focusable]"));
+          const idx = cards.indexOf(card);
+          if(idx === -1) return;
+          const cols = getComputedStyle(grid).gridTemplateColumns.split(" ").filter(c=>c!=="0px").length || 3;
+          let nextIdx = idx;
+          if(e.key==="ArrowRight") nextIdx = Math.min(idx + 1, cards.length - 1);
+          else if(e.key==="ArrowLeft") nextIdx = Math.max(idx - 1, 0);
+          else if(e.key==="ArrowDown") nextIdx = Math.min(idx + cols, cards.length - 1);
+          else if(e.key==="ArrowUp") nextIdx = Math.max(idx - cols, 0);
+          if(nextIdx !== idx) cards[nextIdx].focus();
+        }
+      }
+    }
     else if(e.key==="Escape"){ closeModal(); }
   });
   // long-press fast on mobile
@@ -520,7 +564,16 @@ function enterApp(fresh){
   if(fresh){
     let consented=false;
     try{ consented = !!localStorage.getItem("bow_privacy_ok"); }catch(e){}
-    setTimeout(()=>{ if(consented) helpModal(); else privacyModal(true); }, 400);
+    // COPPA age gate check
+    let coppaConsented = false;
+    try{ coppaConsented = !!localStorage.getItem("bow_coppa_ok"); }catch(e){}
+    if(!coppaConsented){
+      setTimeout(()=>{ coppaModal(); }, 400);
+    } else if(consented){
+      setTimeout(()=>{ helpModal(); }, 400);
+    } else {
+      setTimeout(()=>{ privacyModal(true); }, 400);
+    }
   }
   render();
   if(G.pendingEarnings) earningsModal();
@@ -5393,7 +5446,11 @@ function buildStartOptions(){
   let h="<label class='field-label' id='fieldScenario'>"+t("start.scenario")+"</label><div class='scen-row'>";
   Object.keys(DATA.SCENARIOS).forEach(id=>{
     const s=DATA.SCENARIOS[id];
-    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"'><h4>"+s.emoji+" "+s.name+"</h4><div class='a-sub'>"+s.desc+"</div></div>";
+    // v28: scenario progress indicator
+    const sp = G?.scenarioProgress?.[id] || {};
+    const won = sp.won ? " ✅" : "";
+    const bestRep = sp.bestRep ? " (best rep: "+sp.bestRep+")" : "";
+    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"'><h4>"+s.emoji+" "+s.name+won+"</h4><div class='a-sub'>"+s.desc+bestRep+"</div></div>";
   });
   h+="</div><label class='field-label' id='fieldDifficulty'>"+t("start.difficulty")+"</label><div class='row'>";
   Object.keys(DATA.DIFFICULTIES).forEach(id=>{
@@ -6770,5 +6827,29 @@ function privacyModal(consent){
     if(typeof indexedDB!=="undefined" && indexedDB.deleteDatabase){ try{ indexedDB.deleteDatabase("bow_idb"); }catch(e){} }
     toast("🗑️ All local data deleted.","bad");
     setTimeout(()=>location.reload(), 400);
+  };
+}
+
+/* ── v28: COPPA age gate ── */
+function coppaModal(){
+  let h="<h3>👋 Welcome to Box Office War</h3>"+
+    "<div class='card'><b class='small'>Age verification required</b>"+
+    "<div class='tiny muted' style='margin-top:6px'>This game stores your progress locally in your browser. No accounts, no tracking, no personal data collected. We need to confirm you are 13 or older to continue.</div>"+
+    "<div class='row' style='margin-top:10px;gap:8px;flex-wrap:wrap'>"+
+      "<button class='btn btn-primary' id='coppaYes'>✅ I am 13 or older</button>"+
+      "<button class='btn btn-alt' id='coppaNo'>❌ I am under 13</button>"+
+    "</div>"+
+    "<div class='tiny muted' style='margin-top:8px'>If you are under 13, please ask a parent or guardian to play with you. No personal data is collected — this check is for COPPA compliance only.</div>"+
+    "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Cancel</button></div>";
+  const v=openModal(h,{locked:true});
+  v.querySelector("#coppaYes").onclick=()=>{
+    try{ localStorage.setItem("bow_coppa_ok","1"); }catch(e){}
+    closeModal();
+    const consented = localStorage.getItem("bow_privacy_ok")==="1";
+    if(consented) helpModal(); else privacyModal(true);
+  };
+  v.querySelector("#coppaNo").onclick=()=>{
+    toast("Please play with a parent or guardian. Game features will be limited.","bad");
+    closeModal();
   };
 }
