@@ -1,6 +1,6 @@
 /* BOX OFFICE WAR — service worker: cache-first so the game installs & plays offline */
 "use strict";
-const CACHE = "bow-v19-cache";
+const CACHE = "bow-v20-cache";
 const ASSETS = [
   "./",
   "index.html",
@@ -11,6 +11,8 @@ const ASSETS = [
   "ui.js",
   "manifest.webmanifest",
   "icon.svg",
+  "icon-192.png",
+  "icon-512.png",
   "assets/opening-night.jpg"
 ];
 self.addEventListener("install", (e) => {
