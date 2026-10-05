@@ -16,15 +16,25 @@ Every decision compounds. A hit creates a franchise. A franchise funds a park. A
 
 ---
 
-## 🆕 v28 — Reference Update (talent abilities · themes · festival modes · IP market)
+## 🆕 v28.x — The Big Update Wave (Oct 2026)
 
-Studied four reference tycoon games (see [REFERENCE-NOTES.md](REFERENCE-NOTES.md) — mechanics only, all code original):
+**v28 — Reference Update** — studied four reference tycoon games (see [REFERENCE-NOTES.md](REFERENCE-NOTES.md) — mechanics only, all code original):
 
 - **🎭 Talent Abilities** — every actor, director, writer and producer can carry a hidden, rarity-tiered ability (Crowd-Pleaser → Movie Star Incarnate) that quietly bends quality, openings, legs, international share, overruns and award odds. **Audition reads** (3% of fee) reveal them early; otherwise one film together does.
-- **🎨 Themes & Combo Discovery** — attach a theme at greenlight; hidden genre×theme affinities are remembered the moment you ship a pairing (⭐ great match: +5 quality, +8% opening · ✖ clash: −4).
+- **🎨 Themes & Combo Discovery** — attach a theme at greenlight; hidden genre×theme affinities are remembered the moment you ship a pairing (⭐ great match: +5 quality, +8% opening · ✖ clash: −4). Browse the full **🧩 Combos Codex** (266 pairings) in Develop.
 - **🎪 Festival Entry Modes** — per festival choose **World Premiere**, **Competition** (film must have shot in the festival's home region; ×1.6 prestige), or **Market Auction** (rival studios bid real money for the finished picture — cash and rep now, they keep the film).
 - **🌍 IP Transfer Market** — rivals make buy-out offers on your franchises (sell = cash now, lose merch/park income); rival-held **legacy franchises** surface for sale mid-run with a built-in fanbase.
 - **⭐ Watchlist & 📜 Active Deals** — pin talent from any profile; the talent hub tracks your watchlist and every running multi-film deal.
+
+**v28.1–v28.10 — Prototype, hardening & polish:**
+
+- **📊 RPG prototype complete** — balance pass (XP curve 1.15, all 6 life-event families firing), live **debug panel (Ctrl+Shift+P)**: XP curve, event weights, equipment multipliers, quick actions. Go/No-Go: **GO** ([decision doc](.opencode/plans/go-nogo-prototype.md)), tagged `prototype-v1`.
+- **📱 Full mobile pass** — P0 bugs fixed (consolidated breakpoints, hover rules gated to `@media(hover:hover)`, long-press fast-forward), P2 layout leftovers, P3 perf (backdrop-filter → solid backgrounds on phones), P4 polish (`.sr-only`, coach marks). Service worker now **auto-updates every release** (v20 cache — no manual refresh needed).
+- **⌨️ Power tools** — ⌘K/Ctrl+K **command palette**, arrow-key tab & grid navigation, hardened modal focus (auto-focus + restore), COPPA age gate, Enter/Space activation on HUD chips.
+- **✨ Custom Creator** — invent your own studios, people and franchises from the Develop tab; custom people join the real talent pool, custom studios seed rival co-production deals, custom franchises appear in the IP Market.
+- **🗺 Deeper sim** — per-region star power (NA/EU/AS/LA/AF), contracts that expire by weeks *or* films, **📖 M&A library browser** (sortable vault with value breakdown) + 🪙 firesale counter-offers, research % progress bars, finance transaction search, §15 streamer sub-tabs (Home/Originals/Deals/Sports/Market).
+- **🧪 Test suite grown** — smoke + 60+ UI steps + balance harness + **automated scenario playthroughs (5 scenarios × 200 weeks, all pass)** + 13/13 save-slot validation, zero flakes.
+- **📸 Store-ready** — PWA PNG icons (512/192/180) + rendered store screenshots in `assets/store/`.
 
 ## ✨ Feature Highlights (v16)
 
@@ -175,21 +185,25 @@ sw.js                   Service worker (offline cache-first)
 test/smoke.js           Headless 5-year economy simulation runner
 test/smoke-body.js      Smoke assertions (node test/smoke.js)
 test/ui-test.mjs        jsdom click-through of the full game flow
+test/balance.js         Balance harness (6 seeds × 120 weeks, progression + economy invariants)
+test/scenario-playthrough.mjs  Automated playthroughs — 5 scenarios × 200 weeks, win-tracking
+test/verify-library.mjs Acquired-library bulk actions (sell outright / bulk license / flip)
 test/validate-slots.js  Save-slot count validation
 ```
 
 ### Running Tests
 
 ```bash
-# Headless 5-year economy simulation
-node test/smoke.js
+# Everything: smoke + UI click-through + balance + scenario playthroughs
+npm test
 
-# Full UI click-through (requires jsdom)
-npm i jsdom
-node test/ui-test.mjs
-
-# Save-slot validation
-node test/validate-slots.js
+# Individually
+npm run test:engine     # headless 5-year economy simulation
+npm run test:ui         # full UI click-through (requires jsdom)
+npm run test:balance    # balance harness (6 seeds × 120 weeks)
+npm run test:scenarios  # 5 scenario playthroughs × 200 weeks
+npm run test:library    # M&A vault bulk actions
+npm run validate:slots  # save-slot validation
 ```
 
 ### Balance Target
