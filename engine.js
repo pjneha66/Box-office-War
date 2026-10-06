@@ -2119,7 +2119,7 @@ function greenlight(cfg){
     releaseWeek:0, marketing:0, marketingPaid:0,
     franchise: !!(cfg.sequelOf) || !!cfg.spinoffFr || !!cfg.crossover,
     sequelOf: cfg.sequelOf? cfg.sequelOf.id : null,
-    buzzBonus: (cfg.sequelOf? (repPerk("franchise")?0.2:0.15)+specBonus("franchise") : 0) + (cfg.crossover? 0.45 : 0) + (idea.awareness? 0:0),
+    buzzBonus: (cfg.sequelOf? (repPerk("franchise")?0.2:0.15)+specBonus("franchise") : 0) + (cfg.crossover? 0.45 : 0) + (cfg.cameo? 0.06 : 0) + (idea.awareness? 0:0),
     awareness: idea.awareness||0,
     strikePause:0,
     rating: cfg.rating||"PG-13",

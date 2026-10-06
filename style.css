@@ -556,10 +556,10 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   .brand{font-size:14px; max-width:38vw}
   .chip{font-size:11.5px; padding:4px 8px; min-height:28px}
   .chip-row{gap:4px}
-  .topbar-actions{margin-left:auto; gap:5px; display:flex; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:60%; padding-bottom:4px; scrollbar-width:thin}
-  .topbar-actions .btn{padding:8px 10px; min-height:40px; min-width:40px; flex-shrink:0}
-  #btnWeek{min-height:44px; font-size:14.5px; flex:1; min-width:120px}
-  #btnFast{min-height:40px; min-width:44px; padding:8px 10px; font-size:12.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center}
+  .topbar-actions{flex-basis:100%; display:grid; grid-template-columns:2.2fr 1fr 1fr 1fr 1fr 1fr; gap:5px; margin-left:0; max-width:none; overflow:visible; padding-bottom:0}
+  .topbar-actions .btn{padding:8px 4px; min-height:42px; min-width:0}
+  #btnWeek{min-height:44px; font-size:14px; min-width:0}
+  #btnFast{min-height:42px; min-width:0; padding:8px 6px; font-size:12.5px; font-weight:800; display:inline-flex; align-items:center; justify-content:center}
   .tabs{display:none}
 
   .bottomnav{
@@ -635,7 +635,6 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   .stat{padding:10px}
   .stat .s-v{font-size:16px; overflow-wrap:anywhere}
   .g2,.g3{grid-template-columns:minmax(0,1fr)}
-  .topbar-actions{flex-basis:100%; display:grid; grid-template-columns:2fr 1fr auto auto auto auto; gap:5px; margin-left:0}
   #btnWeek{min-height:44px}
   .modal{padding:14px 12px calc(14px + env(safe-area-inset-bottom))}
   .news-item{font-size:12.5px}

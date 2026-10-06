@@ -1878,7 +1878,7 @@ function pitchModal(){
 
 /* ── greenlight wizard (film & sequel) ── */
 function startWizard(idea){
-  WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], sub:2,
+  WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], cameo:null, sub:2,
       budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false, deals:{},
       rating:"PG-13", location:"la", scriptPolish:false, premium:false,
       aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
@@ -1887,7 +1887,7 @@ function startWizard(idea){
 function startSequel(film){
   const idea={ id:nid(), genre:film.genre, scale:film.scale, title:"(sequel)", blurb:"The saga continues…",
     script:clamp((film.quality?film.quality.overall:65)+5,55,95), hot:true, sequelOf:film };
-  WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], sub:2, seqBudgetFixed:true,
+  WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], cameo:null, sub:2, seqBudgetFixed:true,
       budget:Math.round(film.budget*1.3),
       rating:"PG-13", location:"la", scriptPolish:false, premium:false, plan:"theatrical", presales:false,
       aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
@@ -2034,6 +2034,14 @@ function wizardModal(){
         h+="</div>";
       }
     }
+    /* v28.15: cameo — one superstar in a single scene, 30% of their fee, +6% opening buzz */
+    if(!WZ.aiCast){
+      h+="<div class='small muted' style='margin:10px 0 6px'>🌟 Cameo <span class='tiny'>(one scene, one superstar — 30% of their fee, +6% opening buzz)</span></div>"+
+        "<div class='plan-pick'>"+
+        (WZ.cameo? "<div class='plan-opt sel' data-cameoclear><h5>🌟 "+esc(WZ.cameo.name)+" · "+fmtM(Math.round(actorFee(WZ.cameo)*0.3*10)/10)+"</h5><div class='p-sub'>Tap to remove the cameo.</div></div>"
+                 : "<div class='plan-opt' id='wzCameo'><h5>＋ Cast a cameo…</h5><div class='p-sub'>Pick a superstar for a single scene.</div></div>")+
+        "</div>";
+    }
     h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzBackDir'>← Director</button><button class='btn btn-primary' id='wzNext'>Continue with "+(WZ.aiCast?"AI cast":WZ.cast.length)+" →</button></div>";
   }else if(step===5){
     const prods=freeTalent("producer").sort((a,b)=>b.skill-a.skill||b.power-a.power);
@@ -2051,7 +2059,9 @@ function wizardModal(){
       packFee=packagingCost(WZ.cast, WZ.budget);
       if(packFee>0){ const pa=packagingFeeOf(WZ.cast); packName=pa.name; }
     }
-    const fees=crew.reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+packFee;
+    const fees=crew.reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+packFee
+      +(WZ.cameo? Math.round(actorFee(WZ.cameo)*0.3*10)/10 : 0);
+    const cameoFee=WZ.cameo? Math.round(actorFee(WZ.cameo)*0.3*10)/10 : 0;
     const dev=devCostOf(WZ.idea);
     const S2=DATA.SCALES[WZ.idea.scale];
     const weeks=S2.pre[1]+S2.shoot[1]+S2.post[1];
@@ -2191,7 +2201,8 @@ function wizardModal(){
       "<input type='range' id='wzBudget' min='"+S2.bMin+"' max='"+(S2.bMax*1.4)+"' step='"+(S2.bMin>=100?5:2)+"' value='"+WZ.budget+"'><span class='slider-val' id='wzBudgetV'>"+fmtM(WZ.budget)+"</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>Typical "+S2.name+" range: "+fmtM(S2.bMin)+"–"+fmtM(S2.bMax)+" · genre needs ≈ "+fmtM(neededBudget(WZ.idea.genre,WZ.idea.scale))+" (underfunding hurts quality)</div></div>";
     h+="<div class='card'><div class='cost-line'><span>Rights + development"+(WZ.scriptPolish?" (+script polish)":"")+"</span><b>"+fmtM(dev+polishCost)+"</b></div>"+
-      "<div class='cost-line'><span>Crew &amp; cast fees (upfront)</span><b>"+fmtM(fees)+"</b></div>"+
+      "<div class='cost-line'><span>Crew &amp; cast fees (upfront)</span><b>"+fmtM(fees-cameoFee)+"</b></div>"+
+      (WZ.cameo? "<div class='cost-line'><span>🌟 Cameo — "+esc(WZ.cameo.name)+" (30% fee, +6% buzz)</span><b>"+fmtM(cameoFee)+"</b></div>":"")+
       (packFee>0? "<div class='cost-line'><span>Agency packaging fee ("+packName+")</span><b class='gold'>+"+fmtM(packFee)+"</b></div>":"")+
       "<div class='cost-line'><span>Production (paid weekly over ~"+weeks+" wks)</span><b>"+fmtM(WZ.budget)+"</b></div>"+
       (WZ.presales&&WZ.plan!=="streaming"&&WZ.plan!=="own"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
@@ -2239,6 +2250,8 @@ function wizardModal(){
     else if(WZ.cast.length<3) WZ.cast.push(t);
     beep("click"); wizardModal();
   });
+  const wzCameo=v.querySelector("#wzCameo"); if(wzCameo) wzCameo.onclick=()=>{ beep("click"); cameoPicker(); };
+  v.querySelectorAll("[data-cameoclear]").forEach(el=>el.onclick=()=>{ WZ.cameo=null; WZ.buzzCameo=false; beep("click"); wizardModal(); });
   v.querySelectorAll("[data-deal]").forEach(el=>el.onclick=()=>{   // v14: agent fee+backend packages
     WZ.deals=WZ.deals||{};
     const id=+el.dataset.deal;
@@ -2285,10 +2298,12 @@ function wizardModal(){
   if(go) go.onclick=()=>{
     const tIn=v.querySelector("#wzTitle");
     let pf=0; if(typeof packagingCost==="function") pf=packagingCost(WZ.cast, WZ.budget);
-    const fees=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+pf;
+    const fees=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+pf
+      +(WZ.cameo? Math.round(actorFee(WZ.cameo)*0.3*10)/10 : 0);
     const dev=devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0);
     if(G.studio.cash < dev+fees+WZ.budget*0.2){ toast("Not enough cash for upfront costs — visit Finance for a loan.","bad"); beep("bad"); return; }
     greenlight({ idea:WZ.idea, writer:WZ.aiScript? null : WZ.writer, director:WZ.director, producer:WZ.producer, cast:WZ.aiCast? [] : WZ.cast,
+      cameo:WZ.cameo,
       budget:WZ.budget, sequelOf:WZ.idea.sequelOf, plan:WZ.plan, presales:WZ.presales,
       deals:WZ.deals||{},
       titleOverride: tIn? (tIn.value.trim()||null) : (WZ.title||null),
@@ -5657,7 +5672,7 @@ function buildStartOptions(){
 }
 
 function cameoPicker(){
-  const sups=G.talent.filter(t=>t.kind==="actor"&&t.power>=4&&!t.bookedUntil).sort((a,b)=>b.power-a.power);
+  const sups=G.talent.filter(t=>t.kind==="actor"&&t.power>=4&&!t.bookedUntil&&!(WZ.cast||[]).some(c=>c.id===t.id)).sort((a,b)=>b.power-a.power);
   let h="<h3>🌟 Cast a cameo</h3><p class='small muted'>One scene, one superstar. You pay 30% of their fee, the trailer gets +6% buzz.</p><div class='pick-list'>";
   if(!sups.length) h+="<div class='muted small'>No power-4+ stars free right now.</div>";
   sups.slice(0,8).forEach(a=>{

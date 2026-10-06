@@ -392,6 +392,34 @@ step("film pitch wizard", ()=>{
   }
   if(g().projects.length<=before) throw new Error("board passed on every pitch");
 });
+step("v28.15 greenlight-wizard cameo — 30% fee charged, +6% buzz booked", ()=>{
+  window.eval("DEVELOP_SUB='scripts'; render();");
+  click($(".tab[data-tab='develop']"));
+  const devCard=$$("[data-dev]")[0];
+  if(!devCard) throw new Error("no idea cards on Develop tab");
+  click(devCard);
+  if(!window.eval("WZ && WZ.mode==='film'")) throw new Error("greenlight wizard did not open");
+  window.eval("WZ.sub=4; wizardModal();");
+  const cameoEntry=$("#wzCameo");
+  if(!cameoEntry) throw new Error("cameo section missing on Cast step");
+  click(cameoEntry);
+  const pick=window.document.querySelectorAll("#modalRoot [data-cameo]")[0];
+  if(!pick) throw new Error("cameo picker did not open");
+  click(pick);
+  const cameo=window.eval("WZ.cameo");
+  if(!cameo) throw new Error("cameo not picked");
+  window.eval("WZ.sub=6; wizardModal();");
+  if(!window.document.querySelector("#modalRoot").innerHTML.includes("(30% fee")) throw new Error("cameo fee line missing on budget step");
+  window.eval("G.weekTx={}; G.studio.cash=Math.max(G.studio.cash,2000);");
+  click($("#wzGo"));
+  const p=window.eval("G.projects[G.projects.length-1]");
+  if(!p || !p.cameo || p.cameo.id!==cameo.id) throw new Error("cameo not booked on project");
+  if(Math.abs((p.buzzBonus||0)-0.06)>0.001) throw new Error("expected +6% cameo buzz, got "+p.buzzBonus);
+  const talent=window.eval("G.weekTx.talent||0");
+  const full=window.eval("(function(){var t=G.talent.find(function(x){return x.id==="+cameo.id+"});return actorFee(t);})()");
+  if(Math.abs(talent + Math.round(full*0.3*10)/10) > 0.05) throw new Error("cameo charged "+(-talent)+" but 30% fee is "+(Math.round(full*0.3*10)/10));
+  if(-talent >= full) throw new Error("cameo charged full fee ("+(-talent)+" >= "+full+")");
+});
 step("ott view", ()=>{
   click($(".tab[data-tab='ott']"));
   if(!$("#view").innerHTML.includes("Deal offers") && !$("#view").innerHTML.includes("Your platform")) throw new Error("ott home missing");
