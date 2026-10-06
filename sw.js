@@ -1,6 +1,6 @@
 /* BOX OFFICE WAR — service worker: cache-first so the game installs & plays offline */
 "use strict";
-const CACHE = "bow-v22-cache";
+const CACHE = "bow-v23-cache";
 const ASSETS = [
   "./",
   "index.html",
