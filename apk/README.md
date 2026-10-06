@@ -3,7 +3,22 @@
 The game is wrapped with [Capacitor](https://capacitorjs.com) as a fully offline
 Android app: every game asset is bundled inside the APK, no server needed.
 
-## Rebuild the APK (after any game update)
+## One-command release (web + Android together)
+
+From the repo root:
+
+```bash
+bash release.sh            # auto-bumps patch version (28.15 -> 28.16)
+bash release.sh 28.16      # explicit version
+bash release.sh 28.16 --dry-run   # everything except commit/push/release
+```
+
+The pipeline: syntax checks + full test suite → version bump (APK +
+`sw.js` CACHE) → signed APK rebuild → commit + push (redeploys Vercel) →
+GitHub release `v<version>` with the APK attached → verifies the live site.
+`npm run release` is an alias; `npm run apk` only rebuilds the APK.
+
+## Manual APK rebuild (what the script automates)
 
 ```bash
 # 1. toolchain (already installed on this Mac)
