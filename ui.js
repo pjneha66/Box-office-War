@@ -2370,6 +2370,7 @@ function startFilmPitchWizard(){
       scale:"mid", budget:0, rating:"PG-13", location:"home", pattern:"wide", rollout:"day", window:45,
       imax:false, premium:false, soundtrack:false, dayAndDate:false, scriptPolish:false,
       coProduction:false, coProdPartner:null,
+      cameo:false,
       director:null, writer:null, producer:null, cast:[]};
   filmPitchModal();
 }
@@ -2426,6 +2427,7 @@ function filmPitchModal(){
     h+="<label class='btn btn-sm "+(WZ.dayAndDate?"btn-primary":"")+"' data-dad><input type='checkbox' style='display:none'>"+(WZ.dayAndDate?"✓":"")+" Day-and-date</label>";
     h+="<label class='btn btn-sm "+(WZ.scriptPolish?"btn-primary":"")+"' data-polish><input type='checkbox' style='display:none'>"+(WZ.scriptPolish?"✓":"")+" Script polish</label>";
     h+="<label class='btn btn-sm "+(WZ.coProduction?"btn-primary":"")+"' data-coprod><input type='checkbox' style='display:none'>"+(WZ.coProduction?"✓":"")+" Co-production</label>";
+    h+="<label class='btn btn-sm "+(WZ.cameo?"btn-primary":"")+"' data-cameo><input type='checkbox' style='display:none'>"+(WZ.cameo?"✓":"")+" Cameo</label>";
     h+="</div></div>";
     if(WZ.coProduction){
       h+="<div class='card'><div class='small muted'>Co-production partner</div><div class='row' id='fpCoprod'>";
@@ -2493,9 +2495,10 @@ function filmPitchModal(){
       h+=crewCard(a,{genre:WZ.genre, sel:WZ.cast.some(c=>c.id===a.id), attr:"data-fpc='"+a.id+"'"});
     });
     h+="</div>";
+    h+="<div class='card' style='margin-top:10px'><div class='small muted'>Add a cameo — 30% of actor fee, +6% opening buzz</div><div class='row' style='gap:8px'>";
+    h+="<label class='btn btn-sm "+(WZ.cameo?"btn-primary":"")+"' data-cameo><input type='checkbox' style='display:none'>"+(WZ.cameo?"✓":"")+" 🎭 Cameo (30% fee, +6% opening buzz)</label>";
+    h+="</div></div>";
     h+="<div class='modal-actions'><button class='btn btn-ghost' id='fpBack'>← Back</button><button class='btn btn-primary' id='fpGo'>🎥 Greenlight the pitch</button></div>";
-  }
-  const v=openModal(h,{onClose:()=>{WZ=null;}});
   v.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ WZ.genre=b.dataset.g; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{ WZ.scale=b.dataset.s; WZ.budget=Math.round(neededBudget(WZ.genre,WZ.scale)); beep("click"); filmPitchModal(); });
   const bud=v.querySelector("#fpBudget"); if(bud){ bud.oninput=()=>{ WZ.budget=+bud.value; const el=$("#fpBudgetV"); if(el) el.textContent=fmtM(WZ.budget); }; }

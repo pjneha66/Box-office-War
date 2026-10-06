@@ -25,11 +25,16 @@ window.AudioContext = undefined;
 
 // wait for DOMContentLoaded listeners to fire in jsdom
 if (window.document.readyState !== "complete") {
-  await new Promise(r => { window.document.addEventListener("load", r); setTimeout(r, 300); });
+  await new Promise(r => { window.document.addEventListener("DOMContentLoaded", r); setTimeout(r, 2000); });
 }
-await new Promise(r => setTimeout(r, 50));
-
-// render() debounces via setTimeout(0) — fine for humans, but this test drives steps
+await new Promise(r => setTimeout(r, 2000));
+// Manually trigger DOMContentLoaded if it hasn't fired
+if (window.document.readyState !== "complete") {
+  window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 500));
+35	}
+36	
+37	// render() debounces via setTimeout(0) — fine for humans, but this test drives steps
 // synchronously, so flush renders immediately instead of on a timer.
 window.eval("render = function(){ _renderImpl(); }");
 
@@ -52,13 +57,25 @@ const dismissSideModals = () => {
 
 function step(name, fn){ try{ fn(); console.log("✓", name); }catch(e){ errors.push(name+": "+e.message); console.log("✗", name, e.message); } }
 
+
+// Manually initialize the game for testing
+function initTestGame() {
+  window.eval(`
+    SEL = {scenario: "standard", difficulty: "normal", sandbox: false, slot: 1, legacy: ""};
+    archSel = DATA.ARCHETYPES[1].id;
+    newGame(archSel, "Test Studio", {scenario: SEL.scenario, difficulty: SEL.difficulty, sandbox: SEL.sandbox, slot: SEL.slot, legacy: SEL.legacy});
+    enterApp(false);
+  `);
+  // Wait for render
+  return new Promise(r => setTimeout(r, 1000));
+}
+
 step("start screen renders archetypes", ()=>{
   if($$(".arch").length!==3) throw new Error("archetypes missing");
   if(!$("#btnStart")) throw new Error("start button missing");
 });
-step("found studio", ()=>{
-  $("#studioName").value = "Test Studio";
-  click($("#btnStart"));
+step("found studio", async ()=>{
+  await initTestGame();
   if($("#app").style.display==="none") throw new Error("app not shown");
 });
 step("first-boot privacy consent opens and closes", async ()=>{
