@@ -83,7 +83,7 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "── 4/6 commit + push ──────────────────────────────────────"
-git add sw.js apk/android/app/build.gradle apk/dist
+git add sw.js apk/android/app/build.gradle
 git commit -m "v$VERSION: release — SW cache v$((CUR_SW+1)), APK $VERSION"
 git push origin main
 echo "✓ pushed — Vercel is redeploying"
