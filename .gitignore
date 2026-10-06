@@ -4,3 +4,14 @@ node_modules/
 .smoke-generated.js
 .mimosa/
 .slots-generated.js
+
+# ── apk/ (Capacitor Android wrapper) ──
+apk/node_modules/
+apk/www/
+apk/dist/
+apk/android/.gradle/
+apk/android/build/
+apk/android/app/build/
+apk/android/local.properties
+apk/android/capacitor-cordova-android-plugins/
+apk/android/app/src/main/assets/

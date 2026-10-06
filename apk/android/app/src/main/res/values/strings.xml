@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Box Office War</string>
+    <string name="title_activity_main">Box Office War</string>
+    <string name="package_name">com.pjneha66.boxofficewar</string>
+    <string name="custom_url_scheme">com.pjneha66.boxofficewar</string>
+</resources>
