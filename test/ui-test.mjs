@@ -32,9 +32,9 @@ await new Promise(r => setTimeout(r, 2000));
 if (window.document.readyState !== "complete") {
   window.document.dispatchEvent(new window.Event("DOMContentLoaded", { bubbles: true, cancelable: true }));
   await new Promise(r => setTimeout(r, 500));
-35	}
-36	
-37	// render() debounces via setTimeout(0) — fine for humans, but this test drives steps
+}
+
+// render() debounces via setTimeout(0) — fine for humans, but this test drives steps
 // synchronously, so flush renders immediately instead of on a timer.
 window.eval("render = function(){ _renderImpl(); }");
 

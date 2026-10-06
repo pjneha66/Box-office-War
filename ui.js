@@ -2499,6 +2499,8 @@ function filmPitchModal(){
     h+="<label class='btn btn-sm "+(WZ.cameo?"btn-primary":"")+"' data-cameo><input type='checkbox' style='display:none'>"+(WZ.cameo?"✓":"")+" 🎭 Cameo (30% fee, +6% opening buzz)</label>";
     h+="</div></div>";
     h+="<div class='modal-actions'><button class='btn btn-ghost' id='fpBack'>← Back</button><button class='btn btn-primary' id='fpGo'>🎥 Greenlight the pitch</button></div>";
+  }
+  const v=openModal(h,{onClose:()=>{WZ=null;}});
   v.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ WZ.genre=b.dataset.g; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{ WZ.scale=b.dataset.s; WZ.budget=Math.round(neededBudget(WZ.genre,WZ.scale)); beep("click"); filmPitchModal(); });
   const bud=v.querySelector("#fpBudget"); if(bud){ bud.oninput=()=>{ WZ.budget=+bud.value; const el=$("#fpBudgetV"); if(el) el.textContent=fmtM(WZ.budget); }; }
@@ -2513,6 +2515,7 @@ function filmPitchModal(){
   v.querySelectorAll("[data-dad]").forEach(b=>b.onclick=()=>{ WZ.dayAndDate=!WZ.dayAndDate; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-polish]").forEach(b=>b.onclick=()=>{ WZ.scriptPolish=!WZ.scriptPolish; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-coprod]").forEach(b=>b.onclick=()=>{ WZ.coProduction=!WZ.coProduction; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-cameo]").forEach(b=>b.onclick=()=>{ WZ.cameo=!WZ.cameo; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{ WZ.coProdPartner=b.dataset.cp; beep("click"); filmPitchModal(); });
   v.querySelectorAll("[data-fpd]").forEach(el=>el.onclick=()=>{ WZ.director=talentById(+el.dataset.fpd); beep("click"); filmPitchModal(); });
   const fpT=v.querySelector("#fpTitle"); if(fpT) fpT.oninput=()=>{ WZ.title=fpT.value; };
@@ -2529,7 +2532,7 @@ function filmPitchModal(){
       rating:WZ.rating, location:WZ.location, pattern:WZ.pattern, rollout:WZ.rollout, window:WZ.window,
       imax:WZ.imax, premium:WZ.premium, soundtrack:WZ.soundtrack, dayAndDate:WZ.dayAndDate,
       scriptPolish:WZ.scriptPolish, director:WZ.director, writer:WZ.writer, producer:WZ.producer, cast:WZ.cast,
-      coProduction:WZ.coProduction, coProdPartner:WZ.coProdPartner});
+      coProduction:WZ.coProduction, coProdPartner:WZ.coProdPartner, cameo:WZ.cameo});
     beep(res.ok?"gold":"bad"); flashes(G.flash);
     WZ=null; closeModal(); render();
   };

@@ -1997,9 +1997,17 @@ function pitchFilm(cfg){
   const writer = cfg.writer;
   const producer = cfg.producer;
   const cast = cfg.cast || [];
+  /* v28.13: cameo — top star not already attached; 30% of their fee, +6% opening buzz */
+  let cameo=null;
+  if(cfg.cameo){
+    const taken=[dir,writer,producer].concat(cast).filter(Boolean).map(t=>t.id);
+    cameo = freeTalent("actor").filter(t=>!taken.includes(t.id)).sort((a,b)=>b.power-a.power)[0] || null;
+    if(!cameo) log("🌟 No superstar is available for a cameo — booking the pitch without one.","");
+  }
+  const cameoFee = cameo? Math.round(actorFee(cameo)*0.3*10)/10 : 0;
   const budget = cfg.budget || Math.round(neededBudget(cfg.genre, cfg.scale));
   const mkt = recMarketing({budget, scale:cfg.scale, genre:cfg.genre});
-  const totalCost = devCostOf({scale:cfg.scale, genre:cfg.genre, hot:false, script:65}) + budget + mkt;
+  const totalCost = devCostOf({scale:cfg.scale, genre:cfg.genre, hot:false, script:65}) + budget + mkt + cameoFee;
   const trend = (typeof trendPull==="function")?trendPull(cfg.genre):1;
   const openEst = S.openBase * g.mass * trend * (cfg.rating==="R"?0.88:1.0) * (cfg.imax?1.08:1.0) * (cfg.premium?1.12:1.0) * (G.infl||1);
   const legsEst = clamp(2.2 + g.legsAdj + 0.02*(dir?dir.skill:55), 1.45, 4.4);
@@ -2031,7 +2039,7 @@ function pitchFilm(cfg){
       id:nid(), kind:"film", title:cfg.titleOverride || makeTitle(cfg.genre), genre:cfg.genre, scale:cfg.scale,
       script: (writer?writer.skill:65) + (cfg.scriptPolish?6:0), blurb: "Pitched concept", hot:false,
       budget: budget, budget0: budget, overrun:0, spent:0, devCost: devCostOf({scale:cfg.scale, genre:cfg.genre, hot:false, script:65}),
-      director: dir, writer: writer||null, producer: producer||null, cast: cast, cameo: null,
+      director: dir, writer: writer||null, producer: producer||null, cast: cast, cameo: cameo,
       phase:"pre", phaseWeek:0,
       phaseLen:{ pre:rint(...S.pre)+(cfg.scriptPolish?1:0), shoot:rint(...S.shoot), post:rint(...S.post) },
       releaseWeek:0, marketing:0, marketingPaid:0,
@@ -2056,6 +2064,13 @@ function pitchFilm(cfg){
     if(writer){writer.bookedUntil=G.week+p.phaseLen.pre; writer.booked=p.title;}
     if(producer){producer.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; producer.booked=p.title;}
     cast.forEach(c=>{c.bookedUntil=G.week+p.phaseLen.pre+p.phaseLen.shoot+p.phaseLen.post; c.booked=p.title;});
+    if(cameo){
+      spend("talent", cameoFee);
+      cameo.bookedUntil=Math.max(cameo.bookedUntil||0, G.week+4);
+      cameo.booked=p.title+" (cameo)";
+      p.buzzBonus=Math.round(((p.buzzBonus||0)+0.06)*100)/100;
+      log("🌟 Cameo booked: "+cameo.name+" drops in on \""+p.title+"\" — "+fmtM(cameoFee)+" (30% fee, +6% opening buzz).","good");
+    }
     log("🎬 Film greenlit: \""+p.title+"\" — "+cfg.scale+" "+g.name+" @ "+fmtM(budget)+".","gold");
     return {ok:true, ev, project:p};
   }
