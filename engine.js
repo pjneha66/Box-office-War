@@ -243,21 +243,6 @@ function notifyCEMOAlert(msg){
   notifyCEMOEvent("cemo_alert", { msg });
 }
 
-function saveGame(){
-  try{
-    if(typeof localStorage==="undefined" || !G) return;
-    if(G._noSave) return;   // v14: a what-if fork never writes over the real run
-    G.v = DATA.SAVE_VERSION||4;
-    const raw = JSON.stringify(G); // perf: serialize once, write twice
-    localStorage.setItem(SAVE_KEY, raw);
-    try{ localStorage.setItem("bow_slot"+(G.slot||1), raw); }catch(e){}
-    // Named slot
-    if(G.saveName) localStorage.setItem("bow_named_"+G.saveName, raw);
-    // IndexedDB sync (async, fire-and-forget)
-    if(G.saveName) saveToIDB(G.saveName, G);
-    showSaveIndicator("💾 Saved" + (G.saveName?" as "+G.saveName:""));
-  }catch(e){}
-}
 function hasSave(){
   try{ return typeof localStorage!=="undefined" && !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
 }
