@@ -10,6 +10,7 @@
 # Does, in order:
 #   1. preflight: clean tree, node --check every JS file, full npm test
 #   2. bump versions: sw.js CACHE + APK versionName/versionCode
+#                     + index.html app-version meta + version.json (live update check)
 #   3. rebuild the Android APK (signed, from apk/)
 #   4. commit + push  (push also redeploys box-office-war.vercel.app)
 #   5. GitHub release tagged <version> with the APK attached
@@ -57,7 +58,15 @@ if [ "$DRY_RUN" = false ]; then
     let s=fs.readFileSync("sw.js","utf8");
     s=s.replace(/bow-v\d+-cache/,"bow-v"+sw+"-cache");
     fs.writeFileSync("sw.js",s);
-    console.log("  bumped: APK "+ver+" (code "+code+"), SW cache v"+sw);
+    let idx=fs.readFileSync("index.html","utf8");
+    if(!/name="app-version"/.test(idx)) throw new Error("app-version meta missing in index.html");
+    idx=idx.replace(/(name="app-version" content=")[0-9.]+(")/,"$1"+ver+"$2");
+    fs.writeFileSync("index.html",idx);
+    let vj=fs.readFileSync("version.json","utf8");
+    if(!/"v"/.test(vj)) throw new Error("version.json missing its v field");
+    vj=vj.replace(/"v":\s*"[0-9.]+"/,"\"v\": \""+ver+"\"");
+    fs.writeFileSync("version.json",vj);
+    console.log("  bumped: APK "+ver+" (code "+code+"), SW cache v"+sw+", app meta + version.json "+ver);
   ' "$VERSION" "$((CUR_CODE+1))" "$((CUR_SW+1))"
 else
   echo "  (dry-run) would bump: APK ${CUR_VER} -> ${VERSION}, SW cache v${CUR_SW} -> v$((CUR_SW+1))"
@@ -83,7 +92,7 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "── 4/6 commit + push ──────────────────────────────────────"
-git add sw.js apk/android/app/build.gradle
+git add sw.js apk/android/app/build.gradle index.html version.json
 git commit -m "v$VERSION: release — SW cache v$((CUR_SW+1)), APK $VERSION"
 git push origin main
 echo "✓ pushed — Vercel is redeploying"
@@ -102,5 +111,7 @@ echo "── 6/6 verify live deploy ──────────────�
 sleep 45
 LIVE=$(curl -s https://box-office-war.vercel.app/sw.js | grep -o 'bow-v[0-9]*-cache' | head -1)
 echo "  live SW: $LIVE (expect bow-v$((CUR_SW+1))-cache)"
+LIVEV=$(curl -s https://box-office-war.vercel.app/version.json | grep -o '"v": *"[0-9.]*"')
+echo "  live version.json: $LIVEV (expect \"v\": \"$VERSION\")"
 [ "$LIVE" = "bow-v$((CUR_SW+1))-cache" ] && echo "✅ RELEASE COMPLETE — web + Android both live" \
   || echo "⚠ Vercel still building — check https://vercel.com/dashboard in a minute"

@@ -755,7 +755,8 @@ function moreSheet(){
     "<button class='btn btn-alt' id='moreHall'>🏆 Hall of Fame</button>"+
     "<button class='btn btn-alt' id='moreSet'>⚙ Settings</button>"+
     "<button class='btn btn-alt' id='moreHelp'>❓ Help</button></div>"+
-    "<div class='row' style='margin-top:10px;align-items:center'><button class='btn btn-sm btn-ghost' id='moreSave'>💾 Save now</button><span class='tiny muted' id='moreSaveInfo'></span></div>";
+    "<div class='row' style='margin-top:10px;align-items:center'><button class='btn btn-sm btn-ghost' id='moreSave'>💾 Save now</button><span class='tiny muted' id='moreSaveInfo'></span></div>"+
+    "<div class='tiny muted' style='margin-top:12px;text-align:center'>📦 Box Office War v"+((typeof bowAppVersion==="function")?bowAppVersion():"dev")+" · APK updates land on the GitHub Releases page</div>";
   const v=openModal(h);
   v.querySelectorAll("[data-more-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.moreTab); });
   v.querySelector("#moreAch").onclick=()=>{ closeModal(); achievementsModal(); };
@@ -2961,6 +2962,53 @@ function pipelineGantt(projs){
     }).join("") + "</div>";
 }
 
+/* ── v28.17: animated backlot set — four crew characters (director, camera
+   operator, lead, clapper loader) drawn as crisp-edge pixel SVGs, all
+   generated in code. Exclusive in-app art: nothing hotlinked, ships fully
+   offline in web + APK. ── */
+const BK_PALS=[
+  {K:"#141824",S:"#e8b98a",H:"#2c3350",B:"#3d4f7c",P:"#232a3d"},
+  {K:"#141824",S:"#d9a06b",H:"#4a3a28",B:"#5a6b4a",P:"#2b3038"},
+  {K:"#141824",S:"#f0c49a",H:"#3a2418",B:"#c9962e",P:"#1d2333",G:"#ffd479"},
+  {K:"#141824",S:"#c98d5e",H:"#6e2f2f",B:"#7a8aa0",P:"#39445c"}
+];
+const BK_ROWS=[
+  "....KKKK....|...KHHHHK...|..KHHHHHHK..|..KKKKKKKK..|..KSSSSSSK..|..KSKSSKSK..|..KSSSSSSK..|...KSSSSK...|..KBBBBBBK..|.SKBBBBBBKS.|.SKBBBBBBKS.|..KBBBBBBK..|..KPPKKPPK..|..KPPKKPPK..|..KPPKKPPK..|.KKKK..KKKK.",
+  "....KKKK....|...KHHHHK...|..KHHHHHHK..|..KSSSSSSK..|..KSKSSKSK..|..KSSSSSSK..|...KSSSSK...|..KBBBBBBK..|.SKBBBBBBKS.|.SKBBBBBBKS.|..KBBBBBBK..|..KBBBBBBK..|..KPPKKPPK..|..KPPKKPPK..|..KPPKKPPK..|.KKKK..KKKK.",
+  "....KKKK....|...KHHHHK...|..KHHHHHHK..|..KHHHHHHK..|..KHSSSSHK..|..KHSKSKHK..|..KHSSSSHK..|...KSSSSK...|..KBBBBBBK..|.SKBBGGBBKS.|.SKBBBBBBKS.|..KBBBBBBK..|..KPPKKPPK..|..KPPKKPPK..|..KPPKKPPK..|.KKKK..KKKK.",
+  "....KKKK....|...KHHHHK...|..KHHHHHHK..|..KSSSSSSK..|..KSKSSKSK..|..KSSSSSSK..|...KSSSSK...|..KBBBBBBK..|.SKBBBBBBKS.|.SKBBBBBBKS.|..KBBBBBBK..|..KPPPPPPK..|..KPPKKPPK..|..KPPKKPPK..|..KPPKKPPK..|.KKKK..KKKK."
+];
+function bkSprite(rows,pal){
+  let r="";
+  rows.split("|").forEach((row,y)=>{
+    let x=0;
+    for(const ch of row){ const c=pal[ch]; if(c) r+="<rect x='"+x+"' y='"+y+"' width='1.04' height='1.04' fill='"+c+"'/>"; x++; }
+  });
+  return "<svg class='px' viewBox='0 0 12 16' shape-rendering='crispEdges' aria-hidden='true' focusable='false'>"+r+"</svg>";
+}
+function backlotScene(){
+  const rolling=inProdProjects().filter(p=>p.phase==="shoot"||p.phase==="reshoot");
+  const crew=[
+    ["bk-a1","bk-meg","DIRECTOR"],
+    ["bk-a2","bk-cam","CAMERA"],
+    ["bk-a3","bk-script","LEAD"],
+    ["bk-a4","bk-board","CLAPPER"]
+  ];
+  let h="<div class='backlot' role='img' aria-label='Animated film set: director, camera operator, lead actor and clapper assistant at work'>";
+  h+="<div class='bk-boom bk-boom1'></div><div class='bk-boom bk-boom2'></div>";
+  h+="<div class='bk-rec"+(rolling.length?"":" bk-idle")+"'>"+(rolling.length?"REC":"STANDBY")+"</div>";
+  h+="<div class='bk-crew'>";
+  crew.forEach(([cls,prop,label],i)=>{
+    h+="<div class='bk-actor "+cls+"'>"+bkSprite(BK_ROWS[i],BK_PALS[i])+"<i class='bk-prop "+prop+"'></i><b class='bk-name'>"+label+"</b></div>";
+  });
+  h+="</div><div class='bk-floor'></div>";
+  h+="<div class='bk-caption'>"+(rolling.length
+    ? "🎥 Rolling: "+rolling.map(p=>esc(p.title)).join(" · ")
+    : "🎬 Backlot idle — greenlight a film to roll cameras.")+"</div>";
+  h+="</div>";
+  return h;
+}
+
 function viewProductions(){
   let h="";
   const ready=readyProjects(), allProd=inProdProjects();
@@ -2984,6 +3032,7 @@ function viewProductions(){
     return true;
   });
 
+  h+=backlotScene();
   h+=acquiredMediaSection();
   h+="<div class='section-title'>In production ("+prod.length+")</div>";
   if(!prod.length) h+="<div class='card muted small'>No films matching current filter. Visit 📝 Develop to greenlight one.</div>";
@@ -4329,9 +4378,10 @@ function bindView(){
   $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
   $$("[data-fr-seq]").forEach(b=>b.onclick=()=>{
     const fr=frById(+b.dataset.frSeq);
-    const ent=fr && fr.entries[fr.entries.length-1];
-    const f=ent && G.films.find(x=>x.id===ent.filmId);
-    if(f){ beep("click"); startSequel(f); } else toast("Original film record not found.","bad");
+    const f=frResolvableFilm(fr);
+    if(f){ beep("click"); startSequel(f); }
+    else if(fr){ beep("click"); startSpinoff(fr); }   // no original on file (purchased IP) — open the wizard as the franchise's first entry
+    else toast("Franchise record not found.","bad");
   });
   $$("[data-cancel]").forEach(b=>b.onclick=()=>{
     const p=G.projects.find(x=>x.id===+b.dataset.cancel); if(!p)return;
@@ -5061,7 +5111,7 @@ function viewEmpire(){
       frTimeline(fr)+
       ((G.licensedOut||[]).filter(L=>L.name===fr.name).length? "<div class='tiny gold' style='margin-top:6px'>📦 Licensed out to "+(G.licensedOut.filter(L=>L.name===fr.name).map(L=>L.rival).join(", "))+" — backend pending; merch shelf sags while away.</div>":"")+
       "<div class='fr-actions'>"+
-      "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ Greenlight Sequel</button>"+
+      "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ "+(frResolvableFilm(fr)? "Greenlight Sequel":"Greenlight First Entry")+"</button>"+
       (fr.podcast? "<span class='tag green' style='align-self:center'>🎙️ Podcast live</span>"
         : "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"'>🎙️ Launch Podcast · "+fmtM(DATA.PODCAST?.cost||0.5)+"M</button>")+
       (fr.merch<3? "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'>🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(merchCost(fr))+"</button>" : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
@@ -5182,7 +5232,14 @@ function frFanbase(fr){
   if((fr.entries||[]).length>=2) return "Growing cult";
   return "New spark";
 }
+/* newest→oldest resolver: a franchise's own film records can outlive the
+   films list (sold/pruned), and purchased IPs start with no films at all */
+function frResolvableFilm(fr){
+  if(!fr) return null;
+  return (fr.entries||[]).map(e=>G.films.find(x=>x.id===e.filmId)).find(Boolean) || null;
+}
 function frSequel(fr){
+  if(!frResolvableFilm(fr)) return "New IP — greenlight entry 1";
   const fat=fr.fatigue||0;
   if(fat>0.45) return "Rest it — fatigue "+Math.round(fat*100)+"%";
   if((fr.decay||0)<0.6) return "Cooling — rebuild heat first";

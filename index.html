@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0b0e14" id="themeColorMeta">
+<meta name="app-version" content="28.16">
 <meta name="description" content="Box Office War — a movie & series studio tycoon simulation. Greenlight films, survive the box office, build franchises, launch your own streamer.">
 <meta property="og:title" content="Box Office War — Movie & Series Studio Tycoon">
 <meta property="og:description" content="Greenlight films, survive the box office, build franchises, and launch your own streamer in this realistic Hollywood tycoon simulator.">
@@ -119,10 +120,87 @@
 <script src="i18n.js"></script>
 <script src="ui.js"></script>
 <script>
-/* PWA: offline-first service worker (skipped on file://) */
-if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
-  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+/* ═══ Update bar UI — shared by the PWA reload flow and the APK update check ═══ */
+function bowShowUpdateBar(opts){
+  if(document.getElementById("bowUpdateBar")) return;
+  var bar=document.createElement("div");
+  bar.id="bowUpdateBar"; bar.setAttribute("role","status");
+  bar.style.cssText="position:fixed;left:10px;right:10px;bottom:84px;z-index:4200;display:flex;gap:10px;align-items:center;"+
+    "background:linear-gradient(100deg,#f5b942,#ffd479);color:#1a1204;border-radius:14px;padding:12px 14px;"+
+    "font:700 14px/1.35 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.5)";
+  var msg=document.createElement("span");
+  msg.style.cssText="flex:1";
+  msg.textContent=opts.msg;
+  var go=document.createElement("button");
+  go.type="button";
+  go.textContent=opts.action;
+  go.style.cssText="border:0;border-radius:10px;padding:9px 14px;font:inherit;cursor:pointer;background:#1a1204;color:#ffd479;min-height:40px";
+  go.onclick=function(){ go.disabled=true; opts.onGo(); };
+  var x=document.createElement("button");
+  x.type="button"; x.textContent="✕"; x.setAttribute("aria-label","Dismiss update notice");
+  x.style.cssText="border:0;background:transparent;color:#1a1204;opacity:.65;font:inherit;cursor:pointer;min-height:40px;min-width:36px";
+  x.onclick=function(){ bar.remove(); };
+  bar.appendChild(msg); bar.appendChild(go); bar.appendChild(x);
+  document.body.appendChild(bar);
 }
+function bowAppVersion(){
+  var m=document.querySelector('meta[name="app-version"]');
+  return m? (m.getAttribute("content")||"") : "";
+}
+</script>
+<script>
+/* PWA: offline-first service worker (skipped on file://). When a freshly
+   deployed worker takes over mid-session, offer a one-tap reload. */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      try{ setInterval(function(){ reg.update().catch(function(){}); }, 60*60*1000); }catch(e){}
+    }).catch(function(){});
+  });
+  var hadController=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){
+    if(!hadController){ hadController=true; return; }   // first install — the page is already fresh
+    bowShowUpdateBar({ msg:"🚀 A new version was installed.", action:"Reload", onGo:function(){ location.reload(); } });
+  });
+}
+</script>
+<script>
+/* ═══ APK update check — the Android app is a fully offline bundle, so its code
+   can't self-update. Compare the bundled version against version.json on the
+   live site (harmless no-op on the web, where Capacitor is undefined). ═══ */
+(function(){
+  "use strict";
+  function apkUpdateCheck(){
+    var local=bowAppVersion(); if(!local) return;
+    var url;
+    try{ url=new URL("https://box-office-war.vercel.app/version.json"); }catch(e){ return; }
+    if(url.protocol!=="https:" || url.hostname!=="box-office-war.vercel.app") return;  // allowlist — never localhost/private
+    var ctl=("AbortController" in window)? new AbortController() : null;
+    var kill=ctl? setTimeout(function(){ ctl.abort(); }, 9000) : null;
+    fetch(url, {cache:"no-store", signal:ctl? ctl.signal : undefined})
+      .then(function(r){ return r.ok? r.json() : null; })
+      .then(function(j){
+        if(kill) clearTimeout(kill);
+        if(!j || !j.v) return;
+        var a=String(j.v).split(".").map(function(n){ return parseInt(n,10)||0; });
+        var b=String(local).split(".").map(function(n){ return parseInt(n,10)||0; });
+        var newer=false;
+        for(var i=0;i<Math.max(a.length,b.length);i++){ var d=(a[i]||0)-(b[i]||0); if(d>0){ newer=true; break; } if(d<0) break; }
+        if(!newer) return;
+        var rel=(j.apk && /^https:\/\/github\.com\//.test(j.apk))? j.apk : "https://github.com/pjneha66/Box-office-War/releases/latest";
+        bowShowUpdateBar({ msg:"🚀 v"+j.v+" is out — this app runs v"+local+".", action:"Get update", onGo:function(){
+          var a2=document.createElement("a"); a2.href=rel; a2.target="_blank"; a2.rel="noopener";
+          document.body.appendChild(a2); a2.click(); a2.remove();
+        }});
+      })
+      .catch(function(){ if(kill) clearTimeout(kill); });
+  }
+  try{
+    if(window.Capacitor && typeof window.Capacitor.isNativePlatform==="function" && window.Capacitor.isNativePlatform()){
+      setTimeout(apkUpdateCheck, 5000);
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
