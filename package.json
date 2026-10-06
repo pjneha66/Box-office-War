@@ -7,6 +7,8 @@
     "test": "test"
   },
   "scripts": {
+    "release": "bash release.sh",
+    "apk": "node apk/build-www.js && cd apk/android && ./gradlew assembleRelease",
     "test": "node test/smoke.js && node test/ui-test.mjs && node test/balance.js && node test/scenario-playthrough.mjs",
     "test:engine": "node test/smoke.js",
     "test:ui": "node test/ui-test.mjs",
