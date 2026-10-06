@@ -218,11 +218,46 @@ function scoreBadge(q){
   if(q>=40) return "<span class='tag'>"+q+" · Mixed</span>";
   return "<span class='tag red'>"+q+" · Panned</span>";
 }
-function toast(t,k){ 
+function toast(t,k){
   const d=document.createElement("div"); d.className="toast "+(k||""); d.textContent=t;
   $("#toasts").appendChild(d); setTimeout(()=>d.remove(), 5200);
 }
 function flashes(list){ (list||[]).forEach(f=>toast(f.t, f.k)); }
+
+/* ═══ v28.16: notification bell — everything lands in the 🔔 inbox; only main
+   events (gold/bad) pop as toasts, capped so a busy week can never flood the
+   screen. Weak events are inbox-only. Same-week duplicates (the flash list is
+   flashed once per action AND per week tick) are recorded once. ═══ */
+const TOAST_CAP=4;
+function flashes(list){
+  const items=(list||[]).filter(f=>f&&f.t);
+  if(!items.length) return;
+  if(G._nfWk!==G.week){ G._nfWk=G.week; G._nfK={}; }
+  const seen={}; const queue=[];
+  items.forEach(f=>{
+    const key=(f.k||"info")+"|"+f.t;
+    if(!G._nfK[key]){ G._nfK[key]=1; addNotification(f.t, f.k||"info", true); }
+    if(!seen[key]){ seen[key]=1; queue.push(f); }
+  });
+  saveGame();
+  const main=queue.filter(f=>f.k==="gold"||f.k==="bad");
+  const shown=main.slice(0,TOAST_CAP);
+  shown.forEach(f=>toast(f.t, f.k));
+  const hidden=main.length-shown.length + (queue.length-main.length);
+  if(hidden>0) toast("🔔 "+hidden+" more in notifications","gold");
+  updateBellBadge();
+}
+function updateBellBadge(){
+  const el=$("#bellBadge"); if(!el) return;
+  const n=(typeof G!=="undefined" && G && G.notifications)?G.notifications.filter(x=>!x.read).length:0;
+  el.textContent=n>9?"9+":String(n);
+  el.style.display=n?"flex":"none";
+}
+function notificationsModal(){
+  if(G.notifications && G.notifications.some(n=>!n.read)) markAllNotifRead();   // opening the inbox clears the badge
+  openModal(viewNotifications());
+  updateBellBadge();
+}
 
 /* ═══════════ VISUAL HELPERS & COMPUTED CARDS ═══════════ */
 function renderSparklineSVG(data, width=120, height=24, color="var(--gold)"){
@@ -491,6 +526,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("#btnSound").onclick=()=>{ SOUND=!SOUND; localStorage.setItem("bow_snd", SOUND?"1":"0");
     $("#btnSound").textContent=SOUND?"🔊":"🔇"; beep("click"); };
   SOUND = localStorage.getItem("bow_snd")!=="0"; $("#btnSound").textContent=SOUND?"🔊":"🔇";
+  $("#btnBell").onclick=()=>{ beep("click"); notificationsModal(); };
   $("#btnSettings").onclick=()=>{ beep("click"); settingsModal(); };
   $("#btnHelp").onclick=()=>helpModal();
   // v10 spec §5: tappable HUD
@@ -839,6 +875,7 @@ function _renderImpl(){
     v.innerHTML = (tb? tb : "") + h;
     bindView();
     bindFolds(v);   // v15: collapsible sections remember their state
+    updateBellBadge();   // v28.16: keep the bell badge fresh on every render
     if(tStart && typeof performance!=="undefined"){
       const tDur = performance.now() - tStart;
       if(tDur > 50 && typeof console!=="undefined") console.debug("Render took", Math.round(tDur)+"ms");
@@ -3931,7 +3968,9 @@ function viewNotifications(){
   G.notifications.slice().reverse().forEach(n=>{
     const time = dateLabel(n.week);
     const cls = n.read ? "muted" : "";
-    h+="<div class='card "+cls+"' style='margin-bottom:6px'><div class='spread'><span>"+esc(n.text)+"</span><span class='tiny muted'>"+time+"</span></div>";
+    const col = n.type==="gold" ? "var(--gold)" : n.type==="bad" ? "var(--red)" :
+                n.type==="good" ? "var(--green)" : n.type==="cemo" ? "var(--blue)" : "var(--line2)";
+    h+="<div class='card "+cls+"' style='margin-bottom:6px;border-left:3px solid "+col+"'><div class='spread'><span>"+esc(n.text)+"</span><span class='tiny muted'>"+time+"</span></div>";
     if(!n.read) h+="<div class='row' style='margin-top:6px'><button class='btn btn-sm btn-alt' onclick='markNotifRead("+n.id+")'>Mark read</button></div>";
     h+="</div>";
   });

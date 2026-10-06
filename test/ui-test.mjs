@@ -420,6 +420,30 @@ step("v28.15 greenlight-wizard cameo — 30% fee charged, +6% buzz booked", ()=>
   if(Math.abs(talent + Math.round(full*0.3*10)/10) > 0.05) throw new Error("cameo charged "+(-talent)+" but 30% fee is "+(Math.round(full*0.3*10)/10));
   if(-talent >= full) throw new Error("cameo charged full fee ("+(-talent)+" >= "+full+")");
 });
+step("v28.16 bell inbox — main flashes toast (capped), weak inbox-only, deduped", ()=>{
+  window.eval("G._nfWk=null; G._nfK={}; G.notifications=[];");
+  window.eval("G.flash=[{t:'MAIN crisis',k:'bad'},{t:'MAIN gold deal',k:'gold'},{t:'weak buzz one',k:''},{t:'weak buzz two',k:'good'},{t:'weak buzz three',k:'good'},{t:'MAIN crisis 2',k:'bad'},{t:'MAIN gold 2',k:'gold'},{t:'MAIN gold 3',k:'gold'},{t:'MAIN gold 4',k:'gold'},{t:'MAIN gold 5',k:'gold'}];");
+  window.eval("flashes(G.flash);");
+  const notifs=window.eval("G.notifications.length");
+  if(notifs!==10) throw new Error("expected 10 notifications, got "+notifs);
+  const before=window.document.querySelectorAll("#toasts .toast").length;
+  window.eval("G._nfWk=null; G._nfK={}; G.notifications=[]; flashes(G.flash);");   // clean re-run for toast assertions
+  const toasts=[...window.document.querySelectorAll("#toasts .toast")].slice(before).map(t=>t.textContent);
+  if(toasts.length!==5) throw new Error("expected 5 toasts (4 main + summary), got "+toasts.length+": "+JSON.stringify(toasts));
+  if(toasts.some(t=>t.includes("weak buzz"))) throw new Error("weak events must not toast");
+  const summary=toasts.find(t=>t.includes("🔔"));
+  if(!summary || !summary.includes("6 more")) throw new Error("overflow summary wrong: "+summary);
+  if(toasts.filter(t=>t==="MAIN crisis").length!==1) throw new Error("main events not deduped in toasts");
+  window.eval("flashes(G.flash);");   // same week again — must not double-record
+  const notifs2=window.eval("G.notifications.length");
+  if(notifs2!==10) throw new Error("flash re-run double-recorded: "+notifs2);
+  const badge=$("#bellBadge");
+  if(badge.style.display!=="flex" || badge.textContent!=="9+") throw new Error("badge wrong: "+badge.textContent+" / "+badge.style.display);
+  window.eval("notificationsModal();");
+  if(!window.document.querySelector("#modalRoot").innerHTML.includes("Notifications")) throw new Error("bell modal missing");
+  if(badge.style.display!=="none") throw new Error("badge should clear after opening the inbox");
+  $$(".toast").forEach(t=>t.remove());   // keep the DOM clean for later steps
+});
 step("ott view", ()=>{
   click($(".tab[data-tab='ott']"));
   if(!$("#view").innerHTML.includes("Deal offers") && !$("#view").innerHTML.includes("Your platform")) throw new Error("ott home missing");

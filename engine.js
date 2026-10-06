@@ -201,11 +201,11 @@ function saveGame(){
 }
 
 /* ── v28.11: Notifications system ── */
-function addNotification(text, type){
+function addNotification(text, type, deferSave){
   if(!G.notifications) G.notifications = [];
   G.notifications.push({ id:nid(), text, type, week:G.week, read:false, time:Date.now() });
   if(G.notifications.length > 100) G.notifications.shift(); // cap at 100
-  saveGame();
+  if(!deferSave) saveGame();   // v28.16: flash batches defer and save once
 }
 function markNotifRead(id){
   const n = (G.notifications||[]).find(x=>x.id===id);
