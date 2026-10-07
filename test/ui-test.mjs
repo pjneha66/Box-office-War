@@ -8,10 +8,10 @@ import fs from "fs"; import path from "path"; import { fileURLToPath } from "url
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8")
-  .replace(/<script src="data.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"data.js"),"utf8")+"<\/script>")
-  .replace(/<script src="engine.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"engine.js"),"utf8")+"<\/script>")
-  .replace(/<script src="i18n.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"i18n.js"),"utf8")+"<\/script>")
-  .replace(/<script src="ui.js"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"ui.js"),"utf8")+"<\/script>")
+  .replace(/<script src="data\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"data.js"),"utf8")+"<\/script>")
+  .replace(/<script src="engine\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"engine.js"),"utf8")+"<\/script>")
+  .replace(/<script src="i18n\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"i18n.js"),"utf8")+"<\/script>")
+  .replace(/<script src="ui\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"ui.js"),"utf8")+"<\/script>")
   .replace(/<script>\s*\/\* PWA[^]*?<\/script>/, ""); // no service worker in jsdom
 
 const virtualConsole = new VirtualConsole();

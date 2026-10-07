@@ -61,6 +61,9 @@ if [ "$DRY_RUN" = false ]; then
     let idx=fs.readFileSync("index.html","utf8");
     if(!/name="app-version"/.test(idx)) throw new Error("app-version meta missing in index.html");
     idx=idx.replace(/(name="app-version" content=")[0-9.]+(")/,"$1"+ver+"$2");
+    const qv=(idx.match(/\.(?:css|js)\?v="/g)||[]).length;
+    if(qv<5) throw new Error("expected 5 ?v= cache-busters in index.html, found "+qv);
+    idx=idx.replace(/(\.(?:css|js)\?v=")[0-9.]+(")/g,"$1"+ver+"$2");
     fs.writeFileSync("index.html",idx);
     let vj=fs.readFileSync("version.json","utf8");
     if(!/"v"/.test(vj)) throw new Error("version.json missing its v field");
@@ -76,12 +79,21 @@ echo "── 3/6 rebuild APK ─────────────────
 export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
 export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 node apk/build-www.js
+# cap sync copies apk/www into the Android assets gradle actually packs —
+# without it the APK ships whatever web code was synced during the FIRST build
+( cd apk && node node_modules/@capacitor/cli/bin/capacitor sync android )
 ( cd apk/android && ./gradlew assembleRelease --no-daemon -q )
 mkdir -p apk/dist
 # in dry-run the version bump wasn't applied, so the built APK is still CUR_VER
 OUT_VER="$VERSION"; [ "$DRY_RUN" = true ] && OUT_VER="$CUR_VER"
 cp apk/android/app/build/outputs/apk/release/app-release.apk "apk/dist/BoxOfficeWar-$OUT_VER.apk"
 cp "apk/dist/BoxOfficeWar-$OUT_VER.apk" ~/Downloads/BoxOfficeWar.apk
+# hard gate: refuse to ship an APK whose bundled index.html isn't this version
+APK_META=$(unzip -p "apk/dist/BoxOfficeWar-$OUT_VER.apk" assets/public/index.html | grep -o 'name="app-version" content="[0-9.]*"')
+if [ "$APK_META" != "name=\"app-version\" content=\"$OUT_VER\"" ]; then
+  echo "✗ APK content check FAILED: bundled app-version is '$APK_META' (expected $OUT_VER) — web assets are stale, aborting."; exit 1
+fi
+echo "✓ APK content verified: bundled app-version $OUT_VER"
 echo "✓ apk/dist/BoxOfficeWar-$OUT_VER.apk + ~/Downloads/BoxOfficeWar.apk"
 
 if [ "$DRY_RUN" = true ]; then
