@@ -2,7 +2,7 @@
    network-first so a fresh deploy is picked up on the next visit instead of
    serving a stale page from cache; everything else stays cache-first. */
 "use strict";
-const CACHE = "bow-v24-cache";
+const CACHE = "bow-v25-cache";
 const ASSETS = [
   "./",
   "index.html",
