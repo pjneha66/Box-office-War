@@ -61,9 +61,9 @@ if [ "$DRY_RUN" = false ]; then
     let idx=fs.readFileSync("index.html","utf8");
     if(!/name="app-version"/.test(idx)) throw new Error("app-version meta missing in index.html");
     idx=idx.replace(/(name="app-version" content=")[0-9.]+(")/,"$1"+ver+"$2");
-    const qv=(idx.match(/\.(?:css|js)\?v="/g)||[]).length;
+    const qv=(idx.match(/\.(?:css|js)\?v=/g)||[]).length;
     if(qv<5) throw new Error("expected 5 ?v= cache-busters in index.html, found "+qv);
-    idx=idx.replace(/(\.(?:css|js)\?v=")[0-9.]+(")/g,"$1"+ver+"$2");
+    idx=idx.replace(/(\.(?:css|js)\?v=)[0-9.]+(")/g,"$1"+ver+"$2");
     fs.writeFileSync("index.html",idx);
     let vj=fs.readFileSync("version.json","utf8");
     if(!/"v"/.test(vj)) throw new Error("version.json missing its v field");
