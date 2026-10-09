@@ -1,0 +1,136 @@
+/* ═══════════════════════════════════════════════════════════════
+   BOX OFFICE WAR — v30 Design Tokens (Full Rebrand)
+   Premium cinematic design system — movie studio tycoon + Live TV
+   ═══════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ── Core Palette ── */
+  --bg:#07090e;
+  --bg-elev:#0c1017;
+  --bg-card:#111722;
+  --bg-card-hover:#161e2c;
+  --bg-input:#090d14;
+
+  --border:#1e2636;
+  --border-bright:#2d3950;
+  --border-focus:#f5b942;
+
+  --text:#f0f2f5;
+  --text-muted:#8b95a3;
+  --text-dim:#5c6778;
+
+  /* ── Brand Gold & Cinema Accents ── */
+  --gold:#f5b942;
+  --gold-light:#ffd479;
+  --gold-dark:#b88628;
+  --gold-glow:rgba(245,185,66,.35);
+  --gold-gradient:linear-gradient(135deg,#f5b942 0%,#ffd479 50%,#ffe8a3 100%);
+
+  /* ── Legacy Aliases (Seamless Compatibility) ── */
+  --bg2:var(--bg-elev);
+  --card:var(--bg-card);
+  --card2:var(--bg-card-hover);
+  --line:var(--border);
+  --line2:var(--border-bright);
+  --dim:var(--text-muted);
+  --dim2:var(--text-dim);
+  --gold2:var(--gold-light);
+  --goldDim:var(--gold-dark);
+  --green:var(--success);
+  --red:var(--danger);
+  --blue:var(--info);
+
+  /* ── Semantic Colors ── */
+  --success:#22c55e;
+  --success-glow:rgba(34,197,94,.3);
+  --danger:#ef4444;
+  --danger-glow:rgba(239,68,68,.3);
+  --info:#3b82f6;
+  --info-glow:rgba(59,130,246,.3);
+  --purple:#a855f7;
+  --purple-glow:rgba(168,85,247,.3);
+  --cyan:#38bdf8;
+  --cyan-glow:rgba(56,189,248,.3);
+  --live-red:#ff2d55;
+  --live-red-glow:rgba(255,45,85,.45);
+  --live-red-pulse:#ff476d;
+
+  /* ── Depth ── */
+  --shadow-sm:0 2px 8px rgba(0,0,0,.4);
+  --shadow:0 8px 32px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.6), 0 8px 24px rgba(0,0,0,.4);
+  --shadow-xl:0 32px 80px rgba(0,0,0,.7), 0 12px 32px rgba(0,0,0,.5);
+  --shadow-inner:inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-live:0 0 24px rgba(255,45,85,.35);
+
+  /* ── Radii ── */
+  --r:14px;
+  --r-xs:6px;
+  --r-sm:10px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:999px;
+
+  /* ── Transitions ── */
+  --fast:120ms cubic-bezier(.2,.8,.2,1);
+  --normal:200ms cubic-bezier(.2,.8,.2,1);
+  --slow:320ms cubic-bezier(.2,.8,.2,1);
+  --spring:320ms cubic-bezier(.34,1.56,.64,1);
+
+  /* ── Typography ── */
+  --font-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Outfit","Space Grotesk","Inter",-apple-system,sans-serif;
+  --font-mono:"JetBrains Mono","Fira Code",monospace;
+
+  --text-xs:11px; --text-sm:12.5px; --text-base:14px; --text-lg:16px;
+  --text-xl:20px; --text-2xl:26px; --text-3xl:34px; --text-4xl:48px;
+
+  --leading-tight:1.2; --leading-snug:1.35; --leading-normal:1.5; --leading-relaxed:1.65;
+
+  /* ── Spacing ── */
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+  --space-5:20px; --space-6:24px; --space-8:32px; --space-10:40px;
+  --space-12:48px; --space-16:64px;
+
+  /* ── Layout ── */
+  --container-max:1200px;
+  --header-h:64px;
+  --header-h-mobile:56px;
+  --fab-size:56px;
+  --nav-bar-h:72px;
+
+  /* ── Z-index ── */
+  --z-dropdown:100; --z-modal:200; --z-toast:300; --z-tooltip:400;
+}
+
+/* ── Light mode (for print/accessibility) ── */
+@media (prefers-color-scheme:light){
+  :root{
+    --bg:#f8fafc; --bg-elev:#fff; --bg-card:#fff; --bg-card-hover:#f1f5f9;
+    --bg-input:#fff; --border:#e2e8f0; --border-bright:#cbd5e1;
+    --text:#0f172a; --text-muted:#64748b; --text-dim:#94a3b8;
+    --shadow-sm:0 2px 8px rgba(15,23,42,.08);
+    --shadow:0 8px 32px rgba(15,23,42,.12);
+    --shadow-inner:inset 0 1px 0 rgba(255,255,255,.5);
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion:reduce){
+  :root{ --fast:0ms; --normal:0ms; --slow:0ms; --spring:0ms; }
+  *, *::before, *::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+
+/* ── Focus visible ── */
+:focus-visible{ outline:2px solid var(--border-focus); outline-offset:2px; border-radius:var(--r-sm); }
+
+/* ── Selection ── */
+::selection{ background:var(--gold-glow); color:var(--bg); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:var(--border-bright); border-radius:4px; border:2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover{ background:var(--gold); }
+::-webkit-scrollbar-corner{ background:transparent; }

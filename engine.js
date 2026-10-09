@@ -82,6 +82,7 @@ function newGame(archId, name, opts){
   if(opts.legacy!==undefined&&opts.legacy!==null&&opts.legacy!==""){
     try{ claimLegacy(opts.legacy); }catch(e){}
   }
+  if(typeof initLiveState==="function") initLiveState(G);
   G.log = log;
   log("🎬 "+G.studio.name+" is founded ("+DATA.SCENARIOS[G.scenario].name+" · "+DATA.DIFFICULTIES[G.difficulty].name+(G.sandbox?" · sandbox":"")+") . "+arch.sub, "gold");
   log("💡 Tip: Greenlight a film in the Develop tab, or pitch a series in OTT & Series.", "");
@@ -516,6 +517,7 @@ function loadGame(){
     const fromV = Number.isFinite(parsed.v)? parsed.v : 1;
     const { save, applied } = migrateSave(parsed);
     G = save;
+    if(typeof ensureLiveState==="function") ensureLiveState(G);
     G.log = log;
     if(applied.length) log("💾 Save upgraded from schema v"+fromV+" → v"+G.v+". Your studio carried over intact.","");
     return G;
@@ -1653,7 +1655,7 @@ function whatIf(scenario, weeks){
       advanceWeek();
     }
     out={ok:true, cash:G.studio.cash, ww:G.stats.totalWW, rep:G.studio.rep, films:G.stats.films, over:!!G.over};
-  }catch(e){ out={ok:false, err:String(e)}; }
+  }catch(e){ out={ok:false, err:(e&&e.stack)||String(e)}; }
   G=real;
   return out;
 }
@@ -5154,8 +5156,7 @@ DATA.CELEB_EVENTS=[
    run(G){ const t=pick(G.talent.filter(x=>x.booked)); if(!t) return;
      t.heat=Math.min(3,(t.heat||0)+1);
      const p=G.projects.find(x=>x.title===(t.booked||"").replace(" (writer)","").replace(" (producer)","").replace(" (cameo)",""));
-     if(p) p.buzzBonus=Math.round(((p.buzzBonus||0)+0.05)*100)/100;
-     notifyDemoCampaignBoost(p.genre, 5);
+     if(p){ p.buzzBonus=Math.round(((p.buzzBonus||0)+0.05)*100)/100; if(p.genre) notifyDemoCampaignBoost(p.genre, 5); }
      histEv(t.name+" goes viral","good");
      G.log("🎙️ "+t.name+" goes viral — charming, everywhere (+heat"+(p?", +buzz on \""+p.title+"\"":"")+").","good"); }},
   {id:"celeb_comeback", w:2, icon:"🌅", title:"Surprise comeback", kind:"choice",
@@ -5382,6 +5383,8 @@ function advanceWeek(){
   if(typeof tickEmpire==="function") tickEmpire();
   if(typeof tickStreamer==="function") tickStreamer();
   if(typeof tickSportsAuctions==="function") tickSportsAuctions();
+  if(typeof tickLiveBroadcasting==="function") tickLiveBroadcasting();
+  if(typeof tickLiveEvents==="function") tickLiveEvents();
   if(typeof tickPay1==="function") tickPay1();
   if(typeof maybePay1==="function") maybePay1();
   if(typeof maybeOttOffers==="function") maybeOttOffers();
@@ -8163,3 +8166,453 @@ function loadPrototypeData(){
 }
 
 /* ─── End of Prototype RPG System ─── */
+
+/* ═══════════════════════════════════════════════════════════
+   v30: LIVE TV / LINEAR CHANNELS / EVENTS / STREAMING ENGINE
+   ═══════════════════════════════════════════════════════════ */
+
+function initLiveDefaults(s){
+  const channels = (DATA.LIVE_CHANNELS || []).map(ch => {
+    const isDefault = ch.id === "bow_movies" || ch.id === "bow_news";
+    const sched = [];
+    for(let h=0; h<24; h++){
+      let blockId = "rerun";
+      let title = "Syndicated Library";
+      if(h >= 18 && h <= 22) { blockId = "movie"; title = "Prime Time Feature"; }
+      else if(h >= 0 && h < 6) { blockId = "infomercial"; title = "Late Night Sponsor"; }
+      else if(h >= 12 && h < 18) { blockId = "series"; title = "Daytime Drama"; }
+      sched.push({
+        hour: h,
+        block: blockId,
+        contentId: null,
+        title: title,
+        rating: 60,
+        sponsor: (h >= 18 && h <= 22) ? "Apex Automotive" : (h >= 0 && h < 6 ? "GlowLife Supplements" : null)
+      });
+    }
+    return {
+      id: ch.id,
+      unlocked: isDefault,
+      active: isDefault,
+      schedule: sched,
+      weeklyViewers: isDefault ? ch.baseViewers : 0,
+      weeklyAdRev: isDefault ? Math.round(ch.baseViewers * ch.adRate * 0.45 * 10) / 10 : 0,
+      operatingCost: Math.round(ch.cost * 0.08 * 10) / 10
+    };
+  });
+
+  return {
+    channels: channels,
+    activeChannel: "bow_movies",
+    activeHost: "rex",
+    subTab: "linear",
+    streaming: {
+      live: false,
+      topic: "feature_premiere",
+      quality: "1080p",
+      ccv: 1.2,
+      peakCcv: 1.2,
+      totalHours: 0,
+      subConversions: 0,
+      chatMessages: [
+        { user:"CinemaBuff99", text:"First time catching the broadcast! Love this slate!" },
+        { user:"FilmBro_X", text:"That opening weekend was insane, Hollywood on notice" },
+        { user:"StreamQueen", text:"The 4K stream quality looks gorgeous!" }
+      ]
+    },
+    events: {
+      bids: {},
+      won: [],
+      produced: [],
+      submissions: {},
+      premieres: []
+    },
+    hosts: {
+      rex: { level: 1, xp: 0, charisma: 75, energy: 90 },
+      chloe: { level: 1, xp: 0, charisma: 82, energy: 95 },
+      buck: { level: 1, xp: 0, charisma: 78, energy: 88 },
+      reely: { level: 1, xp: 0, charisma: 70, energy: 100 }
+    },
+    stats: {
+      totalBroadcastRev: 0,
+      totalViewersReached: 0,
+      awardsWon: 0,
+      festivalsWon: 0,
+      premieresHosted: 0
+    }
+  };
+}
+
+function initLiveState(g){
+  if(!g) return;
+  if(!g.live) g.live = initLiveDefaults(g);
+  ensureLiveState(g);
+}
+
+function ensureLiveState(g){
+  if(!g) return;
+  if(!g.live || typeof g.live !== "object"){
+    g.live = initLiveDefaults(g);
+  }
+  if(!Array.isArray(g.live.channels) || !g.live.channels.length){
+    g.live.channels = initLiveDefaults(g).channels;
+  }
+  if(!g.live.activeChannel) g.live.activeChannel = "bow_movies";
+  if(!g.live.activeHost) g.live.activeHost = "rex";
+  if(!g.live.subTab) g.live.subTab = "linear";
+  if(!g.live.streaming) g.live.streaming = initLiveDefaults(g).streaming;
+  if(!g.live.events) g.live.events = initLiveDefaults(g).events;
+  if(!g.live.hosts) g.live.hosts = initLiveDefaults(g).hosts;
+  if(!g.live.stats) g.live.stats = initLiveDefaults(g).stats;
+}
+
+function getLiveChannel(channelId){
+  ensureLiveState(G);
+  return (G.live.channels || []).find(c => c.id === channelId);
+}
+
+function unlockLiveChannel(channelId){
+  ensureLiveState(G);
+  const chDef = DATA.liveChannel(channelId);
+  const ch = getLiveChannel(channelId);
+  if(!chDef || !ch) return { ok:false, reason:"Channel not found" };
+  if(ch.unlocked) return { ok:false, reason:"Channel already unlocked" };
+  if(G.studio.cash < chDef.cost){
+    return { ok:false, reason:"Insufficient funds (requires $" + chDef.cost + "M)" };
+  }
+  spend("expansion", chDef.cost);
+  ch.unlocked = true;
+  ch.active = true;
+  ch.weeklyViewers = chDef.baseViewers;
+  ch.weeklyAdRev = Math.round(chDef.baseViewers * chDef.adRate * 0.45 * 10) / 10;
+  log("📡 Launched linear channel " + chDef.name + " (" + chDef.emoji + ") for $" + chDef.cost + "M!", "gold");
+  sfx("hit");
+  return { ok:true };
+}
+
+function setLiveChannelActive(channelId, active){
+  const ch = getLiveChannel(channelId);
+  if(ch && ch.unlocked) ch.active = !!active;
+}
+
+function scheduleChannelSlot(channelId, hour, blockId, contentId, customTitle){
+  ensureLiveState(G);
+  const ch = getLiveChannel(channelId);
+  if(!ch) return false;
+  const slot = ch.schedule[hour];
+  if(!slot) return false;
+
+  slot.block = blockId;
+  slot.contentId = contentId || null;
+  
+  if(customTitle){
+    slot.title = customTitle;
+  } else if(contentId){
+    const film = (G.films || []).find(f => f.id === contentId) || (G.projects || []).find(p => p.id === contentId);
+    const series = (G.series || []).find(s => s.id === contentId);
+    if(film) slot.title = film.title;
+    else if(series) slot.title = series.title;
+    else slot.title = "Featured Content";
+  } else {
+    const blockDef = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === blockId);
+    slot.title = blockDef ? blockDef.label : "Network Program";
+  }
+
+  if(blockId === "infomercial"){
+    slot.sponsor = pick(["VitaMax Health", "SuperGrip Cookware", "Apex Crypto Index", "OmniGlow Cream"]);
+    slot.rating = 35;
+  } else {
+    slot.sponsor = (hour >= 18 && hour <= 22) ? pick(["Apex Motors", "Luxora Watches", "Quantum Energy", "Nova Mobile"]) : null;
+    slot.rating = 60 + rint(0, 25);
+  }
+  updateChannelMetrics(ch);
+  return true;
+}
+
+function updateChannelMetrics(ch){
+  if(!ch || !ch.unlocked || !ch.active){
+    if(ch){ ch.weeklyViewers = 0; ch.weeklyAdRev = 0; }
+    return;
+  }
+  const def = DATA.liveChannel(ch.id);
+  if(!def) return;
+  let chViewerSum = 0;
+  let chAdRev = 0;
+  (ch.schedule || []).forEach(slot => {
+    const slotDef = DATA.CHANNEL_SLOTS[slot.hour] || { prime:false, mult:0.5 };
+    let blockViewerMult = 1.0;
+    let adYield = 0;
+    if(slot.block === "infomercial"){
+      blockViewerMult = 0.2;
+      adYield = 0.05;
+    } else if(slot.block === "movie" || slot.block === "double_feature"){
+      blockViewerMult = 1.4;
+    } else if(slot.block === "live_event"){
+      blockViewerMult = 2.2;
+    } else if(slot.block === "series"){
+      blockViewerMult = 1.1;
+    } else if(slot.block === "rerun"){
+      blockViewerMult = 0.8;
+    }
+    const slotViewers = def.baseViewers * slotDef.mult * blockViewerMult;
+    chViewerSum += slotViewers;
+    if(slot.block !== "infomercial"){
+      adYield = (slotViewers * def.adRate * 0.02);
+      if(slotDef.prime) adYield *= 1.5;
+    }
+    chAdRev += adYield;
+  });
+  ch.weeklyViewers = Math.round((chViewerSum / 24) * 100) / 100;
+  ch.weeklyAdRev = Math.round(chAdRev * 10) / 10;
+}
+
+function autoFillSchedule(channelId, strategy){
+  ensureLiveState(G);
+  const ch = getLiveChannel(channelId);
+  if(!ch) return;
+
+  const myFilms = [...(G.films || [])].sort((a,b) => (b.gross || 0) - (a.gross || 0));
+  const mySeries = [...(G.series || [])];
+
+  for(let h=0; h<24; h++){
+    const isPrime = h >= 18 && h <= 22;
+    const isOvernight = h >= 0 && h < 6;
+    const isDaytime = h >= 6 && h < 18;
+
+    if(strategy === "prime_movies" && isPrime){
+      const f = myFilms[h % Math.max(1, myFilms.length)];
+      if(f){
+        scheduleChannelSlot(channelId, h, "movie", f.id, f.title);
+      }
+    } else if(strategy === "infomercials" && isOvernight){
+      scheduleChannelSlot(channelId, h, "infomercial", null, "Paid Commercial Sponsor");
+    } else if(strategy === "library_reruns" && isDaytime){
+      if(mySeries.length && h % 2 === 0){
+        const s = mySeries[h % mySeries.length];
+        scheduleChannelSlot(channelId, h, "series", s.id, s.title + " (Ep " + ((h%8)+1) + ")");
+      } else if(myFilms.length){
+        const f = myFilms[(h + 3) % myFilms.length];
+        scheduleChannelSlot(channelId, h, "rerun", f.id, f.title + " (Encore)");
+      }
+    } else if(strategy === "full_syndication"){
+      if(isOvernight){
+        scheduleChannelSlot(channelId, h, "infomercial", null, "Overnight Sponsor Block");
+      } else if(isPrime){
+        const f = myFilms[h % Math.max(1, myFilms.length)];
+        scheduleChannelSlot(channelId, h, "movie", f ? f.id : null, f ? f.title : "Prime Blockbuster");
+      } else {
+        if(mySeries.length && h % 2 === 0){
+          const s = mySeries[h % mySeries.length];
+          scheduleChannelSlot(channelId, h, "series", s.id, s.title);
+        } else if(myFilms.length){
+          const f = myFilms[h % myFilms.length];
+          scheduleChannelSlot(channelId, h, "rerun", f.id, f.title);
+        } else {
+          scheduleChannelSlot(channelId, h, "special", null, "Behind the Scenes Studio Tour");
+        }
+      }
+    }
+  }
+  updateChannelMetrics(ch);
+}
+
+function clearSchedule(channelId){
+  ensureLiveState(G);
+  const ch = getLiveChannel(channelId);
+  if(!ch) return;
+  for(let h=0; h<24; h++){
+    scheduleChannelSlot(channelId, h, "rerun", null, "Network Off-Air Filler");
+  }
+  updateChannelMetrics(ch);
+}
+
+function tickLiveBroadcasting(){
+  if(!G || !G.live) return;
+  const live = G.live;
+  let totalViewers = 0;
+  let totalAdRev = 0;
+  let totalOpCost = 0;
+
+  const activeHost = (live.hosts && live.hosts[live.activeHost]) || (live.hosts && live.hosts.rex) || { level:1, charisma:75 };
+  const hostDef = DATA.liveHost(live.activeHost);
+  const hostBonus = 1 + ((activeHost.charisma || 75) - 50) * 0.003;
+
+  (live.channels || []).forEach(ch => {
+    if(!ch.unlocked || !ch.active) return;
+    const v = (ch.weeklyViewers || 0) * hostBonus;
+    const r = (ch.weeklyAdRev || 0) * hostBonus;
+    const c = ch.operatingCost || 1;
+    totalViewers += v;
+    totalAdRev += r;
+    totalOpCost += c;
+  });
+
+  if(live.streaming && live.streaming.live){
+    const streamViewers = (live.streaming.ccv || 1.2);
+    const streamAdRev = Math.round(streamViewers * 0.15 * 10) / 10;
+    totalAdRev += streamAdRev;
+    live.streaming.totalHours = (live.streaming.totalHours || 0) + 168;
+    
+    if(G.streamer){
+      const addedSubs = Math.round(streamViewers * 0.04 * 10) / 10;
+      G.streamer.subs = Math.round((G.streamer.subs + addedSubs) * 10) / 10;
+      live.streaming.subConversions = (live.streaming.subConversions || 0) + addedSubs;
+    }
+  }
+
+  totalAdRev = Math.round(totalAdRev * 10) / 10;
+  totalOpCost = Math.round(Math.min(totalOpCost * 0.15, totalAdRev * 0.25) * 10) / 10;
+  const net = Math.round((totalAdRev - totalOpCost) * 10) / 10;
+
+  if(net > 0) earn("linearTv", net);
+  else if(net < 0) spend("overhead", Math.abs(net));
+
+  live.stats.totalBroadcastRev = Math.round(((live.stats.totalBroadcastRev || 0) + Math.max(0, net)) * 10) / 10;
+  live.stats.totalViewersReached = Math.round(((live.stats.totalViewersReached || 0) + totalViewers) * 10) / 10;
+
+  activeHost.xp = (activeHost.xp || 0) + Math.round(totalViewers * 2);
+  if(activeHost.xp > (activeHost.level || 1) * 100 && (activeHost.level || 1) < 10){
+    activeHost.level = (activeHost.level || 1) + 1;
+    activeHost.charisma = Math.min(99, (activeHost.charisma || 75) + 2);
+    log("Host " + (hostDef ? hostDef.name : "Anchor") + " leveled up to Lv." + activeHost.level + " (+charisma)!", "good");
+  }
+}
+
+function tickLiveEvents(){
+  ensureLiveState(G);
+  const live = G.live;
+  const curWoy = woyOf(G.week);
+
+  const currentEvents = (DATA.LIVE_EVENTS || []).filter(e => e.week === curWoy);
+  
+  currentEvents.forEach(ev => {
+    if(ev.type === "awards"){
+      const eligibleFilms = (G.films || []).filter(f => (G.week - f.releaseWeek) <= 52);
+      if(eligibleFilms.length){
+        const bestFilm = eligibleFilms.sort((a,b) => (b.critics || 0) - (a.critics || 0))[0];
+        if(bestFilm && (bestFilm.critics || 50) >= 70 && chance(0.55)){
+          const category = pick(ev.categories || ["best_picture", "director", "actor"]);
+          const catLabel = category.replace("_", " ").toUpperCase();
+          G.stats.awards = G.stats.awards || [];
+          G.stats.awards.push({ year: yearOf(G.week), cat: catLabel, film: bestFilm.title });
+          G.studio.rep = clamp(G.studio.rep + 4, 5, 99);
+          live.stats.awardsWon = (live.stats.awardsWon || 0) + 1;
+          log(ev.name + " WIN! “" + bestFilm.title + "” won " + catLabel + "! Prestige +4, ratings surging!", "gold");
+          sfx("award");
+        }
+      }
+    } else if(ev.type === "festival"){
+      const subFilmId = live.events.submissions[ev.id];
+      if(subFilmId){
+        const film = (G.films || []).find(f => f.id === subFilmId) || (G.projects || []).find(p => p.id === subFilmId);
+        if(film){
+          const score = (film.craft && film.craft.script || 60) + rint(-10, 25);
+          if(score >= 78){
+            live.stats.festivalsWon = (live.stats.festivalsWon || 0) + 1;
+            G.studio.rep = clamp(G.studio.rep + 3, 5, 99);
+            film.buzzBonus = (film.buzzBonus || 0) + 0.3;
+            log("FESTIVAL TRIUMPH at " + ev.name + "! “" + film.title + "” wins Grand Jury Prize! Opening hype +30%!", "gold");
+            sfx("award");
+          } else {
+            log("“" + film.title + "” screened at " + ev.name + " to warm applause.", "");
+          }
+          delete live.events.submissions[ev.id];
+        }
+      }
+    }
+  });
+
+  if(live.events.premieres && live.events.premieres.length){
+    const readyPremieres = live.events.premieres.filter(p => p.week <= G.week);
+    readyPremieres.forEach(pr => {
+      const film = (G.projects || []).find(p => p.id === pr.filmId) || (G.films || []).find(f => f.id === pr.filmId);
+      if(film){
+        film.buzzBonus = (film.buzzBonus || 0) + 0.25;
+        log("Star-Studded Premiere Broadcast in " + pr.city.toUpperCase() + " for “" + film.title + "”! Social media viral frenzy (+25% buzz)!", "gold");
+        sfx("hit");
+      }
+    });
+    live.events.premieres = live.events.premieres.filter(p => p.week > G.week);
+  }
+}
+
+function submitFilmToFestival(filmId, festivalId){
+  ensureLiveState(G);
+  const cost = 0.25;
+  if(G.studio.cash < cost) return { ok:false, reason:"Insufficient funds ($0.25M entry fee needed)" };
+  spend("marketing", cost);
+  G.live.events.submissions[festivalId] = filmId;
+  const fest = DATA.liveEvent(festivalId);
+  log("Submitted film to " + (fest ? fest.name : "festival") + " for official competition.", "good");
+  return { ok:true };
+}
+
+function hostRedCarpetPremiere(filmId, cityId){
+  ensureLiveState(G);
+  const cost = 1.5;
+  if(G.studio.cash < cost) return { ok:false, reason:"Insufficient funds ($1.5M premiere budget required)" };
+  spend("marketing", cost);
+  G.live.events.premieres.push({
+    filmId: filmId,
+    city: cityId || "la",
+    week: G.week
+  });
+  G.live.stats.premieresHosted = (G.live.stats.premieresHosted || 0) + 1;
+  const film = (G.projects || []).find(p => p.id === filmId) || (G.films || []).find(f => f.id === filmId);
+  if(film) film.buzzBonus = (film.buzzBonus || 0) + 0.25;
+  log("Red carpet premiere scheduled in " + (cityId || "LA").toUpperCase() + " for “" + (film ? film.title : "film") + "”!", "gold");
+  sfx("hit");
+  return { ok:true };
+}
+
+function toggleLiveStream(topic, quality){
+  ensureLiveState(G);
+  const st = G.live.streaming;
+  st.live = !st.live;
+  if(topic) st.topic = topic;
+  if(quality) st.quality = quality;
+  
+  if(st.live){
+    st.ccv = Math.round((1.0 + (G.studio.rep / 40) + rint(1, 10) * 0.1) * 10) / 10;
+    st.peakCcv = Math.max(st.peakCcv || 0, st.ccv);
+    log("Studio Live Stream is now ON AIR (" + st.ccv + "M concurrent viewers)!", "gold");
+    sfx("camera");
+  } else {
+    log("Studio Live Stream has signed off.", "");
+  }
+  return { ok:true, live:st.live };
+}
+
+function runLiveStreamAdBreak(){
+  ensureLiveState(G);
+  const st = G.live.streaming;
+  if(!st.live) return { ok:false, reason:"Stream is not live" };
+  const earned = Math.round((st.ccv * 0.35 + 0.1) * 10) / 10;
+  earn("linearTv", earned);
+  log("Commercial break broadcast on live stream: +$" + earned + "M sponsor revenue!", "good");
+  sfx("coin");
+  return { ok:true, earned:earned };
+}
+
+function selectActiveHost(hostId){
+  ensureLiveState(G);
+  if(DATA.liveHost(hostId)){
+    G.live.activeHost = hostId;
+    return true;
+  }
+  return false;
+}
+
+function trainLiveHost(hostId){
+  ensureLiveState(G);
+  const cost = 1.0;
+  if(G.studio.cash < cost) return { ok:false, reason:"Need $1.0M for media coaching" };
+  const host = G.live.hosts[hostId];
+  if(!host) return { ok:false, reason:"Host not found" };
+  spend("training", cost);
+  host.charisma = Math.min(99, host.charisma + 4);
+  host.energy = Math.min(100, host.energy + 5);
+  log("Media coaching completed for " + hostId.toUpperCase() + " (Charisma +4)!", "good");
+  sfx("applause");
+  return { ok:true };
+}

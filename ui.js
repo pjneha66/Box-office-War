@@ -867,6 +867,7 @@ function _renderImpl(){
     else if(TAB==="boxoffice") h=viewBoxOffice();
     else if(TAB==="fans") h=viewFans();
     else if(TAB==="ott") h=viewOTT();
+    else if(TAB==="live") h=viewLive();
     else if(TAB==="empire") h=viewEmpire();
     else if(TAB==="library") h=viewLibrary();
     else if(TAB==="games") h=viewGames();
@@ -4641,6 +4642,72 @@ function bindView(){
     beep("click");
     render();
   });
+  /* ── v30 Live Broadcasting & Events bindings ── */
+  $$("[data-livesub]").forEach(b=>b.onclick=()=>{
+    if(G.live){ G.live.activeSub = b.dataset.livesub; G.live.subTab = b.dataset.livesub; beep("click"); render(); }
+  });
+  $$("[data-live-ch]").forEach(b=>b.onclick=()=>{
+    if(G.live){ G.live.activeChannel = b.dataset.liveCh; beep("click"); render(); }
+  });
+  $$("[data-live-unlock]").forEach(b=>b.onclick=()=>{
+    const chId = b.dataset.liveUnlock;
+    if(unlockLiveChannel(chId)){ beep("gold"); flashes(G.flash); render(); }
+    else toast("Not enough cash or studio reputation to unlock this network.", "bad");
+  });
+  $$("[data-live-toggle]").forEach(b=>b.onclick=()=>{
+    const chId = b.dataset.liveToggle;
+    const ch = getLiveChannel(chId);
+    if(ch){ setLiveChannelActive(chId, !ch.active); beep("click"); render(); }
+  });
+  $$("[data-live-slot]").forEach(b=>b.onclick=()=>{
+    const [chId, hour] = b.dataset.liveSlot.split(":");
+    beep("click");
+    liveSlotModal(chId, +hour);
+  });
+  $$("[data-live-autofill]").forEach(b=>b.onclick=()=>{
+    const [chId, strat] = b.dataset.liveAutofill.split(":");
+    autoFillSchedule(chId, strat);
+    beep("gold");
+    toast("Broadcast grid auto-scheduled ("+strat+").", "good");
+    render();
+  });
+  $$("[data-live-clear]").forEach(b=>b.onclick=()=>{
+    const chId = b.dataset.liveClear;
+    clearSchedule(chId);
+    beep("click");
+    toast("Broadcast schedule cleared.", "");
+    render();
+  });
+  $$("[data-live-stream-toggle]").forEach(b=>b.onclick=()=>{
+    const act = toggleLiveStream();
+    beep(act ? "gold" : "click");
+    flashes(G.flash);
+    render();
+  });
+  $$("[data-live-adbreak]").forEach(b=>b.onclick=()=>{
+    const rev = runLiveStreamAdBreak();
+    if(rev > 0){ beep("cash"); toast("Ad break aired: +"+fmtM(rev)+" ad revenue!", "gold"); }
+    else toast("Stream is offline or no active audience.", "bad");
+    render();
+  });
+  $$("[data-live-fest-submit]").forEach(b=>b.onclick=()=>{
+    const evId = b.dataset.liveFestSubmit;
+    beep("click");
+    liveFestSubmitModal(evId);
+  });
+  $$("[data-live-premiere]").forEach(b=>b.onclick=()=>{
+    beep("click");
+    livePremiereModal();
+  });
+  $$("[data-live-host-select]").forEach(b=>b.onclick=()=>{
+    const hId = b.dataset.liveHostSelect;
+    if(selectActiveHost(hId)){ beep("gold"); flashes(G.flash); render(); }
+  });
+  $$("[data-live-host-train]").forEach(b=>b.onclick=()=>{
+    const hId = b.dataset.liveHostTrain;
+    if(trainLiveHost(hId)){ beep("gold"); flashes(G.flash); render(); }
+    else toast("Host training costs $0.5M cash.", "bad");
+  });
 }
 
 /* ═══════════ streaming auction modal ═══════════ */
@@ -7146,3 +7213,677 @@ function coppaModal(){
     closeModal();
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   v30: LIVE BROADCASTING, STREAMING, EVENTS & ANIMATED CHARACTERS
+   ═══════════════════════════════════════════════════════════════════ */
+
+function viewLive(){
+  if(typeof ensureLiveState==="function") ensureLiveState(G);
+  const live = G.live || {};
+  const activeSub = live.activeSub || live.subTab || "linear";
+
+  // Aggregate metrics
+  const activeChannels = (live.channels || []).filter(c => c.unlocked && c.active);
+  const totalViewers = activeChannels.reduce((sum, c) => sum + (c.weeklyViewers || 0), 0);
+  const totalAdRev = activeChannels.reduce((sum, c) => sum + (c.weeklyAdRev || 0), 0);
+  const stream = live.streaming || live.stream || {};
+  const isStreaming = !!(stream.live || stream.active);
+  const activeHostId = live.activeHost || "rex";
+  const activeHost = DATA.liveHost(activeHostId) || (DATA.LIVE_HOSTS && DATA.LIVE_HOSTS[0]);
+  const activeHostStats = (live.hosts && live.hosts[activeHostId]) || { level: 1 };
+
+  let h = "<div class='section-title'>Broadcast & Live Entertainment Network</div>";
+
+  // Top broadcast telemetry bar
+  h += "<div class='stat-hero' style='margin-bottom:12px'>"+
+    statCard((totalViewers > 0 ? (totalViewers).toFixed(1) + "M" : "0"), "Linear Reach / Wk")+
+    statCard("+" + fmtM(totalAdRev), "Linear Ad Rev / Wk")+
+    statCard(isStreaming ? "<span style='color:var(--live-red);font-weight:700'>ON AIR</span> (" + (stream.ccv || 0) + "M CCV)" : "<span class='muted'>OFFLINE</span>", "Live Stream Status")+
+    statCard(activeHost ? esc(activeHost.name) + " (Lv." + (activeHostStats.level || 1) + ")" : "None", "Active On-Air Host")+
+    "</div>";
+
+  // Sub-tabs
+  const subs = [
+    ["linear", "Linear TV Channels & Schedule"],
+    ["stream", "Live Streaming Hub"],
+    ["events", "Live Events & Festivals"],
+    ["studio", "On-Air Host Studio"]
+  ];
+  h += "<div class='row' style='gap:6px;flex-wrap:wrap;margin-bottom:14px'>"+
+    subs.map(s => "<button class='btn btn-sm " + (activeSub === s[0] ? "btn-primary" : "btn-alt") + "' data-livesub='" + s[0] + "'>" + s[1] + "</button>").join("")+
+    "</div>";
+
+  if(activeSub === "linear") h += viewLiveLinear();
+  else if(activeSub === "stream") h += viewLiveStream();
+  else if(activeSub === "events") h += viewLiveEvents();
+  else if(activeSub === "studio") h += viewLiveStudio();
+
+  return h;
+}
+
+function viewLiveLinear(){
+  const live = G.live || {};
+  const channels = live.channels || [];
+  const activeId = live.activeChannel || (channels[0] && channels[0].id) || "bow_movies";
+  const ch = channels.find(c => c.id === activeId) || channels[0];
+
+  let h = "";
+
+  // Channel switcher pills
+  h += "<div class='section-title'>Broadcast Channels (" + channels.filter(c => c.unlocked).length + "/" + channels.length + " Unlocked)</div>";
+  h += "<div class='channel-pills-row' style='display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px'>";
+  for(const c of channels){
+    const isSel = c.id === activeId;
+    const isAct = c.unlocked && c.active;
+    const def = DATA.liveChannel(c.id) || {};
+    h += "<div class='channel-pill " + (isSel ? "active" : "") + "' data-live-ch='" + c.id + "' style='cursor:pointer;min-width:140px;padding:8px 12px;border-radius:var(--radius-sm);background:" + (isSel ? "var(--card-hover)" : "var(--card)") + ";border:1px solid " + (isSel ? "var(--gold)" : "var(--line)") + "'>"+
+      "<div class='spread'><b class='small' style='color:" + (isSel ? "var(--gold)" : "var(--text)") + "'>" + esc(def.name || c.id) + "</b>"+
+      "<span class='tiny tag' style='font-size:9px'>" + esc(def.category || "General") + "</span></div>"+
+      "<div class='tiny muted' style='margin-top:4px'>" +
+      (c.unlocked ? (isAct ? "<span style='color:var(--green)'>● Active</span> · " + ((c.weeklyViewers || 0)).toFixed(1) + "M" : "<span class='muted'>○ Off-Air</span>") : "<span style='color:var(--dim)'>Locked ($" + (def.unlockCost || 5) + "M)</span>") +
+      "</div></div>";
+  }
+  h += "</div>";
+
+  if(!ch) return h;
+  const chDef = DATA.liveChannel(ch.id) || {};
+
+  // Selected Channel Detail Card
+  h += "<div class='card' style='margin-bottom:14px;border-left:3px solid var(--gold)'>";
+  h += "<div class='spread'><div><h3 style='margin:0 0 4px 0'>" + esc(chDef.name || ch.id) + " <span class='tag gold'>" + esc(chDef.category || "General") + "</span></h3>"+
+    "<div class='small muted'>" + esc(chDef.description || "") + "</div></div>";
+
+  if(!ch.unlocked){
+    const canUnlock = G.studio.cash >= (chDef.unlockCost || 5) && G.studio.rep >= (chDef.minRep || 0);
+    h += "<div><button class='btn btn-primary btn-sm' data-live-unlock='" + ch.id + "' " + (canUnlock ? "" : "disabled") + ">Unlock Network ($" + (chDef.unlockCost || 5) + "M)</button>"+
+      "<div class='tiny muted' style='text-align:right;margin-top:4px'>Requires Rep " + (chDef.minRep || 0) + "+</div></div>";
+  } else {
+    h += "<div style='display:flex;gap:6px;align-items:center'>"+
+      "<button class='btn btn-sm " + (ch.active ? "btn-alt" : "btn-primary") + "' data-live-toggle='" + ch.id + "'>" + (ch.active ? "Pause Broadcast" : "Resume Broadcast") + "</button>"+
+      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":quality'>Auto-Fill Quality</button>"+
+      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":hype'>Auto-Fill Hype</button>"+
+      "<button class='btn btn-sm btn-ghost' data-live-clear='" + ch.id + "'>Clear Grid</button>"+
+      "</div>";
+  }
+  h += "</div>";
+
+  if(ch.unlocked){
+    h += "<div class='row' style='margin-top:10px;gap:16px;font-size:12px;border-top:1px solid var(--line);padding-top:8px'>"+
+      "<div>Audience: <b class='gold'>" + ((ch.weeklyViewers || 0)).toFixed(1) + "M/wk</b></div>"+
+      "<div>Est. Ad Gross: <b style='color:var(--green)'>+" + fmtM(ch.weeklyAdRev || 0) + "/wk</b></div>"+
+      "<div>Transmission Overhead: <b style='color:var(--red)'>-$" + (ch.operatingCost || chDef.overhead || 0.1) + "M/wk</b></div>"+
+      "<div>Net Margin: <b>" + fmtM((ch.weeklyAdRev || 0) - (ch.operatingCost || chDef.overhead || 0.1)) + "/wk</b></div>"+
+      "<div>Network Prestige: <b>" + (ch.reputation || 50) + "/100</b></div>"+
+      "</div>";
+  }
+  h += "</div>";
+
+  if(!ch.unlocked){
+    h += "<div class='card muted small' style='text-align:center;padding:24px'>This linear network is currently locked. Acquire rights and transmission towers to access 24/7 programmatic scheduling.</div>";
+    return h;
+  }
+
+  // 24-Hour EPG Schedule Grid
+  h += "<div class='section-title spread'><span>24-Hour Electronic Program Guide (EPG)</span><span class='tiny muted'>Click any slot to schedule content</span></div>";
+  h += "<div class='card' style='padding:0;overflow:hidden'>";
+  h += "<div class='epg-table' style='width:100%;font-size:12px'>";
+  h += "<div class='epg-header row' style='padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--line);font-weight:600;color:var(--muted)'>"+
+    "<div style='width:100px'>Time Slot</div>"+
+    "<div style='width:150px'>Block Category</div>"+
+    "<div style='flex:1'>Scheduled Content</div>"+
+    "<div style='width:90px;text-align:right'>Multiplier</div>"+
+    "<div style='width:80px;text-align:right'>Action</div>"+
+    "</div>";
+
+  const schedule = ch.schedule || [];
+  for(let hour = 0; hour < 24; hour++){
+    const slot = schedule[hour] || { hour, blockId: "primetime_movie", contentId: null, customTitle: null };
+    const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => s.hour === hour) || { name: hour + ":00", weight: 1.0, isPrimeTime: hour >= 20 && hour <= 22 };
+    const blockMeta = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === slot.blockId) || { name: "General Broadcast", adTier: 1.0 };
+
+    let filmTitle = null;
+    let filmQuality = null;
+    if(slot.contentId){
+      const f = (G.films || []).find(x => x.id === slot.contentId);
+      if(f){ filmTitle = f.title; filmQuality = (f.quality && f.quality.overall) || 50; }
+    }
+
+    const isPrime = slotMeta.isPrimeTime;
+    const mult = ((slotMeta.weight || 1.0) * (blockMeta.adTier || 1.0)).toFixed(1);
+
+    h += "<div class='epg-row row " + (isPrime ? "primetime-row" : "") + "' style='padding:7px 12px;border-bottom:1px solid var(--line);align-items:center;background:" + (isPrime ? "rgba(245,185,66,0.04)" : "transparent") + "'>"+
+      "<div style='width:100px;font-family:var(--font-mono);font-weight:600'>" + esc(slotMeta.name) + (isPrime ? " <span class='tag gold' style='font-size:8px;padding:1px 3px'>PRIME</span>" : "") + "</div>"+
+      "<div style='width:150px;color:var(--muted)'>" + esc(blockMeta.name) + "</div>"+
+      "<div style='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+
+      (filmTitle ? "<b>" + esc(filmTitle) + "</b> <span class='tag' style='font-size:9px'>Q: " + filmQuality + "</span>" : (slot.customTitle ? "<b>" + esc(slot.customTitle) + "</b>" : "<span class='muted'>Syndicated Block</span>"))+
+      "</div>"+
+      "<div style='width:90px;text-align:right;font-family:var(--font-mono)'>" + mult + "x</div>"+
+      "<div style='width:80px;text-align:right'>"+
+      "<button class='btn btn-xs btn-alt' data-live-slot='" + ch.id + ":" + hour + "'>Edit</button>"+
+      "</div>"+
+      "</div>";
+  }
+
+  h += "</div></div>";
+  return h;
+}
+
+function viewLiveStream(){
+  const live = G.live || {};
+  const stream = live.streaming || live.stream || {};
+  const isStreaming = !!(stream.live || stream.active);
+  const activeHostId = live.activeHost || "rex";
+  const activeHost = DATA.liveHost(activeHostId) || (DATA.LIVE_HOSTS && DATA.LIVE_HOSTS[0]);
+
+  let h = "";
+  h += "<div class='section-title spread'><span>Live Studio Streaming Broadcast</span>"+
+    "<span class='tiny muted'>Direct Interactive Transmission to Global Audiences</span></div>";
+
+  h += "<div class='row' style='gap:14px;flex-wrap:wrap;align-items:flex-start'>";
+
+  // Left column: Broadcast Monitor & Controls
+  h += "<div style='flex:1;min-width:320px'>";
+
+  // Broadcast Monitor CRT
+  h += "<div class='card crt-screen' style='position:relative;background:#06080d;border:2px solid var(--line2);border-radius:var(--radius-md);padding:14px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,0.8)'>";
+  h += "<div class='spread' style='margin-bottom:8px'>"+
+    "<div class='on-air-badge " + (isStreaming ? "active" : "") + "' style='display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:3px;background:" + (isStreaming ? "rgba(255,45,85,0.2)" : "rgba(100,100,100,0.15)") + ";border:1px solid " + (isStreaming ? "var(--live-red)" : "var(--line)") + "'>"+
+    "<span class='live-dot-pulse' style='width:8px;height:8px;border-radius:50%;background:" + (isStreaming ? "var(--live-red)" : "#666") + "'></span>"+
+    "<b style='font-size:11px;letter-spacing:1px;color:" + (isStreaming ? "var(--live-red)" : "var(--muted)") + "'>" + (isStreaming ? "LIVE ON AIR" : "OFF AIR") + "</b>"+
+    "</div>"+
+    "<div class='tiny muted' style='font-family:var(--font-mono)'>1080p 60FPS · STEREO</div>"+
+    "</div>";
+
+  // Host Stage in Monitor
+  h += "<div class='stream-viewport' style='height:210px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, #141b2d 0%, #080c14 100%);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden'>";
+  if(activeHost){
+    h += "<div style='transform:scale(1.1)'>";
+    if(activeHost.id === "rex") h += renderCharRex();
+    else if(activeHost.id === "chloe") h += renderCharChloe();
+    else if(activeHost.id === "buck") h += renderCharBuck();
+    else h += renderCharReely();
+    h += "</div>";
+  } else {
+    h += "<div class='muted small'>No host active on stage</div>";
+  }
+
+  // Scanline overlay effect
+  h += "<div class='crt-scanlines' style='position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%);background-size:100% 4px'></div>";
+  h += "</div>";
+
+  // Monitor Ticker
+  h += "<div class='stream-ticker' style='margin-top:8px;padding:6px 10px;background:var(--bg);border-radius:var(--radius-sm);font-size:11px;font-family:var(--font-mono);color:var(--gold);overflow:hidden;white-space:nowrap'>"+
+    "BROADCASTING: " + esc(G.studio.name.toUpperCase()) + " LIVE NETWORK · " + (activeHost ? esc((activeHost.role||"").toUpperCase()) : "OFFICIAL STREAM") + " · ACTIVE HOST: " + (activeHost ? esc(activeHost.name.toUpperCase()) : "NONE") +
+    "</div>";
+
+  h += "</div>";
+
+  // Stream Metrics & Action Panel
+  h += "<div class='card' style='margin-top:12px'>";
+  h += "<div class='spread'><b>Broadcast Control Deck</b><span class='tiny muted'>Topic: " + (stream.topic || "feature_premiere") + "</span></div>";
+  h += "<div class='stat-hero' style='margin:10px 0'>";
+  h += statCard((isStreaming ? (stream.ccv || 0) + "M" : "0"), "Current CCV");
+  h += statCard((stream.peakCcv || 0) + "M", "Peak CCV");
+  h += statCard("+" + fmtM((stream.totalHours || 0)), "Stream Hours");
+  h += "</div>";
+
+  h += "<div class='row' style='gap:8px;margin-top:8px'>"+
+    "<button class='btn " + (isStreaming ? "btn-danger" : "btn-primary") + "' data-live-stream-toggle='1' style='flex:1'>" + (isStreaming ? "End Live Stream" : "Start Live Stream") + "</button>"+
+    "<button class='btn btn-alt' data-live-adbreak='1' " + (isStreaming ? "" : "disabled") + " style='flex:1'>Run Ad Break (+$K)</button>"+
+    "</div>";
+
+  if(G.streamer){
+    h += "<div class='tiny muted' style='margin-top:10px;padding-top:8px;border-top:1px solid var(--line)'>"+
+      "Direct-to-Consumer Synergy: High live stream viewership feeds subscriber growth for your streamer <b>" + esc(G.streamer.name) + "</b>."+
+      "</div>";
+  }
+
+  h += "</div></div>";
+
+  // Right column: Live Chat Feed
+  h += "<div style='flex:1;min-width:300px;max-width:440px'>";
+  h += "<div class='card' style='display:flex;flex-direction:column;height:430px;padding:10px 12px'>";
+  h += "<div class='spread' style='padding-bottom:8px;border-bottom:1px solid var(--line)'>"+
+    "<b>Live Chat Feed</b>"+
+    "<span class='tiny tag'>" + (isStreaming ? "Active" : "Chat Paused") + "</span>"+
+    "</div>";
+
+  h += "<div class='stream-chat-feed' style='flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:6px'>";
+  const msgs = stream.chatMessages || [];
+  if(!msgs.length){
+    h += "<div class='tiny muted' style='text-align:center;margin-top:40px'>No chat messages yet. Start a live broadcast to engage viewers.</div>";
+  } else {
+    for(const m of msgs.slice(-15)){
+      if(m.isSuperChat){
+        h += "<div class='superchat-bubble' style='background:linear-gradient(135deg, rgba(245,185,66,0.18), rgba(245,185,66,0.06));border:1px solid var(--gold);padding:6px 8px;border-radius:var(--radius-sm);font-size:11px'>"+
+          "<div class='spread'><b class='gold'>" + esc(m.user) + "</b><span class='gold font-mono'>$" + m.amount + " Super Chat</span></div>"+
+          "<div style='margin-top:2px;color:var(--text)'>" + esc(m.text) + "</div>"+
+          "</div>";
+      } else {
+        h += "<div class='chat-bubble' style='font-size:11px;line-height:1.4'>"+
+          "<span style='color:var(--muted);font-weight:600;margin-right:6px'>" + esc(m.user) + ":</span>"+
+          "<span>" + esc(m.text) + "</span>"+
+          "</div>";
+      }
+    }
+  }
+  h += "</div>";
+
+  h += "<div class='tiny muted' style='padding-top:8px;border-top:1px solid var(--line);text-align:center'>"+
+    "Chat auto-updates each week as viewers react to on-air talent and studio events."+
+    "</div>";
+
+  h += "</div></div>";
+  h += "</div>";
+
+  return h;
+}
+
+function viewLiveEvents(){
+  const live = G.live || {};
+  const currentWoy = woyOf(G.week);
+  const events = DATA.LIVE_EVENTS || [];
+
+  let h = "";
+  h += "<div class='section-title spread'><span>Major Live Events, Festivals & Red Carpets</span>"+
+    "<button class='btn btn-sm btn-primary' data-live-premiere='1'>Host Red Carpet Premiere ($1M)</button>"+
+    "</div>";
+
+  h += "<div class='tiny muted' style='margin-bottom:12px'>"+
+    "Current Week: " + currentWoy + " of the annual broadcast calendar. Enter films into A-list festival competitions, campaign for the Academy Awards, and capitalize on live sports finals."+
+    "</div>";
+
+  // Grid of event categories
+  const cats = [
+    { id: "awards", title: "Academy & Guild Awards", icon: "Awards" },
+    { id: "festival", title: "A-List International Film Festivals", icon: "Festivals" },
+    { id: "sports", title: "Major Live Sports Finals", icon: "Sports" },
+    { id: "culture", title: "Cultural & Comic Galas", icon: "Culture" }
+  ];
+
+  for(const cat of cats){
+    const list = events.filter(e => e.category === cat.id);
+    if(!list.length) continue;
+
+    h += "<div class='card' style='margin-bottom:14px'>";
+    h += "<div class='spread' style='margin-bottom:8px'><b>" + cat.title + "</b><span class='tiny muted'>" + list.length + " Events</span></div>";
+
+    h += "<div class='events-grid' style='display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px'>";
+    for(const ev of list){
+      const weeksAway = (ev.week - currentWoy + 52) % 52;
+      const isNow = currentWoy === ev.week;
+      const statusTag = isNow ? "<span class='tag gold' style='font-weight:700'>HAPPENING THIS WEEK</span>" : (weeksAway <= 4 ? "<span class='tag' style='color:var(--gold)'>In " + weeksAway + " wks</span>" : "<span class='tag muted'>Week " + ev.week + "</span>");
+
+      h += "<div class='card' style='padding:10px 12px;background:var(--bg2);border:1px solid " + (isNow ? "var(--gold)" : "var(--line)") + "'>"+
+        "<div class='spread'><b>" + esc(ev.name) + "</b>" + statusTag + "</div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + esc(ev.description || "") + "</div>"+
+        "<div class='row' style='margin-top:8px;justify-content:space-between;align-items:center;font-size:11px'>"+
+        "<span class='muted'>Prestige: <b>" + (ev.prestigeMultiplier || 1.0) + "x</b></span>";
+
+      if(ev.category === "festival"){
+        h += "<button class='btn btn-xs btn-alt' data-live-fest-submit='" + ev.id + "'>Submit Film ($" + (ev.entryFee || 0.5) + "M)</button>";
+      } else if(ev.category === "awards"){
+        h += "<span class='tag' style='font-size:9px'>FYC Campaign Ready</span>";
+      } else {
+        h += "<span class='tag' style='font-size:9px'>Ad Surge Window</span>";
+      }
+
+      h += "</div></div>";
+    }
+    h += "</div></div>";
+  }
+
+  return h;
+}
+
+function viewLiveStudio(){
+  const live = G.live || {};
+  const hosts = DATA.LIVE_HOSTS || [];
+  const activeHostId = live.activeHost || "rex";
+
+  let h = "";
+  h += "<div class='section-title spread'><span>On-Air Personalities & Broadcast Studio</span>"+
+    "<span class='tiny muted'>Animated Anchors, Red Carpet Hosts & Mascots</span></div>";
+
+  h += "<div class='cards-grid' style='display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px'>";
+
+  for(const host of hosts){
+    const isActive = host.id === activeHostId;
+    const stats = (live.hosts && live.hosts[host.id]) || { level: 1, xp: 0, charisma: 75, energy: 90 };
+    const xpPercent = Math.min(100, Math.round(((stats.xp % 100) / 100) * 100));
+
+    h += "<div class='card host-character-card " + (isActive ? "active-host" : "") + "' style='border:1px solid " + (isActive ? "var(--gold)" : "var(--line)") + ";position:relative;overflow:hidden;padding:12px'>";
+    if(isActive){
+      h += "<div style='position:absolute;top:8px;right:8px'><span class='tag gold' style='font-weight:700'>ON-AIR LEAD</span></div>";
+    }
+
+    // Host Stage / Avatar Viewport
+    h += "<div class='host-stage' style='height:160px;background:radial-gradient(circle at center, #161e30 0%, #0a0e17 100%);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:10px;border:1px solid rgba(255,255,255,0.06)'>";
+    if(host.id === "rex") h += renderCharRex();
+    else if(host.id === "chloe") h += renderCharChloe();
+    else if(host.id === "buck") h += renderCharBuck();
+    else h += renderCharReely();
+    h += "</div>";
+
+    // Host Identity
+    h += "<h4 style='margin:0 0 2px 0'>" + esc(host.name) + "</h4>"+
+      "<div class='tiny muted' style='margin-bottom:8px'>" + esc(host.role || "") + " · <span class='gold'>Lv. " + (stats.level || 1) + "</span></div>";
+
+    // XP Bar
+    h += "<div class='tiny muted spread' style='margin-bottom:2px'><span>Experience</span><span>" + (stats.xp % 100) + "/100 XP</span></div>"+
+      "<div style='height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:10px'>"+
+      "<div style='width:" + xpPercent + "%;height:100%;background:var(--gold)'></div></div>";
+
+    // Stats
+    h += "<div class='row' style='gap:12px;font-size:11px;margin-bottom:10px'>"+
+      "<div>Charisma: <b>" + (stats.charisma || 70) + "</b></div>"+
+      "<div>Energy: <b>" + (stats.energy || 70) + "</b></div>"+
+      "<div>Trait: <b class='gold'>" + esc(host.trait || "") + "</b></div>"+
+      "</div>";
+
+    // Catchphrase Quote
+    if(host.quote){
+      h += "<div class='host-quote' style='font-style:italic;font-size:11px;color:var(--muted);background:var(--bg2);padding:6px 8px;border-radius:var(--radius-sm);border-left:2px solid var(--gold);margin-bottom:10px'>"+
+        "“" + esc(host.quote) + "”</div>";
+    }
+
+    // Action Buttons
+    h += "<div class='row' style='gap:6px'>"+
+      (isActive ? "<button class='btn btn-xs btn-ghost' disabled style='flex:1'>Active on Air</button>" : "<button class='btn btn-xs btn-primary' data-live-host-select='" + host.id + "' style='flex:1'>Set Active Host</button>")+
+      "<button class='btn btn-xs btn-alt' data-live-host-train='" + host.id + "' title='Media Training: +XP & Charisma'>Train ($0.5M)</button>"+
+      "</div>";
+
+    h += "</div>";
+  }
+
+  h += "</div>";
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIVE TV MODALS
+   ═══════════════════════════════════════════════════════════════════ */
+
+function liveSlotModal(channelId, hour){
+  const ch = getLiveChannel(channelId);
+  if(!ch) return;
+  const currentSlot = (ch.schedule || [])[hour] || { hour, blockId: "primetime_movie", contentId: null, customTitle: null };
+  const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => s.hour === hour) || { name: hour + ":00" };
+
+  let h = "<h3>Program Slot: " + esc(ch.name) + " (" + esc(slotMeta.name) + ")</h3>"+
+    "<div class='tiny muted' style='margin-bottom:12px'>Assign a programming format or broadcast a feature film from your studio catalog.</div>";
+
+  // Option 1: Pick Program Block Type
+  h += "<div class='card' style='margin-bottom:12px'><b>Programming Format Block</b>"+
+    "<div class='row' style='gap:6px;flex-wrap:wrap;margin-top:8px'>";
+  for(const block of DATA.PROGRAM_BLOCKS || []){
+    const isSel = currentSlot.blockId === block.id && !currentSlot.contentId;
+    h += "<button class='btn btn-sm " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotBlock_" + block.id + "'>" + esc(block.name) + " (" + block.adTier + "x)</button>";
+  }
+  h += "</div></div>";
+
+  // Option 2: Pick Studio Film from Catalog
+  const eligibleFilms = (G.films || []).filter(f => !f.unreleased);
+  h += "<div class='card' style='margin-bottom:12px'><b>Broadcast Studio Catalog Film (" + eligibleFilms.length + " Available)</b>";
+  if(!eligibleFilms.length){
+    h += "<div class='tiny muted' style='margin-top:4px'>No released films in your library yet. Release films to air them on linear TV.</div>";
+  } else {
+    h += "<div style='max-height:160px;overflow-y:auto;margin-top:6px;display:flex;flex-direction:column;gap:4px'>";
+    for(const f of eligibleFilms.slice(0, 20)){
+      const isSel = currentSlot.contentId === f.id;
+      h += "<div class='row spread' style='padding:5px 8px;border-radius:var(--radius-sm);background:" + (isSel ? "var(--card-hover)" : "var(--bg2)") + ";border:1px solid " + (isSel ? "var(--gold)" : "transparent") + "'>"+
+        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + " · Score: " + (f.quality && f.quality.overall || 50) + "</span></div>"+
+        "<button class='btn btn-xs " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotFilm_" + f.id + "'>" + (isSel ? "Scheduled" : "Select") + "</button>"+
+        "</div>";
+    }
+    h += "</div>";
+  }
+  h += "</div>";
+
+  h += "<div class='modal-actions'>"+
+    "<button class='btn btn-ghost' onclick='closeModal()'>Close</button>"+
+    "</div>";
+
+  const v = openModal(h);
+
+  // Wire block buttons
+  for(const block of DATA.PROGRAM_BLOCKS || []){
+    const btn = v.querySelector("#slotBlock_" + block.id);
+    if(btn){
+      btn.onclick = () => {
+        scheduleChannelSlot(channelId, hour, block.id, null, null);
+        beep("gold");
+        closeModal();
+        render();
+      };
+    }
+  }
+
+  // Wire film buttons
+  for(const f of eligibleFilms.slice(0, 20)){
+    const btn = v.querySelector("#slotFilm_" + f.id);
+    if(btn){
+      btn.onclick = () => {
+        scheduleChannelSlot(channelId, hour, "primetime_movie", f.id, f.title);
+        beep("gold");
+        closeModal();
+        render();
+      };
+    }
+  }
+}
+
+function liveFestSubmitModal(eventId){
+  const ev = DATA.liveEvent(eventId);
+  if(!ev) return;
+
+  const eligibleFilms = (G.films || []).filter(f => !f.unreleased && (f.quality && f.quality.overall >= 45));
+
+  let h = "<h3>Festival Competition: " + esc(ev.name) + "</h3>"+
+    "<div class='tiny muted' style='margin-bottom:12px'>" + esc(ev.description || "") + " · Entry Fee: $" + (ev.entryFee || 0.5) + "M · Min Studio Rep: " + (ev.minRep || 0) + "</div>";
+
+  if(!eligibleFilms.length){
+    h += "<div class='card muted small'>No films meet the minimum festival submission quality standard (Quality >= 45). Produce higher quality pictures to enter competition.</div>";
+  } else {
+    h += "<div class='card' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px'>";
+    for(const f of eligibleFilms){
+      const qual = f.quality && f.quality.overall || 50;
+      h += "<div class='row spread' style='padding:6px 10px;background:var(--bg2);border-radius:var(--radius-sm)'>"+
+        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + " · Score: " + qual + "</span></div>"+
+        "<button class='btn btn-xs btn-primary' id='festSub_" + f.id + "'>Submit ($" + (ev.entryFee || 0.5) + "M)</button>"+
+        "</div>";
+    }
+    h += "</div>";
+  }
+
+  h += "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Cancel</button></div>";
+  const v = openModal(h);
+
+  for(const f of eligibleFilms){
+    const btn = v.querySelector("#festSub_" + f.id);
+    if(btn){
+      btn.onclick = () => {
+        if(submitFilmToFestival(eventId, f.id)){
+          beep("gold");
+          closeModal();
+          flashes(G.flash);
+          render();
+        } else {
+          toast("Cannot submit film: check cash and studio reputation.", "bad");
+        }
+      };
+    }
+  }
+}
+
+function livePremiereModal(){
+  const upcomingFilms = (G.projects || []).concat((G.films || []).filter(f => !f.archived)).slice(0, 15);
+
+  let h = "<h3>Host Red Carpet Star Gala Premiere</h3>"+
+    "<div class='tiny muted' style='margin-bottom:12px'>Gala premieres cost $1.0M cash and provide an immediate +15 buzz boost and opening box office uplift.</div>";
+
+  if(!upcomingFilms.length){
+    h += "<div class='card muted small'>No active projects or theatrical titles available for a premiere gala.</div>";
+  } else {
+    h += "<div class='card' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px'>";
+    for(const f of upcomingFilms){
+      h += "<div class='row spread' style='padding:6px 10px;background:var(--bg2);border-radius:var(--radius-sm)'>"+
+        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + "</span></div>"+
+        "<button class='btn btn-xs btn-primary' id='premGo_" + f.id + "'>Host Gala ($1M)</button>"+
+        "</div>";
+    }
+    h += "</div>";
+  }
+
+  h += "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Cancel</button></div>";
+  const v = openModal(h);
+
+  for(const f of upcomingFilms){
+    const btn = v.querySelector("#premGo_" + f.id);
+    if(btn){
+      btn.onclick = () => {
+        if(hostRedCarpetPremiere(f.id)){
+          beep("gold");
+          closeModal();
+          flashes(G.flash);
+          render();
+        } else {
+          toast("Gala premiere requires $1M cash.", "bad");
+        }
+      };
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIVE ANIMATED VECTOR CHARACTERS (SVG + CSS KEYFRAMES)
+   ═══════════════════════════════════════════════════════════════════ */
+
+function renderCharRex(){
+  return "<svg class='char-rex' viewBox='0 0 160 160' width='130' height='130' xmlns='http://www.w3.org/2000/svg'>"+
+    // Studio backdrop monitor
+    "<rect x='20' y='16' width='120' height='80' rx='6' fill='#0e1726' stroke='#1e293b' stroke-width='2'/>"+
+    "<path d='M30 40 h100 M30 60 h100 M60 20 v70 M100 20 v70' stroke='#162238' stroke-width='1' stroke-dasharray='3 3'/>"+
+    // Rex Body / Suit
+    "<path class='char-chest' d='M40 160 L50 115 L66 120 L80 145 L94 120 L110 115 L120 160 Z' fill='#1e293b'/>"+
+    "<polygon points='66,120 80,145 94,120 80,118' fill='#ffffff'/>"+
+    "<polygon points='76,122 84,122 82,148 78,148' fill='#c53030'/>"+
+    // Rex Head & Hair
+    "<g class='char-head'>"+
+    "<path d='M58 75 Q58 50 80 50 Q102 50 102 75 Q102 108 80 112 Q58 108 58 75 Z' fill='#fcd34d'/>"+
+    "<path d='M54 62 Q60 38 80 38 Q100 38 106 62 Q96 48 80 50 Q64 48 54 62 Z' fill='#475569'/>"+
+    // Eyes
+    "<circle class='char-eye' cx='70' cy='72' r='3.5' fill='#0f172a'/>"+
+    "<circle class='char-eye' cx='90' cy='72' r='3.5' fill='#0f172a'/>"+
+    // Eyebrows
+    "<path d='M65 65 L76 66 M95 66 L84 65' stroke='#334155' stroke-width='2' stroke-linecap='round'/>"+
+    // Mouth
+    "<ellipse class='char-mouth' cx='80' cy='94' rx='6' ry='2.5' fill='#b91c1c'/>"+
+    "</g>"+
+    // News Desk & Mic
+    "<rect x='24' y='142' width='112' height='18' rx='2' fill='#0f172a' stroke='#334155' stroke-width='2'/>"+
+    "<rect x='76' y='126' width='8' height='16' fill='#64748b'/>"+
+    "<circle class='char-mic-light' cx='80' cy='123' r='5' fill='#ef4444'/>"+
+    "</svg>";
+}
+
+function renderCharChloe(){
+  return "<svg class='char-chloe' viewBox='0 0 160 160' width='130' height='130' xmlns='http://www.w3.org/2000/svg'>"+
+    // Red Carpet Backdrop
+    "<rect x='20' y='16' width='120' height='130' rx='6' fill='#180d18' stroke='#3b183b' stroke-width='2'/>"+
+    "<line x1='30' y1='30' x2='130' y2='30' stroke='#f59e0b' stroke-width='2'/>"+
+    // Chloe Gown & Body
+    "<path class='char-chest' d='M44 160 L56 112 L70 120 L80 135 L90 120 L104 112 L116 160 Z' fill='#047857'/>"+
+    // Glamour Necklace
+    "<path d='M66 114 Q80 128 94 114' fill='none' stroke='#fcd34d' stroke-width='2.5'/>"+
+    "<polygon class='char-sparkle' points='80,126 83,131 80,136 77,131' fill='#67e8f9'/>"+
+    // Chloe Head & Updo Hairstyle
+    "<g class='char-head'>"+
+    "<circle cx='80' cy='46' r='20' fill='#b45309'/>"+
+    "<path d='M60 76 Q60 54 80 54 Q100 54 100 76 Q100 106 80 108 Q60 106 60 76 Z' fill='#fed7aa'/>"+
+    "<path d='M58 66 Q64 50 80 52 Q96 50 102 66 Q92 56 80 56 Q68 56 58 66 Z' fill='#b45309'/>"+
+    // Sparkling Earring
+    "<circle class='char-sparkle' cx='58' cy='82' r='2.5' fill='#67e8f9'/>"+
+    "<circle class='char-sparkle' cx='102' cy='82' r='2.5' fill='#67e8f9'/>"+
+    // Eyes & Smile
+    "<circle class='char-eye' cx='71' cy='74' r='3' fill='#0f172a'/>"+
+    "<circle class='char-eye' cx='89' cy='74' r='3' fill='#0f172a'/>"+
+    "<path class='char-mouth' d='M73 92 Q80 98 87 92' fill='none' stroke='#be185d' stroke-width='2.5' stroke-linecap='round'/>"+
+    "</g>"+
+    // Handheld Golden Reporter Mic
+    "<g class='char-hand-mic'>"+
+    "<rect x='106' y='96' width='8' height='26' rx='2' fill='#d97706' transform='rotate(-20 106 96)'/>"+
+    "<rect x='102' y='86' width='14' height='12' rx='2' fill='#ef4444' transform='rotate(-20 106 96)'/>"+
+    "<circle cx='109' cy='82' r='6' fill='#f59e0b'/>"+
+    "</g>"+
+    "</svg>";
+}
+
+function renderCharBuck(){
+  return "<svg class='char-buck' viewBox='0 0 160 160' width='130' height='130' xmlns='http://www.w3.org/2000/svg'>"+
+    // Stadium Floodlights Background
+    "<rect x='20' y='16' width='120' height='130' rx='6' fill='#09182a' stroke='#1e3a5f' stroke-width='2'/>"+
+    "<circle cx='40' cy='36' r='8' fill='#38bdf8' opacity='0.3'/>"+
+    "<circle cx='120' cy='36' r='8' fill='#38bdf8' opacity='0.3'/>"+
+    // Equalizer bars
+    "<rect class='char-vu' x='30' y='125' width='4' height='18' fill='#10b981'/>"+
+    "<rect class='char-vu' x='38' y='118' width='4' height='25' fill='#f59e0b'/>"+
+    "<rect class='char-vu' x='46' y='128' width='4' height='15' fill='#ef4444'/>"+
+    // Buck Sports Broadcaster Jacket
+    "<path class='char-chest' d='M42 160 L52 110 L70 115 L80 135 L90 115 L108 110 L118 160 Z' fill='#1d4ed8'/>"+
+    "<polygon points='70,115 80,135 90,115' fill='#f8fafc'/>"+
+    // Buck Head & Headset
+    "<g class='char-head'>"+
+    "<path d='M58 74 Q58 52 80 52 Q102 52 102 74 Q102 106 80 110 Q58 106 58 74 Z' fill='#fde047'/>"+
+    "<path d='M56 60 Q66 42 80 42 Q94 42 104 60 Z' fill='#334155'/>"+
+    // Broadcaster Headset
+    "<path d='M54 75 Q54 36 80 36 Q106 36 106 75' fill='none' stroke='#0f172a' stroke-width='4'/>"+
+    "<rect x='50' y='68' width='8' height='16' rx='2' fill='#475569'/>"+
+    "<rect x='102' y='68' width='8' height='16' rx='2' fill='#475569'/>"+
+    "<path d='M54 80 Q66 100 78 98' fill='none' stroke='#0f172a' stroke-width='2.5'/>"+
+    "<circle cx='78' cy='98' r='3.5' fill='#ef4444'/>"+
+    // Eyes & Expressive Mouth
+    "<circle class='char-eye' cx='70' cy='72' r='3.5' fill='#0f172a'/>"+
+    "<circle class='char-eye' cx='90' cy='72' r='3.5' fill='#0f172a'/>"+
+    "<ellipse class='char-mouth' cx='80' cy='92' rx='7' ry='4' fill='#991b1b'/>"+
+    "</g>"+
+    "</svg>";
+}
+
+function renderCharReely(){
+  return "<svg class='char-reely' viewBox='0 0 160 160' width='130' height='130' xmlns='http://www.w3.org/2000/svg'>"+
+    // Backdrop Filmstrip Glow
+    "<rect x='20' y='16' width='120' height='130' rx='6' fill='#17120a' stroke='#382a15' stroke-width='2'/>"+
+    // Reely the Mascot Reel
+    "<g class='char-reely-body' transform='origin: 80 80'>"+
+    // Outer 35mm Gold Reel
+    "<circle class='char-wheel' cx='80' cy='80' r='46' fill='#f59e0b' stroke='#d97706' stroke-width='4'/>"+
+    "<circle cx='80' cy='80' r='36' fill='#1f2937'/>"+
+    // Reel Holes / Spokes
+    "<circle cx='80' cy='56' r='10' fill='#0b0f19'/>"+
+    "<circle cx='59' cy='92' r='10' fill='#0b0f19'/>"+
+    "<circle cx='101' cy='92' r='10' fill='#0b0f19'/>"+
+    "<circle cx='80' cy='80' r='7' fill='#f59e0b'/>"+
+    // Big Cartoon Mascot Eyes
+    "<g class='char-eyes'>"+
+    "<ellipse cx='68' cy='74' rx='9' ry='12' fill='#ffffff'/>"+
+    "<circle cx='70' cy='74' r='5' fill='#0f172a'/>"+
+    "<circle cx='68' cy='71' r='2' fill='#ffffff'/>"+
+    "<ellipse cx='92' cy='74' rx='9' ry='12' fill='#ffffff'/>"+
+    "<circle cx='90' cy='74' r='5' fill='#0f172a'/>"+
+    "<circle cx='88' cy='71' r='2' fill='#ffffff'/>"+
+    "</g>"+
+    // Mascot Cheerful Smile
+    "<path class='char-mouth' d='M70 94 Q80 104 90 94' fill='none' stroke='#ef4444' stroke-width='3.5' stroke-linecap='round'/>"+
+    // Celluloid Ribbon Arms
+    "<path d='M34 82 Q20 60 28 44' fill='none' stroke='#f59e0b' stroke-width='4' stroke-linecap='round'/>"+
+    "<path d='M126 82 Q140 60 132 44' fill='none' stroke='#f59e0b' stroke-width='4' stroke-linecap='round'/>"+
+    // Dapper Red Bowtie
+    "<polygon points='70,126 90,126 80,120' fill='#ef4444'/>"+
+    "<polygon points='70,120 90,120 80,126' fill='#ef4444'/>"+
+    "<circle cx='80' cy='123' r='3' fill='#991b1b'/>"+
+    "</g>"+
+    "</svg>";
+}
+

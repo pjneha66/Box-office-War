@@ -97,9 +97,43 @@ step("chips populated", ()=>{
   if(!$("#chipDate").textContent.includes("Y1")) throw new Error("date chip bad");
 });
 
-for(const t of ["develop","productions","boxoffice","ott","finance","studio"]){
+for(const t of ["develop","productions","boxoffice","ott","live","finance","studio"]){
   step("tab "+t, ()=>{ click($(".tab[data-tab='"+t+"']")); if(!$("#view").innerHTML) throw new Error("empty view"); });
 }
+
+step("v30 live broadcasting, streaming, events and characters", ()=>{
+  click($(".tab[data-tab='live']"));
+  if(!$("#view").textContent.includes("Broadcast & Live Entertainment Network")) throw new Error("live view missing header");
+  
+  // Test Linear Sub-tab
+  click($("[data-livesub='linear']"));
+  if(!$("#view").innerHTML.includes("24-Hour Electronic Program Guide")) throw new Error("linear EPG grid missing");
+  
+  // Test Channel Switching
+  const chPills = $$("[data-live-ch]");
+  if(chPills.length < 4) throw new Error("channel pills missing");
+  click(chPills[1]); // switch channel
+  
+  // Test Live Streaming Sub-tab
+  click($("[data-livesub='stream']"));
+  if(!$("#view").innerHTML.includes("Live Studio Streaming Broadcast")) throw new Error("stream view missing");
+  const toggleBtn = $("[data-live-stream-toggle='1']");
+  if(!toggleBtn) throw new Error("stream toggle missing");
+  click(toggleBtn); // start stream
+  const st = g().live.streaming || g().live.stream || {};
+  if(!st.live && !st.active) throw new Error("stream did not activate");
+  
+  // Test Live Events Sub-tab
+  click($("[data-livesub='events']"));
+  if(!$("#view").textContent.includes("Major Live Events, Festivals & Red Carpets")) throw new Error("events view missing");
+  
+  // Test On-Air Talent Studio Sub-tab
+  click($("[data-livesub='studio']"));
+  if(!$("#view").textContent.includes("On-Air Personalities & Broadcast Studio")) throw new Error("studio hosts view missing");
+  const hostSelectBtns = $$("[data-live-host-select]");
+  if(hostSelectBtns.length < 1) throw new Error("host select buttons missing");
+  click(hostSelectBtns[0]); // select host
+});
 
 step("advance 3 weeks", ()=>{
   for(let i=0;i<3;i++){ click($("#btnWeek")); dismissSideModals(); }

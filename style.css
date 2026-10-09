@@ -1432,3 +1432,223 @@ body[data-theme="silver"]{
   .bk-actor .px{width:32px}
   .backlot .bk-caption{font-size:10px}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   v30: LIVE BROADCASTING, STREAMING, EPG GRID & ANIMATED CHARACTERS
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Live pulse indicator */
+.live-dot-pulse {
+  display: inline-block;
+  box-shadow: 0 0 0 rgba(255, 45, 85, 0.7);
+  animation: liveDotPulse 1.8s infinite;
+}
+
+@keyframes liveDotPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255, 45, 85, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 45, 85, 0); }
+}
+
+/* Channel pills row */
+.channel-pill {
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.channel-pill:hover {
+  transform: translateY(-1px);
+  border-color: var(--gold) !important;
+}
+
+/* EPG Schedule Table */
+.epg-row {
+  transition: background-color 0.15s ease;
+}
+.epg-row:hover {
+  background-color: var(--card-hover) !important;
+}
+.primetime-row {
+  border-left: 3px solid var(--gold) !important;
+}
+
+/* CRT Broadcast Monitor */
+.crt-screen {
+  background: radial-gradient(circle at 50% 30%, #0d1424 0%, #060911 100%);
+  border: 1px solid rgba(245, 185, 66, 0.25) !important;
+}
+.crt-scanlines {
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+  background-size: 100% 3px;
+  animation: scanlinesFlicker 0.15s infinite;
+  opacity: 0.65;
+}
+@keyframes scanlinesFlicker {
+  0% { opacity: 0.65; }
+  50% { opacity: 0.72; }
+  100% { opacity: 0.65; }
+}
+
+/* Host Character Stage */
+.host-stage {
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.6);
+}
+.host-character-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.host-character-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+.host-character-card.active-host {
+  border-color: var(--gold) !important;
+  background: linear-gradient(180deg, var(--card) 0%, rgba(245, 185, 66, 0.05) 100%);
+}
+
+/* ── Character SVG Animations (Pure CSS, 0 External Assets) ── */
+
+/* 1. Rex Sterling (Anchor) */
+.char-rex .char-chest {
+  transform-origin: 80px 140px;
+  animation: rexBreathe 3.4s ease-in-out infinite;
+}
+.char-rex .char-head {
+  transform-origin: 80px 105px;
+  animation: rexNod 4.2s ease-in-out infinite;
+}
+.char-rex .char-eye {
+  transform-origin: center;
+  animation: eyeBlink 3.8s infinite;
+}
+.char-rex .char-mouth {
+  transform-origin: 80px 94px;
+  animation: mouthTalk 1.6s ease-in-out infinite;
+}
+.char-rex .char-mic-light {
+  animation: micTally 1.2s infinite alternate;
+}
+
+@keyframes rexBreathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.025); }
+}
+@keyframes rexNod {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-1.5deg) translateY(-0.5px); }
+  70% { transform: rotate(1.5deg) translateY(-0.5px); }
+}
+@keyframes eyeBlink {
+  0%, 96%, 100% { transform: scaleY(1); }
+  98% { transform: scaleY(0.1); }
+}
+@keyframes mouthTalk {
+  0%, 100% { transform: scaleY(0.7); }
+  50% { transform: scaleY(1.4); }
+}
+@keyframes micTally {
+  0% { fill: #ef4444; filter: drop-shadow(0 0 2px #ef4444); }
+  100% { fill: #b91c1c; filter: none; }
+}
+
+/* 2. Chloe Glamour (Red Carpet Hostess) */
+.char-chloe .char-chest {
+  transform-origin: 80px 135px;
+  animation: chloeSway 4.8s ease-in-out infinite;
+}
+.char-chloe .char-head {
+  transform-origin: 80px 100px;
+  animation: chloeTilt 3.6s ease-in-out infinite;
+}
+.char-chloe .char-sparkle {
+  animation: sparkleShimmer 2.2s ease-in-out infinite alternate;
+}
+.char-chloe .char-eye {
+  transform-origin: center;
+  animation: eyeBlink 4.2s infinite;
+}
+.char-chloe .char-mouth {
+  transform-origin: 80px 92px;
+  animation: chloeSmile 2.8s ease-in-out infinite;
+}
+.char-chloe .char-hand-mic {
+  transform-origin: 106px 96px;
+  animation: micTilt 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes chloeSway {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+@keyframes chloeTilt {
+  0%, 100% { transform: rotate(1.5deg); }
+  50% { transform: rotate(-1.5deg); }
+}
+@keyframes sparkleShimmer {
+  0% { opacity: 0.4; filter: drop-shadow(0 0 1px #67e8f9); }
+  100% { opacity: 1; filter: drop-shadow(0 0 4px #67e8f9); }
+}
+@keyframes chloeSmile {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+@keyframes micTilt {
+  0% { transform: rotate(-22deg); }
+  100% { transform: rotate(-18deg); }
+}
+
+/* 3. Coach Buck (Sports Commentator) */
+.char-buck .char-head {
+  transform-origin: 80px 105px;
+  animation: buckBounce 2.4s ease-in-out infinite;
+}
+.char-buck .char-vu {
+  transform-origin: bottom;
+  animation: vuMeter 0.9s ease-in-out infinite alternate;
+}
+.char-buck .char-eye {
+  transform-origin: center;
+  animation: eyeBlink 3.2s infinite;
+}
+.char-buck .char-mouth {
+  transform-origin: 80px 92px;
+  animation: buckYell 1.4s ease-in-out infinite;
+}
+
+@keyframes buckBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(-2deg); }
+  75% { transform: translateY(-1px) rotate(2deg); }
+}
+@keyframes vuMeter {
+  0% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1.1); }
+  100% { transform: scaleY(0.7); }
+}
+@keyframes buckYell {
+  0%, 100% { transform: scale(0.85); }
+  50% { transform: scale(1.25); }
+}
+
+/* 4. Reely the Mascot Reel */
+.char-reely-body {
+  transform-origin: 80px 80px;
+  animation: mascotWobble 3s ease-in-out infinite;
+}
+.char-reely .char-wheel {
+  transform-origin: 80px 80px;
+  animation: reelSpinCycle 8s linear infinite;
+}
+.char-reely .char-eyes {
+  transform-origin: 80px 74px;
+  animation: eyeBlink 3.5s infinite;
+}
+
+@keyframes mascotWobble {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-3deg); }
+  75% { transform: translateY(-2px) rotate(3deg); }
+}
+@keyframes reelSpinCycle {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

@@ -1670,5 +1670,251 @@ DATA.GUILDS = [
   { id:"alliance", name:"Producers Alliance", kinds:["producer"], icon:"🎫", dues:0.25, perk:"+1 SP per 10 weeks · smoother overruns · +3% minimum fee" }
 ];
 
-/* ── SAVE_VERSION bump for v24 ── */
-DATA.SAVE_VERSION = 13;
+/* ═══════════════════════════════════════════════════════════
+   v30 — LIVE TV / STREAMING / EVENTS SYSTEM
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Linear TV Channels (Live TV) ──
+   Channels broadcast 24/7 with scheduled programming blocks.
+   Player can buy/launch channels, acquire rights, sell ad slots. */
+DATA.LIVE_CHANNELS = [
+  {id:"bow_movies", name:"BOW Movies", emoji:"🎬", type:"movies", genrePref:["action","scifi","fantasy","animation","comedy","thriller"], baseViewers:1.2, adRate:0.8, cost:15, desc:"Blockbuster & family movies. Prime-time gold."},
+  {id:"bow_prestige", name:"BOW Prestige", emoji:"🏛", type:"prestige", genrePref:["drama","musical","war","western","documentary","truecrime"], baseViewers:0.6, adRate:1.5, cost:12, desc:"Awards bait, cinema classics. High CPM, niche audience."},
+  {id:"bow_action", name:"BOW Action", emoji:"💥", type:"genre", genrePref:["action","war","sports","concert"], baseViewers:0.9, adRate:1.0, cost:10, desc:"Adrenaline 24/7. Male 18-49 sweet spot."},
+  {id:"bow_family", name:"BOW Family", emoji:"👨‍👩‍👧‍👦", type:"family", genrePref:["animation","comedy","fantasy","musical","concert"], baseViewers:1.0, adRate:0.9, cost:8, desc:"Co-viewing king. Advertisers love the whole family."},
+  {id:"bow_late", name:"BOW After Dark", emoji:"🌙", type:"late", genrePref:["horror","thriller","truecrime","concert"], baseViewers:0.4, adRate:1.8, cost:6, desc:"Cult following. Horror/thriller midnight movies."},
+  {id:"bow_sports", name:"BOW Sports", emoji:"🏟", type:"sports", genrePref:["sports","concert"], baseViewers:1.5, adRate:2.2, cost:25, desc:"Live sports rights. Massive reach, premium ads."},
+  {id:"bow_news", name:"BOW News", emoji:"📰", type:"news", genrePref:[], baseViewers:0.8, adRate:1.2, cost:5, desc:"Breaking news, entertainment edition. Low cost, steady."},
+  {id:"bow_kids", name:"BOW Kids", emoji:"🧸", type:"kids", genrePref:["animation","family"], baseViewers:0.7, adRate:1.3, cost:7, desc:"Cartoons & family films. Toy ads print money."},
+];
+
+/* Channel time slots (24 slots = 1 hour each) */
+DATA.CHANNEL_SLOTS = [
+  {h:0, label:"12am", prime:false, mult:0.15},
+  {h:1, label:"1am", prime:false, mult:0.10},
+  {h:2, label:"2am", prime:false, mult:0.08},
+  {h:3, label:"3am", prime:false, mult:0.07},
+  {h:4, label:"4am", prime:false, mult:0.06},
+  {h:5, label:"5am", prime:false, mult:0.08},
+  {h:6, label:"6am", prime:false, mult:0.20},
+  {h:7, label:"7am", prime:false, mult:0.35},
+  {h:8, label:"8am", prime:false, mult:0.40},
+  {h:9, label:"9am", prime:false, mult:0.45},
+  {h:10, label:"10am", prime:false, mult:0.50},
+  {h:11, label:"11am", prime:false, mult:0.55},
+  {h:12, label:"12pm", prime:false, mult:0.60},
+  {h:13, label:"1pm", prime:false, mult:0.65},
+  {h:14, label:"2pm", prime:false, mult:0.70},
+  {h:15, label:"3pm", prime:false, mult:0.80},
+  {h:16, label:"4pm", prime:false, mult:0.95},
+  {h:17, label:"5pm", prime:false, mult:1.10},
+  {h:18, label:"6pm", prime:true, mult:1.30},
+  {h:19, label:"7pm", prime:true, mult:1.50},
+  {h:20, label:"8pm", prime:true, mult:1.60},
+  {h:21, label:"9pm", prime:true, mult:1.55},
+  {h:22, label:"10pm", prime:true, mult:1.35},
+  {h:23, label:"11pm", prime:false, mult:0.80},
+];
+
+/* Programming block types for channel scheduling */
+DATA.PROGRAM_BLOCKS = [
+  {id:"movie", label:"Feature Film", dur:2, cost:0, revenue:"ads", desc:"2hr movie block. Ad revenue by viewers."},
+  {id:"double_feature", label:"Double Feature", dur:4, cost:0, revenue:"ads", desc:"4hr back-to-back. Strong retention."},
+  {id:"marathon", label:"Franchise Marathon", dur:6, cost:0, revenue:"ads", desc:"6hr binge. Super-fans stay all night."},
+  {id:"series", label:"Series Block", dur:1, cost:0, revenue:"ads", desc:"1hr episodic. Builds appointment viewing."},
+  {id:"live_event", label:"Live Event", dur:3, cost:0, revenue:"ads+premium", desc:"Live premiere/awards/sports. Premium CPM."},
+  {id:"special", label:"Behind-the-Scenes Special", dur:1, cost:1, revenue:"ads", desc:"Making-of, interviews. Low cost filler."},
+  {id:"rerun", label:"Library Rerun", dur:1, cost:0, revenue:"ads", desc:"Cheap filler from your library."},
+  {id:"infomercial", label:"Paid Programming", dur:1, cost:0, revenue:"fixed", desc:"Guaranteed $0.05M/slot. No viewers needed."},
+];
+
+/* ── Streaming Platform (VOD + Live) ──
+   Your owned streaming service. Compete with StreamFlix, BingeBox, etc. */
+DATA.STREAMING = {
+  tiers: [
+    {id:"free", name:"Free (AVOD)", emoji:"🆓", price:0, adLoad:8, viewers:1.0, desc:"Ad-supported. Max reach."},
+    {id:"basic", name:"Basic", emoji:"📺", price:5.99, adLoad:0, viewers:0.35, desc:"Ad-free HD. Steady subs."},
+    {id:"premium", name:"Premium 4K", emoji:"✨", price:12.99, adLoad:0, viewers:0.20, desc:"4K HDR, 4 streams. Whales."},
+    {id:"live", name:"Live TV Add-on", emoji:"🔴", price:9.99, adLoad:0, viewers:0.15, desc:"Linear channels + DVR. Cord-cutters."},
+  ],
+  contentTypes: [
+    {id:"film", label:"Film", revShare:0.70, window:45},
+    {id:"series", label:"Series", revShare:0.75, window:0},
+    {id:"live", label:"Live Channel", revShare:0.85, window:0},
+    {id:"event", label:"Live Event", revShare:0.90, window:0},
+    {id:"shorts", label:"Shorts/Clips", revShare:0.50, window:0},
+  ],
+  metrics: {
+    churnBase: 0.045,      // 4.5% monthly
+    churnContent: -0.015,  // per 10 quality pts above 60
+    churnPrice: 0.008,     // per $1 above $10
+    acquisitionCost: 45,   // $ per sub
+    arpuAd: 2.5,           // $/month free tier
+  },
+};
+
+/* ── Live Events Calendar ──
+   Major tentpole events player can bid for rights, produce, or cover. */
+DATA.LIVE_EVENTS = [
+  // Awards Season
+  {id:"oscars", name:"Academy Awards", emoji:"🏆", type:"awards", week:8, dur:1, prestige:100, viewers:18, adRate:4.5, rightsCost:120, categories:["best_picture","director","actor","actress","script"], desc:"The big night. Your nominees = free marketing."},
+  {id:"globes", name:"Golden Globes", emoji:"🌐", type:"awards", week:4, dur:1, prestige:75, viewers:12, adRate:3.2, rightsCost:60, categories:["drama","comedy","director","actor","actress"], desc:"Boozy precursor. Sets Oscar narratives."},
+  {id:"emmys", name:"Emmy Awards", emoji:"📺", type:"awards", week:36, dur:1, prestige:65, viewers:8, adRate:2.8, rightsCost:40, categories:["drama","comedy","limited","actor","actress"], desc:"TV's biggest night. Your shows shine."},
+  {id:"guilds", name:"Guild Awards (SAG/DGA/WGA)", emoji:"🎭", type:"awards", week:6, dur:1, prestige:60, viewers:5, adRate:2.0, rightsCost:25, categories:["ensemble","director","writer"], desc:"Industry-voted. Best Oscar predictor."},
+  {id:"critics", name:"Critics Choice", emoji:"⭐", type:"awards", week:5, dur:1, prestige:50, viewers:4, adRate:1.8, rightsCost:18, categories:["picture","director","acting"], desc:"Critics' darlings. Momentum builder."},
+
+  // Film Festivals
+  {id:"cannes", name:"Cannes Film Festival", emoji:"🇫🇷", type:"festival", week:20, dur:2, prestige:95, viewers:2, adRate:1.5, rightsCost:0, market:true, buyers:25, desc:"Palme d'Or hunt. Market = buy/sell rights."},
+  {id:"venice", name:"Venice Film Festival", emoji:"🇮🇹", type:"festival", week:34, dur:2, prestige:90, viewers:1.5, adRate:1.3, rightsCost:0, market:true, buyers:20, desc:"Fall festival launchpad. Oscar buzz starts here."},
+  {id:"tiff", name:"Toronto (TIFF)", emoji:"🇨🇦", type:"festival", week:37, dur:2, prestige:85, viewers:2.5, adRate:1.4, rightsCost:0, market:true, buyers:30, desc:"People's Choice = Oscar frontrunner. Big market."},
+  {id:"sundance", name:"Sundance", emoji:"🏔", type:"festival", week:4, dur:2, prestige:80, viewers:1, adRate:1.0, rightsCost:0, market:true, buyers:35, desc:"Indie mecca. Breakout hits & bidding wars."},
+  {id:"berlin", name:"Berlinale", emoji:"🇩🇪", type:"festival", week:10, dur:2, prestige:75, viewers:0.8, adRate:0.9, rightsCost:0, market:true, buyers:18, desc:"Political, arty. Golden Bear prestige."},
+  {id:"sxsw", name:"SXSW", emoji:"🎸", type:"festival", week:11, dur:2, prestige:60, viewers:1.2, adRate:1.1, rightsCost:0, market:true, buyers:22, desc:"Tech+film+music. Genre breakouts live here."},
+
+  // Major Premieres (your films)
+  {id:"premiere_la", name:"LA Premiere", emoji:"🌴", type:"premiere", week:0, dur:0.5, prestige:30, viewers:0.5, adRate:2.0, rightsCost:0, desc:"Red carpet. Press junket. Hype engine."},
+  {id:"premiere_nyc", name:"NYC Premiere", emoji:"🗽", type:"premiere", week:0, dur:0.5, prestige:28, viewers:0.4, adRate:1.8, rightsCost:0, desc:"East coast launch. Critics screenings."},
+  {id:"premiere_london", name:"London Premiere", emoji:"🇬🇧", type:"premiere", week:0, dur:0.5, prestige:25, viewers:0.3, adRate:1.5, rightsCost:0, desc:"European launch. Intl press."},
+  {id:"premiere_tokyo", name:"Tokyo Premiere", emoji:"🇯🇵", type:"premiere", week:0, dur:0.5, prestige:22, viewers:0.35, adRate:1.6, rightsCost:0, desc:"Asian market kickoff. Anime/manga collabs."},
+
+  // Sports (licensed)
+  {id:"superbowl", name:"Super Bowl", emoji:"🏈", type:"sports", week:5, dur:1, prestige:40, viewers:110, adRate:7.0, rightsCost:500, exclusive:true, desc:"Biggest TV event. Halftime = cultural moment."},
+  {id:"worldcup", name:"FIFA World Cup Final", emoji:"⚽", type:"sports", week:0, dur:1, prestige:45, viewers:90, adRate:6.0, rightsCost:400, exclusive:true, freq:208, desc:"Every 4 years. Global phenomenon."},
+  {id:"olympics", name:"Olympic Games", emoji:"🏅", type:"sports", week:0, dur:14, prestige:50, viewers:60, adRate:4.0, rightsCost:800, exclusive:true, freq:208, desc:"17 days. Multi-sport. National pride."},
+  {id:"nba_finals", name:"NBA Finals", emoji:"🏀", type:"sports", week:24, dur:14, prestige:35, viewers:15, adRate:3.5, rightsCost:180, exclusive:false, desc:"Best-of-7. Urban demo. Sneaker culture."},
+  {id:"world_series", name:"World Series", emoji:"⚾", type:"sports", week:42, dur:10, prestige:30, viewers:12, adRate:3.0, rightsCost:120, exclusive:false, desc:"Fall classic. Family co-viewing."},
+
+  // Cultural Events
+  {id:"met_gala", name:"Met Gala", emoji:"👗", type:"cultural", week:18, dur:1, prestige:40, viewers:3, adRate:2.5, rightsCost:15, desc:"Fashion's biggest night. Celebrity = buzz."},
+  {id:"comic_con", name:"San Diego Comic-Con", emoji:"🦸", type:"cultural", week:28, dur:4, prestige:55, viewers:1.5, adRate:1.8, rightsCost:10, market:true, buyers:50, desc:"Fandom central. Trailers drop. IP deals happen."},
+  {id:"d23", name:"D23 Expo", emoji:"✨", type:"cultural", week:32, dur:3, prestige:50, viewers:2, adRate:2.0, rightsCost:8, market:true, buyers:30, desc:"Disney's show. But every studio shows up."},
+];
+
+/* Event participation types for player */
+DATA.EVENT_PARTICIPATION = [
+  {id:"broadcast", label:"Broadcast Rights", costMult:1.0, revenue:"ads", control:0.3, desc:"Air the event. Sell ads. No creative control."},
+  {id:"produce", label:"Produce Coverage", costMult:1.5, revenue:"ads+sponsor", control:0.7, desc:"Your crew, your talent. Sponsorship packages."},
+  {id:"host", label:"Host Ceremony", costMult:2.0, revenue:"ads+sponsor+license", control:1.0, desc:"Own the IP. License globally. Maximum upside."},
+  {id:"submit", label:"Submit Film/Series", costMult:0.1, revenue:"prestige", control:0.0, desc:"Enter your content. Win = marketing rocket fuel."},
+];
+
+/* Ad inventory & pricing */
+DATA.AD_INVENTORY = {
+  tv: {
+    spot30: {base:0.05, primeMult:3.0, targetMult:{18_49:1.5, 25_54:1.3, families:1.2}},
+    spot60: {base:0.09, primeMult:2.8, targetMult:{18_49:1.4, 25_54:1.2, families:1.1}},
+    sponsorship: {base:0.5, primeMult:2.0, targetMult:{18_49:1.6, 25_54:1.4}},
+    integration: {base:1.0, primeMult:1.5, targetMult:{18_49:1.8, 25_54:1.5}}, // branded content
+  },
+  streaming: {
+    preRoll: {base:0.015, cpm:25},
+    midRoll: {base:0.025, cpm:35},
+    postRoll: {base:0.008, cpm:18},
+    pause: {base:0.012, cpm:30},
+    sponsored: {base:0.05, cpm:50}, // sponsored content row
+  },
+};
+
+/* Rights acquisition market (for films/series to air on your channels/streaming) */
+DATA.RIGHTS_MARKET = {
+  windows: [
+    {name:"Pay-1 (First Window)", weeks:0, mult:1.0, desc:"Day-and-date with theatrical/streaming premiere"},
+    {name:"Pay-2 (Early)", weeks:12, mult:0.7, desc:"After PVOD/early streaming"},
+    {name:"Pay-3 (Library)", weeks:52, mult:0.35, desc:"Deep library. Cheap filler."},
+    {name:"Syndication", weeks:104, mult:0.2, desc:"Rerun rights. Pennies per play."},
+  ],
+  genrePremium: {action:1.2, horror:1.15, comedy:1.1, animation:1.25, sports:2.0, concert:1.3, documentary:0.8},
+  freshnessDecay: 0.005, // per week after window opens
+};
+
+/* ── Live On-Air Hosts & Animated Personalities ── */
+DATA.LIVE_HOSTS = [
+  {
+    id: "rex",
+    name: "Rex Sterling",
+    role: "Chief News & Primetime Anchor",
+    avatar: "male-show",
+    color: "#3b82f6",
+    quote: "Good evening, Hollywood. Tonight the box office numbers speak for themselves.",
+    perk: "+15% news & movie broadcast viewers",
+    specialty: "movies",
+    trait: "Gravitas"
+  },
+  {
+    id: "chloe",
+    name: "Chloe Glamour",
+    role: "Red Carpet & Gala Hostess",
+    avatar: "female-show",
+    color: "#f5b942",
+    quote: "Darlings! The fashion, the stars, the drama—it is all happening live on our carpet!",
+    perk: "+25% premiere & awards show buzz",
+    specialty: "prestige",
+    trait: "Glamour"
+  },
+  {
+    id: "buck",
+    name: "Coach Buck",
+    role: "Live Sports & Action Caster",
+    avatar: "male-cheer",
+    color: "#22c55e",
+    quote: "Unbelievable play! The crowd is on their feet and the ratings are through the roof!",
+    perk: "+30% sports rights & action broadcast reach",
+    specialty: "sports",
+    trait: "High Voltage"
+  },
+  {
+    id: "reely",
+    name: "Reely the Reel",
+    role: "Animated Studio Mascot",
+    avatar: "mascot",
+    color: "#a855f7",
+    quote: "Roll camera! Pop the corn! We are making cinema history every single week!",
+    perk: "+20% kids & family animation ratings",
+    specialty: "family",
+    trait: "Playful"
+  }
+];
+
+DATA.liveChannel = (id) => (DATA.LIVE_CHANNELS || []).find(c => c.id === id);
+DATA.liveEvent = (id) => (DATA.LIVE_EVENTS || []).find(e => e.id === id);
+DATA.liveHost = (id) => (DATA.LIVE_HOSTS || []).find(h => h.id === id);
+
+/* Live tab state (added to game state) */
+DATA.LIVE_DEFAULTS = {
+  channels: [],           // owned channels {id, schedule[24], adSold[24]}
+  activeChannel: "bow_movies",
+  activeHost: "rex",
+  subTab: "linear",
+  streaming: {            // streaming service state
+    live: false,
+    topic: "feature_premiere",
+    quality: "1080p",
+    ccv: 1.2,
+    peakCcv: 1.2,
+    totalHours: 0,
+    subConversions: 0,
+    chatMessages: []
+  },
+  events: {               // event participation
+    bids: {},             // active rights bids
+    won: [],              // won rights {eventId, type, week}
+    produced: [],         // produced coverage {eventId, week, cost, revenue}
+    submissions: {},      // festival submissions {festId: filmId}
+    premieres: []         // hosted premieres
+  },
+  hosts: {
+    rex: { level: 1, xp: 0, charisma: 75, energy: 90 },
+    chloe: { level: 1, xp: 0, charisma: 82, energy: 95 },
+    buck: { level: 1, xp: 0, charisma: 78, energy: 88 },
+    reely: { level: 1, xp: 0, charisma: 70, energy: 100 }
+  },
+  adSales: {              // ad inventory sold
+    tv: {},               // {channelId_slot: {advertiser, rate, weeks}}
+    streaming: {},        // {format: {sold, rate}}
+  },
+  schedule: [],           // unified schedule for UI
+};
+
+/* ── SAVE_VERSION bump for v30 ── */
+DATA.SAVE_VERSION = 14;
+
