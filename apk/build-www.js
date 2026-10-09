@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname, "..");
 const WWW = path.join(__dirname, "www");
 
 const FILES = [
-  "index.html", "style.css", "data.js", "engine.js", "i18n.js", "ui.js",
+  "index.html", "design-tokens.css", "style.css", "data.js", "engine.js", "i18n.js", "ui.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 

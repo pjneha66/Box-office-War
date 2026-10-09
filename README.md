@@ -16,7 +16,25 @@ Every decision compounds. A hit creates a franchise. A franchise funds a park. A
 
 ---
 
-## 🆕 v28.x — The Big Update Wave (Oct 2026)
+## v30.0 — Live Entertainment, Broadcasting & Visual Identity Update (Oct 2026)
+
+Box Office War v30 introduces an expansive television broadcasting, live event, and visual identity upgrade:
+
+- **New Visual Identity & Design Tokens**: Complete interface overhaul backed by a centralized CSS custom property system (`design-tokens.css`). Features an obsidian dark palette, typography powered by Outfit (display), Inter (UI), and JetBrains Mono (data tickers), retro CRT monitor viewports with subtle scanline animations, and pulsing live status beacons.
+- **Live Streaming Studio**: Live on-air broadcast control room with concurrent viewership telemetry (CCV), interactive simulated viewer chat with Super Chats, sponsor ad-break monetization, and direct subscriber growth synergies for player-owned streaming services (+4% weekly subscriber conversion).
+- **Linear TV Networks & 24-Hour EPG Schedule Grid**: Operate up to 8 broadcast networks (BOW Movies, BOW Prestige, BOW Action, BOW Family, BOW After Dark, BOW Sports, BOW News, BOW Kids). Manage a 24-hour hourly grid with prime-time weighted ad slots, format blocks (Cartoons, Variety, Daytime, News, Blockbuster, Cult, Reruns, Sports), and 1-click studio catalog syndication.
+- **Annual Live Events System**: 17-event calendar simulating Hollywood's biggest moments across the 52-week broadcast cycle. Compete in Academy and Guild awards, submit films to A-list international film festival competitions (Cannes, Venice, Toronto, Sundance, Berlin, SXSW) for Grand Jury Prizes and hype multipliers, host red carpet star premieres in major cultural capitals, and capitalize on live sports finals (Super Bowl, NBA Finals, World Series, World Cup).
+- **Animated Vector Personalities**: 4 fully animated SVG on-air hosts with pure CSS keyframe choreography:
+  - **Rex Sterling** (Chief News & Primetime Anchor): Breathing chest expansion, subtle head nodding, eye blinks, and camera tally indicator. Perk: +15% news and movie viewership.
+  - **Chloe Glamour** (Red Carpet & Gala Hostess): Posture sway, head tilt, diamond necklace glimmer, and golden handheld mic. Perk: +25% premiere and awards show buzz.
+  - **Coach Buck** (Live Sports & Action Caster): Energetic head bounce, expressive commentary mouth, and bouncing audio VU equalizer bars. Perk: +30% sports and action reach.
+  - **Reely the Reel** (Animated Studio Mascot): 360-degree 35mm gold reel spin cycle, mascot wobble, and bowtie. Perk: +20% family and animation ratings.
+  - Includes host XP progression (Lv.1 to Lv.10), charisma growth, and media coaching.
+- **Android APK v30.0**: Updated Capacitor Android wrapper with versionCode 30 and versionName 30.0, offline web bundle synchronization, and self-signed release APK packaging.
+
+---
+
+## v28.x — The Big Update Wave (Oct 2026)
 
 **v28 — Reference Update** — studied four reference tycoon games (see [REFERENCE-NOTES.md](REFERENCE-NOTES.md) — mechanics only, all code original):
 

@@ -16,3 +16,4 @@ apk/android/local.properties
 apk/android/capacitor-cordova-android-plugins/
 apk/android/app/src/main/assets/
 kenney-assets/
+.vscode/
