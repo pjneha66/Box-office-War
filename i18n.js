@@ -130,9 +130,48 @@ function tNews(key, params={}){
   return news[key] || null;
 }
 
+/* ── v29: direction + numerals ── */
+const LANGS = {
+  en:{ name:"English", locale:"en", dir:"ltr", numerals:"latn" },
+  hi:{ name:"हिन्दी", locale:"hi", dir:"ltr", numerals:"deva" }
+};
+function langMeta(){ return LANGS[LANG] || LANGS.en; }
+function resolvedDir(){ return langMeta().dir || "ltr"; }
+function applyDirection(){
+  try{
+    const d=resolvedDir();
+    document.documentElement.dir=d;
+    document.body.classList.toggle("rtl", d==="rtl");
+  }catch(e){}
+}
+function setDirection(d){
+  try{
+    const m=langMeta();
+    if(d && d!==m.dir){ LANGS[LANG]={...m, dir:d}; }
+    applyDirection();
+  }catch(e){}
+}
+function setNumerals(n){
+  try{
+    window.__bowNumerals=(n==="deva")?"deva":"latn";
+    if(typeof resetFormatCache==="function") resetFormatCache();
+    try{ localStorage.setItem("bow_numerals", window.__bowNumerals); }catch(e){}
+  }catch(e){}
+}
+try{ const n=localStorage.getItem("bow_numerals"); if(n) window.__bowNumerals=n; }catch(e){}
+function gName(genre){
+  const g=DATA.GENRES[genre]; if(!g) return genre;
+  const key="genre."+genre; const tr=(I18N[LANG]||{})[key];
+  return tr? (g.emoji?g.emoji+" ":"")+tr : g.name;
+}
+function roleName(kind){
+  const key="role."+kind; const tr=(I18N[LANG]||{})[key];
+  return tr || kind;
+}
+
 /* Export for use in other modules */
 if(typeof module!=="undefined" && module.exports){
-  module.exports = { t, setLang, LANG, fmtHI, fmtHIDate, fmtHIWeek, fmtHIMoney, tEvent, tNews };
+  module.exports = { t, setLang, LANG, fmtHI, fmtHIDate, fmtHIWeek, fmtHIMoney, tEvent, tNews, resolvedDir, applyDirection, setDirection, setNumerals, gName, roleName };
 };
 
 let LANG = "en";

@@ -198,3 +198,67 @@ STABLE — NOT RELEASE CERTIFIED
 Final certification decision: suite execution still outstanding — one shell session away.
 
 STABLE — NOT RELEASE CERTIFIED
+
+# v29 CERTIFICATION UPDATE
+
+Date: 2026-10-11. Browser: headless Chromium (real app over HTTP), plus the committed Node suites.
+
+## Blocker 1 — RESOLVED: the automated suite has now been executed
+
+The standing blocker was "`node test/smoke.js` and `node test/ui-test.mjs` have zero runs in any
+session; this environment provides no shell". That is no longer true.
+
+```
+$ npm test
+ALL CHECKS PASSED ✅          (test/smoke.js  — engine invariants, save migration, 260-week run)
+UI TEST PASSED ✅             (test/ui-test.mjs — 62 steps, real index.html in jsdom)
+BALANCE HARNESS PASSED ✅      (test/balance.js — 6 seeds × 120 weeks)
+```
+
+`test/ui-test.mjs` grew from 60 to **62** steps and was updated where the product changed
+deliberately (OTT sub-tabs, the stock chart moving from a bar row to an annotated SVG line).
+
+## Evidence gap — CLOSED: the six scenario arcs are now scripted and repeatable
+
+`test/arcs.js` (+ `test/arcs-body.js`) plays all six careers end-to-end and asserts the same
+invariants in each. Run with `npm run test:arcs`.
+
+| Arc | Result | Notes |
+|---|---|---|
+| blockbuster | survives most runs | swings at the biggest affordable picture, keeps a runway |
+| flop | survives most runs | cheap rushed pictures — the cheapest strategy is also the most survivable |
+| debt | usually bankrupt | expected: borrows to the hilt, no repayment policy |
+| spree | usually bankrupt | expected: maximum concurrent production outruns the war chest |
+| franchise | varies | sequels + merch + parks + store + publishing |
+| streamer | usually bankrupt | the hardest career — see finding below |
+
+Every arc passes: no NaN week, finite cash/gross, no negative debt, export/import round-trip.
+
+These arcs are **not deterministic** — the engine calls `Math.random()` throughout and `G.seed` is
+only a display label, so which career survives varies between runs. The invariants are the
+assertion; the outcome table is evidence, not a spec.
+
+**Balance finding worth acting on:** a $250M streamer launch plus studio overhead is very hard to
+survive on a mid-size slate. Even a policy that waits for a $250M + 20-weeks-of-bills reserve and
+then feeds the platform still runs out of money around week 113. Either the launch cost, the churn
+floor, or the platform's early income needs a look — this is the one career the scripted AI cannot
+keep alive.
+
+## Item 3 — keyboard/SR pass
+
+Partially addressed in v29: the modal focus trap now moves focus **into** the dialog on open,
+restores it to the triggering control on close, and re-computes the focusable list on every Tab so
+a re-rendered modal can't leak focus. Colour is no longer the only carrier of meaning (colour-blind
+cue glyphs, on by default). A full screen-reader walkthrough is still outstanding.
+
+## Also verified this round
+
+- Responsive: start screen and in-game Studio tab captured at **320 / 375 / 430 px** with no
+  horizontal overflow (headless Chrome enforces a ~500px minimum window, so the narrow widths were
+  measured inside same-origin iframes rather than by shrinking the window).
+- PWA: real PNG icons (192/512) generated and wired into the manifest; the install prompt is
+  captured and surfaced as a Settings card; the service-worker cache was bumped to `bow-v29-cache`
+  and the new assets added to its pre-cache list.
+
+**Status: the previous "suite unrun" blocker is closed. Remaining: screen-reader walkthrough and the
+streamer-arc balance question.**

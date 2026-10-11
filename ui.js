@@ -7887,3 +7887,186 @@ function renderCharReely(){
     "</svg>";
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   v29 UI additions merged into v30 for v31 release
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── auto-play speed ── */
+let AUTO_SPEED = 1;
+try{ AUTO_SPEED = parseInt(localStorage.getItem("bow_autospeed")||"1",10); }catch(e){}
+function autoIntervalMs(){ return Math.round(1100/AUTO_SPEED); }
+function setAutoSpeed(n){
+  AUTO_SPEED = [1,2,4].includes(+n)? +n : 1;
+  try{ localStorage.setItem("bow_autospeed", String(AUTO_SPEED)); }catch(e){}
+  const b=document.getElementById("btnSpeed"); if(b) b.textContent=AUTO_SPEED+"×";
+  if(AUTO){ clearInterval(AUTO); AUTO=setInterval(()=>{ if(!G){toggleAuto(false);return;} doWeek(1); }, autoIntervalMs()); }
+}
+
+/* ── colour-blind cues ── */
+let CB_CUES = true;
+try{ CB_CUES = localStorage.getItem("bow_cb") !== "0"; }catch(e){}
+function applyCbCues(){
+  try{ document.body.classList.toggle("cb-cues", !!CB_CUES); }catch(e){}
+}
+applyCbCues();
+
+/* ── calendar genre heat overlay ── */
+function seasonCorridorHeatmap(){
+  if(!DATA.SEASONS) return "";
+  const rows=DATA.SEASONS;
+  let h="<div class='heat-wrap'>";
+  h+="<div class='heat-row heat-head'><span></span>";
+  for(const g of Object.keys(DATA.GENRES)) h+="<span class='heat-g'>"+DATA.GENRES[g].emoji+"</span>";
+  h+="</div>";
+  for(const r of rows){
+    h+="<div class='heat-row'><span class='heat-w'>"+r.name+"</span>";
+    for(const g of Object.keys(DATA.GENRES)){
+      const d=(r.demand||{})[g]||1;
+      const cls=d>=1.15?"h-hot":d>=1.05?"h-warm":d>=0.95?"h-mid":"h-cold";
+      h+="<span class='heat-cell "+cls+"' title='"+DATA.GENRES[g].name+": "+fmtNum(d,2)+"×'></span>";
+    }
+    h+="</div>";
+  }
+  return h+"</div>";
+}
+
+/* ── chemistry web SVG ── */
+function chemOf(a,b){
+  if(!a||!b) return 0;
+  const same=(a.genre===b.genre)?0.15:0;
+  const tierDiff=Math.abs((a.power||0)-(b.power||0));
+  const tierBonus=(tierDiff<=1)?0.2:(tierDiff<=2)?0.1:0;
+  return clamp((a.power||0)*0.1 + (b.power||0)*0.1 + same + tierBonus + 0.1, 0, 1);
+}
+function filmsTogether(a,b){
+  return (G.films||[]).filter(f=>f.cast && f.cast.find(c=>c.id===a.id) && f.cast.find(c=>c.id===b.id));
+}
+function chemistryWebSVG(cast, opts){
+  opts=opts||{};
+  const size=opts.size||280;
+  const r=size*0.38;
+  const cx=size/2, cy=size/2;
+  const nodes=(cast||[]).slice(0,8);
+  if(nodes.length<2) return "";
+  let svg="<svg class='chem-wrap' viewBox='0 0 "+size+" "+size+"'>";
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const ch=chemOf(nodes[i],nodes[j]);
+      if(ch<0.15) continue;
+      const a1=(Math.PI*2*i/nodes.length)-Math.PI/2;
+      const a2=(Math.PI*2*j/nodes.length)-Math.PI/2;
+      const x1=cx+Math.cos(a1)*r, y1=cy+Math.sin(a1)*r;
+      const x2=cx+Math.cos(a2)*r, y2=cy+Math.sin(a2)*r;
+      const op=Math.round(ch*100)/100;
+      const w=Math.max(1, ch*3);
+      svg+="<line x1='"+fmtNum(x1,1)+"' y1='"+fmtNum(y1,1)+"' x2='"+fmtNum(x2,1)+"' y2='"+fmtNum(y2,1)+"' stroke='var(--gold)' stroke-width='"+fmtNum(w,1)+"' opacity='"+op+"'/>";
+    }
+  }
+  for(let i=0;i<nodes.length;i++){
+    const a=(Math.PI*2*i/nodes.length)-Math.PI/2;
+    const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+    const t=nodes[i];
+    svg+="<g class='chem-node'><circle cx='"+fmtNum(x,1)+"' cy='"+fmtNum(y,1)+"' r='18' fill='var(--bg-2)' stroke='var(--gold)' stroke-width='2'/>";
+    svg+="<text x='"+fmtNum(x,1)+"' y='"+fmtNum(y,1)+"' text-anchor='middle' dominant-baseline='central' fill='var(--text)' font-size='11'>"+esc(t.name.split(" ")[0])+"</text></g>";
+  }
+  return svg+"</svg>";
+}
+
+/* ── deepfake modal ── */
+function deepfakeModal(){
+  if(!G || !G.pendingDeepfake) return;
+  const df=G.pendingDeepfake;
+  const tiers=deepfakeDifficulty();
+  const tier=Math.min(df.tier||0, tiers.length-1);
+  const cfg=tiers[tier];
+  let h="<div class='modal-head'><h3>🎭 Deepfake Drill</h3></div>";
+  h+="<div class='modal-body'>";
+  h+="<p>A viral deepfake is circulating. Spot the fake frames before the clock runs out.</p>";
+  h+="<div class='df-timer'>⏱ "+cfg.time+"s</div>";
+  h+="<div class='df-frames'>";
+  for(let i=0;i<cfg.frames;i++){
+    h+="<button class='df-frame' data-frame='"+i+"'>Frame "+(i+1)+"</button>";
+  }
+  h+="</div>";
+  h+="<div class='df-actions'><button class='btn btn-alt' id='dfDefer'>Defer (−rep)</button><button class='btn btn-primary' id='dfSolve'>Submit</button></div>";
+  h+="</div>";
+  openModal(h);
+  bindView("#dfDefer", ()=>{ G.pendingDeepfake=null; closeModal(); log("Deepfake deferred — studio rep hit.","bad"); saveGame(); });
+  bindView("#dfSolve", ()=>{ resolveDeepfake(true, {tier}); G.pendingDeepfake=null; closeModal(); toast("Deepfake resolved! Streak: "+(G.dfStreak||0), "good"); });
+}
+
+/* ── divisions panel ── */
+function divisionsPanel(){
+  let h="<div class='divisions-grid'>";
+  // Game Studio
+  const gs=G.gameStudio;
+  h+="<div class='div-card'><div class='div-icon'>🎮</div><div class='div-main'><b>Game Studio</b>";
+  h+="<div class='div-sub'>"+(gs? (gs.title||"In development") : "No active project")+"</div>";
+  h+="</div><div class='div-side'>"+(gs? fmtMoney(gs.weekly||0)+"/wk" : "—")+"</div></div>";
+  // Store
+  const sl=storeLevel();
+  h+="<div class='div-card'><div class='div-icon'>🏪</div><div class='div-main'><b>Merchandise</b>";
+  h+="<div class='div-sub'>Level "+sl+" — "+fmtNum(storeMult(),1)+"× multiplier</div>";
+  h+="</div><div class='div-side'>"+fmtMoney(storeDirectIncome())+"/wk</div></div>";
+  // Publishing
+  const pub=(G.franchises||[]).filter(f=>f.publishing).length;
+  const pubInc=(G.franchises||[]).reduce((s,f)=>s+publishingIncome(f),0);
+  h+="<div class='div-card'><div class='div-icon'>📚</div><div class='div-main'><b>Publishing</b>";
+  h+="<div class='div-sub'>"+pub+" franchise"+(pub!==1?"s":"")+" licensed</div>";
+  h+="</div><div class='div-side'>"+fmtMoney(pubInc)+"/wk</div></div>";
+  // Comics
+  const com=(G.franchises||[]).reduce((s,f)=>s+(f.comics||0),0);
+  const comInc=(G.franchises||[]).reduce((s,f)=>s+comicsIncome(f),0);
+  h+="<div class='div-card'><div class='div-icon'>💬</div><div class='div-main'><b>Comics</b>";
+  h+="<div class='div-sub'>"+com+" line"+(com!==1?"s":"")+" running</div>";
+  h+="</div><div class='div-side'>"+fmtMoney(comInc)+"/wk</div></div>";
+  h+="</div>";
+  return h;
+}
+
+/* ── board vote modal ── */
+function boardVoteModal(res){
+  if(!res || !res.votes) return;
+  let h="<div class='modal-head'><h3>🗳 Board Vote</h3></div><div class='modal-body'>";
+  h+="<p>Greenlight vote for <b>"+esc(res.title||"Untitled")+"</b></p>";
+  h+="<div class='vote-list'>";
+  for(const v of res.votes){
+    const cls=v.approved?"vote-yes":"vote-no";
+    h+="<div class='vote-row "+cls+"'><span>"+esc(v.name)+"</span><span>"+(v.approved?"✓ Yes":"✕ No")+" ("+v.score+")</span></div>";
+  }
+  h+="</div>";
+  h+="<p class='vote-result "+(res.passed?"pass":"fail")+"'>"+(res.passed?"✓ Approved":"✕ Rejected")+" — "+res.yes+"/"+res.total+"</p>";
+  h+="</div>";
+  openModal(h);
+}
+
+/* ── what-if share links ── */
+function checkWhatIfLink(){
+  if(!location.hash.startsWith("#whatif=")) return;
+  try{
+    const p=new URLSearchParams(location.hash.slice(8));
+    const a=parseFloat(p.get("a")||"0"), b=parseFloat(p.get("b")||"0");
+    if(a&&b) toast("What-if: "+fmtMoney(a)+" vs "+fmtMoney(b), "info");
+  }catch(e){}
+}
+
+/* ── install prompt (PWA) ── */
+function installPromptModal(){
+  if(!window.__bowInstallPrompt){ toast("Install not available — try from browser menu.", "bad"); return; }
+  window.__bowInstallPrompt.prompt();
+  window.__bowInstallPrompt.userChoice.then(c=>{ if(c.outcome==="accepted") toast("Installing...", "good"); window.__bowInstallPrompt=null; });
+}
+
+
+/* ── v29 more sheet (for test compatibility) ── */
+function moreSheet(){
+  const tabs = ["dashboard","studio","develop","productions","boxoffice","fans","ott","live","empire","library","games","finance"];
+  let h="<h3>⋯ All sections</h3><div class='plan-pick'>";
+  tabs.forEach(tab=>{
+    h+="<div class='plan-opt"+(TAB===tab?" sel":"")+"' data-more-tab='"+tab+"'><h5>"+tab+"</h5></div>";
+  });
+  h+="</div>";
+  const v=openModal(h);
+  v.querySelectorAll("[data-more-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.moreTab); });
+}

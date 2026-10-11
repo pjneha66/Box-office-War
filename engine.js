@@ -8616,3 +8616,116 @@ function trainLiveHost(hostId){
   sfx("applause");
   return { ok:true };
 }
+
+/* ═══════════════════════════════════════════════════════════
+   v29 additions merged into v30 for v31 release
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── locale-aware number formatting (memoised) ── */
+function LOCALE(){ return (typeof LANG!=="undefined" && LANG && LANG.locale) ? LANG.locale : "en"; }
+function num(v){ const n=Number(v); return Number.isFinite(n)? n : 0; }
+const _NFCACHE = Object.create(null);
+function resetFormatCache(){ for(const k in _NFCACHE) delete _NFCACHE[k]; }
+function _nf(loc, opts){
+  let nu = "latn";
+  try{ if(typeof window!=="undefined" && window.__bowNumerals) nu=window.__bowNumerals; }catch(e){}
+  const key = loc + "|" + nu + "|" + (opts ? opts.minimumFractionDigits+"_"+opts.maximumFractionDigits : "i");
+  let f = _NFCACHE[key];
+  if(!f){
+    const o = Object.assign({numberingSystem:nu}, opts||{});
+    try{ f = new Intl.NumberFormat(loc, o); }catch(e){ f = new Intl.NumberFormat("en", o); }
+    _NFCACHE[key] = f;
+  }
+  return f;
+}
+function fmtInt(v){ return _nf(LOCALE()).format(Math.round(num(v))); }
+function fmtNum(v, dec){
+  const d = (dec==null?0:dec);
+  return _nf(LOCALE(), {minimumFractionDigits:d, maximumFractionDigits:d}).format(num(v));
+}
+function fmtPct(v, dec){ return fmtNum(v, dec==null?0:dec)+"%"; }
+function fmtMoney(v){
+  const n=num(v), s=n<0?"−":"";
+  return s+"$"+fmtNum(Math.abs(n), (Math.abs(n)<1&&n!==0)?2:1)+"M";
+}
+function fmtM(v){ const n=num(v); return "$"+fmtNum(Math.abs(n),1)+"M"; }
+function fmtG(v){ const n=num(v); return "∅"+fmtNum(Math.abs(n),1); }
+function fmtSubs(v){
+  const n=num(v);
+  if(n>=1e9) return fmtNum(n/1e9,1)+"B";
+  if(n>=1e6) return fmtNum(n/1e6,1)+"M";
+  if(n>=1e3) return fmtNum(n/1e3,1)+"K";
+  return fmtNum(n,0);
+}
+
+/* ── merchandise store ── */
+function storeLevel(){ return (G.store && G.store.level) || 0; }
+function storeDef(){ return (typeof DATA.storeLevelDef==="function")? DATA.storeLevelDef(storeLevel()) : null; }
+function nextStoreDef(){ return (typeof DATA.storeLevelDef==="function")? DATA.storeLevelDef(storeLevel()+1) : null; }
+function storeMult(){
+  let m=1; for(const s of (DATA.STORE||[])) if(s.level<=storeLevel()) m+=s.mult; return m;
+}
+function storeUpkeep(){ let u=0; for(const s of (DATA.STORE||[])) if(s.level<=storeLevel()) u+=s.upkeep; return Math.round(u*100)/100; }
+function storeDirectIncome(){
+  const lvl=storeLevel(); if(!lvl) return 0;
+  const base=0.8, growth=0.35; return Math.round((base + lvl*growth) * (G.infl||1) * 10)/10;
+}
+function buildStore(){
+  const def=nextStoreDef(); if(!def) return {ok:false, reason:"Max level reached"};
+  if(G.studio.cash < def.cost) return {ok:false, reason:"Need "+fmtMoney(def.cost)};
+  spend("store", def.cost); G.store=G.store||{}; G.store.level=(G.store.level||0)+1;
+  log("Opened "+def.name+" — merch multiplier +"+fmtNum(def.mult,1)+"×, upkeep +"+fmtMoney(def.upkeep)+"/wk", "good");
+  saveGame(); return {ok:true};
+}
+
+/* ── publishing + comics ── */
+function publishingIncome(fr){ return (fr && fr.publishing)? Math.round((1.1 + fr.tier*0.85) * (fr.decay||1) * 10)/10 : 0; }
+function comicsIncome(fr){ return (fr && fr.comics)? Math.round(fr.comics * (0.8 + fr.tier*0.4) * (fr.decay||1) * 10)/10 : 0; }
+function comicCost(fr){ const C=DATA.COMICS||{baseCost:6,perTier:3}; return Math.round(C.baseCost + (fr?fr.tier:1)*C.perTier); }
+function releaseComic(frId){
+  const fr=G.franchises.find(f=>f.id===frId); if(!fr) return {ok:false, reason:"Franchise not found"};
+  if(fr.comics>=3) return {ok:false, reason:"Max 3 comic lines"};
+  const cost=comicCost(fr); if(G.studio.cash<cost) return {ok:false, reason:"Need "+fmtMoney(cost)};
+  spend("comic", cost); fr.comics=(fr.comics||0)+1;
+  const spike=Math.round((4+fr.tier*2.5)*(fr.decay||1)*10)/10;
+  G.studio.cash=Math.round((G.studio.cash+spike)*100)/100;
+  log("Released "+fr.name+" comic #"+fr.comics+" — one-off +"+fmtMoney(spike), "good");
+  saveGame(); return {ok:true, spike};
+}
+
+/* ── empire divisions income ── */
+function empireDivisionsIncome(){
+  let total=0;
+  for(const fr of (G.franchises||[])){
+    total += publishingIncome(fr) + comicsIncome(fr);
+  }
+  total += storeDirectIncome();
+  return Math.round(total*100)/100;
+}
+
+/* ── deepfake drill ── */
+function deepfakeDifficulty(){ return DATA.DF_TIERS || [{frames:3, time:14, name:"Standard"}, {frames:6, time:10, name:"Hard"}, {frames:9, time:7, name:"Expert"}]; }
+function resolveDeepfake(correct, opts){
+  opts=opts||{};
+  const tier=(opts.tier||0);
+  const tiers=deepfakeDifficulty();
+  const cfg=tiers[Math.min(tier, tiers.length-1)];
+  const streak=(G.dfStreak||0);
+  const bonus=correct ? Math.max(0, cfg.frames-streak) : 0;
+  const cost=correct ? 0 : Math.round((2+tier)*10)/10;
+  if(correct){ G.dfStreak=Math.max(streak+1, cfg.frames); }
+  else{ G.dfStreak=0; if(cost>0) spend("legal", cost); }
+  saveGame();
+  return {correct, streak:G.dfStreak, bonus, cost, cfg};
+}
+
+/* ── cameo quoting ── */
+function cameoQuote(t){
+  if(!t) return {eligible:false};
+  const list=Math.round(actorFee(t)*0.3*10)/10;
+  const power=t.power||0;
+  const isPromo = power>=5 && G.studio && G.studio.rep>=50 && Math.random()<0.25;
+  const fee = isPromo ? Math.round(list*0.5*10)/10 : list;
+  return {eligible:power>=4, list, fee, promo:isPromo};
+}
+function cameoWizardCost(t){ const q=cameoQuote(t); return q.eligible?q.fee:0; }

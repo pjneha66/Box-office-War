@@ -54,6 +54,18 @@ DATA.GENRES = {
   truecrime:{name:"True Crime",  emoji:"🔎", mass:0.78, legsAdj:+0.06, intlShare:0.32, china:0.00, critic:+2, aud:+2,  otta:1.45, awards:0.7, budgetBias:0.60, merch:0.20},
 };
 
+/* ── v28: chart palette ──
+   One colour per genre so bar charts, pie charts and legends all agree, and so
+   the same genre is the same colour on every screen. Picked to stay legible on
+   the dark surface and to keep red/green free for the profit signals. */
+DATA.GENRE_COLORS = {
+  action:"#ff8a5b", scifi:"#5aa2ff", fantasy:"#b48bff", animation:"#4dd6e8",
+  comedy:"#ffd479", horror:"#ff5d6c", thriller:"#8fa4d6", drama:"#c98fb0",
+  romance:"#ff9ec4", musical:"#f5b942", western:"#d2a06a", war:"#7d8a6a",
+  sports:"#3ddc84", concert:"#a0e85c", truecrime:"#9b8ad6"
+};
+DATA.genreColor = (id)=> DATA.GENRE_COLORS[id] || "#7b88a8";
+
 /* ── Series-only genres (v2: cheap, renewal-friendly) ── */
 DATA.SGENRES = {
   reality:      {name:"Reality",      emoji:"🎤", ott:1.05, awards:0.1, perEpMax:5,  renewBonus:8},
@@ -201,6 +213,30 @@ DATA.BOARD_TRAITS = [
   {trait:"money hawk",      names:["Alden Price","Ruth Castellanos","Ivo Brandt"],  hawk:true,  base:44, desc:"Counts every zero. Big budgets need a strong pitch to clear the hawk."},
   {trait:"legend producer", names:["Solomon Rae","Pilar Fontaine","Gus Amaro"],     hawk:false, base:62, desc:"Old-school. Loves stars, hates overruns, rewards hits."},
 ];
+/* v29: the board votes on any pitch at or above voteAbove ($M). Below that the
+   desk can greenlight on its own authority, so cheap indies stay snappy. */
+DATA.BOARD = { voteAbove: 60 };
+
+/* ── v29: studio store (merchandise retail) ──
+   Merch tiers are per-franchise; the store is the *shop* that sells them. Each
+   level multiplies every franchise's merch income and bills weekly upkeep, and
+   the web shop also earns on its own from the size of your catalogue. */
+DATA.STORE = [
+  {level:1, id:"online",  name:"Online store",     icon:"🛒", cost:12,  upkeep:0.15, mult:1.15, blurb:"A web shop with print-on-demand. Cheap to run, sells while you sleep."},
+  {level:2, id:"boutique",name:"Flagship boutique", icon:"🏬", cost:45,  upkeep:0.45, mult:1.32, blurb:"A flagship on Melrose. Tourists buy the t-shirt before they've seen the film."},
+  {level:3, id:"chain",   name:"Retail chain",      icon:"🏪", cost:140, upkeep:1.1,  mult:1.55, blurb:"Mall storefronts in every major market. Real shelf space, real overhead."},
+  {level:4, id:"lifestyle",name:"Lifestyle brand",  icon:"👕", cost:320, upkeep:2.2,  mult:1.85, blurb:"A brand people wear without knowing the film. Licensing partners queue up."}
+];
+DATA.storeLevelDef = (lvl)=> DATA.STORE.find(s=>s.level===lvl) || null;
+
+/* ── v29: comics & publishing ──
+   A publishing arm (novels, lore books) is a one-off unlock; a comic line is a
+   repeatable release with a launch spike and a back-issue long tail. */
+DATA.COMICS = {
+  baseCost: 6, perTier: 3,          // launch cost = baseCost + tier × perTier
+  repGain: 1,
+  spikeBase: 8, spikePerTier: 6     // one-off launch revenue
+};
 
 /* ── v14 music label roster (§32): up to 3 acts on the label ──
    fee: signing advance; heat: 1-3 baseline; vibe: which films they soundtrack */
@@ -721,8 +757,32 @@ DATA.TIERS = [
    desc:"One clean ad-free tier. Highest revenue per sub, smallest addressable market."},
   {id:"ads",     name:"Ad tier + premium", arpu:0.38, ceil:1.32, churn:0.006, cost:60,
    desc:"Cheap ad-supported tier: −24% revenue per sub, but +32% ceiling and stickier subs. $60M to build ad tech."},
+  /* v28: promo / demo tier — the introductory offer. Full build cost is $60M,
+     but a studio that hasn't broken out yet (rep < 45) is quoted the promo rate
+     of $24M. The UI always shows both numbers so the discount is never a
+     surprise, and setStreamerTier() charges exactly what was displayed. */
+  {id:"promo",   name:"Promo (demo) tier", arpu:0.30, ceil:1.44, churn:0.011, cost:24, listCost:60, promo:true,
+   desc:"A deep-discount introductory tier: lowest revenue per sub, biggest reach (+44% ceiling) and the churniest audience. List price $60M — studios under rep 45 are quoted the $24M promo rate."},
 ];
 DATA.tier = (id)=> DATA.TIERS.find(t=>t.id===id) || DATA.TIERS[0];
+
+/* ── v28: promo / demo pricing ──
+   One place that decides when a promotional rate applies. Everything that
+   quotes a price (streamer tiers, cameos) reads from here, so the UI and the
+   charge can never drift apart again. */
+DATA.PROMO = {
+  repBelow: 45,                        // studios below this rep are "new" → promo rates
+  cameo: { list: 0.5, promo: 0.2 }     // $M earned when one of your stars does a rival cameo
+};
+
+/* ── v29: deepfake drill difficulty tiers ──
+   More frames means a subtler tell, a shorter clock, and a bigger reputation
+   swing. The best streak is saved per run. */
+DATA.DF_TIERS = {
+  easy:   { id:"easy",   name:"Easy",   frames:3, seconds:14, repGain:1, desc:"3 frames · 14s on the clock" },
+  hard:   { id:"hard",   name:"Hard",   frames:6, seconds:10, repGain:2, desc:"6 frames · 10s on the clock" },
+  expert: { id:"expert", name:"Expert", frames:9, seconds:7,  repGain:3, desc:"9 frames · 7s on the clock" }
+};
 
 /* ── Public markets (v4): stock price, earnings calls, analysts ── */
 DATA.MARKET = {
@@ -1915,6 +1975,28 @@ DATA.LIVE_DEFAULTS = {
   schedule: [],           // unified schedule for UI
 };
 
-/* ── SAVE_VERSION bump for v30 ── */
-DATA.SAVE_VERSION = 14;
+/* ── v29: Merchandise store tiers ── */
+DATA.STORE = [
+  { level: 1, name: "Online Shop", mult: 0.15, upkeep: 0.2, cost: 8 },
+  { level: 2, name: "Flagship Store", mult: 0.35, upkeep: 0.5, cost: 25 },
+  { level: 3, name: "Retail Chain", mult: 0.6, upkeep: 1.0, cost: 60 },
+  { level: 4, name: "Global Brand", mult: 1.0, upkeep: 1.8, cost: 120 }
+];
+DATA.storeLevelDef = (lvl)=> DATA.STORE.find(s=>s.level===lvl) || null;
+
+/* ── v29: Comic launch costs ── */
+DATA.COMICS = { baseCost: 6, perTier: 3 };
+
+/* ── v29: Deepfake difficulty tiers ── */
+DATA.DF_TIERS = [
+  { frames: 3, time: 14, name: "Standard", reward: 2 },
+  { frames: 6, time: 10, name: "Hard", reward: 4 },
+  { frames: 9, time: 7, name: "Expert", reward: 7 }
+];
+
+/* ── v29: Board vote threshold ── */
+DATA.BOARD = { voteAbove: 60 };
+
+/* ── SAVE_VERSION bump for v31 ── */
+DATA.SAVE_VERSION = 15;
 
