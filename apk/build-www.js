@@ -9,6 +9,7 @@ const WWW = path.join(__dirname, "www");
 
 const FILES = [
   "index.html", "design-tokens.css", "style.css", "data.js", "engine.js", "i18n.js", "ui.js",
+  "finance-tools.js", "v31-features.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 

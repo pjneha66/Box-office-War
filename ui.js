@@ -260,7 +260,10 @@ function notificationsModal(){
 }
 
 /* ═══════════ VISUAL HELPERS & COMPUTED CARDS ═══════════ */
+/* v28 regression fix: two call sites passed an options object as the 2nd arg
+   (width:"[object Object]"). Accept both positional args and {width,height,color}. */
 function renderSparklineSVG(data, width=120, height=24, color="var(--gold)"){
+  if(width && typeof width==="object"){ const o=width; width=o.width||120; height=o.height||24; color=o.color||"var(--gold)"; }
   if(!data || !Array.isArray(data) || data.length < 2) return "";
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -698,7 +701,7 @@ function whatIfModal(){
     "<div class='card' style='margin-top:8px'><div class='cost-line'><span>Cash now</span><b>"+fmtM(now.cash)+"</b></div>"+
     "<div class='cost-line'><span>WW gross now</span><b>"+fmtG(now.ww)+"</b></div>"+
     "<div class='cost-line'><span>Rep now</span><b>"+now.rep+"</b></div></div>"+
-    "<div style='margin-top:8px'>"+scen.map(s=>"<div class='card' style='margin-top:6px'><div class='spread'><b>"+s.label+"</b><button class='btn btn-sm btn-alt' data-wif='"+s.id+"'>Run 16 wks</button></div><div class='tiny muted'>"+s.desc+"</div><div class='tiny muted' data-wifout='"+s.id+"' style='margin-top:4px'>Not simulated yet.</div></div>").join("")+"</div>"+
+    "<div style='margin-top:8px'>"+scen.map(s=>"<div class='card' style='margin-top:6px'><div class='spread'><b>"+s.label+"</b><span class='row' style='gap:4px'><button class='btn btn-sm btn-alt' data-wif='"+s.id+"'>Run 16 wks</button><button class='btn btn-sm btn-ghost' data-wifshare='"+s.id+"' title='Copy a link that reopens this what-if with the same numbers'>🔗 Share</button></span></div><div class='tiny muted'>"+s.desc+"</div><div class='tiny muted' data-wifout='"+s.id+"' style='margin-top:4px'>Not simulated yet.</div></div>").join("")+"</div>"+
     "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";
   const v=openModal(h);
   v.querySelectorAll("[data-wif]").forEach(b=>b.onclick=()=>{
@@ -710,6 +713,17 @@ function whatIfModal(){
     if(!r.ok){ outEl.innerHTML="<span class='neg'>The fork hit a snag ("+esc(r.err||"unknown")+").</span>"; return; }
     outEl.innerHTML="16 wks later → cash <b class='"+(r.cash>=now.cash?"pos":"neg")+"'>"+fmtM(r.cash)+"</b> ("+(r.cash>=now.cash?"+":"")+fmtM(r.cash-now.cash)+") · WW "+fmtG(r.ww)+" · rep "+r.rep+" · "+r.films+" films"+(r.over?" · <b class='neg'>⚠ the fork went bankrupt</b>":"");
   });
+  /* v31: shareable what-if links — the fork numbers ride in the URL hash */
+  v.querySelectorAll("[data-wifshare]").forEach(b=>b.onclick=()=>{
+    beep("click");
+    if(typeof whatIfShareCopy==="function") whatIfShareCopy(b.getAttribute("data-wifshare"));
+  });
+  /* v31: opened from a shared link? auto-run the carried scenario once. */
+  const _pend=window.__bowPendingWhatIf;
+  if(_pend&&_pend.s){ window.__bowPendingWhatIf=null;
+    toast("🔮 Shared what-if loaded — rolling the “"+_pend.s+"” fork for 16 weeks…","gold");
+    setTimeout(()=>{ const b=v.querySelector("[data-wif='"+_pend.s+"']"); if(b) b.click(); }, 80);
+  }
 }
 /* v14 §57/§59: hall of fame — this run's records + the finished-runs hall,
    every entry stamped with its run seed so a future leaderboard can read it. */
@@ -1426,6 +1440,25 @@ function marketReport(){
 let SCRIPT_GENRE_FILTER = "all";
 let DEVELOP_SUB = "scripts";   // v28.9: Develop sub-tab state
 let OTT_SUB = "home";          // v28.9 §15: streamer sub-tab state
+
+/* ═══════════ Mobile sub-tab strip renderer ═══════════ */
+/* Renders the horizontal sub-tab bar (#subTabs) based on the active tab.
+   Called from bindView() so it stays in sync with TAB and sub-tab state. */
+/* v31: data-driven — TAB_META (v31-features.js) is the single source of truth;
+   adding a section's sub-tabs is one entry there, not another branch here. */
+function renderSubTabs(){
+  const bar = $("#subTabs");
+  if(!bar) return;
+  const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
+  if(!meta || !meta.length){ bar.innerHTML = ""; bar.style.display = "none"; return; }
+  const attr = TAB_SUB_ATTR[TAB] || "data-sub";
+  const ghost = TAB_SUB_GHOST[TAB] ? "btn-ghost" : "btn-alt";
+  const activeKey = (TAB_SUB_ACTIVE[TAB] ? TAB_SUB_ACTIVE[TAB]() : (TAB_SUB_DEFAULT[TAB] || meta[0][0]));
+  bar.innerHTML = meta.map(([key, label]) =>
+    "<button class='btn btn-sm "+(key===activeKey ? "btn-primary" : ghost)+"' "+attr+"='"+key+"'>"+label+"</button>"
+  ).join("");
+  bar.style.display = "flex";
+}
 function viewDevelop(){
   /* v28.9: Develop sub-tabs — Scripts (default) / IP Market / Talent Business / Combos Codex.
      Restored after the v28.7 file restore reverted the routing (helpers stayed, bar was lost). */
@@ -1779,7 +1812,7 @@ function talentCard(t){
   const films=talentFilms(t);
   const frNames=[...new Set(films.map(f=>f.franchiseName).filter(Boolean))].slice(0,2);
   const last=films.slice(-1)[0];
-  return "<div class='card talent-card'><div class='t-avatar'>"+icon+"</div><div style='flex:1'>"+
+  return "<div class='card talent-card'><div class='t-avatar'>"+(typeof talentAvatarSVG==="function"?talentAvatarSVG(t):icon)+"</div><div style='flex:1'>"+
     "<div class='t-name'>"+esc(t.name)+agTag+(t.trait?" <span class='tiny muted'>"+esc(t.trait)+"</span>":"")+"</div>"+
     "<div class='row' style='margin:2px 0'><span class='tag'>"+role+"</span><span class='tag "+st.cls+"'>"+st.s+"</span>"+(t.heat?"<span class='tag gold'>🔥 heat ×"+t.heat+"</span>":"")+"</div>"+
     "<div>"+stars(t.power)+"</div>"+
@@ -1977,7 +2010,7 @@ function crewCard(t, opts){
   if(t.kind==="actor" && t.power>=4 && !opts.sel) acts+="<button class='btn btn-xs btn-alt' data-cameo='"+t.id+"' title='Offer cameo in rival project for $500k + rep'>🎭 Offer Cameo ($500k)</button>";
   const pTrend = t.powerHistory || [clamp((t.power||2)-1,1,5), clamp(t.age>45?(t.power||2)+1:(t.power||2)-1,1,5), t.power||2, t.power||2];
   return "<div class='card talent-card"+(opts.sel?" sel-card":"")+"' "+(opts.attr||"")+">"+
-    "<div class='t-avatar'>"+icon+"</div><div style='flex:1'>"+
+    "<div class='t-avatar'>"+(typeof talentAvatarSVG==="function"?talentAvatarSVG(t):icon)+"</div><div style='flex:1'>"+
     "<div class='t-name'>"+esc(t.name)+(t.trait? " <span class='tiny muted'>"+esc(t.trait)+"</span>":"")+"</div>"+
     "<div class='row' style='margin:2px 0'><span class='tag "+stg.cls+"'>"+stg.s+"</span></div>"+
     "<div class='row' style='align-items:center;gap:6px'>"+stars(t.power)+renderSparklineSVG(pTrend, {color:'#ffd166', width:36, height:13})+"</div>"+
@@ -3866,6 +3899,8 @@ function streamMarketBoard(){
   try{ signs=recentSignings(); }catch(e){ signs=[]; }
   h+="<div class='card' style='margin-top:8px'><b class='small'>Recent signings</b>"+
     (signs.length?signs.map(s=>"<div class='cost-line'><span>“"+esc(s.title)+"” → "+esc(s.to)+"</span><b>"+fmtM(s.value)+" "+s.kind+"</b></div>").join(""):"<div class='tiny muted'>No platform deals yet — finish a film and shop it.</div>")+"</div>";
+  /* v31: box office analytics — charts + scope filter (renderers in v31-features.js) */
+  try{ h+=boxOfficeAnalytics(); }catch(e){}
   return h;
 }
 /* v10 Phase 2 (spec §15): your platform at a glance — subs, churn, revenue, originals, library */
@@ -4199,6 +4234,8 @@ function viewFinance(){
   });
   h+="</div>";
   try{ h+=hqBoard(st); }catch(e){}
+  /* Financial Analysis Lab — DCF, Comps, LBO, Ratios */
+  try{ h+=FINANCE_TOOLS.renderFinancialAnalysis(); }catch(e){}
   return h;
 }
 /* Headquarters: departments unifying upgrades, execs and buildable wings.
@@ -4206,7 +4243,10 @@ function viewFinance(){
 function hqBoard(st){
   let up=0; try{ up=hqUpkeep(); }catch(e){}
   let h="<div class='section-title'>🏢 Studio headquarters</div>"+
-    "<div class='tiny muted' style='margin:-4px 0 6px'>One lot, eight departments. Facilities bill "+fmtM(up)+"/wk upkeep.</div><div class='grid g2'>";
+    "<div class='tiny muted' style='margin:-4px 0 6px'>One lot, eight departments. Facilities bill "+fmtM(up)+"/wk upkeep.</div>";
+  /* v31: lot map — wings light up as they're built (renderer in v31-features.js) */
+  try{ h+=hqFloorPlanSVG(); }catch(e){}
+  h+="<div class='grid g2'>";
   hqDepts().forEach(d=>{
     h+="<div class='card'><b>"+d.icon+" "+d.name+"</b>";
     d.items.forEach(it=>{
@@ -4326,6 +4366,9 @@ function plCard(){
 
 /* ═══════════ view bindings ═══════════ */
 function bindView(){
+  /* v31: render the sub-tab strip FIRST so the data-* bindings below attach to
+     the live chips — rendering it last replaced them with dead nodes. */
+  renderSubTabs();
   $$("[data-dev]").forEach(b=>b.onclick=()=>{
     const idea=G.ideas.find(i=>i.id===+b.dataset.dev);
     if(idea){ beep("click"); startWizard(idea); }
@@ -4708,6 +4751,17 @@ function bindView(){
     if(trainLiveHost(hId)){ beep("gold"); flashes(G.flash); render(); }
     else toast("Host training costs $0.5M cash.", "bad");
   });
+
+  /* ── Mobile sub-tab strip (rendered at the top of bindView so the
+       data-* bindings above and below attach to the live chips) ── */
+  $$("[data-fanfilter]").forEach(b=>b.onclick=()=>{ FAN_MAIL_FILTER=b.dataset.fanfilter; beep("click"); render(); });
+  $$("[data-empiretab]").forEach(b=>b.onclick=()=>{ /* Empire tabs are view-only for now; could switch sub-views later */ beep("click"); });
+  $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ /* Games tabs are view-only for now */ beep("click"); });
+
+  /* Financial Analysis Lab bindings */
+  if(typeof FINANCE_TOOLS !== 'undefined' && FINANCE_TOOLS.bindFinancialAnalysis){
+    FINANCE_TOOLS.bindFinancialAnalysis();
+  }
 }
 
 /* ═══════════ streaming auction modal ═══════════ */
@@ -5839,7 +5893,7 @@ function cameoPicker(){
   let h="<h3>🌟 Cast a cameo</h3><p class='small muted'>One scene, one superstar. You pay 30% of their fee, the trailer gets +6% buzz.</p><div class='pick-list'>";
   if(!sups.length) h+="<div class='muted small'>No power-4+ stars free right now.</div>";
   sups.slice(0,8).forEach(a=>{
-    h+="<div class='card talent-card' data-cameo='"+a.id+"'><div class='t-avatar'>🌟</div><div style='flex:1'><div class='t-name'>"+esc(a.name)+"</div>"+stars(a.power)+
+    h+="<div class='card talent-card' data-cameo='"+a.id+"'><div class='t-avatar'>"+(typeof talentAvatarSVG==="function"?talentAvatarSVG(a):"🌟")+"</div><div style='flex:1'><div class='t-name'>"+esc(a.name)+"</div>"+stars(a.power)+
       "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(Math.round(actorFee(a)*0.3))+"</span><span class='tag green'>+6% buzz</span></div></div></div>";
   });
   h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='camBack'>← Back</button></div>";
@@ -5940,6 +5994,12 @@ function settingsModal(){
     ["auto","on","off"].map(m=>"<button class='btn btn-sm "+((MOTION||"auto")===m?"btn-primary":"")+"' data-motion='"+m+"'>"+({auto:"Auto",on:"On",off:"Off"})[m]+"</button>").join("")+
     "<button class='btn btn-sm btn-alt' id='btnTestMotion'>✨ Test</button></div></div>"+
     "<div class='tiny muted' style='margin-top:4px'>“Auto” follows your OS reduced-motion setting; confetti and slide-ins pause when motion is off.</div></div>";
+  /* v31: color-blind cues (glyphs, not just hue) + PWA install */
+  h+="<div class='card'><div class='spread'><b>🎨 Color-blind cues</b><div class='row'>"+
+    "<button class='btn btn-sm "+(CB_CUES?"btn-primary":"")+"' data-cb='1'>On</button>"+
+    "<button class='btn btn-sm "+(!CB_CUES?"btn-primary":"")+"' data-cb='0'>Off</button></div></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Adds ✓ ✕ ◆ ▲ ▼ glyphs to green / red / gold tags and ▲▼ to gains and losses, so colour is never the only signal. On by default.</div></div>";
+  try{ h+=pwaInstallCardHTML(); }catch(e){}
   /* v27: privacy & data (GDPR-style controls — everything is local) */
   h+="<div class='card'><div class='spread'><b>🔒 Privacy &amp; your data</b><button class='btn btn-sm btn-alt' id='btnPrivacy'>Manage</button></div>"+
     "<div class='tiny muted' style='margin-top:4px'>Box Office War stores everything on this device only — no accounts, no trackers, no analytics. Export or delete your data anytime.</div></div>";
@@ -6015,6 +6075,8 @@ function settingsModal(){
   v.querySelector("#btnTestMotion").onclick=()=>{ confetti({count:60}); beep("gold"); };
   v.querySelectorAll("[data-motion]").forEach(b=>b.onclick=()=>{ MOTION=b.dataset.motion; localStorage.setItem("bow_motion",MOTION); applyMotionPref(); beep("click"); closeModal(); settingsModal(); });
   v.querySelectorAll("[data-theme]").forEach(b=>b.onclick=()=>{ applyTheme(b.dataset.theme); beep("click"); closeModal(); settingsModal(); });   // v19 theme picker
+  v.querySelectorAll("[data-cb]").forEach(b=>b.onclick=()=>{ setCB(b.dataset.cb==="1"); beep("click"); closeModal(); settingsModal(); });   // v31 color-blind cues
+  try{ bindPWAInstall(v); }catch(e){}   // v31 PWA install card
   v.querySelector("#btnPrivacy").onclick=()=>{ beep("click"); privacyModal(); };
   v.querySelectorAll("[data-hap]").forEach(b=>b.onclick=()=>{ HAPTICS=b.dataset.hap==="1"; localStorage.setItem("bow_hap",HAPTICS?"1":"0"); if(HAPTICS) rumble([20,40,20]); beep("click"); closeModal(); settingsModal(); });
   v.querySelectorAll("[data-wksum]").forEach(b=>b.onclick=()=>{ localStorage.setItem("bow_wksum",b.dataset.wksum); beep("click"); closeModal(); settingsModal(); });
@@ -7983,17 +8045,71 @@ function deepfakeModal(){
   let h="<div class='modal-head'><h3>🎭 Deepfake Drill</h3></div>";
   h+="<div class='modal-body'>";
   h+="<p>A viral deepfake is circulating. Spot the fake frames before the clock runs out.</p>";
-  h+="<div class='df-timer'>⏱ "+cfg.time+"s</div>";
+  h+="<div class='df-timer' id='dfTimer'>⏱ "+cfg.time+"s</div>";
   h+="<div class='df-frames'>";
   for(let i=0;i<cfg.frames;i++){
     h+="<button class='df-frame' data-frame='"+i+"'>Frame "+(i+1)+"</button>";
   }
   h+="</div>";
+  h+="<div class='tiny muted' style='margin-top:6px'>Flag every synthetic frame, then submit. The clock running out counts as a miss. Best streak: "+(G.dfStreak||0)+" · wins "+(G.dfWins||0)+" / losses "+(G.dfLosses||0)+"</div>";
   h+="<div class='df-actions'><button class='btn btn-alt' id='dfDefer'>Defer (−rep)</button><button class='btn btn-primary' id='dfSolve'>Submit</button></div>";
   h+="</div>";
-  openModal(h);
-  bindView("#dfDefer", ()=>{ G.pendingDeepfake=null; closeModal(); log("Deepfake deferred — studio rep hit.","bad"); saveGame(); });
-  bindView("#dfSolve", ()=>{ resolveDeepfake(true, {tier}); G.pendingDeepfake=null; closeModal(); toast("Deepfake resolved! Streak: "+(G.dfStreak||0), "good"); });
+  /* v31 fix: these buttons were bound through bindView(sel, fn) — bindView takes
+     no arguments, so the handlers never attached and the drill soft-locked the
+     week (a pending sports auction blocks advanceWeeks while this modal keeps
+     re-opening ahead of it). Bind on the modal element itself. */
+  const v=openModal(h);
+  /* deterministic fake set per event — the same drill on every reopen */
+  let _s=0; const _key=String((df.talentId||"x")+"|"+(df.week||G.week));
+  for(let i=0;i<_key.length;i++) _s=(_s*31+_key.charCodeAt(i))>>>0;
+  const _next=()=>{ _s=(_s*1103515245+12345)>>>0; return _s/4294967296; };
+  const _nFake=Math.max(1, Math.min(cfg.frames-1, 1+tier));
+  const fakes=new Set();
+  for(let i=0;i<_nFake;i++) fakes.add(Math.min(cfg.frames-1, Math.floor(_next()*cfg.frames)));
+  const picked=new Set();
+  let finished=false;
+  let left=cfg.time;
+  const timerEl=v.querySelector("#dfTimer");
+  const tick=setInterval(function(){
+    left--;
+    if(timerEl) timerEl.textContent="⏱ "+left+"s";
+    if(left<=0 && !finished){ finished=true; clearInterval(tick); submit(false, true); }
+  }, 1000);
+  try{ if(tick && tick.unref) tick.unref(); }catch(e){}
+  function submit(correct, timedOut){
+    if(finished) return;
+    finished=true;
+    clearInterval(tick);
+    G.pendingDeepfake=null;
+    resolveDeepfake(correct, {tier});
+    if(correct){ G.dfWins=(G.dfWins||0)+1; beep("gold"); toast("🧬 Deepfake exposed! Streak "+(G.dfStreak||0)+" · +1 rep.","good"); }
+    else { G.dfLosses=(G.dfLosses||0)+1; beep("bad"); toast(timedOut? "⏱ Out of time — the fake metastasized. Streak reset." : "🚫 Wrong frame flagged — the fake metastasized. Streak reset.","bad"); }
+    saveGame();
+    closeModal();
+  }
+  v.querySelectorAll("[data-frame]").forEach(b=>b.onclick=()=>{
+    if(finished) return;
+    const i=+b.getAttribute("data-frame");
+    if(picked.has(i)){ picked.delete(i); b.classList.remove("df-picked"); }
+    else { picked.add(i); b.classList.add("df-picked"); }
+    beep("click");
+  });
+  const dfDefer=v.querySelector("#dfDefer");
+  if(dfDefer) dfDefer.onclick=()=>{
+    if(finished) return;
+    finished=true; clearInterval(tick);
+    G.pendingDeepfake=null;
+    G.studio.rep=clamp(G.studio.rep-1,5,99);
+    log("🧬 Deepfake deferred — the press noticed the delay. −1 rep.","bad");
+    saveGame();
+    closeModal();
+  };
+  const dfSolve=v.querySelector("#dfSolve");
+  if(dfSolve) dfSolve.onclick=()=>{
+    if(finished) return;
+    const ok = picked.size===fakes.size && [...picked].every(x=>fakes.has(x));
+    submit(ok, false);
+  };
 }
 
 /* ── divisions panel ── */

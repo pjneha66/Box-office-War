@@ -2057,3 +2057,43 @@ body.cb-cues .lt-row .pos::after,body.cb-cues .lt-row .neg::after{content:""}
 [dir="rtl"] .tabs{flex-direction:row-reverse}
 [dir="rtl"] .bottomnav{flex-direction:row-reverse}
 
+
+/* ═══════════ v31: animated SVG portraits (v31-features.js) ═══════════ */
+.t-avatar svg{width:100%;height:100%;display:block}
+@keyframes av-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.2px)}}
+@keyframes av-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+@keyframes av-hairdrift{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}
+@keyframes av-aurapulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.85;transform:scale(1.05)}}
+@keyframes av-wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-16deg)}}
+@keyframes av-clap{0%,100%{transform:rotate(0)}50%{transform:rotate(-8deg)}}
+@keyframes av-pen{0%,100%{transform:rotate(24deg) translateY(0)}50%{transform:rotate(24deg) translateY(1.5px)}}
+.av-svg .av-body{animation:av-bob 3.2s ease-in-out infinite}
+.av-svg .av-eye{animation:av-blink 4.4s infinite;transform-box:fill-box;transform-origin:center}
+.av-svg .av-hair{animation:av-hairdrift 4.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center top}
+.av-svg .av-aura{animation:av-aurapulse 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.av-svg .av-fl-actor{animation:av-wave 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
+.av-svg .av-fl-director{animation:av-clap 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom left}
+.av-svg .av-fl-writer{animation:av-pen 2.8s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
+.av-svg .av-fl-producer{animation:av-bob 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom center}
+@media (prefers-reduced-motion: reduce){.av-svg *{animation:none!important}}
+body.rm-motion .av-svg *{animation:none!important}
+
+/* ═══════════ v31: animated SVG charts ═══════════ */
+@keyframes ch-grow{from{transform:scaleY(0)}}
+@keyframes ch-fade{from{opacity:0}}
+.ch-bar{transform-box:fill-box;transform-origin:bottom;animation:ch-grow .55s cubic-bezier(.2,.8,.3,1) forwards}
+.ch-slice{opacity:0;animation:ch-fade .5s ease forwards}
+@media (prefers-reduced-motion: reduce){.ch-bar,.ch-slice{animation:none!important;opacity:1;transform:none}}
+body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity:1;transform:none}
+
+/* ═══════════ v31: color-blind cues — glyphs so hue is never the only signal ═══════════ */
+.cb-cues .pos::after{content:" ▲";font-size:.8em}
+.cb-cues .neg::after{content:" ▼";font-size:.8em}
+.cb-cues .tag.green::after{content:" ✓"}
+.cb-cues .tag.red::after{content:" ✕"}
+.cb-cues .tag.gold::after{content:" ◆"}
+
+/* v31: deepfake drill — flagged frames + countdown urgency */
+.df-frame.df-picked{outline:2px solid var(--gold);background:rgba(245,185,66,.18);position:relative}
+.df-frame.df-picked::after{content:"🚩";position:absolute;top:2px;right:4px;font-size:10px}
+.df-timer{font-weight:700;color:var(--gold);margin:4px 0}

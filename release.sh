@@ -32,7 +32,7 @@ echo "── 1/6 preflight ─────────────────�
 if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain)" ]; then
   echo "✗ working tree is dirty — commit or stash first (or use --dry-run)"; exit 1
 fi
-for f in data.js engine.js i18n.js ui.js sw.js; do node --check "$f"; done
+for f in data.js engine.js i18n.js ui.js sw.js finance-tools.js v31-features.js; do node --check "$f"; done
 echo "✓ syntax clean (data/engine/i18n/ui/sw)"
 if [ "$SKIP_TESTS" = false ]; then
   npm test > /tmp/bow-test.log 2>&1 || { echo "✗ tests failed — see /tmp/bow-test.log"; grep -E "✗|ERRORS|FAILED" /tmp/bow-test.log | head; exit 1; }
@@ -69,7 +69,10 @@ if [ "$DRY_RUN" = false ]; then
     if(!/"v"/.test(vj)) throw new Error("version.json missing its v field");
     vj=vj.replace(/"v":\s*"[0-9.]+"/,"\"v\": \""+ver+"\"");
     fs.writeFileSync("version.json",vj);
-    console.log("  bumped: APK "+ver+" (code "+code+"), SW cache v"+sw+", app meta + version.json "+ver);
+    let pj=fs.readFileSync("package.json","utf8");
+    pj=pj.replace(/"version":\s*"[0-9.]+"/,"\"version\": \""+(ver.split(".").length===2?ver+".0":ver)+"\"");
+    fs.writeFileSync("package.json",pj);
+    console.log("  bumped: APK "+ver+" (code "+code+"), SW cache v"+sw+", app meta + version.json + package.json "+ver);
   ' "$VERSION" "$((CUR_CODE+1))" "$((CUR_SW+1))"
 else
   echo "  (dry-run) would bump: APK ${CUR_VER} -> ${VERSION}, SW cache v${CUR_SW} -> v$((CUR_SW+1))"
@@ -104,7 +107,7 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "── 4/6 commit + push ──────────────────────────────────────"
-git add sw.js apk/android/app/build.gradle index.html version.json
+git add sw.js apk/android/app/build.gradle index.html version.json package.json
 git commit -m "v$VERSION: release — SW cache v$((CUR_SW+1)), APK $VERSION"
 git push origin main
 echo "✓ pushed — Vercel is redeploying"

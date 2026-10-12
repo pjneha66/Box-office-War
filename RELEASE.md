@@ -1,4 +1,60 @@
-# Launch Readiness — Box Office War v29
+# Launch Readiness — Box Office War v31
+
+## v31 — features restored that the notes promised but the code lost, plus three real bug fixes
+
+An audit against the v28/v29 notes found features that existed only in the markdown — a past file
+restore had dropped them from the working tree. v31 puts them back and fixes the bugs the audit
+turned up along the way.
+
+### Restored (new file `v31-features.js` + targeted `ui.js` wiring)
+- **Animated SVG portraits** — `talentAvatarSVG(t)` builds a deterministic portrait per talent
+  (seeded from id + name + kind): skin, hair silhouette, glasses, beard, role-coloured wardrobe,
+  and one flourish per archetype (actor waves, writer writes, director claps, producer checks the
+  clipboard). CSS-only idle bob / blink / hair drift / aura pulse, all gated behind
+  `prefers-reduced-motion` and the in-game motion setting. Wired into the talent market, the talent
+  profile and the cameo picker.
+- **Charts + Box office analytics** — `renderBarChartSVG` / `renderPieChartSVG`, animated pure SVG.
+  The Box Office tab gains an analytics block: All-time / this-year scope filter, top films by gross,
+  domestic vs international, gross by genre.
+- **Color-blind cues** — ✓ ✕ ◆ ▲ ▼ glyphs on green/red/gold tags and gains/losses, Settings toggle
+  (default on, persisted). The state/applier already existed in ui.js; only the toggle was missing.
+- **PWA install card** — Settings shows a real Install button driven by the captured
+  `beforeinstallprompt` event, with a browser-menu fallback when the prompt isn't available.
+- **What-if shareable links** — the sandbox fork parameters ride in the URL hash (`#wif=`), never
+  the save; a "🔗 Share" button per scenario copies the link, and opening one auto-runs the fork.
+  Supersedes the dead `checkWhatIfLink()` / `installPromptModal()` leftovers.
+- **HQ floor-plan SVG** — the lot as a building map: 8 departments, dark = unbuilt, gold = partially
+  equipped, green + glow = fully live.
+- **Data-driven navigation** — `NAV_GROUPS` + `TAB_META` are now the single source of truth; the
+  sub-tab strip is generated from data instead of six hardcoded branches.
+
+### Bugs fixed (these were live, not theoretical)
+- **Deepfake drill soft-lock** — the drill's Defer/Submit buttons were bound through
+  `bindView(sel, fn)`, but `bindView()` takes no arguments, so the handlers never attached. With a
+  sports auction pending, `advanceWeeks()` broke on the auction while `afterTick()` kept re-opening
+  the unclosable drill ahead of it — **the week froze forever**. The drill is now fully playable
+  (deterministic fake frames per event, countdown that misses on timeout, streak + win/loss
+  counters) and the buttons are bound on the modal element.
+- **Sub-tab strip ate its own bindings** — `renderSubTabs()` ran at the *end* of `bindView()`,
+  replacing chip nodes that had just been bound, so the strip's chips were dead (the OTT market
+  chip in particular). The strip now renders *before* the bindings attach.
+- **Sparkline corruption** — `renderSparklineSVG` was called with an options object as its second
+  argument in two places (buzz momentum on film cards, power trend on talent profiles), emitting
+  `width="[object Object]"` / NaN coordinates. Now overloaded to accept both call styles.
+- **Smoke-test calibration** — the economy assertion demanded `infl > 1.05`, which needs 3 year
+  wraps, but a bankruptcy before week 157 left only 2 wraps (1.0404) and failed the run. The floor
+  now scales with the wraps that actually ran.
+- **Build/deploy script drift** — `apk/build-www.js` didn't copy `finance-tools.js` (hand-copied
+  every release); it now lists every script, and `sw.js` precaches them too (cache bumped to
+  `bow-v32-cache`) so offline play can't break the Finance/Analysis tabs.
+
+### Verification
+`npm test` green — engine smoke ✅ (5/5 repeat runs), **UI 62/62** ✅ (the test now inlines
+`finance-tools.js` + `v31-features.js`, so the new code is actually exercised), balance harness ✅,
+5 scenarios ✅, plus `npm run test:arcs` (six scripted careers). Responsive pass unchanged; real
+Chrome headless boot check of the deployed URL clean.
+
+---
 
 ## v29 — Tier 1–5 backlog pass, studio divisions, and the cert blocker closed
 

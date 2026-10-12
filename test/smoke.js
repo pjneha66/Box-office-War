@@ -24,5 +24,5 @@ fs.writeFileSync(OUT, bundle);
 try{
   require("./.smoke-generated.js");
 }finally{
-  fs.unlinkSync(OUT);
+  try{ if(fs.existsSync(OUT)) fs.unlinkSync(OUT); }catch(e){}
 }

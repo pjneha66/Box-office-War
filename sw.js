@@ -12,6 +12,8 @@ const ASSETS = [
   "engine.js",
   "i18n.js",
   "ui.js",
+  "finance-tools.js",
+  "v31-features.js",
   "manifest.webmanifest",
   "icon.svg",
   "icon-192.png",
