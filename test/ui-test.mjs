@@ -747,7 +747,7 @@ step("v27 launched game earns weekly sales + live ops", ()=>{
 });
 
 step("v27 character sheet: moral axis, branches, guild, mentorship", ()=>{
-  window.eval("G.talent.forEach(t=>{if(t.prototype){t.prototype.level=Math.max(t.prototype.level,6);t.prototype.skillPoints=6;}})");
+  window.eval("G.talent.forEach(t=>{initPrototypeTalent(t); t.prototype.level=Math.max(t.prototype.level||1,6); t.prototype.skillPoints=6;})");
   click($(".tab[data-tab='develop']"));
   const btn=$$("[onclick*='characterSheet']")[0];
   if(!btn) throw new Error("RPG sheet button missing");
@@ -813,7 +813,11 @@ step("v26 film release grants XP + first credit milestone", ()=>{
       G.studio.cash=Math.max(G.studio.cash,300);
     })()
   `);
-  for(let i=0;i<8 && g(); i++){
+  for(let i=0;i<16 && g(); i++){
+    if(g().pendingEarnings) window.eval("G.pendingEarnings=null; closeModal();");
+    if(g().pendingSports) window.eval("if(typeof passSports==='function') passSports(); else G.pendingSports=null; closeModal();");
+    if(g().pendingAuction) window.eval("if(typeof passAuction==='function') passAuction(); else G.pendingAuction=null; closeModal();");
+    if(g().pendingDeepfake) window.eval("G.pendingDeepfake=null; closeModal();");
     click($("#btnFast"));
     if(g().pendingChoice){ const b=$$("[data-ch]")[0]; if(b) click(b); }
     if(g().pendingReport){ const b=$$(".modal-actions .btn").pop(); if(b) click(b); }
