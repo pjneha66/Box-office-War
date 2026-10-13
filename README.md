@@ -16,6 +16,28 @@ Every decision compounds. A hit creates a franchise. A franchise funds a park. A
 
 ---
 
+## v32.0 — Reference Simulation & Modular Expansion Update (Oct 2026)
+
+Box Office War v32.0 synthesizes and integrates 14 advanced simulation systems harvested from benchmark reference projects (Box Office Inc, Box Office Sim 2, Silver Screen Story) into decoupled, modular engines:
+
+- **Studio Facilities & Lot Infrastructure** (`studio-facilities.js`): Upgrade physical studio assets across 4 tiers (Soundstage Complex T1-T3, Virtual LED Volume Stage, Dolby Atmos Mixing Suites, and Historic Backlot). Unlocks permanent production quality buffs, accelerated VFX turnaround, and generates recurring weekly lot leasing revenue by renting spare studio capacity to rival studios.
+- **TV & Cable Syndication Licensing** (`syndication-tv.js`): Monetize mature catalog titles across 3 major linear broadcasting windows: Broadcast Primetime (26 weeks), Broadcast Matinee (39 weeks), and Cable Syndication (52 weeks). Features upfront licensing advances and recurring weekly rights fees.
+- **Multi-Picture Talent Contracts & Quirks** (`talent-contracts.js`): Lock elite actors and directors into 3-picture or 5-picture commitments with volume salary discounts. Incorporates 6 deep psychological talent quirks: `crowd_puller`, `fast_shooter`, `method_actor`, `award_magnet`, `improv_master`, and `cult_icon`.
+- **Corporate Bond Debt Market** (`bond-market.js`): Raise emergency growth capital via 52-week securitized corporate debt notes. Real-time credit rating engine (AAA, AA, A, BBB, BB, B, CCC) computes dynamic interest rates based on debt-to-catalog leverage, automatically serviced through weekly coupon charges.
+- **Box Office Clash Analytics & Cannibalization Radar** (`clash-analytics.js`): Intelligent competitive intelligence radar analyzing opening weekend dates. Calculates screen cannibalization indices, predicts rival audience overlap, and calculates counter-programming windfalls for genre differentiation.
+- **Shared Cinematic Universes & Crossover Events** (`cinematic-universe.js`): Establish overarching intellectual property bibles interconnecting multiple sub-franchises into a unified cinematic universe. Features team-up crossover hype multipliers (up to +65% opening buzz), lore consistency ratings, and annual release fatigue mitigations.
+- **Global Location Scouting & Tax Credits** (`location-scouting.js`): Scout 5 international production hubs (London Pinewood 25% tax credit, Iceland Glaciers +6 visual quality, Atlanta 28% tax credit, New Zealand Fjords +5 prestige bonus, Tokyo Neon +15% Asia-Pacific opening boost) that adjust net production budgets and film performance.
+- **Production Insurance & Completion Bonds** (`production-insurance.js`): Mitigate catastrophic production risks through 3 completion guarantor policies: Budget Overrun Shield (85% coverage), Key Cast Indemnity (90% coverage), and Full Completion Bond (100% coverage).
+- **FYC Awards Campaign & Voter Lobbying Desk** (`awards-campaign.js`): Run strategic For Your Consideration lobbying campaigns across Trade Advertising ($0.75M), Digital Screener Mailings ($1.5M), Voter Receptions ($3.0M), and the Grand Blitz ($5.5M) to maximize Academy and Guild nomination odds.
+- **Board Directives & Confidence Protocol** (`board-targets.js`): Procedural quarterly mandates set by the studio Board of Directors. Tracks confidence (0-100%), distributes executive bonuses on target completion, and triggers austerity measures with production budget caps during low-confidence quarters.
+- **Studio Fan Club & Fan Conventions** (`fan-conventions.js`): Manage grassroots studio fan club membership tiers with weekly community investment budgets. Host annual convention showcases at Comic-Con Hall H and Worldwide D23 for major pre-release buzz spikes (+18% to +55%).
+- **Focus Group Test Screenings & Emergency Reshoots** (`test-screenings.js`): Conduct post-production audience previews (Small Focus Group, Broad Demographic, Guild Secret Preview) to project critical reception scores and authorize emergency reshoots to fix low-testing productions (+6 to +12 quality repair).
+- **Covert Studio Espionage & Sabotage Desk** (`studio-espionage.js`): Deploy clandestine operations to infiltrate rival production slates, intercept confidential talent contract expirations, and execute counter-PR media leaks against rival openings.
+- **Franchise Merchandise & Product Licensing Desk** (`merch-licensing.js`): Commercialize top-tier theatrical titles into global merchandising lines (Action Figures & Toys, AAA Video Games, Streetwear Apparel, Theme Park Attractions) yielding upfront advances and weekly recurring royalties.
+- **Android APK v32.0**: Built, signed, and published with full offline webview synchronization, asset bundling, and versionCode 33 / versionName 32.0.
+
+---
+
 ## v30.0 — Live Entertainment, Broadcasting & Visual Identity Update (Oct 2026)
 
 Box Office War v30 introduces an expansive television broadcasting, live event, and visual identity upgrade:
@@ -200,6 +222,28 @@ i18n.js                 Hindi/English dictionary + chrome translation
 icon.svg                PWA icon
 manifest.webmanifest    PWA manifest
 sw.js                   Service worker (offline cache-first)
+challenge-leaderboard.js Seeded challenge codes and score leaderboard
+theater-chains.js       Exhibitor circuits and owned theater screens
+dynamic-soundtrack.js   Dynamic mood scores and OST composer album releases
+dynasty-legacy.js       Dynasty multi-generation trust fund legacy
+bow-shorts.js           Digital short-form studio content desk
+talent-agency.js        Studio-owned talent agency roster
+film-restoration.js     Library 4K/HDR film remastering and restorations
+festival-pr.js          International film festival PR and Grand Jury submissions
+studio-facilities.js    Soundstages, virtual LED stage, Atmos and lot leasing
+syndication-tv.js       Broadcast Primetime, Matinee and Cable syndication deals
+talent-contracts.js     Multi-picture talent pacts and 6 psychological quirks
+bond-market.js          Securitized corporate bonds and debt ratings (AAA-CCC)
+clash-analytics.js      Box office clash radar and screen cannibalization
+cinematic-universe.js   Shared cinematic universes and crossover team-ups
+location-scouting.js    Global shooting hubs and international tax credits
+production-insurance.js Completion guarantor policies and cast indemnity
+awards-campaign.js      FYC trade ads, screener mailings and voting blitzes
+board-targets.js        Quarterly board directives, confidence and austerity
+fan-conventions.js      Studio fan club and Comic-Con / D23 showcase events
+test-screenings.js      Focus group test screenings and emergency reshoots
+studio-espionage.js     Covert intelligence desk, rival leaks and sabotage
+merch-licensing.js      Franchise product licensing (toys, games, apparel, parks)
 test/smoke.js           Headless 5-year economy simulation runner
 test/smoke-body.js      Smoke assertions (node test/smoke.js)
 test/ui-test.mjs        jsdom click-through of the full game flow
@@ -209,7 +253,7 @@ test/verify-library.mjs Acquired-library bulk actions (sell outright / bulk lice
 test/validate-slots.js  Save-slot count validation
 ```
 
-### Running Tests
+### Running Tests and Building APK
 
 ```bash
 # Everything: smoke + UI click-through + balance + scenario playthroughs
@@ -222,6 +266,12 @@ npm run test:balance    # balance harness (6 seeds × 120 weeks)
 npm run test:scenarios  # 5 scenario playthroughs × 200 weeks
 npm run test:library    # M&A vault bulk actions
 npm run validate:slots  # save-slot validation
+
+# Build Android APK locally
+npm run apk
+
+# Production Release Pipeline (preflight + bump + build APK + commit/push + GitHub release)
+bash release.sh <version>
 ```
 
 ### Balance Target
