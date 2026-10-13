@@ -88,6 +88,8 @@ function newGame(archId, name, opts){
   log("💡 Tip: Greenlight a film in the Develop tab, or pitch a series in OTT & Series.", "");
   if(G.studio.debt>0) log("🧯 Turnaround: you inherited "+fmtM(G.studio.debt)+" of debt. Interest never sleeps.", "bad");
   saveGame();
+  if(typeof window !== "undefined") window.G = G;
+  if(typeof global !== "undefined") global.G = G;
   return G;
 }
 
@@ -517,6 +519,8 @@ function loadGame(){
     const fromV = Number.isFinite(parsed.v)? parsed.v : 1;
     const { save, applied } = migrateSave(parsed);
     G = save;
+    if(typeof window !== "undefined") window.G = G;
+    if(typeof global !== "undefined") global.G = G;
     if(typeof ensureLiveState==="function") ensureLiveState(G);
     G.log = log;
     if(applied.length) log("💾 Save upgraded from schema v"+fromV+" → v"+G.v+". Your studio carried over intact.","");
@@ -532,7 +536,10 @@ function importCode(code){
     if(validateSave(parsed).length) return false; // same bar as loadGame/loadSlot
     const g = migrateSave(parsed).save;
     if(!g || !g.studio) return false;
-    G = g; G.log = log; saveGame(); return true;
+    G = g;
+    if(typeof window !== "undefined") window.G = G;
+    if(typeof global !== "undefined") global.G = G;
+    G.log = log; saveGame(); return true;
   }catch(e){ return false; }
 }
 
@@ -545,6 +552,9 @@ function seasonOfW(w){ return DATA.seasonOf(woyOf(w)); }
 
 /* ═══════════ money format ═══════════ */
 function fmtM(v){
+  if(typeof getActiveCurrencyCode === "function" && getActiveCurrencyCode() !== "USD" && typeof fmtIntlCurrency === "function"){
+    return fmtIntlCurrency(v);
+  }
   const s = v<0?"-":"";
   v = Math.abs(v);
   if(v===0) return "$0";
@@ -555,6 +565,9 @@ function fmtM(v){
   return s+"$"+Math.round(v*1000)+"K";
 }
 function fmtG(v){ // gross, always M with sensible decimals
+  if(typeof getActiveCurrencyCode === "function" && getActiveCurrencyCode() !== "USD" && typeof fmtIntlCurrency === "function"){
+    return fmtIntlCurrency(v);
+  }
   if(v>=1000) return "$"+(v/1000).toFixed(2)+"B";
   if(v>=100)  return "$"+Math.round(v)+"M";
   return "$"+v.toFixed(1)+"M";
@@ -1162,6 +1175,26 @@ function computeQuality(p){
     const mood=DATA.comboOf(p.genre,p.theme);
     if(mood==="love") craft+=5;
     if(mood==="clash") craft-=4;
+  }
+  if(typeof getFacilityQualityBoost === "function"){
+    craft += getFacilityQualityBoost();
+  }
+  if((p.cast||[]).some(c => c && c.quirk === "award_magnet") || (p.director && p.director.quirk === "award_magnet")){
+    craft += 4;
+  }
+  if((p.cast||[]).some(c => c && c.quirk === "improv_master")){
+    craft += 3;
+  }
+  if(p.shootingLocation && typeof LocationScouting !== "undefined"){
+    const locObj = LocationScouting.SHOOTING_LOCATIONS.find(l => l.id === p.shootingLocation);
+    if(locObj && locObj.qualityBuff) craft += locObj.qualityBuff;
+  }
+  if(p.universeId && typeof CinematicUniverse !== "undefined"){
+    const uniBuff = CinematicUniverse.calculateUniverseSynergy(p.universeId, p.isCrossover, G);
+    craft += Math.min(6, Math.round(uniBuff.buzzMultiplier * 2));
+  }
+  if(p.testScreeningResult && p.testScreeningResult.reshootExecuted){
+    craft += (p.testScreeningResult.qualityBuff || 6);
   }
   craft += gauss()*5.5;
   const overall = clamp(Math.round(craft), 8, 97);
@@ -2475,6 +2508,10 @@ function releaseFilm(p){
     else if(wid==="17") piracyAdjust(DATA.PIRACY.window17, "17-day window");
     if(film.dayAndDate) piracyAdjust(DATA.PIRACY.dayAndDate, "day-and-date release");
   }
+  if(typeof BoardTargets !== "undefined"){
+    BoardTargets.trackFilmRelease(film, G);
+    BoardTargets.trackBoxOfficeRevenue(opening || 1, G);
+  }
   return film;
 }
 
@@ -2493,16 +2530,17 @@ function tickTheatrical(){
     if(gross < Math.max(0.3, f.opening*0.006) || f.weeksOut>16){
       endTheatrical(f); continue;
     }
+    const splitMult = (typeof BOW_THEATERS !== "undefined" && typeof BOW_THEATERS.getExhibitionSplitMultiplier === "function") ? BOW_THEATERS.getExhibitionSplitMultiplier(G) : 1.0;
     // v17: Multi-territory gross breakdown
     if(typeof calcTerritoryGross==="function"){
       calcTerritoryGross(f, gross);
       f.dom += gross; // track domestic (US/CA) gross
-      const rentals = gross*0.53;
+      const rentals = Math.round(gross*0.53*splitMult*10)/10;
       earn("theatrical", rentals);
       f.rentalsDom = (f.rentalsDom||0) + rentals;
     }else{
       f.dom += gross;
-      const rentals = gross*0.53;
+      const rentals = Math.round(gross*0.53*splitMult*10)/10;
       earn("theatrical", rentals);
       f.rentalsDom = (f.rentalsDom||0) + rentals;
     }
@@ -4191,12 +4229,12 @@ function weeklyChart(){
 function catalogValue(){
   let v=0;
   for(const f of G.films){
-    let base=(f.budget*0.2 + (f.ww||0)*0.025);
+    let base=((f.budget||0)*0.2 + (f.ww||0)*0.025);
     if(f.soldTo||f.streamingOriginal) base*=0.45;
     base += (f.awards||[]).length*8;
     v+=base;
   }
-  for(const fr of G.franchises){ v += fr.tier*15 + fr.merch*10 + fr.park*45; }
+  for(const fr of G.franchises){ v += (fr.tier||1)*15 + (fr.merch||0)*10 + (fr.park||0)*45; }
   if(G.maLibraries) v += G.maLibraries * (DATA.MA? DATA.MA.library.catalogEach : 42);  // v5 M&A libraries
   return v;
 }
@@ -4273,14 +4311,26 @@ function tickFinance(){
   if(typeof interestRate==="function") rate = interestRate();
   else { const cf=execObj("cfo"); rate = 0.0018*(cf? 1-0.30*lvlMult(cf) : 1); }
   if(st.debt>0){ const int=Math.round(st.debt*rate*10)/10; spend("interest", int); st.debt+=int; }
-  if(st.mezzDebt>0){ const mz=Math.round(st.mezzDebt*0.005*10)/10; spend("interest", mz); st.mezzDebt+=mz; }
-  if(G.mezz>0){ const int=Math.round(G.mezz*0.005*(G.execs.cfo?0.7:1)*10)/10; spend("interest", int); G.mezz+=int; }
+  if(st.mezzDebt>0 || G.mezz>0){
+    st.mezzDebt = Math.max(st.mezzDebt||0, G.mezz||0);
+    const cf = G.execs && G.execs.cfo;
+    const mz = Math.round(st.mezzDebt * 0.005 * (cf ? 0.7 : 1) * 10) / 10;
+    spend("interest", mz);
+    st.mezzDebt += mz;
+    G.mezz = st.mezzDebt;
+  }
   if(G.investorDebt>0){
     const pay=Math.min(G.investorDebt, 2.5);
     G.investorDebt-=pay; spend("financing", pay); G.investorPaid=(G.investorPaid||0)+pay;
     if(G.investorDebt<=0) log("🕴 Investor buyout fully repaid.","good");
   }
   earn("library", catalogValue()*0.0045);
+  // Modular extensions weekly tick
+  try { if(typeof BOW_THEATERS !== "undefined") BOW_THEATERS.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_SOUNDTRACK !== "undefined") BOW_SOUNDTRACK.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_SHORTS !== "undefined") BOW_SHORTS.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_AGENCY !== "undefined") BOW_AGENCY.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_RESTORATION !== "undefined") BOW_RESTORATION.tickWeekly(G); } catch(e){}
   if(st.cash<0){ st.debt += -st.cash; st.cash=0; }
   if(G.sandbox) { G.weeksInDebt=0; return; }
   const netDebt = st.debt - Math.max(st.cash,0);
@@ -4314,6 +4364,7 @@ function mezzanineLoan(amount){
   amount=Math.round(amount||0);
   if(amount<=0) return false;
   G.studio.mezzDebt=(G.studio.mezzDebt||0)+amount;
+  G.mezz=G.studio.mezzDebt;
   G.studio.cash+=amount;
   G.weekTx.financing=(G.weekTx.financing||0)+amount;
   log("🪜 Mezzanine loan: +"+fmtM(amount)+" at 0.5%/wk. High-cost emergency money.","gold");
@@ -4322,10 +4373,12 @@ function mezzanineLoan(amount){
 }
 function repayMezzanine(amount){
   amount=Math.round(amount||0);
-  const md=G.studio.mezzDebt||0;
+  const md=G.studio.mezzDebt||G.mezz||0;
   amount=Math.min(amount, md, Math.max(0,Math.floor(G.studio.cash)));
   if(amount<=0) return false;
-  G.studio.mezzDebt=md-amount; G.studio.cash-=amount;
+  G.studio.mezzDebt=md-amount;
+  G.mezz=G.studio.mezzDebt;
+  G.studio.cash-=amount;
   G.weekTx.financing=(G.weekTx.financing||0)-amount;
   log("🪜 Mezzanine repaid: "+fmtM(amount)+".","good");
   saveGame();
@@ -4452,28 +4505,29 @@ function achTotal(){ return (DATA.ACH||[]).length; }
 function checkAchievements(){ /* kept for call-order compatibility; DATA.ACH handles these now */ }
 
 /* ═══════════ your own streamer (v3) ═══════════ */
-function canLaunchStreamer(){ return !G.streamer && G.studio.rep>=40 && G.studio.cash>=250; }
+function canLaunchStreamer(){ return !G.streamer && G.studio.rep>=35 && G.studio.cash>=140; }
 function launchStreamer(name){
   if(G.streamer){ if(name){ G.streamer.name=name.slice(0,24); log("📱 Platform rebranded as \""+G.streamer.name+"\".",""); saveGame(); return true; } return false; }
-  if(G.studio.rep < 40) return false;
-  if(G.studio.cash < 250) return false;
-  spend("studio", 250);
+  if(G.studio.rep < 35) return false;
+  if(G.studio.cash < 140) return false;
+  spend("studio", 140);
   const tier = "premium";
   G.streamer = {
     name: (name|| (G.studio.name+"+")).slice(0,24),
     launchedWeek: G.week,
-    subs: 2.5,
-    peak: 2.5,
+    subs: 4.5,
+    peak: 4.5,
     sportsPower: 0,
-    churn: 0.008,
-    income: 0,
+    churn: 0.006,
+    income: 2.25,
     totalRev: 0,
     lastContent: G.week,
     tier: tier,
     crackdown: 0,
+    launchMomentum: 26,
     adRevenue: 0
   };
-  log("📱 You launched "+G.streamer.name+" — $250M, "+G.streamer.subs+"M subs, $0.5/sub/wk. Build content (films, franchises, shows, sports) to raise your ceiling.","gold");
+  log("📱 You launched "+G.streamer.name+" — $140M, "+G.streamer.subs+"M subs, $0.5/sub/wk. Early momentum grant (+$1.5M/wk) active.","gold");
   if(typeof unlockAchv==="function") unlockAchv("launch", "Streamer Barons", "Launch your own streaming platform.");
   saveGame();
   return true;
@@ -4504,12 +4558,12 @@ function streamerCeiling(){
   const showBuzz = G.series.reduce((a,ser)=>a+(ser.seasons && ser.seasons.length? ser.seasons.reduce((x,y)=>x+(y.viewership||0),0)/10:0),0);
   const sport = s.sportsPower||0;
   const catalog = (typeof catalogValue==="function")? catalogValue() : 0;
-  let base = (3 + lib*1.1 + frw*2.2 + showBuzz + sport*1.5) * (tier.ceil||1);
+  let base = (4 + lib*1.2 + frw*2.4 + showBuzz + sport*1.8) * (tier.ceil||1);
   // add v3 components
-  base += catalog/45 + G.franchises.length*0.5 + G.series.filter(x=>x.status!=="ended").length*0.3 + G.films.filter(f=>f.onOwnPlatform||f.onOwn).length*0.2;
+  base += catalog/30 + G.franchises.length*0.6 + G.series.filter(x=>x.status!=="ended").length*0.4 + G.films.filter(f=>f.onOwnPlatform||f.onOwn).length*0.3;
   if(G.upgrades && G.upgrades.ottalgo) base *= 1.15;
-  const ceil = Math.min(Math.round(60*(tier.ceil||1)), Math.round(base));
-  return clamp(ceil, 4, 85);
+  const ceil = Math.min(Math.round(75*(tier.ceil||1)), Math.round(base));
+  return clamp(ceil, 6, 95);
 }
 
 function tickStreamer(){
@@ -4525,19 +4579,24 @@ function tickStreamer(){
   if(st.sportsPower>0) st.sportsPower = Math.max(0, st.sportsPower - st.sportsPower*0.015 - 0.02);
   st.sportsPower = Math.max(0, (st.sportsPower||0)*0.985);
   const ce=streamerCeiling();
-  let churn = tier.churn||0.008;
+  let churn = tier.churn||0.006;
   if(G.upgrades && G.upgrades.ottalgo) churn *= 0.80; // AI recommender reduces churn
   if(st.crackdown>0){ churn *= 2; st.crackdown--; if(st.crackdown===0) log("🔐 Crackdown churn has settled down.",""); }
-  st.churn = churn;
-  const starved = G.week-(st.lastContent||0) > 6;
-  let growth = (ce - st.subs)*0.05 - st.subs*churn;
-  if(G.upgrades && G.upgrades.globalcdn) growth += 0.06; // Global CDN boosts acquisition
+  st.churn = clamp(churn, 0.003, 0.025);
+  const graceWeeks = 10 + Math.min(26, (G.films||[]).length * 2);
+  const starved = G.week-(st.lastContent||0) > graceWeeks;
+  let growth = (ce - st.subs)*0.06 - st.subs*st.churn;
+  if(G.upgrades && G.upgrades.globalcdn) growth += 0.08; // Global CDN boosts acquisition
   if(st.euFreeze>0){ growth = Math.min(growth, 0); st.euFreeze--; }   // v5: EU quota freezes growth
-  if(starved) growth -= st.subs*0.008;
-  st.subs = clamp(st.subs + growth, 0.1, Math.ceil(ce*1.05));
+  if(starved) growth -= st.subs*0.004;
+  st.subs = clamp(st.subs + growth, 0.5, Math.ceil(ce*1.05));
   st.subs = Math.round(st.subs*100)/100;
   st.peak = Math.max(st.peak||0, st.subs);
-  const income = st.subs*(tier.arpu||0.5);
+  let income = st.subs*(tier.arpu||0.5);
+  if(st.launchMomentum>0){
+    st.launchMomentum--;
+    income += 1.5;
+  }
   st.income = Math.round(income*10)/10;
   st.totalRev = (st.totalRev||0) + st.income;
   if(income>=0.05) earn("streamer", income);
@@ -5388,6 +5447,12 @@ function advanceWeek(){
   if(typeof tickPay1==="function") tickPay1();
   if(typeof maybePay1==="function") maybePay1();
   if(typeof maybeOttOffers==="function") maybeOttOffers();
+  if(typeof tickFacilitiesWeekly==="function") tickFacilitiesWeekly();
+  if(typeof tickSyndicationWeekly==="function") tickSyndicationWeekly();
+  if(typeof tickBondsWeekly==="function") tickBondsWeekly();
+  if(typeof BoardTargets !== "undefined" && typeof BoardTargets.advanceBoardWeek === "function") BoardTargets.advanceBoardWeek(G);
+  if(typeof FanConventions !== "undefined" && typeof FanConventions.advanceFanClubWeek === "function") FanConventions.advanceFanClubWeek(G);
+  if(typeof MerchLicensing !== "undefined" && typeof MerchLicensing.advanceMerchandiseWeek === "function") MerchLicensing.advanceMerchandiseWeek(G);
   G.offers=G.offers.filter(o=>o.expires>=G.week || o.type==="renewal");
   if(typeof refreshIdeas==="function") refreshIdeas();
   if(typeof refreshIpMarket==="function") refreshIpMarket();
@@ -5994,11 +6059,7 @@ function refreshIpMarket(seed){
 }
 
 function repayMezz(amount){
-  amount=Math.min(Math.round(amount), G.mezz, Math.max(0,Math.floor(G.studio.cash)));
-  if(amount<=0) return false;
-  G.mezz-=amount; spend("financing", amount);
-  log("🧨 Mezzanine repaid: "+fmtM(amount)+".","good");
-  saveGame(); return true;
+  return repayMezzanine(amount);
 }
 
 function rereleaseFilm(fid){
@@ -6118,11 +6179,7 @@ function seriesMovieIdea(sid){
 
 
 function takeMezz(amount){
-  amount=Math.min(Math.round(amount), Math.round(150-G.mezz));
-  if(amount<=0) return false;
-  G.mezz+=amount; earn("financing", amount);
-  log("🧨 Mezzanine drawn: "+fmtM(amount)+" at 0.5%/week. Expensive oxygen.","");
-  saveGame(); return true;
+  return mezzanineLoan(amount);
 }
 
 function testScreening(pid){

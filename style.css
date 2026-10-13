@@ -2093,7 +2093,20 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
 .cb-cues .tag.red::after{content:" ✕"}
 .cb-cues .tag.gold::after{content:" ◆"}
 
-/* v31: deepfake drill — flagged frames + countdown urgency */
 .df-frame.df-picked{outline:2px solid var(--gold);background:rgba(245,185,66,.18);position:relative}
 .df-frame.df-picked::after{content:"🚩";position:absolute;top:2px;right:4px;font-size:10px}
 .df-timer{font-weight:700;color:var(--gold);margin:4px 0}
+
+/* ═══════════ v32: screen-reader a11y utilities ═══════════ */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+

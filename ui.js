@@ -384,6 +384,15 @@ function talentFeudMap(){
 }
 
 /* ═══════════ modal ═══════════ */
+function announceSR(msg, isAssertive){
+  if(typeof document==="undefined") return;
+  const el = document.getElementById(isAssertive ? "srAlert" : "srAnnounce");
+  if(el){
+    el.textContent = "";
+    setTimeout(()=>{ el.textContent = msg; }, 30);
+  }
+}
+
 function openModal(html, opts){
   opts=opts||{};
   // Store the element that triggered the modal for focus restoration
@@ -400,6 +409,7 @@ function openModal(html, opts){
   // Store trigger element reference on veil for focus restoration
   veil._triggerEl = triggerEl;
   $("#modalRoot").appendChild(veil);
+  announceSR("Dialog opened.");
   const focusables = veil.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
   if(focusables.length){
     const first = focusables[0];
@@ -415,6 +425,10 @@ function openModal(html, opts){
           e.preventDefault();
           first.focus();
         }
+      } else if(e.key === "Escape" && !opts.locked){
+        e.preventDefault();
+        closeModal(triggerEl);
+        if(opts.onClose) opts.onClose();
       }
     });
   }
@@ -429,6 +443,7 @@ function closeModal(triggerEl){
     restoreEl.focus();
   }
   $("#modalRoot").innerHTML="";
+  announceSR("Dialog closed.");
 }
 function openCommandPalette(){
   let h = "<h3>⌨️ Command Palette</h3>";
@@ -634,6 +649,7 @@ function enterApp(fresh){
 }
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
+  if(t==="develop") DEVELOP_SUB = "scripts";
   TAB=t; try{ beep("click"); }catch(e){}   // v28.9: never let audio/haptics kill the render flush
   $$(".tab,.btab").forEach(b=>{
     const match = b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
@@ -1089,7 +1105,7 @@ function viewStudio(){
     statCard(fmtM(st.cash),"Cash on hand")+
     statCard("+"+fmtM(rev12),"Revenue (12w)","var(--green)")+
     statCard((net12>=0?"+":"")+fmtM(net12),"Profit (12w)", net12>=0?"var(--green)":"var(--red)")+
-    statCard(fmtM((st.debt||0)+(G.mezz||0)+(st.mezzDebt||0)),"Debt","var(--red)")+
+    statCard(fmtM((st.debt||0)+(st.mezzDebt||0)),"Debt","var(--red)")+
     statCard(fmtM(studioVal),"Studio value")+
     statCard(Math.round(st.rep)+"/100","Reputation","var(--gold2)")+
     statCard("Y"+yr+" · W"+woyOf(G.week),"Current date")+
@@ -1156,6 +1172,37 @@ function viewStudio(){
        "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(6,r.ww/max*100)+"%;background:"+(r.me?"linear-gradient(90deg,var(--gold),var(--gold2))":"#4a5570")+"'>"+fmtM(r.ww)+"</div></div></div>";
   });
   h+="</div>";
+  /* v32: Ventures & Expansions */
+  h+="<div class='section-title'>Studio Ventures &amp; Expansions</div><div class='grid g2'>"+
+    "<div class='card'><b>Production Facilities &amp; Lot</b><div class='tiny muted' style='margin:4px 0'>Build soundstages, LED virtual production volumes, and backlots. Lease idle space to rivals.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenFacilities'>Manage Studio Lot</button></div>"+
+    "<div class='card'><b>TV Syndication Packages</b><div class='tiny muted' style='margin:4px 0'>License catalog films to national broadcast networks and cable syndication for weekly royalties.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenSyndication'>Syndication Desk</button></div>"+
+    "<div class='card'><b>Corporate Bond Market</b><div class='tiny muted' style='margin:4px 0'>Issue fixed-coupon corporate debt notes (AAA to CCC) to raise massive production capital.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenBonds'>Bond Desk</button></div>"+
+    "<div class='card'><b>Multi-Picture Talent Pacts</b><div class='tiny muted' style='margin:4px 0'>Lock stars and directors into 3- or 5-picture commitments with volume discounts.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenContracts'>Talent Contracts</button></div>"+
+    "<div class='card'><b>Theater Chains</b><div class='tiny muted' style='margin:4px 0'>Own screens, capture 100% theatrical split and weekly concessions revenue.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenTheaters'>Manage Theater Chains</button></div>"+
+    "<div class='card'><b>Talent Agency</b><div class='tiny muted' style='margin:4px 0'>Sign stars to your in-house agency, eliminate packaging fees, and collect rival commissions.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenTalentAgency'>Talent Agency Desk</button></div>"+
+    "<div class='card'><b>Dynasty &amp; Legacy</b><div class='tiny muted' style='margin:4px 0'>Plan succession, prepare heirs, and preserve prestige across generations.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenDynasty'>Dynasty &amp; Heirs</button></div>"+
+    "<div class='card'><b>Seeded Challenges</b><div class='tiny muted' style='margin:4px 0'>Compete on deterministic daily/weekly seeds and share score codes.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenChallenges'>Challenges &amp; Leaderboard</button></div>"+
+    "<div class='card'><b>Board Directives &amp; Governance</b><div class='tiny muted' style='margin:4px 0'>Meet quarterly shareholder milestones for executive bonuses and board confidence.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenBoard'>Board of Directors</button></div>"+
+    "<div class='card'><b>Studio Fan Club &amp; Conventions</b><div class='tiny muted' style='margin:4px 0'>Grow your fan community and host annual Hall H Comic-Con showcases for massive buzz.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenFanClub'>Fan Club &amp; Cons</button></div>"+
+    "<div class='card'><b>Industrial Espionage Desk</b><div class='tiny muted' style='margin:4px 0'>Plant undercover informants to steal rival slates and sabotage clash openings.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenEspionage'>Espionage Desk</button></div>"+
+    "<div class='card'><b>Franchise Merchandise Licensing</b><div class='tiny muted' style='margin:4px 0'>License blockbuster IP for action figures, video games, and theme park rides.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenMerch'>Merchandise Licensing</button></div>"+
+    "<div class='card'><b>Shared Cinematic Universes</b><div class='tiny muted' style='margin:4px 0'>Link films across connected universes and build massive crossover team-up events.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenUniverses'>Cinematic Universes</button></div>"+
+    "<div class='card'><b>FYC Awards Lobbying Campaign</b><div class='tiny muted' style='margin:4px 0'>Run trade print spreads and voter galas to capture Oscars and guild trophies.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenAwardsCampaign'>FYC Awards Desk</button></div>"+
+  "</div>";
   { // v5: unified achievements — one shelf, counted once
     const got = (typeof achCount==="function")? achCount() : Object.keys(G.ach||{}).length;
     if(got){
@@ -1478,11 +1525,14 @@ function viewDevelop(){
     if(cls.length) h+="<div class='card' style='border-left:3px solid var(--green)'><b>🌟 New Faces of Year "+yearOf(G.week)+"</b><div class='tiny muted'>"+cls.slice(0,5).map(x=>esc(x.name)+" ("+x.power+"★)").join(" · ")+"</div></div>";
   }catch(e){}
   h+="<div class='spread'><div class='section-title' style='margin:0'>Script market</div>"+
-     "<button class='btn btn-sm' id='btnPitchSeries'>📺 Pitch a Series</button>"+
-     "<button class='btn btn-sm' id='btnPitchFilm' style='margin-left:8px'>🎬 Pitch a Film</button>"+
-     "<button class='btn btn-sm' id='btnAIPitch' style='margin-left:8px'>🤖 AI Pitch</button>"+
-     "<button class='btn btn-sm' id='btnStarSign' style='margin-left:8px'>🌟 New superstar</button>"+
-     "<button class='btn btn-sm btn-alt' id='btnCustomCreator' style='margin-left:8px'>✨ Custom Creator</button></div>";
+     "<button class='btn btn-sm' id='btnPitchSeries'>Pitch a Series</button>"+
+     "<button class='btn btn-sm' id='btnPitchFilm' style='margin-left:8px'>Pitch a Film</button>"+
+     "<button class='btn btn-sm btn-alt' id='btnBowShorts' style='margin-left:8px'>BOW Shorts</button>"+
+     "<button class='btn btn-sm btn-alt' id='btnFestivalPr' style='margin-left:8px'>Festivals &amp; PR</button>"+
+     "<button class='btn btn-sm btn-alt' id='btnClashAnalytics' style='margin-left:8px'>Clash Analytics</button>"+
+     "<button class='btn btn-sm' id='btnAIPitch' style='margin-left:8px'>AI Pitch</button>"+
+     "<button class='btn btn-sm' id='btnStarSign' style='margin-left:8px'>New superstar</button>"+
+     "<button class='btn btn-sm btn-alt' id='btnCustomCreator' style='margin-left:8px'>Custom Creator</button></div>";
   h+="<div class='row' style='margin:10px 0 6px;gap:6px;flex-wrap:wrap'><span class='small muted' style='align-self:center'>Filter:</span>"+
     "<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER==="all"?"btn-primary":"")+"' data-filter-genre='all'>All genres</button>"+
     Object.keys(DATA.GENRES).map(gk=>"<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER===gk?"btn-primary":"")+"' data-filter-genre='"+gk+"'>"+DATA.GENRES[gk].emoji+" "+DATA.GENRES[gk].name+"</button>").join("")+
@@ -4338,9 +4388,9 @@ function finCommit(){
     }
     for(const s of (G.series||[])){ if(s.phase==="shoot") mktDue+=0, prodRemain+=Math.max(0,(s.budget||0)-(s.spent||0)); }
   }catch(e){}
-  const debt=(G.studio.debt||0)+(G.studio.mezzDebt||0)+(G.mezz||0)+(G.investorDebt||0);
+  const debt=(G.studio.debt||0)+(G.studio.mezzDebt||0)+(G.investorDebt||0);
   let oh=0; try{ oh=weeklyOverhead(); }catch(e){ oh=G.studio.overhead||0; }
-  let intr=0; try{ intr=(G.studio.debt||0)*interestRate()+(G.studio.mezzDebt||0)*0.005+(G.mezz||0)*0.005; }catch(e){}
+  let intr=0; try{ intr=(G.studio.debt||0)*interestRate()+(G.studio.mezzDebt||0)*0.005*(G.execs&&G.execs.cfo?0.7:1); }catch(e){}
   return {prod:Math.round(prodRemain*10)/10, mkt:Math.round(mktDue*10)/10, debt:Math.round(debt*10)/10, oh:Math.round(oh*10)/10, intr:Math.round(intr*10)/10};
 }
 function plCard(){
@@ -4380,7 +4430,25 @@ function bindView(){
   const ai=$("#btnAIPitch"); if(ai) ai.onclick=()=>{ beep("click"); openAIPitchModal(); };
   const cc=$("#btnCustomCreator"); if(cc) cc.onclick=()=>{ beep("click"); customCreatorModal(); };
   const shc=$("#btnShareCard"); if(shc) shc.onclick=function(){ shareStudioCard(); };
-  const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥40 and $250M to launch.","bad"); };
+  const btnTheaters=$("#btnOpenTheaters"); if(btnTheaters) btnTheaters.onclick=()=>{ beep("click"); if(typeof openTheaterChainsModal==="function") openTheaterChainsModal(); };
+  const btnAgency=$("#btnOpenTalentAgency"); if(btnAgency) btnAgency.onclick=()=>{ beep("click"); if(typeof openTalentAgencyModal==="function") openTalentAgencyModal(); };
+  const btnDynasty=$("#btnOpenDynasty"); if(btnDynasty) btnDynasty.onclick=()=>{ beep("click"); if(typeof openDynastyModal==="function") openDynastyModal(); };
+  const btnChallenges=$("#btnOpenChallenges"); if(btnChallenges) btnChallenges.onclick=()=>{ beep("click"); if(typeof openChallengeModal==="function") openChallengeModal(); };
+  const btnBowShorts=$("#btnBowShorts"); if(btnBowShorts) btnBowShorts.onclick=()=>{ beep("click"); if(typeof openBowShortsModal==="function") openBowShortsModal(); };
+  const btnFestPr=$("#btnFestivalPr"); if(btnFestPr) btnFestPr.onclick=()=>{ beep("click"); if(typeof openFestivalPrModal==="function") openFestivalPrModal(); };
+  const btnVault=$("#btnRestorationVault"); if(btnVault) btnVault.onclick=()=>{ beep("click"); if(typeof openRestorationModal==="function") openRestorationModal(); };
+  const btnFac=$("#btnOpenFacilities"); if(btnFac) btnFac.onclick=()=>{ beep("click"); if(typeof openStudioFacilitiesModal==="function") openStudioFacilitiesModal(); };
+  const btnSyn=$("#btnOpenSyndication"); if(btnSyn) btnSyn.onclick=()=>{ beep("click"); if(typeof openSyndicationModal==="function") openSyndicationModal(); };
+  const btnBnd=$("#btnOpenBonds"); if(btnBnd) btnBnd.onclick=()=>{ beep("click"); if(typeof openBondMarketModal==="function") openBondMarketModal(); };
+  const btnCnt=$("#btnOpenContracts"); if(btnCnt) btnCnt.onclick=()=>{ beep("click"); if(typeof openTalentContractsModal==="function") openTalentContractsModal(); };
+  const btnClash=$("#btnClashAnalytics"); if(btnClash) btnClash.onclick=()=>{ beep("click"); if(typeof openClashAnalyticsModal==="function") openClashAnalyticsModal(); };
+  const btnBrd=$("#btnOpenBoard"); if(btnBrd) btnBrd.onclick=()=>{ beep("click"); if(typeof openBoardTargetsModal==="function") openBoardTargetsModal(); };
+  const btnFan=$("#btnOpenFanClub"); if(btnFan) btnFan.onclick=()=>{ beep("click"); if(typeof openFanClubModal==="function") openFanClubModal(); };
+  const btnSpy=$("#btnOpenEspionage"); if(btnSpy) btnSpy.onclick=()=>{ beep("click"); if(typeof openStudioEspionageModal==="function") openStudioEspionageModal(); };
+  const btnMerch=$("#btnOpenMerch"); if(btnMerch) btnMerch.onclick=()=>{ beep("click"); if(typeof openMerchLicensingModal==="function") openMerchLicensingModal(); };
+  const btnUni=$("#btnOpenUniverses"); if(btnUni) btnUni.onclick=()=>{ beep("click"); if(typeof openUniverseModal==="function") openUniverseModal(); };
+  const btnFyc=$("#btnOpenAwardsCampaign"); if(btnFyc) btnFyc.onclick=()=>{ beep("click"); if(typeof openAwardsCampaignModal==="function") openAwardsCampaignModal(); };
+  const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥35 and $140M to launch.","bad"); };
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
   $$("[data-ownprem]").forEach(b=>b.onclick=()=>{ beep("click"); ownPremiereModal(+b.dataset.ownprem); });
   $$("[data-ending]").forEach(b=>b.onclick=()=>{ if(applyAltEnding(+b.dataset.eid, b.dataset.ending)){ beep("gold"); flashes(G.flash); render(); } });
@@ -4924,7 +4992,8 @@ function viewLibrary(){
   }
   
   h+="<div class='spread'><div class='section-title' style='margin:0'>📚 Library — "+(films.length+series.length)+" titles</div>"+
-    "<button class='btn btn-sm btn-ghost' onclick='openLibraryFilters()'>🔍 Filters</button></div>";
+    "<div class='row' style='gap:6px'><button class='btn btn-sm btn-alt' id='btnRestorationVault'>Film Restoration</button>"+
+    "<button class='btn btn-sm btn-ghost' onclick='openLibraryFilters()'>Filters</button></div></div>";
   
   // Filters bar
   h+="<div class='card' style='margin-bottom:8px'><div class='row' style='gap:6px;flex-wrap:wrap'>"+
@@ -5974,16 +6043,23 @@ function settingsModal(){
     "<button class='btn btn-sm "+(LANG==="en"?"btn-primary":"")+"' id='langEn'>English</button>"+
     "<button class='btn btn-sm "+(LANG==="hi"?"btn-primary":"")+"' id='langHi'>हिन्दी</button></div></div>"+
     "<div class='tiny muted' style='margin-top:4px'>Menus & chrome translate fully; long news copy stays in English.</div></div>";
+  /* Currency formatting */
+  const curCode = (typeof getActiveCurrencyCode==="function") ? getActiveCurrencyCode() : "USD";
+  h+="<div class='card'><div class='spread'><b>Currency display</b><div class='row' style='gap:4px;flex-wrap:wrap'>"+
+    ["USD","EUR","GBP","INR","JPY","CAD","AUD"].map(c=>"<button class='btn btn-sm "+(curCode===c?"btn-primary":"btn-alt")+"' data-curr='"+c+"'>"+c+"</button>").join("")+
+    "</div></div><div class='tiny muted' style='margin-top:4px'>Formats box office, budgets, and ledgers in your selected currency (e.g. INR Crores, JPY Oku, EUR, GBP).</div></div>";
   h+="<div class='card'><div class='spread'><b>"+t("set.font")+"</b><div class='row'>"+
     "<button class='btn btn-sm' id='fontMinus'>A−</button><button class='btn btn-sm' id='fontReset'>A</button><button class='btn btn-sm' id='fontPlus'>A+</button></div></div>"+
     "<div class='tiny muted' id='fontSample' style='margin-top:6px;font-style:italic'>“The opening weekend numbers just rolled in — Hollywood never sleeps.”</div></div>";
-  /* sound test panel & 10m mute */
-  h+="<div class='card'><div class='spread'><b>🔊 Sound test & volume</b><div class='row'>"+
+  /* sound test panel & 10m mute & procedural soundtrack */
+  const stEnabled = (typeof BOW_SOUNDTRACK!=="undefined" && BOW_SOUNDTRACK.enabled);
+  h+="<div class='card'><div class='spread'><b>Sound &amp; Procedural Soundtrack</b><div class='row' style='gap:4px;flex-wrap:wrap'>"+
     "<button class='btn btn-sm btn-alt' id='sndTestClick'>Click</button>"+
     "<button class='btn btn-sm btn-alt' id='sndTestGold'>Gold</button>"+
     "<button class='btn btn-sm btn-alt' id='sndTestFanfare'>Fanfare</button>"+
-    "<button class='btn btn-sm "+(Date.now()<MUTE_UNTIL?"btn-primary":"btn-alt")+"' id='sndMuteToggle'>"+(Date.now()<MUTE_UNTIL?"🔇 Muted (10m)":"🔊 Mute 10m")+"</button></div></div>"+
-    "<div class='tiny muted' style='margin-top:4px'>Test synthesized stings or silence audio for 10 minutes.</div></div>";
+    "<button class='btn btn-sm "+(stEnabled?"btn-primary":"btn-alt")+"' id='sndMusicToggle'>"+(stEnabled?"Music ON":"Music OFF")+"</button>"+
+    "<button class='btn btn-sm "+(Date.now()<MUTE_UNTIL?"btn-primary":"btn-alt")+"' id='sndMuteToggle'>"+(Date.now()<MUTE_UNTIL?"Muted (10m)":"Mute 10m")+"</button></div></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Synthesized mood soundscapes adapt in real time to studio fortunes. Zero audio files required.</div></div>";
   /* v19: theme picker — five FeralUI-designed themes */
   h+="<div class='card'><div class='spread'><b>🎨 Theme</b><div class='row'>"+
     THEMES.map(th=>"<button class='btn btn-sm theme-swatch"+(THEME===th.id?" btn-primary":"")+"' data-theme='"+th.id+"'>"+
@@ -6057,9 +6133,21 @@ function settingsModal(){
   v.querySelector("#fontMinus").onclick=()=>setFont(Math.max(12,curFont()-1));
   v.querySelector("#fontPlus").onclick=()=>setFont(Math.min(20,curFont()+1));
   v.querySelector("#fontReset").onclick=()=>setFont(15);
+  v.querySelectorAll("[data-curr]").forEach(b=>b.onclick=()=>{
+    if(typeof setActiveCurrencyCode==="function") setActiveCurrencyCode(b.dataset.curr);
+    beep("click"); closeModal(); settingsModal(); render();
+  });
   v.querySelector("#sndTestClick").onclick=()=>beep("click");
   v.querySelector("#sndTestGold").onclick=()=>beep("gold");
   v.querySelector("#sndTestFanfare").onclick=()=>beep("fanfare");
+  const smt=v.querySelector("#sndMusicToggle");
+  if(smt) smt.onclick=()=>{
+    if(typeof BOW_SOUNDTRACK!=="undefined"){
+      BOW_SOUNDTRACK.toggle();
+      beep("click");
+      closeModal(); settingsModal();
+    }
+  };
   v.querySelector("#sndMuteToggle").onclick=()=>{
     if(Date.now() < MUTE_UNTIL){
       MUTE_UNTIL = 0;

@@ -44,11 +44,9 @@ function tryGreenlight(){
   const pool = acts.filter(affordable);
   for(let i=0;i<rint(1,2) && pool.length;i++){ const a=pool.splice(rint(0,pool.length-1),1)[0]; cast.push(a); } // max 2 cast
   const fees = actorFee(dir)+actorFee(writer)+actorFee(producer)+cast.reduce((s,c)=>s+actorFee(c),0);
-  // the budget burns weekly over months — you don't need all of it on day one
-  // More conservative cash buffer: 50M instead of 25M, and require 60% budget covered
-  if(G.studio.cash < devCostOf(idea)+fees+budget*0.6+50) return;
-  // Stricter debt limit: 50% instead of 70%
-  if(G.studio.debt > maxDebt()*0.5) return;
+  // Budget burns weekly over months — require viable cash buffer
+  if(G.studio.cash < devCostOf(idea)+fees+budget*0.4+25) return;
+  if(G.studio.debt > maxDebt()*0.75) return;
   const cfg={idea, director:dir, writer, producer, cast, budget, presales:chance(0.3)};
   if(useStreamPlan){ cfg.plan="streaming"; didAuction=true; }
   greenlight(cfg);
@@ -349,6 +347,250 @@ if(srcsV16.length){
   console.log("v16 · game studio unlocked; no eligible sources this run · ok");
 }
 
+// ── v32 modular systems assertions ──
+// 1. Seeded challenge & leaderboard
+const dChlg = BOW_CHALLENGE.getDailyChallenge();
+if(!dChlg.id || !dChlg.archetype) throw new Error("daily challenge generation failed");
+const sc = BOW_CHALLENGE.calcScore(G);
+if(!Number.isFinite(sc) || sc < 0) throw new Error("challenge score invalid");
+const sCode = BOW_CHALLENGE.generateShareCode(G);
+const verified = BOW_CHALLENGE.verifyShareCode(sCode);
+if(!verified || verified.sc !== sc) throw new Error("share code verification failed");
+console.log("v32 · seeded challenge ok (score " + sc + ", code " + sCode.slice(0, 16) + "...)");
+
+// 2. Theater chain ownership
+if(typeof BOW_THEATERS !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 400);
+  G.studio.rep = Math.max(G.studio.rep, 60);
+  if(!BOW_THEATERS.buyChain("starlite")) throw new Error("theater chain acquisition failed");
+  if(!G.ownedChains.includes("starlite")) throw new Error("chain not recorded in ownedChains");
+  const splitM = BOW_THEATERS.getExhibitionSplitMultiplier(G);
+  if(splitM <= 1.0) throw new Error("exhibition split multiplier not applied");
+  const conc = BOW_THEATERS.tickWeekly(G);
+  if(!Number.isFinite(conc)) throw new Error("concession tick failed");
+  console.log("v32 · theater chain ok (owned screens " + Math.round(G.exhibition.ownedScreenShare*100) + "%, split " + splitM.toFixed(2) + "x, concessions " + conc + "M)");
+}
+
+// 3. Dynamic soundtrack
+if(typeof BOW_SOUNDTRACK !== "undefined"){
+  const mood = BOW_SOUNDTRACK.evaluateMood(G);
+  if(!mood) throw new Error("soundtrack mood evaluation failed");
+  BOW_SOUNDTRACK.setMood("triumphant");
+  console.log("v32 · dynamic soundtrack ok (evaluated mood: " + mood + ")");
+}
+
+// 4. Dynasty New Game+
+if(typeof BOW_DYNASTY !== "undefined"){
+  const inherit = BOW_DYNASTY.calcInheritance(G);
+  if(!inherit || inherit.trustFund <= 0) throw new Error("inheritance calculation failed");
+  console.log("v32 · dynasty legacy ok (gen " + inherit.generation + ", trust fund " + inherit.trustFund + "M)");
+}
+
+// 5. BOW Shorts
+if(typeof BOW_SHORTS !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  if(!BOW_SHORTS.produceShort("teaser_skit", null, "Viral Teaser")) throw new Error("produce short failed");
+  BOW_SHORTS.tickWeekly(G);
+  console.log("v32 · bow shorts ok (active shorts " + G.shortsDivision.activeShorts.length + ", completed " + G.shortsDivision.completedShorts.length + ")");
+}
+
+// 6. Talent agency ownership
+if(typeof BOW_AGENCY !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 150);
+  G.studio.rep = Math.max(G.studio.rep, 50);
+  if(!BOW_AGENCY.foundAgency("Smoke Agency")) throw new Error("founding talent agency failed");
+  BOW_AGENCY.tickWeekly(G);
+  console.log("v32 · talent agency ok (founded: " + G.myAgency.name + ", roster: " + G.myAgency.roster.length + ")");
+}
+
+// 7. Film restoration
+if(typeof BOW_RESTORATION !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  if(G.films.length){
+    const fId = G.films[0].id;
+    if(BOW_RESTORATION.canRestore(fId, "remaster_4k")){
+      if(!BOW_RESTORATION.startRestoration(fId, "remaster_4k")) throw new Error("start restoration failed");
+      console.log("v32 · film restoration ok (started 4k remaster on film " + fId + ")");
+    }
+  }
+}
+
+// 8. Festival PR
+if(typeof BOW_FESTIVAL_PR !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  if(G.films.length){
+    if(!BOW_FESTIVAL_PR.submitFestival(G.films[0].id, "palais")) throw new Error("festival submission failed");
+    console.log("v32 · festival circuit ok (submitted to Palais d'Or)");
+  }
+}
+
+// 9. Intl currency & save-slot repair tool
+if(typeof fmtIntlCurrency === "function"){
+  const inr = fmtIntlCurrency(10, "INR");
+  const eur = fmtIntlCurrency(10, "EUR");
+  if(!inr.includes("₹") || !eur.includes("€")) throw new Error("intl currency formatting failed");
+  // Test save slot repair tool on mock corrupt save
+  global.localStorage.setItem("bow_save_test", JSON.stringify({ studio: { cash: "invalid", debt: -50, rep: 120 }, week: "nan" }));
+  const repRes = repairSaveSlot("bow_save_test");
+  if(!repRes.success) throw new Error("save-slot repair failed");
+  const repaired = JSON.parse(global.localStorage.getItem("bow_save_test"));
+  if(repaired.studio.cash !== 50 || repaired.studio.debt !== 0 || repaired.studio.rep !== 99) throw new Error("save repair sanitation failed");
+  global.localStorage.removeItem("bow_save_test");
+  console.log("v32 · intl currency (" + inr + ", " + eur + ") & save-slot repair tool ok");
+}
+
+// 10. Studio Facilities
+if(typeof FacilitiesModule !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 100);
+  const upRes = upgradeFacility("soundstage", G);
+  if(!upRes.ok || G.facilities.soundstage.tier !== 1) throw new Error("facility upgrade failed: " + (upRes.error||""));
+  const rentRes = toggleFacilityRental("soundstage", G);
+  if(!rentRes.ok || !G.facilities.soundstage.rented) throw new Error("facility rental toggle failed");
+  const facTick = tickFacilitiesWeekly(G);
+  if(!Number.isFinite(facTick.net)) throw new Error("facilities weekly tick failed");
+  console.log("v32 · studio facilities ok (soundstage T" + G.facilities.soundstage.tier + ", net " + facTick.net + "M/wk)");
+}
+
+// 11. TV Syndication
+if(typeof SyndicationModule !== "undefined"){
+  if(G.films.length){
+    const f = G.films[0];
+    const off = calculateSyndicationOffer(f, "matinee");
+    if(off && off.eligible){
+      const synRes = signSyndicationDeal(f.id, "matinee", G);
+      if(!synRes.ok) throw new Error("syndication deal signing failed: " + (synRes.error||""));
+      const synTick = tickSyndicationWeekly(G);
+      if(!Number.isFinite(synTick.totalPayout)) throw new Error("syndication weekly tick failed");
+      console.log("v32 · tv syndication ok (signed deal for \"" + f.title + "\", weekly payout " + synTick.totalPayout + "M)");
+    }
+  }
+}
+
+// 12. Talent Multi-Picture Contracts & Quirks
+if(typeof TalentContractsModule !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  if(G.talent.length){
+    const t = G.talent[0];
+    const pactRes = signMultiPictureDeal(t.id, 3, G);
+    if(!pactRes.ok) throw new Error("multi-picture contract failed: " + (pactRes.error||""));
+    const consumed = consumeContractPicture(t.id, 999, G);
+    if(!consumed) throw new Error("contract picture consume failed");
+    console.log("v32 · talent contracts & quirks ok (signed 3-pic pact with " + t.name + ", 2 left)");
+  }
+}
+
+// 13. Corporate Bond Market
+if(typeof BondMarketModule !== "undefined"){
+  const bRating = getStudioCreditRating(G);
+  if(!bRating || !bRating.grade) throw new Error("credit rating calculation failed");
+  const bRes = issueCorporateBond(25, 52, G);
+  if(!bRes.ok) throw new Error("bond issue failed: " + (bRes.error||""));
+  const bTick = tickBondsWeekly(G);
+  if(!Number.isFinite(bTick.interestServiced)) throw new Error("bond weekly coupon tick failed");
+  console.log("v32 · corporate bond market ok (grade " + bRating.grade + ", coupon " + bTick.interestServiced + "M/wk)");
+}
+
+// 14. Clash Analytics
+if(typeof ClashAnalyticsModule !== "undefined"){
+  const clashRes = analyzeReleaseCongestion(G.week + 4, "action", "tentpole", G);
+  if(!clashRes || !clashRes.severity) throw new Error("clash analytics calculation failed");
+  console.log("v32 · clash analytics ok (severity: " + clashRes.severity + ", net impact: " + clashRes.netImpactPercent + "%)");
+}
+
+// 15. Cinematic Universe
+const smokeFilm = (G.films && G.films.length) ? G.films[0] : { id: 70, title: "Cyber Feature", budget: 150 };
+if(!G.films) G.films = [];
+if(!G.films.some(f => f.id === smokeFilm.id)) G.films.push(smokeFilm);
+
+if(typeof CinematicUniverse !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const uRes = CinematicUniverse.createCinematicUniverse("Cyber Dynasty", "scifi", G);
+  if(!uRes.ok) throw new Error("create universe failed: " + (uRes.error || uRes.msg));
+  CinematicUniverse.addFilmToUniverse(uRes.universe.id, smokeFilm, G);
+  const uSyn = CinematicUniverse.calculateUniverseSynergy(uRes.universe.id, true, G);
+  if(!uSyn || uSyn.buzzMultiplier < 1) throw new Error("universe synergy calculation failed");
+  console.log("v32 · cinematic universe ok (created: Cyber Dynasty, crossover mult: " + uSyn.buzzMultiplier + "x)");
+}
+
+// 16. Location Scouting
+if(typeof LocationScouting !== "undefined"){
+  const locRes = LocationScouting.scoutLocationForProject(smokeFilm.id, "pinewood_uk", 100, G);
+  if(!locRes.ok) throw new Error("location scouting failed: " + locRes.msg);
+  console.log("v32 · location scouting ok (scouted: " + locRes.location.name + ", rebate: $" + locRes.taxRebateCash + "M)");
+}
+
+// 17. Production Insurance
+if(typeof ProductionInsurance !== "undefined"){
+  const insRes = ProductionInsurance.bindPolicy(smokeFilm.id, "overrun", 100, G);
+  if(!insRes.ok) throw new Error("production insurance binding failed: " + (insRes.error || insRes.msg));
+  const covRes = ProductionInsurance.claimGuarantor(smokeFilm.id, 20, G);
+  if(!covRes.ok || covRes.coveredPayout <= 0) throw new Error("insurance claim coverage failed");
+  console.log("v32 · production insurance ok (policy bound, absorbed overrun: $" + covRes.coveredPayout.toFixed(1) + "M)");
+}
+
+// 18. FYC Awards Campaign
+if(typeof AwardsCampaign !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const fycRes = AwardsCampaign.launchCampaign(smokeFilm.id, "trade_spread", "best_picture", G);
+  if(!fycRes.ok) throw new Error("awards campaign failed: " + fycRes.msg);
+  const lobScore = AwardsCampaign.getFilmAwardsLobbying(smokeFilm);
+  if(lobScore < 10) throw new Error("awards lobbying score failed to buff film");
+  console.log("v32 · fyc awards campaign ok (campaign launched, lobbying score: +" + lobScore + " pts)");
+}
+
+// 19. Board Directives & Governance
+if(typeof BoardTargets !== "undefined"){
+  const bTargets = BoardTargets.initBoardTargets(G);
+  if(!bTargets || !bTargets.activeDirectives.length) throw new Error("board directives failed to initialize");
+  BoardTargets.trackBoxOfficeRevenue(100, G);
+  const qRev = BoardTargets.evaluateQuarterClose(G);
+  if(!qRev || typeof qRev.confidence !== "number") throw new Error("board quarter evaluation failed");
+  console.log("v32 · board directives ok (" + qRev.completedCount + "/" + qRev.totalCount + " met, confidence: " + qRev.confidence + "%)");
+}
+
+// 20. Fan Conventions & Club
+if(typeof FanConventions !== "undefined"){
+  FanConventions.initFanClub(G);
+  FanConventions.setWeeklyBudget(0.1, G);
+  const fcTick = FanConventions.advanceFanClubWeek(G);
+  if(!fcTick || fcTick.totalFans <= 0) throw new Error("fan club weekly tick failed");
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const conRes = FanConventions.hostFanConvention("comic_con_hall_h", G);
+  if(!conRes.ok) throw new Error("hosting fan convention failed: " + conRes.msg);
+  console.log("v32 · fan conventions ok (hosted: Comic-Con Hall H, added: +" + conRes.data.addedFans + " fans)");
+}
+
+// 21. Test Screenings & Emergency Reshoots
+if(typeof TestScreenings !== "undefined"){
+  const mockFilm = { id: 9999, title: "Test Screening Feature", budget: 30, quality: 65, status: "post_production" };
+  G.films.push(mockFilm);
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const tsRes = TestScreenings.conductTestScreening(9999, "focus_group", G);
+  if(!tsRes.ok || !tsRes.result.projectedScore) throw new Error("test screening failed: " + tsRes.msg);
+  const rsRes = TestScreenings.executeEmergencyReshoots(9999, G);
+  if(!rsRes.ok || rsRes.newQuality <= 65) throw new Error("emergency reshoots failed to boost quality");
+  console.log("v32 · test screenings & reshoots ok (projected: " + tsRes.result.projectedScore + ", post-reshoot quality: " + rsRes.newQuality + ")");
+}
+
+// 22. Studio Espionage Desk
+if(typeof StudioEspionage !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const spyRes = StudioEspionage.executeEspionageMission("infiltrate_slate", "Apex Pictures", G);
+  if(!spyRes.ok && !spyRes.scandal) throw new Error("espionage mission failed");
+  console.log("v32 · studio espionage ok (op completed, dossiers: " + (G.espionage.reports || []).length + ")");
+}
+
+// 23. Franchise Merchandise Licensing
+if(typeof MerchLicensing !== "undefined"){
+  const blockbusterFilm = { id: 8888, title: "Mega Blockbuster", budget: 80, gross: 120, ww: 120, quality: 85 };
+  G.films.push(blockbusterFilm);
+  const merchRes = MerchLicensing.signMerchLicensingDeal(8888, "toys_action_figures", G);
+  if(!merchRes.ok) throw new Error("merchandise deal failed: " + merchRes.msg);
+  const mTick = MerchLicensing.advanceMerchandiseWeek(G);
+  if(mTick.totalRoyalty <= 0) throw new Error("merchandise royalty tick failed");
+  console.log("v32 · merchandise licensing ok (advance: $" + merchRes.advanceCash + "M, weekly royalty: $" + (mTick.totalRoyalty * 1000).toFixed(0) + "k/wk)");
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;
@@ -357,4 +599,4 @@ if(!G.over){
 if(!G.over || !/bankrupt/i.test(G.over.title)) throw new Error("insolvency did not end the game");
 console.log("v5 · game over ok ("+G.over.title+")");
 
-console.log("ALL CHECKS PASSED ✅");
+console.log("ALL CHECKS PASSED [OK]");

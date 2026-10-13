@@ -507,8 +507,202 @@ function bindFinancialAnalysis(){
   });
 }
 
+/* ═══════════════════════════════════════════════════════════
+   INTL CURRENCY FORMATTING & SAVE-SLOT REPAIR TOOL
+   ═══════════════════════════════════════════════════════════ */
+
+const INTL_CURRENCIES = {
+  USD: { symbol: "$",  rate: 1.0,  locale: "en-US", name: "US Dollar ($)" },
+  EUR: { symbol: "€",  rate: 0.92, locale: "de-DE", name: "Euro (€)" },
+  GBP: { symbol: "£",  rate: 0.78, locale: "en-GB", name: "British Pound (£)" },
+  INR: { symbol: "₹",  rate: 83.5, locale: "en-IN", name: "Indian Rupee (₹)" },
+  JPY: { symbol: "¥",  rate: 152.0,locale: "ja-JP", name: "Japanese Yen (¥)" },
+  CAD: { symbol: "C$", rate: 1.36, locale: "en-CA", name: "Canadian Dollar (C$)" },
+  AUD: { symbol: "A$", rate: 1.50, locale: "en-AU", name: "Australian Dollar (A$)" }
+};
+
+function getActiveCurrencyCode(){
+  try {
+    return localStorage.getItem("bow_currency_code") || "USD";
+  } catch(e){
+    return "USD";
+  }
+}
+
+function setActiveCurrencyCode(code){
+  if(INTL_CURRENCIES[code]){
+    try { localStorage.setItem("bow_currency_code", code); } catch(e){}
+    return true;
+  }
+  return false;
+}
+
+function fmtIntlCurrency(valM, code){
+  const currCode = code || getActiveCurrencyCode();
+  const def = INTL_CURRENCIES[currCode] || INTL_CURRENCIES.USD;
+  const num = (typeof valM === "number") ? valM : parseFloat(valM) || 0;
+  const converted = num * def.rate;
+
+  if(currCode === "INR"){
+    // Crores formatting for INR (1M USD ≈ 8.35 Cr)
+    const cr = converted / 10;
+    return def.symbol + (Math.round(cr * 10) / 10).toLocaleString(def.locale) + " Cr";
+  } else if(currCode === "JPY"){
+    // Oku (100M JPY)
+    return def.symbol + (Math.round(converted)).toLocaleString(def.locale) + "M";
+  }
+
+  return def.symbol + (Math.round(converted * 10) / 10).toLocaleString(def.locale) + "M";
+}
+
+/* ── Save-Slot Repair Tool ── */
+function repairSaveSlot(slotKey){
+  const key = slotKey || "bow_save_1";
+  let raw = null;
+  try {
+    raw = localStorage.getItem(key);
+  } catch(e){
+    return { success: false, errors: ["Cannot access localStorage: " + e.message] };
+  }
+
+  if(!raw){
+    return { success: false, errors: ["Slot " + key + " is empty or does not exist."] };
+  }
+
+  const fixedIssues = [];
+  let data = null;
+
+  try {
+    data = JSON.parse(raw);
+  } catch(err){
+    // Attempt aggressive syntax recovery
+    try {
+      let cleaned = raw.trim();
+      if(!cleaned.endsWith("}")) cleaned += "}";
+      data = JSON.parse(cleaned);
+      fixedIssues.push("Repaired truncated JSON string termination.");
+    } catch(err2){
+      return { success: false, errors: ["Unrecoverable syntax corruption in save JSON: " + err.message] };
+    }
+  }
+
+  if(!data || typeof data !== "object"){
+    return { success: false, errors: ["Parsed data is not a valid object."] };
+  }
+
+  // 1. Core structure validation
+  if(!data.studio || typeof data.studio !== "object"){
+    data.studio = { name: "Repaired Studio", cash: 100, debt: 0, rep: 30, overhead: 1.5 };
+    fixedIssues.push("Restored missing studio ledger object with safe baseline.");
+  }
+
+  // 2. NaN / Infinite numerical sanitation
+  const sanitizeNumber = (val, fallback, min, max) => {
+    if(typeof val !== "number" || !Number.isFinite(val) || isNaN(val)){
+      return fallback;
+    }
+    if(typeof min === "number" && val < min) return min;
+    if(typeof max === "number" && val > max) return max;
+    return val;
+  };
+
+  const oldCash = data.studio.cash;
+  data.studio.cash = sanitizeNumber(data.studio.cash, 50, -500, 50000);
+  if(data.studio.cash !== oldCash) fixedIssues.push("Sanitized non-finite studio cash to " + data.studio.cash);
+
+  const oldDebt = data.studio.debt;
+  data.studio.debt = sanitizeNumber(data.studio.debt, 0, 0, 10000);
+  if(data.studio.debt !== oldDebt) fixedIssues.push("Clamped negative or invalid studio debt to " + data.studio.debt);
+
+  const oldRep = data.studio.rep;
+  data.studio.rep = sanitizeNumber(data.studio.rep, 25, 5, 99);
+  if(data.studio.rep !== oldRep) fixedIssues.push("Normalized studio reputation to " + data.studio.rep);
+
+  data.week = sanitizeNumber(data.week, 1, 1, 5000);
+
+  // 3. Mezzanine duplicate track reconciliation
+  const mezz = data.studio.mezzDebt || data.mezz || 0;
+  data.studio.mezzDebt = sanitizeNumber(mezz, 0, 0, 1000);
+  data.mezz = data.studio.mezzDebt;
+  fixedIssues.push("Reconciled duplicate mezzanine debt ledgers to $" + data.studio.mezzDebt + "M.");
+
+  // 4. Arrays integrity check
+  const arrayKeys = ["projects", "films", "talent", "ideas", "franchises", "rivals", "news", "achievements"];
+  arrayKeys.forEach(k => {
+    if(!Array.isArray(data[k])){
+      data[k] = [];
+      fixedIssues.push("Restored missing array: " + k);
+    }
+  });
+
+  // 5. Clean projects
+  data.projects.forEach((p, idx) => {
+    if(!p.id) p.id = Date.now() + idx;
+    if(!p.title) p.title = "Untitled Production " + (idx+1);
+    p.spent = sanitizeNumber(p.spent, 0, 0, 1000);
+    p.budget = sanitizeNumber(p.budget, 20, 2, 500);
+  });
+
+  // Re-save repaired state
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return {
+      success: true,
+      key: key,
+      fixedIssues: fixedIssues.length ? fixedIssues : ["Save slot verified healthy. No repairs required."]
+    };
+  } catch(e){
+    return { success: false, errors: ["Failed to write back to localStorage: " + e.message] };
+  }
+}
+
+function openSaveSlotRepairModal(){
+  let h = "<h3>🛠 Save-Slot Diagnostic & Repair Tool</h3>";
+  h += "<p class='tiny muted'>Inspect local game save slots, repair schema corruptions, heal NaN values, and reconcile debt ledgers.</p>";
+
+  const slots = ["bow_save", "bow_save_1", "bow_save_2", "bow_save_3"];
+  h += "<div class='grid g2' style='gap:8px;margin-bottom:12px'>";
+  slots.forEach(s => {
+    let exists = false;
+    try { exists = !!localStorage.getItem(s); } catch(e){}
+    h += "<div class='card'>";
+    h += "<div class='spread'><b>" + s + "</b>" + (exists ? "<span class='tag green'>Found</span>" : "<span class='tag'>Empty</span>") + "</div>";
+    if(exists){
+      h += "<button class='btn btn-xs btn-primary' data-repairsave='" + s + "' style='margin-top:6px;width:100%'>Run Diagnostic & Repair</button>";
+    }
+    h += "</div>";
+  });
+  h += "</div>";
+
+  h += "<div id='saveRepairOutput' style='margin-top:10px'></div>";
+
+  const v = (typeof window.openModal === "function") ? window.openModal(h) : null;
+  if(!v) return;
+
+  v.querySelectorAll("[data-repairsave]").forEach(b => {
+    b.onclick = function(){
+      const slot = b.dataset.repairsave;
+      const res = repairSaveSlot(slot);
+      const out = v.querySelector("#saveRepairOutput");
+      if(out){
+        if(res.success){
+          let repHtml = "<div class='card' style='border-left:3px solid var(--green)'>";
+          repHtml += "<b class='pos'>[REPAIRED] Repair Successful for " + res.key + "</b>";
+          repHtml += "<ul style='font-size:12px;margin:6px 0 0 16px;padding:0'>";
+          res.fixedIssues.forEach(iss => repHtml += "<li>" + iss + "</li>");
+          repHtml += "</ul></div>";
+          out.innerHTML = repHtml;
+        } else {
+          out.innerHTML = "<div class='card' style='border-left:3px solid var(--red)'><b class='neg'>[ERROR] Repair Failed:</b> " + (res.errors||[]).join(", ") + "</div>";
+        }
+      }
+    };
+  });
+}
+
 /* Export for global scope */
-window.FINANCE_TOOLS = {
+const _finScope = typeof window !== "undefined" ? window : (typeof global !== "undefined" ? global : this);
+_finScope.FINANCE_TOOLS = {
   franchiseDCF,
   runComps,
   lboScreen,
@@ -516,4 +710,14 @@ window.FINANCE_TOOLS = {
   studioMetrics,
   renderFinancialAnalysis,
   bindFinancialAnalysis,
+  fmtIntlCurrency,
+  getActiveCurrencyCode,
+  setActiveCurrencyCode,
+  repairSaveSlot,
+  openSaveSlotRepairModal,
+  INTL_CURRENCIES
 };
+
+_finScope.fmtIntlCurrency = fmtIntlCurrency;
+_finScope.repairSaveSlot = repairSaveSlot;
+_finScope.openSaveSlotRepairModal = openSaveSlotRepairModal;

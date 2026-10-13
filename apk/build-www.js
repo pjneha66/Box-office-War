@@ -10,6 +10,12 @@ const WWW = path.join(__dirname, "www");
 const FILES = [
   "index.html", "design-tokens.css", "style.css", "data.js", "engine.js", "i18n.js", "ui.js",
   "finance-tools.js", "v31-features.js",
+  "challenge-leaderboard.js", "theater-chains.js", "dynamic-soundtrack.js", "dynasty-legacy.js",
+  "bow-shorts.js", "talent-agency.js", "film-restoration.js", "festival-pr.js",
+  "studio-facilities.js", "syndication-tv.js", "talent-contracts.js", "bond-market.js",
+  "clash-analytics.js", "cinematic-universe.js", "location-scouting.js", "production-insurance.js",
+  "awards-campaign.js", "board-targets.js", "fan-conventions.js", "test-screenings.js",
+  "studio-espionage.js", "merch-licensing.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 

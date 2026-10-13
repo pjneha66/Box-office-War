@@ -183,16 +183,15 @@ function tryEmpire(policy){
 }
 function tryStreamer(){
   if(!G.streamer){
-    // launching costs $250M — only go if the studio can still pay ~20 weeks of
-    // bills afterwards, which is where the naive version of this arc died
-    const reserve = 250 + weeklyBurn()*20;
-    if(G.studio.rep>=40 && G.studio.cash>reserve) launchStreamer();
+    // launching costs $140M — require $140M + 12 weeks of burn
+    const reserve = 140 + weeklyBurn()*12;
+    if(G.studio.rep>=35 && G.studio.cash>reserve) launchStreamer();
     return;
   }
   // feed the platform: move finished films across
   const movable=(G.films||[]).filter(f=>!f.soldTo&&!f.streamingOriginal&&!f.inTheaters&&!f.onOwnPlatform&&!f.onOwn);
   if(movable.length) moveToStreamer(movable[0].id);
-  if(!G.streamer.tier || G.streamer.tier==="premium"){ if(G.studio.cash>300) setStreamerTier("ads"); }
+  if(!G.streamer.tier || G.streamer.tier==="premium"){ if(G.studio.cash>200) setStreamerTier("ads"); }
 }
 
 /* ── 1. blockbuster ──────────────────────────────────────────────────── */
