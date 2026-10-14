@@ -2453,7 +2453,7 @@ function releaseFilm(p){
     pattern:p.pattern||"wide", rollout:p.rollout||"day", window:p.window||45, windowDays:p.window||45,
     dayAndDate:!!p.dayAndDate, onOwn:!!p.dayAndDate, onOwnPlatform:!!p.dayAndDate,
     releaseWeek:G.week, opening, weekly:[{w:G.week, gross:opening}],
-    dom:opening, ww:0, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
+    dom:opening, intl:0, ww:opening, studioRev:0, legs:0, decay:0, rentalsDom:opening*0.53,
     presales:p.presales||0, backend:p.backend||0,
     campaignLegs:p.campaignLegs||0,   // v13: campaign WOM now actually rides the released film's tail
     advanceTotal:advTotal, advance:(p.advance||[]).slice(), locCost,
@@ -2544,6 +2544,10 @@ function tickTheatrical(){
       earn("theatrical", rentals);
       f.rentalsDom = (f.rentalsDom||0) + rentals;
     }
+    const curShare = f.presales ? 0 : ((DATA.GENRES[f.genre] && DATA.GENRES[f.genre].intlShare) || 0.45);
+    const intlMult = (typeof econM === "function") ? econM("intl") : 1.0;
+    f.intl = Math.max(0, Math.round(((f.dom / Math.max(0.01, 1 - curShare) - f.dom) * intlMult) * 10) / 10);
+    f.ww = Math.round((f.dom + f.intl) * 10) / 10;
     f.weekly.push({w:G.week, gross});
   }
 }
@@ -3519,8 +3523,9 @@ function endTheatrical(f){
   let share = DATA.GENRES[f.genre].intlShare;
   if(typeof intlShareOf==="function") share = intlShareOf(f);
   else if(f.censorCut) share = Math.max(0, share-0.08);
-  const intlGross = (f.dom/(1-share) - f.dom) * econM("intl");
-  f.ww = f.dom + intlGross;
+  const intlGross = Math.max(0, Math.round(((f.dom/(Math.max(0.01, 1-share)) - f.dom) * econM("intl")) * 10) / 10);
+  f.intl = intlGross;
+  f.ww = Math.round((f.dom + f.intl) * 10) / 10;
   try{ f.regions = regionSplit(f); }catch(e){}
   let intlRentals = 0;
   if(!f.presales){

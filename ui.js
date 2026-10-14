@@ -239,7 +239,6 @@ function flashes(list){
     if(!G._nfK[key]){ G._nfK[key]=1; addNotification(f.t, f.k||"info", true); }
     if(!seen[key]){ seen[key]=1; queue.push(f); }
   });
-  saveGame();
   const main=queue.filter(f=>f.k==="gold"||f.k==="bad");
   const shown=main.slice(0,TOAST_CAP);
   shown.forEach(f=>toast(f.t, f.k));
@@ -815,12 +814,22 @@ function financeOverviewSheet(){
   v.querySelector("#foClose").onclick=closeModal;
   v.querySelector("#foOpen").onclick=()=>{ closeModal(); switchTab("finance"); };
 }
+let _advancingWeek = false;
 function doWeek(n){
-  if(G.over){ gameOverModal(); return; }
-  WKSNAP={ cash:G.studio.cash, fromWeek:G.week, weeks:n };
-  beep("clap");
-  if(n===1) advanceWeek(); else advanceWeeks(n);
-  afterTick();
+  if(_advancingWeek) return;
+  if(!G || G.over){ if(G && G.over) gameOverModal(); return; }
+  _advancingWeek = true;
+  const btn = $("#btnWeek");
+  if(btn) btn.classList.add("btn-advancing");
+  try{
+    WKSNAP={ cash:G.studio.cash, fromWeek:G.week, weeks:n };
+    beep("clap");
+    if(n===1) advanceWeek(); else advanceWeeks(n);
+    afterTick();
+  }finally{
+    _advancingWeek = false;
+    if(btn) btn.classList.remove("btn-advancing");
+  }
 }
 /* drain the engine's sound-effect bus, staggered so stings don't collide */
 function playSfx(){
@@ -1100,8 +1109,16 @@ function viewStudio(){
   const readyUnscheduled=(typeof readyProjects==="function"?readyProjects():[]).filter(p=>!p.releaseWeek);
   const topFr=(G.franchises||[]).slice().sort((a,b)=>(b.decay||0)-(a.decay||0))[0]||null;
   const frHeat=topFr?Math.round((topFr.decay||0)*100):null;
-  const awardCount=(G.festWins||[]).filter(w=>w.year===yr).length+(G.stats.awards||[]).filter(a=>a.year===yr).length;
-  let h="<div class='stat-hero'>"+
+  const awardCount=(G.festWins||[]).filter(w=>w.year===yr).length+((G.stats&&G.stats.awards)||[]).filter(a=>a.year===yr).length;
+  let h="<div class='subnav-pills'>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🏛 Overview</button>"+
+    "<button class='subnav-pill' id='btnOpenFacilities'>🏗 Lot & Soundstages</button>"+
+    "<button class='subnav-pill' id='btnOpenBoard'>📋 Board Directives</button>"+
+    "<button class='subnav-pill' id='btnOpenEspionage'>🕵️ Studio Espionage</button>"+
+    "<button class='subnav-pill' id='btnOpenAwardsCampaign'>🏆 FYC Campaign</button>"+
+    "<button class='subnav-pill' id='btnFestivalPr'>🤝 Festival Circuit</button>"+
+    "<button class='subnav-pill' id='btnOpenFanClub'>📬 Fan Club</button>"+
+  "</div><div class='stat-hero'>"+
     statCard(fmtM(st.cash),"Cash on hand")+
     statCard("+"+fmtM(rev12),"Revenue (12w)","var(--green)")+
     statCard((net12>=0?"+":"")+fmtM(net12),"Profit (12w)", net12>=0?"var(--green)":"var(--red)")+
@@ -1511,8 +1528,12 @@ function viewDevelop(){
      Restored after the v28.7 file restore reverted the routing (helpers stayed, bar was lost). */
   if(!DEVELOP_SUB) DEVELOP_SUB="scripts";
   const DEV_TABS=[["scripts","📝 Scripts"],["ip","📚 IP Market"],["talent","🎫 Talent Business"],["combos","🧩 Combos Codex"]];
-  let h="<div class='row' style='gap:4px;flex-wrap:wrap;margin:4px 0 10px'>"+
-    DEV_TABS.map(x=>"<button class='btn btn-sm "+(DEVELOP_SUB===x[0]?"btn-primary":"btn-alt")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+"</div>";
+  let h="<div class='subnav-pills'>"+
+    DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+
+    "<button class='subnav-pill' id='btnOpenContracts'>📜 Multi-Pic Contracts</button>"+
+    "<button class='subnav-pill' id='btnOpenTalentAgency'>🎭 Talent Agency</button>"+
+    "<button class='subnav-pill' id='btnClashAnalytics'>⚡ Clash Radar</button>"+
+  "</div>";
   if(DEVELOP_SUB==="combos") return h+viewCombosCodex();
   if(DEVELOP_SUB==="ip") return h+viewDevelopIP();
   if(DEVELOP_SUB==="talent") return h+viewDevelopTalent();
@@ -2862,6 +2883,10 @@ function weekSummaryModal(){
   const news=G.news.filter(n=>n.w>G.week-snap.weeks).slice(0,7);
   const opened=G.films.filter(f=>f.releaseWeek && f.releaseWeek>G.week-snap.weeks && f.releaseWeek<=G.week);
   const live=G.films.filter(f=>f.inTheaters);
+  const warns=(typeof opsWarnings==="function")? opsWarnings() : [];
+  const isQuarter = (G.week % 13 === 0);
+  const wantPopup = localStorage.getItem("bow_wksum") === "1" || opened.length > 0 || isQuarter || warns.length > 0;
+  if(!wantPopup) return;
   let h="<div class='wk-head'><div class='wk-when'>📅 "+(snap.weeks>1? snap.weeks+" weeks later" : "This week")+" · Y"+yearOf(G.week)+" · "+DATA.seasonOf(woyOf(G.week)).month+" W"+woyOf(G.week)+"</div>"+
     "<div class='wk-cash "+(delta>=0?"pos":"neg")+"'>"+(delta>=0?"+":"−")+fmtM(Math.abs(delta))+"</div>"+
     "<div class='tiny muted'>net cash · "+(delta>=0?"the ledger likes you":"it happens to everyone")+"</div></div>";
@@ -2879,7 +2904,6 @@ function weekSummaryModal(){
     news.forEach(n=>{ h+="<div class='tiny' style='padding:4px 0;border-bottom:1px dashed var(--line)'>"+n.t+"</div>"; });
     h+="</div></div>";
   }
-  const warns=(typeof opsWarnings==="function")? opsWarnings() : [];
   if(warns.length){
     h+="<div class='card' style='border-left:3px solid var(--red)'><b class='small neg'>⚠ Warnings</b><div style='margin-top:4px'>";
     warns.slice(0,5).forEach(w=>{ h+="<div class='tiny neg' style='padding:4px 0;border-bottom:1px dashed var(--line)'>"+w+"</div>"; });
@@ -3094,7 +3118,13 @@ function backlotScene(){
 }
 
 function viewProductions(){
-  let h="";
+  let h="<div class='subnav-pills'>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🎬 Active Slate</button>"+
+    "<button class='subnav-pill' onclick='calendarModal()'>🗓 Release Calendar</button>"+
+    "<button class='subnav-pill' onclick='if(typeof openLocationScoutingModal===\"function\")openLocationScoutingModal()'>🗺 Location Scouting</button>"+
+    "<button class='subnav-pill' onclick='if(typeof openInsuranceModal===\"function\")openInsuranceModal()'>🛡 Completion Insurance</button>"+
+    "<button class='subnav-pill' onclick='if(typeof openTestScreeningModal===\"function\")openTestScreeningModal()'>🧪 Test Screenings</button>"+
+  "</div>";
   const ready=readyProjects(), allProd=inProdProjects();
   h+=filmFlowStrip("Production")+"<div class='tiny muted' style='margin:-4px 0 8px'>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release → Box office → Streaming. Cards below show stage + next action.</div>";
   h+="<div class='row' style='margin-bottom:8px'><button class='btn btn-alt' onclick='calendarModal()'>📅 Release calendar — move dates, dodge rivals</button></div>";
@@ -3519,14 +3549,121 @@ function reviewsModal(fid){
   openModal(h);
 }
 
+/* ═══════════ v32: Individual Film Details & Full International Breakdown ═══════════ */
+function openFilmDetailsModal(filmId){
+  const f = (G.films||[]).find(x => x.id === +filmId);
+  if(!f) return;
+  const sp = boSplit(f);
+  const be = breakevenWW(f);
+  const profit = Math.round((sp.ww - be) * 10) / 10;
+  const domPct = sp.ww > 0 ? Math.round((sp.dom / sp.ww) * 100) : 50;
+  const intlPct = 100 - domPct;
+  const mult = boMult(f);
+  const legs = boLegs(f);
+  const crit = f.criticAvg != null ? f.criticAvg : (f.quality ? f.quality.critic : 50);
+  const aud = (typeof audienceScoreOf === "function") ? audienceScoreOf(f) : (f.quality ? f.quality.aud : 50);
+  const regs = (typeof regionSplit === "function") ? regionSplit(f) : [];
+
+  let h = "<div class='film-modal-header' style='margin-bottom:12px'>"+
+    "<div class='spread'><div><span class='tag' style='background:rgba(245,185,66,.18);color:var(--gold2)'>" + (DATA.GENRES[f.genre] ? DATA.GENRES[f.genre].name : f.genre).toUpperCase() + "</span> " +
+    "<span class='tag'>" + (f.rating || "PG-13") + "</span> " +
+    "<span class='tag' style='background:rgba(255,255,255,0.06)'>" + (f.inTheaters ? "🎟 In Theaters" : f.soldTo ? "📺 Licensed to " + f.soldTo : f.onOwn ? "📱 On Platform" : "📚 In Vault") + "</span></div>" +
+    "<b class='tiny muted'>Released Y" + yearOf(f.releaseWeek || G.week) + " · W" + woyOf(f.releaseWeek || G.week) + "</b></div>" +
+    "<h2 style='margin:6px 0 2px;font-size:22px;letter-spacing:-0.02em'>" + esc(f.title) + "</h2>" +
+    (f.franchiseName ? "<div class='tiny' style='color:var(--gold2)'>🏰 Franchise: <b>" + esc(f.franchiseName) + "</b></div>" : "") +
+    "</div>";
+
+  // Financials Hero Cards
+  h += "<div class='stat-hero' style='margin-bottom:14px'>" +
+    statCard(fmtG(sp.dom) + " (" + domPct + "%)", "Domestic Box Office", "var(--gold)") +
+    statCard(fmtG(sp.intl) + " (" + intlPct + "%)", "International Box Office", "var(--cyan)") +
+    statCard(fmtG(sp.ww), "Worldwide Total", "var(--green)") +
+    statCard((profit >= 0 ? "+" : "") + fmtM(profit), "Net Studio Profit", profit >= 0 ? "var(--green)" : "var(--red)") +
+    statCard(fmtM(f.budget), "Production Budget") +
+    statCard(fmtM(f.marketing || 0), "P&A Marketing") +
+    statCard(fmtM(f.rentalsDom || Math.round(sp.dom * 0.53 * 10) / 10), "Studio Rentals Recv'd") +
+    statCard(mult + "×", "Multiplier (WW / Open)") +
+  "</div>";
+
+  // Split visual progress bar
+  h += "<div class='card' style='margin-bottom:12px'>" +
+    "<div class='cost-line'><span class='small'><b>Box Office Revenue Breakdown</b></span>" +
+    "<span class='tiny'>Domestic: <b>" + fmtG(sp.dom) + "</b> (" + domPct + "%) · International: <b>" + fmtG(sp.intl) + "</b> (" + intlPct + "%)</span></div>" +
+    "<div style='display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(0,0,0,0.5);margin:6px 0'>" +
+      "<div style='width:" + domPct + "%;background:linear-gradient(90deg,var(--gold),var(--gold2))' title='Domestic " + fmtG(sp.dom) + " (" + domPct + "%)'></div>" +
+      "<div style='width:" + intlPct + "%;background:linear-gradient(90deg,var(--cyan),#38bdf8)' title='International " + fmtG(sp.intl) + " (" + intlPct + "%)'></div>" +
+    "</div>" +
+  "</div>";
+
+  // International Territory Breakdown Table
+  h += "<div class='section-title'>🌍 International Territory Breakdown</div>" +
+    "<div class='card' style='margin-bottom:12px'>";
+  if(regs && regs.length){
+    const maxRegGross = Math.max(0.1, ...regs.map(r => r.gross || 0));
+    h += "<div class='territory-grid'>";
+    regs.forEach(r => {
+      const pct = Math.round(((r.gross || 0) / maxRegGross) * 100);
+      const shareOfWW = sp.ww > 0 ? Math.round(((r.gross || 0) / sp.ww) * 100) : 0;
+      h += "<div class='territory-row'>" +
+        "<span class='territory-flag'>" + (r.emoji || "🌐") + "</span>" +
+        "<span class='t-name'>" + esc(r.name) + " <small class='muted'>(" + shareOfWW + "% WW)</small></span>" +
+        "<div class='t-bar-wrap'><div class='t-bar-fill' style='width:" + pct + "%'></div></div>" +
+        "<span class='t-val'>" + fmtG(r.gross || 0) + "</span>" +
+      "</div>";
+    });
+    h += "</div>";
+  } else {
+    h += "<div class='tiny muted'>Global territorial splits settle as international theatrical runs expand across territories.</div>";
+  }
+  h += "</div>";
+
+  // Creative & Cast Details
+  h += "<div class='section-title'>🎬 Key Creative Team</div>" +
+    "<div class='card' style='margin-bottom:12px'><div class='grid g2'>" +
+      "<div><div class='cost-line'><span>Director</span><b>" + (f.director ? esc(f.director.name) : "In-House") + "</b></div>" +
+      "<div class='cost-line'><span>Writer</span><b>" + (f.writer ? esc(f.writer.name) : "Staff") + "</b></div>" +
+      "<div class='cost-line'><span>Producer</span><b>" + (f.producer ? esc(f.producer.name) : "Studio Unit") + "</b></div></div>" +
+      "<div><div class='cost-line'><span>Top Cast</span><b>" + ((f.cast || []).map(c => esc(c.name)).join(", ") || "Ensemble") + "</b></div>" +
+      "<div class='cost-line'><span>Critics Score</span><b class='" + (crit >= 60 ? "pos" : "neg") + "'>" + crit + "%</b></div>" +
+      "<div class='cost-line'><span>Audience WOM</span><b class='" + (aud >= 60 ? "pos" : "neg") + "'>" + aud + "%</b></div></div>" +
+    "</div></div>";
+
+  // Actions
+  h += "<div class='modal-actions' style='flex-wrap:wrap;gap:6px'>" +
+    "<button class='btn btn-ghost' onclick='closeModal()'>Close</button>" +
+    (!f.inTheaters && typeof canRerelease === "function" && canRerelease(f) ? "<button class='btn btn-alt' id='dossierRe'>🎟 Theatrical Re-release</button>" : "") +
+    (!f.inTheaters && typeof canReboot === "function" && canReboot(f) ? "<button class='btn btn-alt' id='dossierReboot'>🔁 Franchise Reboot</button>" : "") +
+    (!f.inTheaters && !f.directorsCut && f.ww >= 100 ? "<button class='btn btn-alt' id='dossierCut'>✂ Director's Cut</button>" : "") +
+    (typeof MerchLicensing !== "undefined" ? "<button class='btn btn-primary' id='dossierMerch'>🧸 Sign Merchandising</button>" : "") +
+    (typeof SyndicationTV !== "undefined" ? "<button class='btn btn-alt' id='dossierTV'>📡 TV Syndication Deal</button>" : "") +
+  "</div>";
+
+  const v = openModal(h);
+  const btnRe = v.querySelector("#dossierRe");
+  if(btnRe) btnRe.onclick = () => { closeModal(); if(typeof reReleaseFilm === "function") reReleaseFilm(f.id); render(); };
+  const btnRb = v.querySelector("#dossierReboot");
+  if(btnRb) btnRb.onclick = () => { closeModal(); if(typeof rebootFilm === "function") rebootFilm(f.id); render(); };
+  const btnCut = v.querySelector("#dossierCut");
+  if(btnCut) btnCut.onclick = () => { closeModal(); if(typeof makeDirectorsCut === "function") makeDirectorsCut(f); render(); };
+  const btnMerch = v.querySelector("#dossierMerch");
+  if(btnMerch) btnMerch.onclick = () => { closeModal(); if(typeof openMerchDeskModal === "function") openMerchDeskModal(); };
+  const btnTV = v.querySelector("#dossierTV");
+  if(btnTV) btnTV.onclick = () => { closeModal(); if(typeof openSyndicationModal === "function") openSyndicationModal(); };
+}
+
 /* ═══════════ VIEW: box office ═══════════ */
 /* Box office: read-only visualization + WHY explainer from existing film data. */
 function boSplit(f){
   try{
-    const share=f.presales?0:(DATA.GENRES[f.genre]?DATA.GENRES[f.genre].intlShare:0.5);
-    const ww=f.ww||(f.dom/(1-share))||0;
-    return {dom:f.dom||0, intl:Math.max(0,ww-(f.dom||0)), ww};
-  }catch(e){ return {dom:f.dom||0, intl:0, ww:f.ww||f.dom||0}; }
+    const dom = Math.round((f.dom||0)*10)/10;
+    const share = f.presales ? 0 : (DATA.GENRES[f.genre] ? DATA.GENRES[f.genre].intlShare : 0.45);
+    let intl = (typeof f.intl === "number" && isFinite(f.intl)) ? f.intl : Math.max(0, Math.round(((f.ww||0) - dom)*10)/10);
+    if(intl === 0 && !f.presales && dom > 0){
+      intl = Math.max(0, Math.round((dom / Math.max(0.01, 1 - share) - dom) * 10) / 10);
+    }
+    const ww = (typeof f.ww === "number" && isFinite(f.ww) && f.ww > 0) ? f.ww : Math.round((dom + intl) * 10) / 10;
+    return { dom, intl, ww };
+  }catch(e){ return { dom: f.dom||0, intl: f.intl||0, ww: f.ww||f.dom||0 }; }
 }
 function boMult(f){
   const s=boSplit(f);
@@ -3794,7 +3931,12 @@ function boxOfficeVaultBrowser(){
 }
 
 function viewBoxOffice(){
-  let h="";
+  let h="<div class='subnav-pills'>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🎟 Theatrical Runs</button>"+
+    "<button class='subnav-pill' id='btnClashAnalytics'>⚡ Clash Radar</button>"+
+    "<button class='subnav-pill' id='btnOpenTheaters'>🏢 Theater Chains</button>"+
+    "<button class='subnav-pill' onclick='switchTab(\"library\")'>📚 Film Library</button>"+
+  "</div>";
   const chart=weeklyChart();
   h+="<div class='section-title'>This week's chart</div><div class='card chart-bars'>";
   if(!chart.length) h+="<div class='muted small'>Nothing in theaters — the multiplex is a graveyard.</div>";
@@ -3849,6 +3991,7 @@ function viewBoxOffice(){
       const dp=demoPanel(f); if(dp) s+=fold("demo:"+f.id,"🎯 Audience demographics",dp,{open:false});
       const sp=socialPanel(f); if(sp) s+=fold("social:"+f.id,"📣 Social buzz",sp,{open:false}); return s; })();
     h+="<div class='card'><div class='spread'><div><b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b> "+wowBadge+" "+psaBadge+
+      "<button class='btn btn-xs btn-primary' style='margin-left:6px' data-dossier='"+f.id+"'>📊 Breakdown</button>"+
       "<div class='tiny muted'>wk "+f.weeksOut+" out · opened "+fmtG(f.opening)+" · "+scoreBadge(f.quality.overall)+"</div></div>"+
       "<div style='text-align:right'><b class='gold'>"+fmtG(f.dom)+"</b><div class='tiny muted'>domestic</div></div></div>"+
       "<div class='stat-hero' style='margin-top:8px'>"+
@@ -3901,6 +4044,7 @@ function viewBoxOffice(){
       f.ww>=be*1.6? "<span class='tag green'>SMASH</span>" : f.ww>=be? "<span class='tag green'>HIT</span>" :
       f.ww>=be*0.75? "<span class='tag gold'>soft</span>" : "<span class='tag red'>FLOP</span>";
     const isSel = compareSel.includes(f.id);
+    const sp = boSplit(f);
     h+="<div class='film-row"+(isSel?" sel":"")+"' data-film-id='"+f.id+"'><div class='film-main'>"+
       "<div class='film-head'><input type='checkbox' "+(isSel?"checked":"")+" class='film-cb' data-fid='"+f.id+"'>"+
       "<b>"+esc(f.title)+"</b> "+verdict+" "+
@@ -3908,13 +4052,19 @@ function viewBoxOffice(){
       ((f.awards&&f.awards.length)?"<span class='tiny'>🏆 "+f.awards.join(" · ")+"</span>":"")+
       ((f.reviews&&f.reviews.length)?" <button class='btn btn-sm btn-ghost' data-reviews='"+f.id+"'>🗞 "+(f.criticAvg||0)+"%</button>":"")+
       "</div>"+
-      "<div class='tiny muted'>"+DATA.GENRES[f.genre].name+" · "+fmtM(f.budget)+" budget · "+fmtG(f.ww||0)+" WW"+
+      "<div class='film-breakdown-badge'>"+
+        "<span>DOM: <b class='gold'>"+fmtG(sp.dom)+"</b></span>"+
+        "<span>INTL: <b style='color:var(--cyan)'>"+fmtG(sp.intl)+"</b></span>"+
+        "<span>WW: <b class='pos'>"+fmtG(sp.ww)+"</b></span>"+
+      "</div>"+
+      "<div class='tiny muted'>"+DATA.GENRES[f.genre].name+" · "+fmtM(f.budget)+" budget"+
       (f.targetRegion && f.targetRegion!=="auto"? " · 🎯 "+(Array.isArray(f.targetRegion)? f.targetRegion : [f.targetRegion]).map(id=>{const d=(typeof regionDefs==="function")?regionDefs().find(x=>x.id===id):null; return d? d.name:id;}).join(", "):"")+
       (f.soldTo?" · licensed to "+f.soldTo:"")+(f.onOwn?" · on your platform":"")+(f.dayAndDate?" · 🎞 day-and-date":"")+" · "+(DATA.window(f.window||"45").name)+"</div>"+
       (f.streamingOriginal?"":"<div class='tiny muted'>Opened "+fmtG(f.opening||0)+" · mult "+boMult(f)+"× · legs "+boLegs(f)+"× · critics "+(f.criticAvg!=null?f.criticAvg:(f.quality?f.quality.critic:"—"))+"% · audience "+((typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:"—"))+"%</div>"+
       (f.streamingOriginal?"":topRegionLine(f)))+
       "</div>"+
       "<div class='film-side'><b class='"+(f.profit>=0?"pos":"neg")+"'>"+(f.profit>=0?"+":"")+fmtM(f.profit||0)+"</b><div class='tiny muted'>net</div>"+
+      "<button class='btn btn-xs btn-primary' style='margin-top:4px' data-dossier='"+f.id+"'>📊 Breakdown</button>"+
       (G.streamer && !f.streamingOriginal && !f.soldTo && !f.onOwn && !f.inTheaters? "<button class='btn btn-sm btn-alt' style='margin-top:4px' data-movestr='"+f.id+"'>📱 → your platform</button>":"")+
       (typeof canRerelease==="function" && canRerelease(f)? "<button class='btn btn-xs btn-alt' style='margin-top:4px' data-rerelease='"+f.id+"'>🎟 Re-release</button>":"")+
       (typeof canReboot==="function" && canReboot(f)? "<button class='btn btn-xs btn-alt' style='margin-top:4px' data-reboot='"+f.id+"'>🔁 Reboot</button>":"")+
@@ -4129,7 +4279,13 @@ function viewFinance(){
   const dRep = G.prevRep != null ? (st.rep - G.prevRep) : 0;
   const dRepLabel = (dRep >= 0 ? "+" : "") + dRep.toFixed(1);
 
-  let h="<div class='stat-hero'>"+
+  let h="<div class='subnav-pills'>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>📊 P&L Ledger</button>"+
+    "<button class='subnav-pill' id='btnOpenBonds'>📑 Corporate Bond Market</button>"+
+    "<button class='subnav-pill' id='btnOpenDynasty'>👑 Dynasty & Trust</button>"+
+    "<button class='subnav-pill' onclick='ipoModal()'>🔔 Public Offering</button>"+
+    "<button class='subnav-pill' onclick='maModal()'>🏢 M&A Vault</button>"+
+  "</div><div class='stat-hero'>"+
     statCard(fmtM(st.cash),"Cash ("+dCashLabel+" lw)","var(--gold2)")+
     statCard("+"+fmtM(ft.R),"Revenue (trail)")+
     statCard(fmtM(ft.E),"Expenses (trail)")+
@@ -4469,6 +4625,7 @@ function bindView(){
     if(G.pendingAuction){ render(); auctionModal(); }
   });
   $$("[data-test]").forEach(b=>b.onclick=()=>{ beep("click"); screeningModal(+b.dataset.test); });
+  $$("[data-dossier]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); beep("click"); openFilmDetailsModal(+b.dataset.dossier); });
   $$("[data-reviews]").forEach(b=>b.onclick=()=>{ beep("click"); reviewsModal(+b.dataset.reviews); });
   $$("[data-movestr]").forEach(b=>b.onclick=()=>{ if(moveToStreamer(+b.dataset.movestr)){beep("gold"); flashes(G.flash); render();} else toast("That film can't move to your platform.","bad"); });
   // film comparison checkboxes
@@ -5009,12 +5166,19 @@ function viewLibrary(){
     films.sort((a,b)=>(b.ww||0)-(a.ww||0)).forEach(f=>{
       const be = breakevenWW(f);
       const profit = Math.round((f.ww||0) - be);
+      const sp = boSplit(f);
       h+="<div class='card'><div class='spread'><b>"+(DATA.GENRES[f.genre]?DATA.GENRES[f.genre].emoji:"🎬")+" "+esc(f.title)+"</b>"+
-        "<span class='tag "+(profit>=0?"pos":"neg")+"'>"+fmtG(f.ww||0)+" WW</span></div>"+
+        "<span class='tag "+(profit>=0?"pos":"neg")+"'>"+fmtG(sp.ww)+" WW</span></div>"+
         "<div class='tiny muted'>Y"+yearOf(f.releaseWeek)+" · "+DATA.GENRES[f.genre]?.name+" · "+fmtM(f.budget)+"M budget · "+
         (f.franchiseName?"🏰 "+esc(f.franchiseName)+" · ":"")+
         (profit>=0?"<span class='pos'>+"+fmtM(profit)+" profit</span>":"<span class='neg'>"+fmtM(profit)+" loss</span>")+"</div>"+
+        "<div class='film-breakdown-badge'>"+
+          "<span>DOM: <b class='gold'>"+fmtG(sp.dom)+"</b></span>"+
+          "<span>INTL: <b style='color:var(--cyan)'>"+fmtG(sp.intl)+"</b></span>"+
+          "<span>WW: <b class='pos'>"+fmtG(sp.ww)+"</b></span>"+
+        "</div>"+
         "<div class='row' style='margin-top:6px;gap:4px'>"+
+          "<button class='btn btn-xs btn-primary' data-dossier='"+f.id+"'>📊 Breakdown</button>"+
           "<button class='btn btn-xs btn-alt' data-re='"+f.id+"'>🎞 Re-release</button>"+
           (f.streamingOriginal||f.soldTo ? "<button class='btn btn-xs btn-alt' data-stream='"+f.id+"'>📺 Streaming</button>" : "")+
           (f.franchiseName ? "<button class='btn btn-xs btn-alt' data-fr='"+esc(f.franchiseName)+"'>🏰 Franchise</button>" : "")+
@@ -5222,7 +5386,13 @@ function viewGames(){
 
 /* ═══════════ EMPIRE view ═══════════ */
 function viewEmpire(){
-  let h="";
+  let h="<div class='subnav-pills'>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🏰 Franchises</button>"+
+    "<button class='subnav-pill' id='btnOpenUniverses'>🌌 Cinematic Universes</button>"+
+    "<button class='subnav-pill' id='btnOpenMerch'>🧸 Merch & Licensing</button>"+
+    "<button class='subnav-pill' id='btnOpenFanClub'>🎪 Fan Conventions</button>"+
+    "<button class='subnav-pill' onclick='switchTab(\"games\")'>🎮 Game Studio</button>"+
+  "</div>";
   const weekly=G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0);
   const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
   const ww=G.franchises.reduce((a,f)=>a+f.ww,0);
