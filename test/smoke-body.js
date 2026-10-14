@@ -591,6 +591,48 @@ if(typeof MerchLicensing !== "undefined"){
   console.log("v32 · merchandise licensing ok (advance: $" + merchRes.advanceCash + "M, weekly royalty: $" + (mTick.totalRoyalty * 1000).toFixed(0) + "k/wk)");
 }
 
+// 24. Crisis PR War Room (Box Office Inc parity)
+if(typeof BOW_FESTIVAL_PR !== "undefined" && typeof BOW_FESTIVAL_PR.evaluateCrisisResolution === "function"){
+  G.scandals = [{ headline: "Test Tabloid Leak", severity: 2 }];
+  G.studio.cash = Math.max(G.studio.cash, 10);
+  const crisisDrain = BOW_FESTIVAL_PR.calculateWeeklyReputationImpact(G);
+  if(crisisDrain <= 0) throw new Error("crisis weekly impact calculation failed");
+  if(!BOW_FESTIVAL_PR.evaluateCrisisResolution("PUBLIC_APOLOGY", 0, G)) throw new Error("crisis resolution failed");
+  if(G.scandals.length !== 0) throw new Error("crisis scandal not cleared after resolution");
+  console.log("v32.2 · crisis pr war room ok (damage drain: -" + crisisDrain + " pts/wk, public apology mitigated)");
+}
+
+// 25. International Territory Licensing (Box Office Inc parity)
+if(typeof BOW_TERRITORIES !== "undefined"){
+  const testFilm = { id: 7777, title: "Territory Test Feature", budget: 40, quality: { overall: 75 }, genre: "action" };
+  G.films.push(testFilm);
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const offer = BOW_TERRITORIES.calculateTerritoryOffer(testFilm, "europe", "MINIMUM_GUARANTEE", G);
+  if(!offer || offer.upfront <= 0) throw new Error("territory offer calculation failed");
+  if(!BOW_TERRITORIES.signTerritoryDeal(7777, "europe", "MINIMUM_GUARANTEE", false, G)) throw new Error("territory deal sign failed");
+  const roys = BOW_TERRITORIES.tickWeeklyRoyalties(testFilm, 10.0, G);
+  if(roys <= 0) throw new Error("territory royalties tick failed");
+  console.log("v32.2 · international territory licensing ok (europe MG: +$" + offer.upfront + "M upfront, weekly royalty: +$" + roys.toFixed(2) + "M)");
+}
+
+// 26. Talent Agency Packaging (Box Office Inc parity)
+if(typeof BOW_AGENCY !== "undefined" && typeof BOW_AGENCY.signAgencyPackage === "function"){
+  G.studio.cash = Math.max(G.studio.cash, 50);
+  const tier = BOW_AGENCY.getAgencyTier("caa", G);
+  if(!tier || !tier.tier) throw new Error("agency tier lookup failed");
+  if(!BOW_AGENCY.signAgencyPackage("indie_breakout", null, G)) throw new Error("agency packaging deal failed");
+  console.log("v32.2 · agency packaging ok (caa tier: " + tier.tier + ", indie breakout package signed)");
+}
+
+// 27. Custom Sandbox Creator & Holiday Calendar (Box Office Sim 2 parity)
+if(typeof BOW_SANDBOX !== "undefined"){
+  if(!BOW_SANDBOX.createCustomTalent({ name: "Johnny Cyber", kind: "actor", power: 5, skill: 90, favGenre: "scifi" }, G)) throw new Error("custom talent creation failed");
+  if(!BOW_SANDBOX.createCustomRival({ name: "Quantum Studios", style: "tentpole", cash: 400 }, G)) throw new Error("custom rival creation failed");
+  if(!BOW_SANDBOX.createCustomFranchise({ name: "Aero Squadron", genre: "action", lore: "Elite aerial dogfighters" }, G)) throw new Error("custom franchise creation failed");
+  if(!BOW_SANDBOX.HOLIDAY_CORRIDORS.length) throw new Error("holiday corridors missing");
+  console.log("v32.2 · custom sandbox & holiday corridors ok (talent, rival, franchise created, " + BOW_SANDBOX.HOLIDAY_CORRIDORS.length + " holiday corridors)");
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;

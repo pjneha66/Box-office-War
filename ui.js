@@ -1114,9 +1114,11 @@ function viewStudio(){
     "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🏛 Overview</button>"+
     "<button class='subnav-pill' id='btnOpenFacilities'>🏗 Lot & Soundstages</button>"+
     "<button class='subnav-pill' id='btnOpenBoard'>📋 Board Directives</button>"+
+    "<button class='subnav-pill' id='btnOpenCrisisPr'>🚨 Crisis PR War Room</button>"+
     "<button class='subnav-pill' id='btnOpenEspionage'>🕵️ Studio Espionage</button>"+
     "<button class='subnav-pill' id='btnOpenAwardsCampaign'>🏆 FYC Campaign</button>"+
     "<button class='subnav-pill' id='btnFestivalPr'>🤝 Festival Circuit</button>"+
+    "<button class='subnav-pill' id='btnOpenCustomSandbox'>🧪 Sandbox Creator</button>"+
     "<button class='subnav-pill' id='btnOpenFanClub'>📬 Fan Club</button>"+
   "</div><div class='stat-hero'>"+
     statCard(fmtM(st.cash),"Cash on hand")+
@@ -1530,6 +1532,7 @@ function viewDevelop(){
   const DEV_TABS=[["scripts","📝 Scripts"],["ip","📚 IP Market"],["talent","🎫 Talent Business"],["combos","🧩 Combos Codex"]];
   let h="<div class='subnav-pills'>"+
     DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+
+    "<button class='subnav-pill' id='btnOpenAgencyPackaging'>💼 Agency Packaging (CAA/WME)</button>"+
     "<button class='subnav-pill' id='btnOpenContracts'>📜 Multi-Pic Contracts</button>"+
     "<button class='subnav-pill' id='btnOpenTalentAgency'>🎭 Talent Agency</button>"+
     "<button class='subnav-pill' id='btnClashAnalytics'>⚡ Clash Radar</button>"+
@@ -3631,6 +3634,7 @@ function openFilmDetailsModal(filmId){
   // Actions
   h += "<div class='modal-actions' style='flex-wrap:wrap;gap:6px'>" +
     "<button class='btn btn-ghost' onclick='closeModal()'>Close</button>" +
+    "<button class='btn btn-alt' id='dossierTerritoryDeals'>🌍 Territory Deals (MG vs RevShare)</button>" +
     (!f.inTheaters && typeof canRerelease === "function" && canRerelease(f) ? "<button class='btn btn-alt' id='dossierRe'>🎟 Theatrical Re-release</button>" : "") +
     (!f.inTheaters && typeof canReboot === "function" && canReboot(f) ? "<button class='btn btn-alt' id='dossierReboot'>🔁 Franchise Reboot</button>" : "") +
     (!f.inTheaters && !f.directorsCut && f.ww >= 100 ? "<button class='btn btn-alt' id='dossierCut'>✂ Director's Cut</button>" : "") +
@@ -3639,6 +3643,8 @@ function openFilmDetailsModal(filmId){
   "</div>";
 
   const v = openModal(h);
+  const bTerr = v.querySelector("#dossierTerritoryDeals");
+  if(bTerr) bTerr.onclick = () => { closeModal(); if(typeof openTerritoryDealsModal === "function") openTerritoryDealsModal(f.id); };
   const btnRe = v.querySelector("#dossierRe");
   if(btnRe) btnRe.onclick = () => { closeModal(); if(typeof reReleaseFilm === "function") reReleaseFilm(f.id); render(); };
   const btnRb = v.querySelector("#dossierReboot");
@@ -3934,6 +3940,8 @@ function viewBoxOffice(){
   let h="<div class='subnav-pills'>"+
     "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🎟 Theatrical Runs</button>"+
     "<button class='subnav-pill' id='btnClashAnalytics'>⚡ Clash Radar</button>"+
+    "<button class='subnav-pill' id='btnOpenTerritoryDeals'>🌍 Territory Licensing (MG vs RevShare)</button>"+
+    "<button class='subnav-pill' id='btnOpenHolidayCalendar'>🗓️ Holiday Calendar</button>"+
     "<button class='subnav-pill' id='btnOpenTheaters'>🏢 Theater Chains</button>"+
     "<button class='subnav-pill' onclick='switchTab(\"library\")'>📚 Film Library</button>"+
   "</div>";
@@ -4592,6 +4600,11 @@ function bindView(){
   const btnChallenges=$("#btnOpenChallenges"); if(btnChallenges) btnChallenges.onclick=()=>{ beep("click"); if(typeof openChallengeModal==="function") openChallengeModal(); };
   const btnBowShorts=$("#btnBowShorts"); if(btnBowShorts) btnBowShorts.onclick=()=>{ beep("click"); if(typeof openBowShortsModal==="function") openBowShortsModal(); };
   const btnFestPr=$("#btnFestivalPr"); if(btnFestPr) btnFestPr.onclick=()=>{ beep("click"); if(typeof openFestivalPrModal==="function") openFestivalPrModal(); };
+  const btnCrisisPr=$("#btnOpenCrisisPr"); if(btnCrisisPr) btnCrisisPr.onclick=()=>{ beep("click"); if(typeof openCrisisPrModal==="function") openCrisisPrModal(); };
+  const btnSandbox=$("#btnOpenCustomSandbox"); if(btnSandbox) btnSandbox.onclick=()=>{ beep("click"); if(typeof openCustomSandboxModal==="function") openCustomSandboxModal(); };
+  const btnAgencyPkg=$("#btnOpenAgencyPackaging"); if(btnAgencyPkg) btnAgencyPkg.onclick=()=>{ beep("click"); if(typeof openAgencyPackagingModal==="function") openAgencyPackagingModal(); };
+  const btnTerrDeals=$("#btnOpenTerritoryDeals"); if(btnTerrDeals) btnTerrDeals.onclick=()=>{ beep("click"); if(typeof openTerritoryDealsModal==="function") openTerritoryDealsModal(); };
+  const btnHolidays=$("#btnOpenHolidayCalendar"); if(btnHolidays) btnHolidays.onclick=()=>{ beep("click"); if(typeof openHolidayCalendarModal==="function") openHolidayCalendarModal(); };
   const btnVault=$("#btnRestorationVault"); if(btnVault) btnVault.onclick=()=>{ beep("click"); if(typeof openRestorationModal==="function") openRestorationModal(); };
   const btnFac=$("#btnOpenFacilities"); if(btnFac) btnFac.onclick=()=>{ beep("click"); if(typeof openStudioFacilitiesModal==="function") openStudioFacilitiesModal(); };
   const btnSyn=$("#btnOpenSyndication"); if(btnSyn) btnSyn.onclick=()=>{ beep("click"); if(typeof openSyndicationModal==="function") openSyndicationModal(); };

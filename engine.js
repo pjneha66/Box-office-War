@@ -2186,7 +2186,20 @@ function greenlight(cfg){
     }
   }
   if(cfg.spinoffFr){ p.title = cfg.spinoffFr.name+": "+pick(DATA.SPINOFF_SUFFIX||["Origins","Reckoning"]); p.franchiseName = cfg.spinoffFr.name; p.buzzBonus += 0.10 + 0.18*(cfg.spinoffFr.decay||0.5); }
-  if(cfg.sequelOf){ p.title = sequelTitle(cfg.sequelOf.title); p.franchiseName = cfg.sequelOf.franchiseName || cfg.sequelOf.title; }
+  if(cfg.sequelOf){
+    p.title = sequelTitle(cfg.sequelOf.title);
+    p.franchiseName = cfg.sequelOf.franchiseName || cfg.sequelOf.title;
+    // Box Office Sim 2 parity: Sequel Returning Cast/Crew continuity perks
+    const prevCastIds = (cfg.sequelOf.cast || []).map(c => c.id);
+    const returningCast = (cfg.cast || []).filter(c => prevCastIds.includes(c.id));
+    const returningDir = (cfg.sequelOf.director && cfg.director && cfg.sequelOf.director.id === cfg.director.id);
+    if(returningCast.length > 0 || returningDir){
+      p.chemistryBonus = (p.chemistryBonus || 0) + (returningCast.length * 8) + (returningDir ? 12 : 0);
+      p.buzzBonus = (p.buzzBonus || 0) + 0.12;
+      p.returningCastCount = returningCast.length + (returningDir ? 1 : 0);
+      log("🎬 SEQUEL CONTINUITY: " + (returningDir ? "Original director & " : "") + returningCast.length + " returning star(s) attached! Chemistry +" + p.chemistryBonus + "%, Sequel Buzz +12%.", "gold");
+    }
+  }
   if(cfg.crossover){ p.franchiseName = cfg.crossover; }
   spend("development", dev);
   spend("talent", fees);
@@ -2548,6 +2561,9 @@ function tickTheatrical(){
     const intlMult = (typeof econM === "function") ? econM("intl") : 1.0;
     f.intl = Math.max(0, Math.round(((f.dom / Math.max(0.01, 1 - curShare) - f.dom) * intlMult) * 10) / 10);
     f.ww = Math.round((f.dom + f.intl) * 10) / 10;
+    if(typeof BOW_TERRITORIES !== "undefined" && typeof BOW_TERRITORIES.tickWeeklyRoyalties === "function"){
+      try { BOW_TERRITORIES.tickWeeklyRoyalties(f, gross * curShare, G); } catch(e){}
+    }
     f.weekly.push({w:G.week, gross});
   }
 }
@@ -4331,11 +4347,12 @@ function tickFinance(){
   }
   earn("library", catalogValue()*0.0045);
   // Modular extensions weekly tick
-  try { if(typeof BOW_THEATERS !== "undefined") BOW_THEATERS.tickWeekly(G); } catch(e){}
-  try { if(typeof BOW_SOUNDTRACK !== "undefined") BOW_SOUNDTRACK.tickWeekly(G); } catch(e){}
-  try { if(typeof BOW_SHORTS !== "undefined") BOW_SHORTS.tickWeekly(G); } catch(e){}
-  try { if(typeof BOW_AGENCY !== "undefined") BOW_AGENCY.tickWeekly(G); } catch(e){}
-  try { if(typeof BOW_RESTORATION !== "undefined") BOW_RESTORATION.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_THEATERS !== "undefined" && typeof BOW_THEATERS.tickWeekly === "function") BOW_THEATERS.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_SOUNDTRACK !== "undefined" && typeof BOW_SOUNDTRACK.tickWeekly === "function") BOW_SOUNDTRACK.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_SHORTS !== "undefined" && typeof BOW_SHORTS.tickWeekly === "function") BOW_SHORTS.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_AGENCY !== "undefined") { if(typeof BOW_AGENCY.tickWeekly === "function") BOW_AGENCY.tickWeekly(G); if(typeof BOW_AGENCY.tickWeeklyCommissions === "function") BOW_AGENCY.tickWeeklyCommissions(G); } } catch(e){}
+  try { if(typeof BOW_RESTORATION !== "undefined" && typeof BOW_RESTORATION.tickWeekly === "function") BOW_RESTORATION.tickWeekly(G); } catch(e){}
+  try { if(typeof BOW_FESTIVAL_PR !== "undefined" && typeof BOW_FESTIVAL_PR.tickWeeklyCrisis === "function") BOW_FESTIVAL_PR.tickWeeklyCrisis(G); } catch(e){}
   if(st.cash<0){ st.debt += -st.cash; st.cash=0; }
   if(G.sandbox) { G.weeksInDebt=0; return; }
   const netDebt = st.debt - Math.max(st.cash,0);

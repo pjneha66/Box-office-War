@@ -36,6 +36,8 @@ const fanJs = fs.readFileSync(path.join(ROOT, "fan-conventions.js"), "utf8").rep
 const testScreenJs = fs.readFileSync(path.join(ROOT, "test-screenings.js"), "utf8").replace(/"use strict";/g, "");
 const spyJs = fs.readFileSync(path.join(ROOT, "studio-espionage.js"), "utf8").replace(/"use strict";/g, "");
 const merchJs = fs.readFileSync(path.join(ROOT, "merch-licensing.js"), "utf8").replace(/"use strict";/g, "");
+const territoryJs = fs.readFileSync(path.join(ROOT, "territory-licensing.js"), "utf8").replace(/"use strict";/g, "");
+const sandboxJs = fs.readFileSync(path.join(ROOT, "custom-sandbox.js"), "utf8").replace(/"use strict";/g, "");
 const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8").replace(/"use strict";/g, "");
 
 const bundle = SHIM +
@@ -64,6 +66,8 @@ const bundle = SHIM +
   testScreenJs + "\n" +
   spyJs + "\n" +
   merchJs + "\n" +
+  territoryJs + "\n" +
+  sandboxJs + "\n" +
   smokeBodyJs + "\n";
 
 fs.writeFileSync(OUT, bundle);
