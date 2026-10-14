@@ -264,12 +264,39 @@ function saveGame(){
 function hasSave(){
   try{ return typeof localStorage!=="undefined" && !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
 }
+function activeSaveMeta(){
+  try{
+    const raw = typeof localStorage!=="undefined" && localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const j = JSON.parse(raw);
+    if(!j || !j.studio) return null;
+    return {
+      name: j.studio.name || "Studio",
+      week: j.week || 1,
+      cash: Number(j.studio.cash) || 0,
+      rep: Number(j.studio.rep) || 25,
+      scenario: j.scenario || "standard",
+      films: Array.isArray(j.films) ? j.films.length : 0,
+      franchises: Array.isArray(j.franchises) ? j.franchises.length : 0,
+      slot: j.slot || 1
+    };
+  }catch(e){ return null; }
+}
 function slotMeta(n){
   try{
     const raw = localStorage.getItem("bow_slot"+n);
     if(!raw) return null;
     const j=JSON.parse(raw);
-    return { name:j.studio.name, week:j.week, cash:j.studio.cash, scenario:j.scenario||"standard" };
+    if(!j || !j.studio) return null;
+    return {
+      name: j.studio.name || ("Studio " + n),
+      week: j.week || 1,
+      cash: Number(j.studio.cash) || 0,
+      rep: Number(j.studio.rep) || 25,
+      scenario: j.scenario || "standard",
+      films: Array.isArray(j.films) ? j.films.length : 0,
+      franchises: Array.isArray(j.franchises) ? j.franchises.length : 0
+    };
   }catch(e){ return null; }
 }
 function namedSlotMeta(name){

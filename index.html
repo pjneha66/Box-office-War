@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07090e" id="themeColorMeta">
-<meta name="app-version" content="32.1">
+<meta name="app-version" content="32.3">
 <meta name="description" content="Box Office War — a movie & series studio tycoon simulation. Greenlight films, survive the box office, build franchises, launch your own streamer and broadcast live TV channels.">
 <meta property="og:title" content="Box Office War — Movie & Series Studio Tycoon">
 <meta property="og:description" content="Greenlight films, survive the box office, build franchises, launch your own streamer, and broadcast 24/7 Live TV channels in this realistic Hollywood tycoon simulator.">
@@ -18,11 +18,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="design-tokens.css?v=32.1">
-<link rel="stylesheet" href="style.css?v=32.1">
+<link rel="stylesheet" href="design-tokens.css?v=32.3">
+<link rel="stylesheet" href="style.css?v=32.3">
 </head>
 <body>
-<div id="offlineBanner" class="offline-banner" style="display:none">📡 Offline mode — changes saved locally in browser storage</div>
+<div id="offlineBanner" class="offline-banner" style="display:none">Offline mode — changes saved locally in device storage</div>
 <a class="skip" href="#view">Skip to studio view</a>
 
 <!-- ══════════════════ START SCREEN ══════════════════ -->
@@ -32,33 +32,64 @@
       <div class="logo-icon kenney-icon-film" style="width:64px;height:64px;margin:0 auto 8px;filter:drop-shadow(0 6px 24px rgba(245,185,66,.45));"></div>
       <h1 class="logo-title">BOX OFFICE <span>WAR</span></h1>
       <p class="logo-sub">Movie &amp; Series Studio Tycoon</p>
-      <p class="logo-credit">By <b>Movies Flock</b></p>
+      <div class="start-badge-row">
+        <span class="start-vbadge">v32.3 Production Release</span>
+        <span class="logo-credit">By <b>Movies Flock</b></span>
+      </div>
+    </div>
+
+    <!-- Resume active studio banner (visible when existing save detected) -->
+    <div id="resumeHero" class="start-resume-card" style="display:none">
+      <div class="resume-badge">Active Studio Saved</div>
+      <div class="resume-header">
+        <div>
+          <h3 id="resumeStudioName" class="resume-title">Studio Name</h3>
+          <div id="resumeMeta" class="resume-meta">Year 1, Week 1 · Standard Mode</div>
+        </div>
+        <div id="resumeCash" class="resume-cash">$0M</div>
+      </div>
+      <div class="resume-stats-row">
+        <span id="resumeStatRep" class="tag gold">Rep 25</span>
+        <span id="resumeStatFilms" class="tag blue">0 Releases</span>
+        <span id="resumeStatFranchises" class="tag purple">0 Franchises</span>
+      </div>
+      <button id="btnResumeHero" class="btn btn-primary kenney-btn-primary btn-big" style="margin-top:12px;width:100%">
+        Resume Studio Career
+      </button>
+      <div class="resume-divider"><span>or start a new career below</span></div>
     </div>
 
     <div class="start-card" id="startCard">
+      <div class="start-card-header">
+        <span class="start-section-tag">New Production Company</span>
+        <h2 class="start-card-title">Found Your Studio</h2>
+      </div>
+
       <label class="field-label" id="fieldStudioName">Name your studio</label>
       <input id="studioName" type="text" maxlength="26" placeholder="e.g. Lighthouse Pictures" autocomplete="off" aria-labelledby="fieldStudioName">
       <div class="name-suggests" id="nameSuggests"></div>
 
-      <label class="field-label" style="margin-top:14px" id="fieldOrigin">Choose your origin story</label>
+      <label class="field-label" style="margin-top:16px" id="fieldOrigin">Choose your origin archetype</label>
       <div id="archList" class="arch-list"></div>
 
-      <!-- v2: scenario, difficulty, sandbox, save slots -->
-      <div id="startOptions" style="margin-top:14px"></div>
+      <!-- Scenarios, difficulty, sandbox, save slots -->
+      <div id="startOptions" style="margin-top:16px"></div>
 
-      <button id="btnStart" class="btn btn-primary kenney-btn-primary btn-big" style="margin-top:14px"><span class="kenney-icon-play" style="margin-right:8px;vertical-align:middle"></span> Found the Studio</button>
-      <button id="btnContinue" class="btn btn-ghost btn-big" style="display:none">⏵ Continue Saved Game</button>
-      <p class="start-note">Runs 100% in your browser · saves automatically · works offline</p>
+      <button id="btnStart" class="btn btn-primary kenney-btn-primary btn-big" style="margin-top:18px"><span class="kenney-icon-play" style="margin-right:8px;vertical-align:middle"></span> Launch Studio Career</button>
+      <button id="btnContinue" class="btn btn-ghost btn-big" style="display:none">Continue Saved Game</button>
+      <p class="start-note">100% Client-Side Engine · Instant Local Persistence · Complete Offline Independence</p>
     </div>
 
+    <!-- v32.3 Feature Showcase -->
     <div class="start-feats">
-      <span><span class="kenney-icon-film" style="width:16px;height:16px;margin-right:4px;vertical-align:middle"></span>Greenlight films</span>
-      <span>🌍 Dom + Intl box office</span>
-      <span><span class="kenney-icon-video" style="width:16px;height:16px;margin-right:4px;vertical-align:middle"></span>OTT & your own streamer</span>
-      <span>🏟 Live sports rights</span>
-      <span><span class="kenney-star" style="width:16px;height:16px;margin-right:4px;vertical-align:middle"></span>Awards & festivals</span>
-      <span>💰 Franchises & universes</span>
-      <span>🌐 हिन्दी / English</span>
+      <span>Crisis PR War Room</span>
+      <span>Global Territory Pre-Sales</span>
+      <span>CAA &amp; WME Agency Packages</span>
+      <span>Soundstages &amp; LED Volumes</span>
+      <span>Comic-Con &amp; D23 Hype</span>
+      <span>52-Week Release Strategy</span>
+      <span>24/7 Linear TV Networks</span>
+      <span>Bilingual EN / HI</span>
     </div>
   </div>
 </div>
@@ -71,37 +102,37 @@
     <div class="topbar-row">
       <div class="brand" id="brandName">Studio</div>
       <div class="chip-row">
-        <div class="chip chip-cash" id="chipCashWrap" title="Cash — tap for finance overview" role="button" tabindex="0">💰 <b id="chipCash">$0</b></div>
-        <div class="chip chip-debt" id="chipDebtWrap" title="Debt (weekly interest)">🏦 <b id="chipDebt">$0</b></div>
-        <div class="chip" title="Industry reputation">⭐ <b id="chipRep">25</b></div>
-        <div class="chip" id="chipDateWrap" title="Date — tap for release calendar" role="button" tabindex="0">📅 <b id="chipDate">Y1 · W1</b></div>
+        <div class="chip chip-cash" id="chipCashWrap" title="Cash — tap for finance overview" role="button" tabindex="0">Cash: <b id="chipCash">$0</b></div>
+        <div class="chip chip-debt" id="chipDebtWrap" title="Debt (weekly interest)">Debt: <b id="chipDebt">$0</b></div>
+        <div class="chip" title="Industry reputation">Rep: <b id="chipRep">25</b></div>
+        <div class="chip" id="chipDateWrap" title="Date — tap for release calendar" role="button" tabindex="0">Date: <b id="chipDate">Y1 · W1</b></div>
       </div>
       <div class="topbar-actions">
-        <button id="btnWeek" class="btn btn-primary">▶ Next Week</button>
+        <button id="btnWeek" class="btn btn-primary">Next Week</button>
         <button id="btnFast" class="btn btn-alt" title="Advance 4 weeks (pauses on big events)">» ×4</button>
         <button id="btnAuto" class="btn btn-icon" title="Auto-play weeks" aria-label="Auto-play weeks">▶▶</button>
         <button id="btnSpeed" class="btn btn-icon" title="Auto-play speed" aria-label="Auto-play speed" style="display:none">1×</button>
-        <button id="btnBell" class="btn btn-icon" title="Notifications" aria-label="Notifications">🔔<b id="bellBadge" class="bell-badge" style="display:none">0</b></button>
-        <button id="btnSound" class="btn btn-icon" title="Sound" aria-label="Toggle sound">🔊</button>
-        <button id="btnSettings" class="btn btn-icon" title="Settings · भाषा · saves" aria-label="Settings, language, saves">⚙</button>
-        <button id="btnHelp" class="btn btn-icon" title="How to play" aria-label="How to play">❓</button>
+        <button id="btnBell" class="btn btn-icon" title="Notifications" aria-label="Notifications">Bell <b id="bellBadge" class="bell-badge" style="display:none">0</b></button>
+        <button id="btnSound" class="btn btn-icon" title="Sound" aria-label="Toggle sound">Sound</button>
+        <button id="btnSettings" class="btn btn-icon" title="Settings · भाषा · saves" aria-label="Settings, language, saves">Settings</button>
+        <button id="btnHelp" class="btn btn-icon" title="How to play" aria-label="How to play">Guide</button>
       </div>
     </div>
 <!-- DESKTOP TABS -->
   <nav class="tabs" id="tabsNav" aria-label="Studio sections">
-    <button class="tab active" data-tab="dashboard">🏠 Dashboard</button>
-    <button class="tab" data-tab="studio">🏛 Studio</button>
-    <button class="tab" data-tab="develop">📝 Develop</button>
-    <button class="tab" data-tab="productions">🎬 Productions</button>
-    <button class="tab" data-tab="boxoffice">📊 Box Office</button>
-    <button class="tab" data-tab="fans">📬 Fans</button>
-    <button class="tab" data-tab="ott">📺 OTT & Series</button>
-    <button class="tab live-tab" data-tab="live"><span class="live-dot-pulse"></span>🔴 Live TV</button>
-    <button class="tab" data-tab="empire">🏰 Empire</button>
-    <button class="tab" data-tab="library">📚 Library</button>
-    <button class="tab" data-tab="games">🎮 Game Studio</button>
-    <button class="tab" data-tab="finance">💼 Finance</button>
-  <button class="tab" data-tab="notifications">🔔 Notifications</button>
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="studio">Studio</button>
+    <button class="tab" data-tab="develop">Develop</button>
+    <button class="tab" data-tab="productions">Productions</button>
+    <button class="tab" data-tab="boxoffice">Box Office</button>
+    <button class="tab" data-tab="fans">Fans</button>
+    <button class="tab" data-tab="ott">OTT &amp; Series</button>
+    <button class="tab live-tab" data-tab="live"><span class="live-dot-pulse"></span>Live TV</button>
+    <button class="tab" data-tab="empire">Empire</button>
+    <button class="tab" data-tab="library">Library</button>
+    <button class="tab" data-tab="games">Game Studio</button>
+    <button class="tab" data-tab="finance">Finance</button>
+  <button class="tab" data-tab="notifications">Notifications</button>
   </nav>
 <!-- MOBILE SUB-TABS (rendered per group by ui.js) -->
   <nav class="subtabs" id="subTabs" aria-label="Sub sections"></nav>
@@ -111,17 +142,15 @@
   <main id="view" class="view" aria-label="Studio view" tabindex="-1"></main>
 
   <!-- MOBILE: floating Next Week action -->
-  <button id="fabWeek" class="fab-week" aria-label="Advance to next week">▶ Next Week</button>
+  <button id="fabWeek" class="fab-week" aria-label="Advance to next week">Next Week</button>
 
-  <!-- MOBILE BOTTOM NAV — 5 primary groups; each group exposes sub-tabs above.
-       Replaced the old 9-item bar: the same 11 sections are now one tap deeper
-       instead of a cramped row of icons. -->
+  <!-- MOBILE BOTTOM NAV — 5 primary groups; each group exposes sub-tabs above. -->
   <nav class="bottomnav" id="bottomNav" aria-label="Studio sections">
-    <button class="btab active" data-tab="dashboard"><span>🏠</span>Home</button>
-    <button class="btab" data-tab="studio"><span>🏛</span>Studio</button>
-    <button class="btab" data-tab="develop"><span>🎬</span>Create</button>
-    <button class="btab" data-tab="boxoffice"><span>📊</span>Market</button>
-    <button class="btab" data-tab="more" id="btabMore"><span>⋯</span>More</button>
+    <button class="btab active" data-tab="dashboard">Home</button>
+    <button class="btab" data-tab="studio">Studio</button>
+    <button class="btab" data-tab="develop">Create</button>
+    <button class="btab" data-tab="boxoffice">Market</button>
+    <button class="btab" data-tab="more" id="btabMore">More</button>
   </nav>
 </div>
 
@@ -131,38 +160,38 @@
 <div id="srAnnounce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 <div id="srAlert" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
-<script src="data.js?v=32.1"></script>
-<script src="engine.js?v=32.1"></script>
-<script src="i18n.js?v=32.1"></script>
-<script src="ui.js?v=32.1"></script>
-<script src="finance-tools.js?v=32.1"></script>
-<script src="v31-features.js?v=32.1"></script>
-<script src="challenge-leaderboard.js?v=32.1"></script>
-<script src="theater-chains.js?v=32.1"></script>
-<script src="dynamic-soundtrack.js?v=32.1"></script>
-<script src="dynasty-legacy.js?v=32.1"></script>
-<script src="bow-shorts.js?v=32.1"></script>
-<script src="talent-agency.js?v=32.1"></script>
-<script src="film-restoration.js?v=32.1"></script>
-<script src="festival-pr.js?v=32.1"></script>
-<script src="studio-facilities.js?v=32.1"></script>
-<script src="syndication-tv.js?v=32.1"></script>
-<script src="talent-contracts.js?v=32.1"></script>
-<script src="bond-market.js?v=32.1"></script>
-<script src="clash-analytics.js?v=32.1"></script>
-<script src="cinematic-universe.js?v=32.1"></script>
-<script src="location-scouting.js?v=32.1"></script>
-<script src="production-insurance.js?v=32.1"></script>
-<script src="awards-campaign.js?v=32.1"></script>
-<script src="board-targets.js?v=32.1"></script>
-<script src="fan-conventions.js?v=32.1"></script>
-<script src="test-screenings.js?v=32.1"></script>
-<script src="studio-espionage.js?v=32.2"></script>
-<script src="merch-licensing.js?v=32.2"></script>
-<script src="territory-licensing.js?v=32.2"></script>
-<script src="custom-sandbox.js?v=32.2"></script>
+<script src="data.js?v=32.3"></script>
+<script src="engine.js?v=32.3"></script>
+<script src="i18n.js?v=32.3"></script>
+<script src="ui.js?v=32.3"></script>
+<script src="finance-tools.js?v=32.3"></script>
+<script src="v31-features.js?v=32.3"></script>
+<script src="challenge-leaderboard.js?v=32.3"></script>
+<script src="theater-chains.js?v=32.3"></script>
+<script src="dynamic-soundtrack.js?v=32.3"></script>
+<script src="dynasty-legacy.js?v=32.3"></script>
+<script src="bow-shorts.js?v=32.3"></script>
+<script src="talent-agency.js?v=32.3"></script>
+<script src="film-restoration.js?v=32.3"></script>
+<script src="festival-pr.js?v=32.3"></script>
+<script src="studio-facilities.js?v=32.3"></script>
+<script src="syndication-tv.js?v=32.3"></script>
+<script src="talent-contracts.js?v=32.3"></script>
+<script src="bond-market.js?v=32.3"></script>
+<script src="clash-analytics.js?v=32.3"></script>
+<script src="cinematic-universe.js?v=32.3"></script>
+<script src="location-scouting.js?v=32.3"></script>
+<script src="production-insurance.js?v=32.3"></script>
+<script src="awards-campaign.js?v=32.3"></script>
+<script src="board-targets.js?v=32.3"></script>
+<script src="fan-conventions.js?v=32.3"></script>
+<script src="test-screenings.js?v=32.3"></script>
+<script src="studio-espionage.js?v=32.3"></script>
+<script src="merch-licensing.js?v=32.3"></script>
+<script src="territory-licensing.js?v=32.3"></script>
+<script src="custom-sandbox.js?v=32.3"></script>
 <script>
-/* ═══ Update bar UI — shared by the PWA reload flow and the APK update check ═══ */
+/* ═══ Update bar UI — shared by PWA reload and APK update checks ═══ */
 function bowShowUpdateBar(opts){
   if(document.getElementById("bowUpdateBar")) return;
   var bar=document.createElement("div");
@@ -186,18 +215,17 @@ function bowShowUpdateBar(opts){
   document.body.appendChild(bar);
 }
 function bowAppVersion(){
+  if(window.__bowNativeVersion) return window.__bowNativeVersion;
   var m=document.querySelector('meta[name="app-version"]');
-  return m? (m.getAttribute("content")||"") : "";
+  return m? (m.getAttribute("content")||"32.3") : "32.3";
 }
-/* v29: capture the install prompt so Settings can offer a real Install button
-   instead of relying on the browser's own chrome. */
+/* v29: capture the install prompt so Settings can offer a real Install button */
 window.__bowInstallPrompt = null;
 window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); window.__bowInstallPrompt = e; });
 window.addEventListener("appinstalled", function(){ window.__bowInstallPrompt = null; });
 </script>
 <script>
-/* PWA: offline-first service worker (skipped on file://). When a freshly
-   deployed worker takes over mid-session, offer a one-tap reload. */
+/* PWA: offline-first service worker */
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
   window.addEventListener("load", function(){
     navigator.serviceWorker.register("sw.js").then(function(reg){
@@ -206,45 +234,58 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   });
   var hadController=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener("controllerchange", function(){
-    if(!hadController){ hadController=true; return; }   // first install — the page is already fresh
-    bowShowUpdateBar({ msg:"🚀 A new version was installed.", action:"Reload", onGo:function(){ location.reload(); } });
+    if(!hadController){ hadController=true; return; }
+    bowShowUpdateBar({ msg:"A new version was installed.", action:"Reload", onGo:function(){ location.reload(); } });
   });
 }
 </script>
 <script>
-/* ═══ APK update check — the Android app is a fully offline bundle, so its code
-   can't self-update. Compare the bundled version against version.json on the
-   live site (harmless no-op on the web, where Capacitor is undefined). ═══ */
+/* ═══ APK update check ═══ */
 (function(){
   "use strict";
+  function queryAppInfo(done){
+    try{
+      if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && typeof window.Capacitor.Plugins.App.getInfo === "function"){
+        window.Capacitor.Plugins.App.getInfo().then(function(info){
+          if(info && info.version){ window.__bowNativeVersion = info.version; }
+          done(bowAppVersion());
+        }).catch(function(){ done(bowAppVersion()); });
+        return;
+      }
+    }catch(e){}
+    done(bowAppVersion());
+  }
+
   function apkUpdateCheck(){
-    var local=bowAppVersion(); if(!local) return;
-    var url;
-    try{ url=new URL("https://box-office-war.vercel.app/version.json"); }catch(e){ return; }
-    if(url.protocol!=="https:" || url.hostname!=="box-office-war.vercel.app") return;  // allowlist — never localhost/private
-    var ctl=("AbortController" in window)? new AbortController() : null;
-    var kill=ctl? setTimeout(function(){ ctl.abort(); }, 9000) : null;
-    fetch(url, {cache:"no-store", signal:ctl? ctl.signal : undefined})
-      .then(function(r){ return r.ok? r.json() : null; })
-      .then(function(j){
-        if(kill) clearTimeout(kill);
-        if(!j || !j.v) return;
-        var a=String(j.v).split(".").map(function(n){ return parseInt(n,10)||0; });
-        var b=String(local).split(".").map(function(n){ return parseInt(n,10)||0; });
-        var newer=false;
-        for(var i=0;i<Math.max(a.length,b.length);i++){ var d=(a[i]||0)-(b[i]||0); if(d>0){ newer=true; break; } if(d<0) break; }
-        if(!newer) return;
-        var rel=(j.apk && /^https:\/\/github\.com\//.test(j.apk))? j.apk : "https://github.com/pjneha66/Box-office-War/releases/latest";
-        bowShowUpdateBar({ msg:"🚀 v"+j.v+" is out — this app runs v"+local+".", action:"Get update", onGo:function(){
-          var a2=document.createElement("a"); a2.href=rel; a2.target="_blank"; a2.rel="noopener";
-          document.body.appendChild(a2); a2.click(); a2.remove();
-        }});
-      })
-      .catch(function(){ if(kill) clearTimeout(kill); });
+    queryAppInfo(function(local){
+      if(!local) return;
+      var url;
+      try{ url=new URL("https://box-office-war.vercel.app/version.json"); }catch(e){ return; }
+      if(url.protocol!=="https:" || url.hostname!=="box-office-war.vercel.app") return;
+      var ctl=("AbortController" in window)? new AbortController() : null;
+      var kill=ctl? setTimeout(function(){ ctl.abort(); }, 9000) : null;
+      fetch(url, {cache:"no-store", signal:ctl? ctl.signal : undefined})
+        .then(function(r){ return r.ok? r.json() : null; })
+        .then(function(j){
+          if(kill) clearTimeout(kill);
+          if(!j || !j.v) return;
+          var a=String(j.v).split(".").map(function(n){ return parseInt(n,10)||0; });
+          var b=String(local).split(".").map(function(n){ return parseInt(n,10)||0; });
+          var newer=false;
+          for(var i=0;i<Math.max(a.length,b.length);i++){ var d=(a[i]||0)-(b[i]||0); if(d>0){ newer=true; break; } if(d<0) break; }
+          if(!newer) return;
+          var rel=(j.apk && /^https:\/\/github\.com\//.test(j.apk))? j.apk : "https://github.com/pjneha66/Box-office-War/releases/latest";
+          bowShowUpdateBar({ msg:"Update available: v"+j.v+" is out (installed: v"+local+").", action:"Get update", onGo:function(){
+            var a2=document.createElement("a"); a2.href=rel; a2.target="_blank"; a2.rel="noopener";
+            document.body.appendChild(a2); a2.click(); a2.remove();
+          }});
+        })
+        .catch(function(){ if(kill) clearTimeout(kill); });
+    });
   }
   try{
     if(window.Capacitor && typeof window.Capacitor.isNativePlatform==="function" && window.Capacitor.isNativePlatform()){
-      setTimeout(apkUpdateCheck, 5000);
+      setTimeout(apkUpdateCheck, 4000);
     }
   }catch(e){}
 })();

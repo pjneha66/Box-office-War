@@ -330,7 +330,95 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   -webkit-background-clip:text; background-clip:text; color:transparent;
   -webkit-text-fill-color:transparent;
 }
-@keyframes subGlow{ 0%,100%{opacity:.75} 50%{opacity:1} }
+/* v32.3 start screen enhancements */
+.start-badge-row{display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px; flex-wrap:wrap}
+.start-vbadge{
+  font-size:10.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+  padding:4px 10px; border-radius:999px;
+  background:rgba(245,185,66,.12); color:var(--gold); border:1px solid rgba(245,185,66,.3);
+}
+
+.start-resume-card{
+  background:linear-gradient(135deg, rgba(32,40,64,.95), rgba(16,21,34,.98));
+  border:1px solid var(--gold); border-radius:18px; padding:18px 20px; margin-bottom:18px;
+  box-shadow:var(--glowGold), 0 12px 32px rgba(0,0,0,.6); backdrop-filter:blur(10px);
+  position:relative; overflow:hidden;
+}
+.start-resume-card::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--gold), #ffe494, var(--gold));
+}
+.resume-badge{
+  display:inline-block; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--gold); background:rgba(245,185,66,.15); padding:3px 8px; border-radius:6px; margin-bottom:8px;
+}
+.resume-header{display:flex; justify-content:space-between; align-items:flex-start; gap:12px}
+.resume-title{font-size:20px; font-weight:900; margin:0; color:#fff; letter-spacing:.02em}
+.resume-meta{font-size:12px; color:var(--dim); margin-top:3px}
+.resume-cash{font-size:22px; font-weight:900; color:var(--green); letter-spacing:.02em; font-family:'JetBrains Mono',monospace}
+.resume-stats-row{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+.resume-divider{
+  text-align:center; position:relative; margin:16px 0 0;
+}
+.resume-divider::before{
+  content:""; position:absolute; top:50%; left:0; right:0; height:1px; background:var(--line);
+}
+.resume-divider span{
+  position:relative; background:#101522; padding:0 12px; font-size:11px; text-transform:uppercase;
+  letter-spacing:.12em; color:var(--dim2);
+}
+
+.start-card-header{margin-bottom:14px}
+.start-section-tag{
+  display:inline-block; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--blue); background:rgba(90,162,255,.12); padding:3px 8px; border-radius:6px; margin-bottom:4px;
+}
+.start-card-title{font-size:20px; font-weight:900; margin:0; color:#fff}
+
+.arch-header{display:flex; justify-content:space-between; align-items:center}
+.arch-tag{
+  font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  padding:2px 7px; border-radius:4px; background:rgba(255,255,255,.08); color:var(--dim);
+}
+
+.start-diff-row{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:10px}
+.diff-btn{
+  display:flex; flex-direction:column; align-items:center; padding:9px 6px; border-radius:10px;
+  background:#101522; border:1px solid var(--line); cursor:pointer; transition:all .18s;
+}
+.diff-btn:hover{border-color:var(--line2); transform:translateY(-1px)}
+.diff-btn.sel{background:linear-gradient(135deg,#231d10,#181b14); border-color:var(--gold); box-shadow:var(--glowGold)}
+.diff-name{font-size:13px; font-weight:800; color:#fff}
+.diff-sub{font-size:10px; color:var(--dim); margin-top:2px}
+
+.start-sandbox-wrap{margin:10px 0 14px}
+.sandbox-lbl{
+  display:flex; align-items:center; gap:8px; font-size:12px; color:var(--dim); cursor:pointer;
+  padding:8px 12px; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:8px;
+}
+
+.start-slot-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:12px}
+@media(max-width:540px){ .start-slot-grid{grid-template-columns:1fr} }
+.start-slot-card{
+  background:#101522; border:1px solid var(--line); border-radius:12px; padding:10px 12px;
+  cursor:pointer; transition:all .18s; position:relative;
+}
+.start-slot-card:hover{border-color:var(--line2); transform:translateY(-2px)}
+.start-slot-card.sel{
+  border-color:var(--gold); background:linear-gradient(135deg,#1f1b10,#131824);
+  box-shadow:var(--glowGold);
+}
+.slot-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px}
+.slot-num{font-size:11px; font-weight:800; color:var(--dim); text-transform:uppercase; letter-spacing:.08em}
+.slot-status-pill{font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; text-transform:uppercase}
+.slot-status-pill.occupied{background:rgba(61,220,132,.15); color:var(--green)}
+.slot-status-pill.empty{background:rgba(255,255,255,.06); color:var(--dim2)}
+.slot-studio-name{font-size:13px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.slot-meta-row{display:flex; gap:6px; font-size:10.5px; color:var(--dim); margin-top:4px; flex-wrap:wrap}
+.slot-cash{color:var(--green); font-weight:700}
+.slot-empty-title{font-size:12px; font-weight:700; color:var(--dim2)}
+.slot-empty-sub{font-size:10px; color:var(--dim2); margin-top:2px}
+
 .start-card{
   background:linear-gradient(145deg, rgba(25,32,50,.92) 0%, rgba(15,19,30,.95) 100%);
   border:1px solid var(--line2); border-radius:18px; padding:20px;
@@ -366,9 +454,10 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
 #btnContinue{margin-top:8px}
 .start-feats{display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:16px}
 .start-feats span{
-  font-size:11px; color:var(--dim); border:1px solid var(--line); padding:3px 10px; border-radius:99px;
-  background:rgba(19,24,38,.6); transition:all .2s;
+  font-size:11px; color:var(--dim); border:1px solid var(--line); padding:4px 12px; border-radius:99px;
+  background:rgba(19,24,38,.7); transition:all .2s; border-color:rgba(255,255,255,.08);
 }
+.start-feats span:hover{border-color:var(--gold); color:#fff}
 
 /* ─────────── app layout ─────────── */
 .app{display:flex; flex-direction:column; min-height:100vh; position:relative; z-index:2}

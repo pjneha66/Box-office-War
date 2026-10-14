@@ -1,303 +1,184 @@
-# 🎬 Box Office War
+# Box Office War
 
-> **A deep Hollywood tycoon sim — run a studio, build franchises, launch your own streamer, and dominate the global box office.**
+> A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[![Live Demo](https://img.shields.io/badge/▶%20Play%20Now-box--office--war.vercel.app-black?style=for-the-badge&logo=vercel)](https://box-office-war.vercel.app)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-Passing%20✅-brightgreen?style=for-the-badge)](#-development)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v32.3](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
-## 🎮 What is Box Office War?
+## Overview
 
-Box Office War is a **browser-based Hollywood studio management game** — no installs, no accounts, fully offline-capable as a PWA. You start with a modest production budget and must grow a global entertainment empire: greenlight films, sign talent, launch a streaming service, build theme parks, manage rival studios, and chase Oscar glory.
+Box Office War is an offline-capable Hollywood studio management simulation built entirely on client-side web standards. Players manage every dimension of an entertainment empire from a single production lot:
+- Greenlight original screenplays and acquire high-profile intellectual properties.
+- Package A-list actors, directors, writers, and producers through Hollywood talent agencies.
+- Manage physical soundstages, virtual LED volumes, and audio post-production facilities.
+- Navigate release calendar clashes, cannibalization risks, and seasonal holiday corridors.
+- Monetize catalog libraries via theatrical runs, international territory pre-sales, linear TV syndication, consumer merchandise, and proprietary streaming services.
+- Defend corporate standing against hostile board directives, corporate debt covenants, talent scandals, and rival studio espionage.
 
-Every decision compounds. A hit creates a franchise. A franchise funds a park. A park finances your next tentpole. Mismanage cash flow and the bank takes the lot.
-
----
-
-## v32.0 — Reference Simulation & Modular Expansion Update (Oct 2026)
-
-Box Office War v32.0 synthesizes and integrates 14 advanced simulation systems harvested from benchmark reference projects (Box Office Inc, Box Office Sim 2, Silver Screen Story) into decoupled, modular engines:
-
-- **Studio Facilities & Lot Infrastructure** (`studio-facilities.js`): Upgrade physical studio assets across 4 tiers (Soundstage Complex T1-T3, Virtual LED Volume Stage, Dolby Atmos Mixing Suites, and Historic Backlot). Unlocks permanent production quality buffs, accelerated VFX turnaround, and generates recurring weekly lot leasing revenue by renting spare studio capacity to rival studios.
-- **TV & Cable Syndication Licensing** (`syndication-tv.js`): Monetize mature catalog titles across 3 major linear broadcasting windows: Broadcast Primetime (26 weeks), Broadcast Matinee (39 weeks), and Cable Syndication (52 weeks). Features upfront licensing advances and recurring weekly rights fees.
-- **Multi-Picture Talent Contracts & Quirks** (`talent-contracts.js`): Lock elite actors and directors into 3-picture or 5-picture commitments with volume salary discounts. Incorporates 6 deep psychological talent quirks: `crowd_puller`, `fast_shooter`, `method_actor`, `award_magnet`, `improv_master`, and `cult_icon`.
-- **Corporate Bond Debt Market** (`bond-market.js`): Raise emergency growth capital via 52-week securitized corporate debt notes. Real-time credit rating engine (AAA, AA, A, BBB, BB, B, CCC) computes dynamic interest rates based on debt-to-catalog leverage, automatically serviced through weekly coupon charges.
-- **Box Office Clash Analytics & Cannibalization Radar** (`clash-analytics.js`): Intelligent competitive intelligence radar analyzing opening weekend dates. Calculates screen cannibalization indices, predicts rival audience overlap, and calculates counter-programming windfalls for genre differentiation.
-- **Shared Cinematic Universes & Crossover Events** (`cinematic-universe.js`): Establish overarching intellectual property bibles interconnecting multiple sub-franchises into a unified cinematic universe. Features team-up crossover hype multipliers (up to +65% opening buzz), lore consistency ratings, and annual release fatigue mitigations.
-- **Global Location Scouting & Tax Credits** (`location-scouting.js`): Scout 5 international production hubs (London Pinewood 25% tax credit, Iceland Glaciers +6 visual quality, Atlanta 28% tax credit, New Zealand Fjords +5 prestige bonus, Tokyo Neon +15% Asia-Pacific opening boost) that adjust net production budgets and film performance.
-- **Production Insurance & Completion Bonds** (`production-insurance.js`): Mitigate catastrophic production risks through 3 completion guarantor policies: Budget Overrun Shield (85% coverage), Key Cast Indemnity (90% coverage), and Full Completion Bond (100% coverage).
-- **FYC Awards Campaign & Voter Lobbying Desk** (`awards-campaign.js`): Run strategic For Your Consideration lobbying campaigns across Trade Advertising ($0.75M), Digital Screener Mailings ($1.5M), Voter Receptions ($3.0M), and the Grand Blitz ($5.5M) to maximize Academy and Guild nomination odds.
-- **Board Directives & Confidence Protocol** (`board-targets.js`): Procedural quarterly mandates set by the studio Board of Directors. Tracks confidence (0-100%), distributes executive bonuses on target completion, and triggers austerity measures with production budget caps during low-confidence quarters.
-- **Studio Fan Club & Fan Conventions** (`fan-conventions.js`): Manage grassroots studio fan club membership tiers with weekly community investment budgets. Host annual convention showcases at Comic-Con Hall H and Worldwide D23 for major pre-release buzz spikes (+18% to +55%).
-- **Focus Group Test Screenings & Emergency Reshoots** (`test-screenings.js`): Conduct post-production audience previews (Small Focus Group, Broad Demographic, Guild Secret Preview) to project critical reception scores and authorize emergency reshoots to fix low-testing productions (+6 to +12 quality repair).
-- **Covert Studio Espionage & Sabotage Desk** (`studio-espionage.js`): Deploy clandestine operations to infiltrate rival production slates, intercept confidential talent contract expirations, and execute counter-PR media leaks against rival openings.
-- **Franchise Merchandise & Product Licensing Desk** (`merch-licensing.js`): Commercialize top-tier theatrical titles into global merchandising lines (Action Figures & Toys, AAA Video Games, Streetwear Apparel, Theme Park Attractions) yielding upfront advances and weekly recurring royalties.
-- **Android APK v32.0**: Built, signed, and published with full offline webview synchronization, asset bundling, and versionCode 33 / versionName 32.0.
+All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
 
 ---
 
-## v30.0 — Live Entertainment, Broadcasting & Visual Identity Update (Oct 2026)
+## What is New in v32.3
 
-Box Office War v30 introduces an expansive television broadcasting, live event, and visual identity upgrade:
+The v32.3 release introduces key simulation expansions harvested from benchmark reference projects (Box Office Inc, Box Office Sim 2, Silver Screen Story, TV Studio Story) alongside essential UI modernization and mobile runtime hardening:
 
-- **New Visual Identity & Design Tokens**: Complete interface overhaul backed by a centralized CSS custom property system (`design-tokens.css`). Features an obsidian dark palette, typography powered by Outfit (display), Inter (UI), and JetBrains Mono (data tickers), retro CRT monitor viewports with subtle scanline animations, and pulsing live status beacons.
-- **Live Streaming Studio**: Live on-air broadcast control room with concurrent viewership telemetry (CCV), interactive simulated viewer chat with Super Chats, sponsor ad-break monetization, and direct subscriber growth synergies for player-owned streaming services (+4% weekly subscriber conversion).
-- **Linear TV Networks & 24-Hour EPG Schedule Grid**: Operate up to 8 broadcast networks (BOW Movies, BOW Prestige, BOW Action, BOW Family, BOW After Dark, BOW Sports, BOW News, BOW Kids). Manage a 24-hour hourly grid with prime-time weighted ad slots, format blocks (Cartoons, Variety, Daytime, News, Blockbuster, Cult, Reruns, Sports), and 1-click studio catalog syndication.
-- **Annual Live Events System**: 17-event calendar simulating Hollywood's biggest moments across the 52-week broadcast cycle. Compete in Academy and Guild awards, submit films to A-list international film festival competitions (Cannes, Venice, Toronto, Sundance, Berlin, SXSW) for Grand Jury Prizes and hype multipliers, host red carpet star premieres in major cultural capitals, and capitalize on live sports finals (Super Bowl, NBA Finals, World Series, World Cup).
-- **Animated Vector Personalities**: 4 fully animated SVG on-air hosts with pure CSS keyframe choreography:
-  - **Rex Sterling** (Chief News & Primetime Anchor): Breathing chest expansion, subtle head nodding, eye blinks, and camera tally indicator. Perk: +15% news and movie viewership.
-  - **Chloe Glamour** (Red Carpet & Gala Hostess): Posture sway, head tilt, diamond necklace glimmer, and golden handheld mic. Perk: +25% premiere and awards show buzz.
-  - **Coach Buck** (Live Sports & Action Caster): Energetic head bounce, expressive commentary mouth, and bouncing audio VU equalizer bars. Perk: +30% sports and action reach.
-  - **Reely the Reel** (Animated Studio Mascot): 360-degree 35mm gold reel spin cycle, mascot wobble, and bowtie. Perk: +20% family and animation ratings.
-  - Includes host XP progression (Lv.1 to Lv.10), charisma growth, and media coaching.
-- **Android APK v30.0**: Updated Capacitor Android wrapper with versionCode 30 and versionName 30.0, offline web bundle synchronization, and self-signed release APK packaging.
+### 1. Modernized Start Screen & Career Resume
+- **Instant Resume Hero**: Automatically detects active career saves and presents a quick-launch studio card displaying studio name, date (Year/Week), cash reserves, industry reputation, and active release counts.
+- **Visual Origin Archetypes**: Redesigned origin profiles (Indie Auteur, Rising Producer, Mogul Backing) with transparent starting parameters, weekly overhead breakdowns, and unique passive studio traits.
+- **Interactive Save Slot Deck**: Three dedicated, persistent save slots with live studio metadata, occupied vs empty lot status pills, and keyboard navigation.
+- **Segmented Difficulty Controls**: Easy, Normal, and Hard market presets with transparent rental modifiers (+12% to -12%) and optional Creative Sandbox mode.
 
----
+### 2. Crisis PR War Room & Media Handling (`v31-features.js`)
+- Real-time containment of talent scandals, production accidents, and press leaks.
+- Four distinct crisis management protocols: Public Apology, Counter-Spin Blitz, Legal Settlement, and Independent Press Silence.
+- Reduces weekly reputation drain and restores talent commercial viability.
 
-## v28.x — The Big Update Wave (Oct 2026)
+### 3. International Territory Licensing Desk (`territory-licensing.js`)
+- Sell pre-release distribution rights across major foreign territories (Europe, Asia-Pacific, Latin America, Middle East, Africa).
+- Secure minimum guarantees (MG upfront cash advances) combined with ongoing weekly box office royalties.
+- De-risks high-budget productions before theatrical release.
 
-**v28 — Reference Update** — studied four reference tycoon games (see [REFERENCE-NOTES.md](REFERENCE-NOTES.md) — mechanics only, all code original):
+### 4. Hollywood Agency Packaging Desk (`v31-features.js`)
+- Contract full project packages through premier Hollywood talent agencies (CAA, WME, UTA, and Boutique Indiers).
+- Bundles top-tier directors, marquee leads, and award-winning writers with packaged salary discounts (10% to 25%).
+- Unlocks agency packaging buzz bonuses for opening weekends.
 
-- **🎭 Talent Abilities** — every actor, director, writer and producer can carry a hidden, rarity-tiered ability (Crowd-Pleaser → Movie Star Incarnate) that quietly bends quality, openings, legs, international share, overruns and award odds. **Audition reads** (3% of fee) reveal them early; otherwise one film together does.
-- **🎨 Themes & Combo Discovery** — attach a theme at greenlight; hidden genre×theme affinities are remembered the moment you ship a pairing (⭐ great match: +5 quality, +8% opening · ✖ clash: −4). Browse the full **🧩 Combos Codex** (266 pairings) in Develop.
-- **🎪 Festival Entry Modes** — per festival choose **World Premiere**, **Competition** (film must have shot in the festival's home region; ×1.6 prestige), or **Market Auction** (rival studios bid real money for the finished picture — cash and rep now, they keep the film).
-- **🌍 IP Transfer Market** — rivals make buy-out offers on your franchises (sell = cash now, lose merch/park income); rival-held **legacy franchises** surface for sale mid-run with a built-in fanbase.
-- **⭐ Watchlist & 📜 Active Deals** — pin talent from any profile; the talent hub tracks your watchlist and every running multi-film deal.
+### 5. 52-Week Strategic Holiday Corridors (`custom-sandbox.js`)
+- Detailed release calendar mapping 8 major industry corridors: Memorial Day Kickoff, Fourth of July Spectacle, Labor Day Counter-Programming, Halloween Horror Window, Thanksgiving Family Frame, Christmas Megablock, New Year Holiday Holdovers, and Spring Break Run.
+- Counter-programming multipliers reward distinct genre positioning away from rival tentpoles.
 
-**v28.1–v28.10 — Prototype, hardening & polish:**
-
-- **📊 RPG prototype complete** — balance pass (XP curve 1.15, all 6 life-event families firing), live **debug panel (Ctrl+Shift+P)**: XP curve, event weights, equipment multipliers, quick actions. Go/No-Go: **GO** ([decision doc](.opencode/plans/go-nogo-prototype.md)), tagged `prototype-v1`.
-- **📱 Full mobile pass** — P0 bugs fixed (consolidated breakpoints, hover rules gated to `@media(hover:hover)`, long-press fast-forward), P2 layout leftovers, P3 perf (backdrop-filter → solid backgrounds on phones), P4 polish (`.sr-only`, coach marks). Service worker now **auto-updates every release** (v20 cache — no manual refresh needed).
-- **⌨️ Power tools** — ⌘K/Ctrl+K **command palette**, arrow-key tab & grid navigation, hardened modal focus (auto-focus + restore), COPPA age gate, Enter/Space activation on HUD chips.
-- **✨ Custom Creator** — invent your own studios, people and franchises from the Develop tab; custom people join the real talent pool, custom studios seed rival co-production deals, custom franchises appear in the IP Market.
-- **🗺 Deeper sim** — per-region star power (NA/EU/AS/LA/AF), contracts that expire by weeks *or* films, **📖 M&A library browser** (sortable vault with value breakdown) + 🪙 firesale counter-offers, research % progress bars, finance transaction search, §15 streamer sub-tabs (Home/Originals/Deals/Sports/Market).
-- **🧪 Test suite grown** — smoke + 60+ UI steps + balance harness + **automated scenario playthroughs (5 scenarios × 200 weeks, all pass)** + 13/13 save-slot validation, zero flakes.
-- **📸 Store-ready** — PWA PNG icons (512/192/180) + rendered store screenshots in `assets/store/`.
-
-## ✨ Feature Highlights (v16)
-
-### 🎬 Core Film Production
-- **Greenlight wizard** — pick genre, scale, format (standard / premium / IMAX / 3D), writer, director, cast & producer; set budget and production market
-- **Script & IP market** — rotating script pitches with genre/quality signals; bid on IP licenses (books, comics, games, real events)
-- **Shooting locations** — Atlanta / London / Australia rebates that pay weekly during the shoot
-- **MPAA ratings** — PG-13 vs R cuts affect audience size and word-of-mouth
-- **Test screenings & reshoots** — pay to iterate on rough-cut scores before wide release
-- **Release dating** — date-picker with rival tentpoles, holidays and genre clutter priced in
-- **Marketing** — Super Bowl spots, influencer junkets, review-embargo plans, BTL spend
-
-### 🌍 Box Office & Distribution
-- **17 / 45 / 90-day theatrical windows** — exhibitor-relations meter, PVOD vs streaming tradeoffs
-- **Wide vs platform release patterns** — staggered international rollouts, foreign-language bonuses
-- **Box-office legs** — genre-specific decay curves, critic + audience score split, 4-week chart
-- **Library re-releases** — 104-week cooldown, classic re-releases
-- **Reboots & sequels** — franchise reboot with data-driven fatigue meter; sequel greenlight from game studio
-
-### 📺 OTT & Streaming
-- **Your own streamer** — subs, ceiling, churn, day-and-date releases, library moves
-- **Subscription tiers** — ad-supported vs premium, tier upgrades
-- **Live sports rights** — esports, wrestling and sports slate auctions
-- **Reality / documentary / limited series** — separate production lane
-- **Output deals & rival platforms** — other studios enter the streaming market
-
-### 🏰 Empire Building
-- **Franchise lifecycle** — merch lines, theme parks → resort districts, DTV sequels, TV spin-offs, publishing arms
-- **Shared universes** — one-time crossover weave gives +15% franchise income forever
-- **Brand collabs & licensing-out** — seasonal toy spikes, licensing partners
-- **🕹 Game Studio (v16 NEW)** — commission a licensed game from your franchises; manage dev, launch, score reviews, earn royalties, and greenlight sequels
-
-### 🧑‍🤝‍🧑 Talent & Agencies
-- **Three talent agencies** — Meridian / Crown / Sterling with exclusive rosters, packaging fees, first-look deals
-- **Yearly "New Faces" classes** — discover rising stars before they cost a fortune
-- **Loyalty discounts** — repeat collaborators come cheaper
-- **Star poaching & rehab arcs** — toxic-star scandals, career fade, comeback fund, cameo offers, concert tours
-- **📬 Fan Mail (v16 NEW)** — inbox of fan letters (love mail, angry mail, subscriber mail); reply to boost rep or ignore at your peril
-
-### 🎖 Board, Execs & Rivals
-- **🏛 Board of Directors (v16 NEW)** — 100-point approval score; hit milestones to keep the board happy or face pressure events; hire up to 3 executives (CMO / CFO / Casting Director) each with passive perks and level-up paths
-- **🕵 Rival Studios (v16 NEW)** — live scoreboard of competing studios; intel system (plant a mole, buy reports); rival AI takes real turns each week; fork rival strategy with your own counter-play
-- **📈 Social Trending (v16 NEW)** — Twitter-style trending ticker showing #Hashtags for your films and events; promo campaigns convert trending buzz into opening-weekend spikes
-
-### 🏆 Awards
-- **Precursor awards** — Guilds, Critics Circle, Indies stack momentum into Oscar night
-- **FYC campaign slider** — $2–20M spend; Best Picture win triggers a +25%-of-P&A re-release
-- **Festival circuit** — four named festivals with genre tastes, prestige levels, and acquisitions frenzy
-
-### 💼 Finance
-- **Weekly P&L** — box-office rentals, streaming revenue, merch & park income, loan interest
-- **12-week cash-flow forecast** — with scenario sliders
-- **IPO & stock price** — shareholders judge quarterly earnings calls
-- **Loans & mezzanine debt** — credit line, covenant breach risk
-- **M&A desk** — acquire rival slates, IP libraries, mini-streamers (rotating deal book)
-- **Export ledger as CSV** — download your full financial history
-- **Tax credits & guild contracts** — jurisdiction rebates, guild strike meter
-
-### 🏴‍☠️ Piracy & Windowing
-- Studio piracy meter bleeds live theatrical runs
-- Anti-piracy upgrade (deploy once per game)
-- Windowing choices trade OTT speed for theatrical protection
-
-### 🎯 Scenarios & Meta
-- **Scenarios** — Standard / Turnaround / Golden Age / Indie Darling / Franchise Machine
-- **Difficulty levels** — Easy / Normal / Hard with sandbox mode
-- **30+ Achievements** — box-office, streamer, awards, empire & specialist feats
-- **3 Save slots** — export/import portable save codes, full schema migration chain (v1 → v8)
-- **Interactive tutorial** — 5-step banner walks your first film from script to receipts; pays +1 rep on completion
-
-### 📱 UX & Accessibility
-- **PWA** — installable, fully offline (cache-first service worker)
-- **Dark cinematic theme** — responsive; mobile bottom-nav, desktop tab bar; swipe between tabs
-- **Pull-to-advance** — pull down at top of feed to advance a week on mobile
-- **Haptic rumbles** — on hits/flops (toggleable)
-- **Reduced-motion** — Auto / On / Off; confetti is motion-aware
-- **Text size control** — Small / Medium / Large preview in Settings
-- **🌐 Hindi / English toggle** — full i18n dictionary
+### 6. Mobile APK Version Synchronization Hardening
+- Native Capacitor App integration checks the installed binary version (`versionName 32.3`, `versionCode 36`) against the live release catalog.
+- Offline-first cache migration ensuring existing saves and settings carry forward without update prompts or version discrepancies.
 
 ---
 
-## 🖥 Screens
+## Simulation Architecture: 27 Modular Systems
 
-| Tab | Contents |
-|-----|----------|
-| 🏛 **Studio** | Feed, market-share pie, festivals/FYC campaigns, achievements, share card, trending ticker |
-| 📝 **Develop** | Genre trend board, script market, IP market, writers/producers/directors/cast, talent business |
-| 🎬 **Productions** | Pipeline, rewrites, test screenings & reshoots, release dating, release scheduler |
-| 📊 **Box Office** | Weekly chart, runs, critic/audience split & reviews, library, re-releases/reboots |
-| 📺 **OTT & Series** | Your streamer + tiers, sports rights, offers, rival platforms |
-| 🏰 **Empire** | Franchises, merch, parks, lifecycle, shared-universe weave |
-| 🕹 **Games** *(v16)* | Game studio — dev pipeline, launch events, review scores, sequels |
-| 📬 **Fans** *(v16)* | Fan-mail inbox — love/angry/subscriber letters, read-all, reply actions |
-| 🏛 **Board** *(v16)* | Board approval meter, milestone tracker, executive hiring & levelling |
-| 🕵 **Rivals** *(v16)* | Rival scoreboard, intel system, mole plant, counter-strategy fork |
-| 💼 **Finance** | Live P&L, 12-week forecast, loans, mezzanine, IPO, execs, upgrades, CSV export |
+Box Office War is structured into 27 decoupled simulation modules operating on an event-driven weekly tick loop:
 
----
-
-## 🕹 Quick Strategy Tips
-
-0. Read the **genre trend board** before you buy a script — a red-hot genre is worth more than a star.
-1. Start with an **indie or mid film** — tentpoles need ~$200M+ and a franchise to pay off.
-2. Pick your distribution: theatrical for upside, **streaming original** for guaranteed cash, or keep options open.
-3. Never release a genre film into a rival tentpole's weekend — check the dating calendar.
-4. **Horror** has the best ROI per dollar; **animation** has the best legs (and the best merch); **drama** wins awards.
-5. A hit film (2× breakeven + good reviews) unlocks a **franchise** — sequels open ~35% bigger.
-6. Cash-strapped? **International pre-sales** pay ~22% of budget on day one (you give up intl box office).
-7. Watch **Finance → This week's P&L**: box-office rentals land every week a film is in theaters.
-8. Always attach a **producer** on anything over $50M — overruns compound faster than interest.
-9. Rest a franchise when fatigue passes ~30% — sequels into fatigue open small and review badly.
-10. At **rep 40** launch your own streamer and feed it with library moves and day-and-date releases.
-11. Windows matter: **17-day** boosts PVOD but angers exhibitors; **90-day** does the reverse.
-12. Watch **Finance → Forecast** and hire a **CFO** before you stack debt.
-13. Keep the **Board approval** above 50 — dropping below triggers pressure events that cost cash and rep.
-14. Check the **Rivals** tab weekly — knowing what the competition is greenlighting helps you counter-schedule.
-15. Commission a **game** for your top franchise — royalties compound for years with no extra headcount.
+| Module File | Simulation System | Core Mechanics |
+|---|---|---|
+| `engine.js` | Core Simulation Loop | 52-week calendar, weekly financial clearing, talent availability, box office decay, rival studio AI turns. |
+| `data.js` | Industry Data & Balance | Talent pool (actors, directors, writers, producers), genres, archetypes, themes, awards, and historical milestones. |
+| `ui.js` | Executive Interface | Responsive dashboard, wizard modals, tabs navigation, glassmorphic HUD chips, keyboard shortcuts (Cmd+K). |
+| `studio-facilities.js` | Studio Lot & Soundstages | 4 facility tiers (Soundstage Complex, LED Volume, Atmos Mixing, Historic Lot), quality buffs, rival lot rental income. |
+| `syndication-tv.js` | Television Syndication | Linear broadcast monetization (Primetime 26w, Matinee 39w, Cable 52w), catalog rights, advance fees. |
+| `talent-contracts.js` | Multi-Picture Deals & Quirks | 3-picture and 5-picture talent retention pacts, 6 psychological quirks (`method_actor`, `crowd_puller`, `award_magnet`). |
+| `bond-market.js` | Corporate Debt & Bonds | AAA to CCC corporate credit rating engine, 52-week securitized debt issuance, weekly interest service. |
+| `clash-analytics.js` | Release Clash Radar | Opening weekend cannibalization analysis, audience overlap calculations, counter-programming bonuses. |
+| `cinematic-universe.js` | Shared Cinematic Universes | Multi-franchise IP bibles, crossover event multipliers (+65% buzz), lore consistency tracking, fatigue control. |
+| `location-scouting.js` | International Production Hubs | Global production locations (London, Atlanta, Iceland, Tokyo, New Zealand) providing tax rebates and quality bonuses. |
+| `production-insurance.js` | Completion Bonds | Risk mitigation policies (Overrun Shield, Key Cast Indemnity, Full Completion Bond) against budget spikes. |
+| `awards-campaign.js` | FYC Lobbying Campaign | For Your Consideration trade advertising, screener mailings, voter receptions, and guild momentum tracking. |
+| `board-targets.js` | Board of Directors Mandates | Quarterly board directives, studio confidence index (0-100%), executive bonuses, and austerity budget caps. |
+| `fan-conventions.js` | Convention Fan Showcases | Comic-Con Hall H and Worldwide D23 presentations, studio fan club membership tiers, opening buzz spikes. |
+| `test-screenings.js` | Test Screenings & Reshoots | Focus group audience cards, pacing ratings, tracking legs estimation, and post-production emergency reshoots. |
+| `studio-espionage.js` | Covert Intelligence Desk | Clandestine surveillance, rival slate infiltration, talent contract expiration theft, counter-PR media leaks. |
+| `merch-licensing.js` | Franchise Merchandising | Product lines (Toys, AAA Video Games, Apparel, Theme Parks), upfront licensee advances, weekly royalties. |
+| `territory-licensing.js` | Foreign Pre-Sales Desk | International territory distribution deals, minimum guarantees, regional box office royalty sharing. |
+| `custom-sandbox.js` | Sandbox & Holiday Engine | Custom studio, talent, and rival creator tools, 52-week holiday corridors, custom release calendars. |
+| `v31-features.js` | Crisis PR & Agency Packaging | Crisis PR containment desk (4 response protocols), elite agency packaging (CAA/WME/UTA) with packaged discounts. |
+| `finance-tools.js` | Corporate Finance Suite | Detailed weekly P&L ledgers, 12-week cashflow forecasting, mezzanine debt facilities, and CSV financial exports. |
+| `challenge-leaderboard.js` | Seeded Challenge Engine | Deterministic weekly scenario seeds, standardized challenge scoring, and shareable studio performance codes. |
+| `theater-chains.js` | Theatrical Exhibition Networks | Independent exhibitor relations, premium format splits (IMAX, Dolby Cinema), and concession revenue sharing. |
+| `dynamic-soundtrack.js` | Adaptive Audio Atmosphere | Synthesized Web Audio soundtrack that responds dynamically to studio cash solvency, box office hits, and crises. |
+| `dynasty-legacy.js` | Multi-Generational Legacy | Post-retirement dynasty bonuses, family trust fund generation, heirloom studios, and generational succession. |
+| `bow-shorts.js` | Short-Form Digital Media | Episodic streaming shorts, viral digital content, social platform monetization, and rising talent discovery. |
+| `talent-agency.js` | In-House Agency Operation | Establish a proprietary studio talent agency, manage client rosters, collect commission fees, and train stars. |
 
 ---
 
-## 🛠 Development
+## Reference Parity Breakdown
 
-### File Structure
+Box Office War synthesizes gameplay systems from classic business simulations into a coherent, modern framework:
 
-```
-index.html              Shell (start screen + app scaffolding + modal scaffolds)
-style.css               Dark cinematic theme, responsive (mobile bottom-nav / desktop tabs)
-data.js                 Genres, scales, calendar, OTT platforms, talent pools, critics, trends,
-                        tiers, events, scenarios, achievements, agencies, AI/co-production/
-                        piracy/guild/M&A configs, festival circuit, tutorial steps,
-                        game-studio data, fan-mail templates, board/exec defs
-                        (DATA.SAVE_VERSION — bump + add migration step for schema changes)
-engine.js               The simulation: quality, hype, legs, splits, offers, rivals, awards +
-                        precursors, finance, streamer, sports, lifecycle, stock, trends,
-                        piracy, guilds, M&A, AI scandals, empire/licensing,
-                        game-studio lifecycle, fan-mail system, board/exec mechanics,
-                        social-trending engine, anti-piracy deploy, exportLedgerCSV,
-                        schema v8 save migration
-ui.js                   Rendering, wizards, modals (auction/deepfake/FYC/empire/settings/
-                        help/game-over), toasts, WebAudio stings + haptics,
-                        confetti (motion-aware), studio card, i18n, achievements, tutorial,
-                        touch gestures, viewGames, viewFans, viewBoard, viewRivals,
-                        viewFinance panels, piracy meter, prod-filter chips, trending ticker
-i18n.js                 Hindi/English dictionary + chrome translation
-icon.svg                PWA icon
-manifest.webmanifest    PWA manifest
-sw.js                   Service worker (offline cache-first)
-challenge-leaderboard.js Seeded challenge codes and score leaderboard
-theater-chains.js       Exhibitor circuits and owned theater screens
-dynamic-soundtrack.js   Dynamic mood scores and OST composer album releases
-dynasty-legacy.js       Dynasty multi-generation trust fund legacy
-bow-shorts.js           Digital short-form studio content desk
-talent-agency.js        Studio-owned talent agency roster
-film-restoration.js     Library 4K/HDR film remastering and restorations
-festival-pr.js          International film festival PR and Grand Jury submissions
-studio-facilities.js    Soundstages, virtual LED stage, Atmos and lot leasing
-syndication-tv.js       Broadcast Primetime, Matinee and Cable syndication deals
-talent-contracts.js     Multi-picture talent pacts and 6 psychological quirks
-bond-market.js          Securitized corporate bonds and debt ratings (AAA-CCC)
-clash-analytics.js      Box office clash radar and screen cannibalization
-cinematic-universe.js   Shared cinematic universes and crossover team-ups
-location-scouting.js    Global shooting hubs and international tax credits
-production-insurance.js Completion guarantor policies and cast indemnity
-awards-campaign.js      FYC trade ads, screener mailings and voting blitzes
-board-targets.js        Quarterly board directives, confidence and austerity
-fan-conventions.js      Studio fan club and Comic-Con / D23 showcase events
-test-screenings.js      Focus group test screenings and emergency reshoots
-studio-espionage.js     Covert intelligence desk, rival leaks and sabotage
-merch-licensing.js      Franchise product licensing (toys, games, apparel, parks)
-test/smoke.js           Headless 5-year economy simulation runner
-test/smoke-body.js      Smoke assertions (node test/smoke.js)
-test/ui-test.mjs        jsdom click-through of the full game flow
-test/balance.js         Balance harness (6 seeds × 120 weeks, progression + economy invariants)
-test/scenario-playthrough.mjs  Automated playthroughs — 5 scenarios × 200 weeks, win-tracking
-test/verify-library.mjs Acquired-library bulk actions (sell outright / bulk license / flip)
-test/validate-slots.js  Save-slot count validation
+### Box Office Inc Parity
+- **Hollywood Talent Agencies**: Tiered agency representation (CAA, WME, UTA) with packaged star bundles and volume commission structures.
+- **International Pre-Sales**: Regional minimum guarantees (MG) that offset production exposure before principal photography wraps.
+- **Crisis Media Spin**: Formal PR war room protocols to navigate talent scandals without scrapping multimillion-dollar productions.
+
+### Box Office Sim 2 Parity
+- **Box Office Clash Radar**: Direct computation of screen cannibalization between competing releases sharing identical demographic quadrants.
+- **Dynamic Decay Curves**: Realistic box office legs calculated from the spread between critical reviews and audience exit-poll word of mouth.
+- **Windowing Tradeoffs**: Explicit choice between 17-day, 45-day, and 90-day theatrical windows with exhibitor relation consequences.
+
+### Silver Screen Story Parity
+- **Lot Infrastructure Development**: Permanent physical upgrades to production lots including soundstages, digital mixing suites, and backlots.
+- **Theme and Genre Chemistry**: Hidden synergies between 266 genre and theme pairings discovered through production experience.
+- **Talent Progression**: Directors and actors earn XP on every shoot, leveling up technical execution, charisma, and speed attributes.
+
+### TV Studio Story Parity
+- **24/7 Linear EPG Grid**: 24-hour programming grid scheduling across 8 television networks with format blocks and prime-time ad rates.
+- **Broadcast Syndication**: Secondary broadcast rights monetization for catalog films past their primary theatrical and streaming cycles.
+
+---
+
+## Installation & Deployment
+
+### Web Application (PWA)
+Box Office War runs directly in any modern web browser without dependencies or build steps:
+```bash
+# Serve locally using any static web server
+python3 -m http.server 8080
+# Open http://localhost:8080 in Chrome, Safari, Firefox, or Edge
 ```
 
-### Running Tests and Building APK
+### Android APK (v32.3)
+1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest).
+2. Install the APK on your Android device (Android 8.0 Oreo or higher supported).
+3. The application operates 100% offline, caching all scripts, audio synthesis engines, and SVG assets locally.
+
+### Building the Android APK from Source
+Prerequisites: Node.js 18+, JDK 21, and Android SDK command-line tools.
+```bash
+# 1. Prepare web bundle into apk/www
+node apk/build-www.js
+
+# 2. Synchronize web assets with Capacitor Android
+cd apk
+npx cap sync android
+
+# 3. Compile release APK with Gradle
+cd android
+./gradlew assembleRelease --no-daemon
+
+# The signed release APK will be generated at:
+# apk/android/app/build/outputs/apk/release/app-release.apk
+```
+
+---
+
+## Test Suite & Verification
+
+The project enforces automated test coverage across headless economic simulations, full UI state verification, and long-range scenario balance:
 
 ```bash
-# Everything: smoke + UI click-through + balance + scenario playthroughs
+# Execute entire test suite
 npm test
 
-# Individually
-npm run test:engine     # headless 5-year economy simulation
-npm run test:ui         # full UI click-through (requires jsdom)
-npm run test:balance    # balance harness (6 seeds × 120 weeks)
-npm run test:scenarios  # 5 scenario playthroughs × 200 weeks
-npm run test:library    # M&A vault bulk actions
-npm run validate:slots  # save-slot validation
-
-# Build Android APK locally
-npm run apk
-
-# Production Release Pipeline (preflight + bump + build APK + commit/push + GitHub release)
-bash release.sh <version>
+# Run individual test harnesses:
+npm run test:engine     # Headless 5-year economy simulation (smoke.js)
+npm run test:ui         # Full UI click-through & modal interactions (ui-test.mjs)
+npm run test:balance    # Economy invariants across 6 seeds x 120 weeks (balance.js)
+npm run test:scenarios  # Automated 200-week playthroughs for all 5 scenarios (scenario-playthrough.mjs)
+npm run test:library    # Catalog and M&A bulk action validations (verify-library.mjs)
+npm run validate:slots  # Save slot structural validation (validate-slots.js)
 ```
-
-### Balance Target
-
-An average tentpole opens ~$125M domestic; disciplined slates compound; reckless leverage kills you in about a year.  
-Tuned via headless Monte-Carlo runs — healthy studios reach **$1–2B cumulative WW gross** over 5 years.
 
 ---
 
-## 🚀 Deploy Your Own
+## Architecture & Design Principles
 
-This is a **static site** — just serve `index.html` and its siblings.
-
-### Vercel (one command)
-```bash
-npx vercel --prod
-```
-
-### GitHub Pages
-Push to your repo and enable Pages from `Settings → Pages → Deploy from branch (main / root)`.
-
-### Any static host
-Upload all files (no build step needed).
+- **Zero Framework Overhead**: Written in standard, high-performance vanilla JavaScript (ES6+), semantic HTML5, and pure CSS custom properties (`design-tokens.css`).
+- **Deterministic State Serialization**: All game state is encapsulated in a single global object `G`, validated via schema migrations (`migrateSave`), and serialized to browser `localStorage` and `IndexedDB`.
+- **Keyboard Power Tools**: Built-in Command Palette (`Cmd+K` / `Ctrl+K`), arrow-key grid navigation, and comprehensive keyboard shortcuts for high-speed management.
+- **Accessibility & Internationalization**: Screen-reader live regions (`role="status"`, `role="alert"`), system motion preference detection (`prefers-reduced-motion`), and full English / Hindi localization dictionaries.
 
 ---
 
-## 📄 License
+## License
 
-MIT — have fun, fork it, reskin it.
+MIT License. Open source for modification, study, and distribution.

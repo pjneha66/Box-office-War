@@ -515,18 +515,50 @@ window.addEventListener("DOMContentLoaded", ()=>{
   // start screen
   const names=["Parallax Pictures","Lighthouse Films","Meridian Studios","Blackwater Pics","Golden Hour Entertainment","Astra House"];
   const sug=$("#nameSuggests");
-  names.slice(0,4).forEach(n=>{ const b=document.createElement("button"); b.textContent=n;
-    b.onclick=()=>{ $("#studioName").value=n; beep("click"); }; sug.appendChild(b); });
-  $("#studioName").value=names[rint(0,names.length-1)];
+  if(sug){
+    sug.innerHTML="";
+    names.slice(0,4).forEach(n=>{ const b=document.createElement("button"); b.type="button"; b.textContent=n;
+      b.onclick=()=>{ $("#studioName").value=n; beep("click"); }; sug.appendChild(b); });
+  }
+  const sInp=$("#studioName"); if(sInp && !sInp.value) sInp.value=names[rint(0,names.length-1)];
   let archSel=DATA.ARCHETYPES[1].id;
   const al=$("#archList");
-  DATA.ARCHETYPES.forEach(a=>{
-    const d=document.createElement("div"); d.className="arch"+(a.id===archSel?" sel":"");
-    d.innerHTML="<h4>"+a.name+"</h4><div class='a-sub'>"+a.sub+"</div><div class='a-stats'>"+
-      "<span class='tag gold'>💰 "+fmtM(a.cash)+"</span><span class='tag blue'>⭐ rep "+a.rep+"</span><span class='tag'>🧾 $"+a.overhead+"M/wk overhead</span></div>";
-    d.onclick=()=>{ archSel=a.id; $$(".arch").forEach(x=>x.classList.remove("sel")); d.classList.add("sel"); beep("click"); };
-    al.appendChild(d);
-  });
+  if(al){
+    al.innerHTML="";
+    DATA.ARCHETYPES.forEach(a=>{
+      const cleanName = (a.name||"").replace(/^[^a-zA-Z0-9]+/, "");
+      const d=document.createElement("div"); d.className="arch"+(a.id===archSel?" sel":"");
+      d.innerHTML="<div class='arch-header'><h4>"+cleanName+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
+        "<div class='a-sub'>"+a.sub+"</div>"+
+        "<div class='a-stats'>"+
+        "<span class='tag gold'>War Chest: "+fmtM(a.cash)+"</span>"+
+        "<span class='tag blue'>Rep: "+a.rep+"</span>"+
+        "<span class='tag'>Overhead: $"+a.overhead+"M/wk</span>"+
+        "</div>";
+      d.onclick=()=>{ archSel=a.id; $$(".arch").forEach(x=>x.classList.remove("sel")); d.classList.add("sel"); beep("click"); };
+      al.appendChild(d);
+    });
+  }
+
+  // Active Save Hero Card
+  try{
+    const sm = activeSaveMeta();
+    const hero = $("#resumeHero");
+    if(sm && hero){
+      hero.style.display = "block";
+      const rName = $("#resumeStudioName"); if(rName) rName.textContent = sm.name;
+      const rMeta = $("#resumeMeta"); if(rMeta) rMeta.textContent = dateLabel(sm.week) + " · " + (DATA.SCENARIOS[sm.scenario]?.name || "Standard") + " Mode · Slot " + (sm.slot || 1);
+      const rCash = $("#resumeCash"); if(rCash) rCash.textContent = fmtM(sm.cash);
+      const rRep = $("#resumeStatRep"); if(rRep) rRep.textContent = "Reputation " + sm.rep;
+      const rFilms = $("#resumeStatFilms"); if(rFilms) rFilms.textContent = sm.films + " Releases";
+      const rFranch = $("#resumeStatFranchises"); if(rFranch) rFranch.textContent = sm.franchises + " Franchises";
+      const btnHero = $("#btnResumeHero");
+      if(btnHero){
+        btnHero.onclick = ()=>{ const g = loadGame(); if(g){ enterApp(); } };
+      }
+    }
+  }catch(e){}
+
   if(hasSave()) $("#btnContinue").style.display="block";
   $("#btnContinue").onclick=()=>{ const g=loadGame(); if(g){ enterApp(); } };
   $("#btnStart").onclick=()=>{
@@ -534,7 +566,6 @@ window.addEventListener("DOMContentLoaded", ()=>{
     newGame(archSel, nm, {scenario:SEL.scenario, difficulty:SEL.difficulty, sandbox:SEL.sandbox, slot:SEL.slot, legacy:SEL.legacy});
     enterApp(true);
   };
-  // v2 start options: scenario, difficulty, sandbox, slots (were declared but never wired)
   try{ buildStartOptions(); }catch(e){ console.warn("start options", e); }
   // topbar
   $("#btnWeek").onclick=()=>{ doWeek(1); };
@@ -6103,31 +6134,57 @@ function buildStartOptions(){
   let h="<label class='field-label' id='fieldScenario'>"+t("start.scenario")+"</label><div class='scen-row'>";
   Object.keys(DATA.SCENARIOS).forEach(id=>{
     const s=DATA.SCENARIOS[id];
-    // v28: scenario progress indicator
     const sp = G?.scenarioProgress?.[id] || {};
-    const won = sp.won ? " ✅" : "";
+    const won = sp.won ? " [Cleared]" : "";
     const bestRep = sp.bestRep ? " (best rep: "+sp.bestRep+")" : "";
-    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"'><h4>"+s.emoji+" "+s.name+won+"</h4><div class='a-sub'>"+s.desc+bestRep+"</div></div>";
+    const cleanScenName = s.name;
+    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"'><h4>"+cleanScenName+won+"</h4><div class='a-sub'>"+s.desc+bestRep+"</div></div>";
   });
-  h+="</div><label class='field-label' id='fieldDifficulty'>"+t("start.difficulty")+"</label><div class='row'>";
+  h+="</div>";
+
+  h+="<label class='field-label' id='fieldDifficulty'>"+t("start.difficulty")+"</label><div class='start-diff-row'>";
   Object.keys(DATA.DIFFICULTIES).forEach(id=>{
     const d=DATA.DIFFICULTIES[id];
-    h+="<button class='btn btn-sm diff"+(SEL.difficulty===id?" btn-primary":"")+"' data-diff='"+id+"' title='"+d.desc+"'>"+d.emoji+" "+d.name+"</button>";
+    h+="<button type='button' class='btn btn-sm diff-btn"+(SEL.difficulty===id?" btn-primary sel":"")+"' data-diff='"+id+"' title='"+d.desc+"'>"+
+      "<span class='diff-name'>"+d.name+"</span>"+
+      "<span class='diff-sub'>"+(id==='easy'?'Rentals +12%':id==='hard'?'Rentals -12%':'Standard Market')+"</span>"+
+      "</button>";
   });
-  h+="<label class='sandbox-lbl'><input type='checkbox' id='chkSandbox'"+(SEL.sandbox?" checked":"")+"> "+t("start.sandbox")+"</label></div>";
-  h+="<label class='field-label'>"+t("start.slot")+"</label><div class='row' id='slotRow'>";
+  h+="</div>";
+
+  h+="<div class='start-sandbox-wrap'><label class='sandbox-lbl'><input type='checkbox' id='chkSandbox'"+(SEL.sandbox?" checked":"")+"> Creative Sandbox Mode (Infinite Cash, No Bankruptcy, Instant Experimentation)</label></div>";
+
+  h+="<label class='field-label'>"+t("start.slot")+"</label><div class='start-slot-grid' id='slotRow'>";
   for(let n=1;n<=3;n++){
     const m=slotMeta(n);
-    h+="<button class='btn btn-sm slot"+(SEL.slot===n?" btn-primary":"")+"' data-slot='"+n+"'>Slot "+n+(m? " · "+esc(m.name)+" · "+dateLabel(m.week):" · empty")+"</button>";
+    const isSel = (SEL.slot === n);
+    h+="<div class='start-slot-card"+(isSel?" sel":"")+"' data-slot='"+n+"' role='button' tabindex='0'>"+
+      "<div class='slot-header'>"+
+        "<span class='slot-num'>Slot "+n+"</span>"+
+        "<span class='slot-status-pill "+(m?"occupied":"empty")+"'>"+(m?"Active Studio":"Empty Lot")+"</span>"+
+      "</div>";
+    if(m){
+      h+="<div class='slot-studio-name'>"+esc(m.name)+"</div>"+
+        "<div class='slot-meta-row'>"+
+          "<span class='slot-date'>"+dateLabel(m.week)+"</span>"+
+          "<span class='slot-cash'>"+fmtM(m.cash)+"</span>"+
+          "<span class='slot-rep'>Rep "+m.rep+"</span>"+
+        "</div>";
+    } else {
+      h+="<div class='slot-empty-title'>Empty Lot</div>"+
+        "<div class='slot-empty-sub'>Ready for launch</div>";
+    }
+    h+="</div>";
   }
   h+="</div>";
+
   try{
     const hall=(typeof legacyHall==="function")?legacyHall():[];
     if(hall.length){
-      h+="<label class='field-label'>🕊 Heirloom (optional legacy bonus)</label><div class='row'>";
-      h+="<button class='btn btn-sm "+(SEL.legacy===""?"btn-primary":"")+"' data-leg=''>Fresh start</button>";
+      h+="<label class='field-label'>Heirloom (Optional Legacy Bonus)</label><div class='row'>";
+      h+="<button type='button' class='btn btn-sm "+(SEL.legacy===""?"btn-primary":"")+"' data-leg=''>Fresh start</button>";
       hall.slice(0,4).forEach((e,i)=>{
-        h+="<button class='btn btn-sm "+(SEL.legacy==String(i)?"btn-primary":"")+"' data-leg='"+i+"' title='"+esc(e.grade)+" · "+fmtM(e.revenue)+" WW · "+e.films+" films'>🕊 "+esc(e.studio)+"</button>";
+        h+="<button type='button' class='btn btn-sm "+(SEL.legacy==String(i)?"btn-primary":"")+"' data-leg='"+i+"' title='"+esc(e.grade)+" · "+fmtM(e.revenue)+" WW · "+e.films+" films'>Heir: "+esc(e.studio)+"</button>";
       });
       h+="</div><div class='tiny muted'>Heir of a hall studio: +$25M, +3 rep. Optional — normal play is untouched.</div>";
     }
@@ -6136,7 +6193,10 @@ function buildStartOptions(){
   $$("[data-scen]").forEach(el=>el.onclick=()=>{ SEL.scenario=el.dataset.scen; beep("click"); buildStartOptions(); });
   $$("[data-diff]").forEach(el=>el.onclick=()=>{ SEL.difficulty=el.dataset.diff; beep("click"); buildStartOptions(); });
   const chk=$("#chkSandbox"); if(chk) chk.onchange=()=>{ SEL.sandbox=chk.checked; };
-  $$("[data-slot]").forEach(el=>el.onclick=()=>{ SEL.slot=+el.dataset.slot; beep("click"); buildStartOptions(); });
+  $$("[data-slot]").forEach(el=>{
+    el.onclick=()=>{ SEL.slot=+el.dataset.slot; beep("click"); buildStartOptions(); };
+    el.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } };
+  });
   $$("[data-leg]").forEach(el=>el.onclick=()=>{ SEL.legacy=el.dataset.leg; beep("click"); buildStartOptions(); });
 }
 
