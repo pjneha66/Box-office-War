@@ -633,6 +633,58 @@ if(typeof BOW_SANDBOX !== "undefined"){
   console.log("v32.2 · custom sandbox & holiday corridors ok (talent, rival, franchise created, " + BOW_SANDBOX.HOLIDAY_CORRIDORS.length + " holiday corridors)");
 }
 
+// 28. Category 1: Box Office Sim 2 Features (Locations, Animals, Wardrobe, Theaters, Awards)
+if(typeof FilmLocationsTax !== "undefined"){
+  const loc = FilmLocationsTax.LOCATIONS.find(l => l.id === "atlanta");
+  if(!loc || loc.taxRebatePct !== 0.30) throw new Error("atlanta tax rebate missing");
+  const pTest = { id: 8888, title: "Rebate Feature", budget: 50, filmingDestination: "atlanta" };
+  const rebate = FilmLocationsTax.settleTaxRebate(pTest);
+  if(rebate <= 0) throw new Error("tax rebate settlement failed");
+  if(!FilmLocationsTax.ANIMALS.length || !FilmLocationsTax.WARDROBES.length) throw new Error("animals or wardrobes missing");
+  if(!FilmLocationsTax.CHAINS.length || !FilmLocationsTax.AWARD_SHOWS.length) throw new Error("chains or award shows missing");
+  console.log("v32.4 · Category 1 (Box Office Sim 2) ok (rebate: +$" + rebate.toFixed(1) + "M, " + FilmLocationsTax.ANIMALS.length + " animal actors, " + FilmLocationsTax.CHAINS.length + " chains, " + FilmLocationsTax.AWARD_SHOWS.length + " award shows)");
+}
+
+// 29. Category 2: Box Office Inc Features (Product Placement, Physical Media, Backlot, C-Suite)
+if(typeof StudioOperationsSuite !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 100);
+  const pTest = { id: 8888, title: "Rebate Feature", budget: 50, phase: "shoot" };
+  G.projects.push(pTest);
+  const spRes = StudioOperationsSuite.sellProductPlacement(8888, "auto_maker");
+  if(!spRes || !spRes.ok) throw new Error("product placement sponsorship failed");
+  const stageRes = StudioOperationsSuite.purchaseSoundstageLot("lot_water_tank");
+  if(!stageRes || !stageRes.ok) throw new Error("soundstage lot expansion failed");
+  const csuiteRes = StudioOperationsSuite.hireCSuiteOfficer("cfo");
+  if(!csuiteRes || !csuiteRes.ok) throw new Error("c-suite appointment failed");
+  const physRes = StudioOperationsSuite.pressPhysicalMediaBatch(8888, "steelbook_4k", 50);
+  if(!physRes || !physRes.ok) throw new Error("physical media pressing failed");
+  console.log("v32.4 · Category 2 (Box Office Inc) ok (sponsor upfront: +$" + spRes.cashEarned + "M, water tank lot built, cfo appointed, 4k steelbook pressed)");
+}
+
+// 30. Category 3: Game Dev Story Features (Hardware Platforms, Console Dev, Staff Fatigue, Headhunters)
+if(typeof GameDevHardware !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 100);
+  const licRes = GameDevHardware.acquireDevKitLicense("microx");
+  if(!licRes || !licRes.ok) throw new Error("platform hardware license failed");
+  const targetTalent = G.talent && G.talent[0] ? G.talent[0].id : 1;
+  const sabRes = GameDevHardware.sendOnSabbatical(targetTalent);
+  if(!sabRes || !sabRes.ok) throw new Error("staff sabbatical rest failed");
+  console.log("v32.4 · Category 3 (Game Dev Story) ok (microx platform licensed, talent sabbatical rested)");
+}
+
+// 31. Category 4: Social Dev Story Features (Blind-Box Scout, Seasonal Passport, Floor Decor, Co-Production)
+if(typeof LiveOpsCoPro !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 100);
+  const gachaRes = LiveOpsCoPro.pullGachaTalentScout();
+  if(!gachaRes || !gachaRes.ok) throw new Error("blind-box talent scouting pull failed");
+  const amenRes = LiveOpsCoPro.installAmenity("espresso_bar");
+  if(!amenRes || !amenRes.ok) throw new Error("studio floor decor installation failed");
+  const coRes = LiveOpsCoPro.signCoProductionPact(8888, "titan_pictures");
+  if(!coRes || !coRes.ok) throw new Error("co-production alliance deal failed");
+  console.log("v32.4 · Category 4 (Social Dev Story) ok (blind box " + gachaRes.card.tier + " pull: " + gachaRes.card.name + ", espresso bar installed, titan pictures co-pro signed)");
+  G.projects = (G.projects || []).filter(p => p.id !== 8888);
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;

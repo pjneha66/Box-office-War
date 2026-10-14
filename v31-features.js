@@ -337,37 +337,66 @@ function hqFloorPlanSVG(){
    mobile groups and every section's sub-tabs.
    ═══════════════════════════════════════════════════════════ */
 const NAV_GROUPS = [
-  { id:"home",   icon:"🏠", label:"Home",   tabs:["dashboard"] },
-  { id:"studio", icon:"🏛", label:"Studio", tabs:["studio"] },
-  { id:"create", icon:"🎬", label:"Create", tabs:["develop","productions"] },
-  { id:"market", icon:"📊", label:"Market", tabs:["boxoffice","fans","ott","live"] },
-  { id:"more",   icon:"⋯", label:"More",   tabs:["empire","library","games","finance","notifications"] },
+  { id:"home",   icon:"", label:"Home",   tabs:["dashboard"] },
+  { id:"studio", icon:"", label:"Studio", tabs:["studio"] },
+  { id:"create", icon:"", label:"Create", tabs:["develop","productions"] },
+  { id:"market", icon:"", label:"Market", tabs:["boxoffice","fans","ott","live"] },
+  { id:"more",   icon:"", label:"More",   tabs:["empire","library","games","finance","notifications"] },
 ];
 const TAB_META = {
-  develop:     [["scripts","📝 Scripts"],["ip","📚 IP Market"],["talent","🎫 Talent Business"],["combos","🧩 Combos Codex"]],
+  dashboard:   [["overview","Executive Overview"],["actions","Quick Launch"],["slate","Production Slate"],["macro","Macro Economy"]],
+  studio:      [["lot","Studio Lot"],["csuite","C-Suite Execs"],["board","Board Directives"],["operations","Studio Operations"],["heritage","Heritage Vault"]],
+  develop:     [["scripts","Scripts"],["ip","IP Market"],["talent","Talent Business"],["combos","Combos Codex"],["tax","Tax Rebates"]],
   productions: [["all","All"],["pre","Pre"],["shoot","Shoot"],["post","Post"],["ready","Ready"],["dated","Dated"]],
-  fans:        [["all","All"],["mail","📬 Mail"],["trending","🔥 Trending"],["viral","🦠 Viral"]],
-  ott:         [["home","🏠 Home"],["originals","🎬 Originals"],["deals","📄 Deals"],["sports","🏆 Sports"],["market","🌍 Market"]],
-  empire:      [["franchises","🏰 Franchises"],["music","🎵 Music"],["games","🎮 Games"],["comics","💬 Comics"]],
-  games:       [["dev","🕹 In Dev"],["released","🎮 Released"],["greenlight","🚀 Greenlight"]],
+  boxoffice:   [["chart","Theatrical Charts"],["chains","Mega-Chains and PLF"],["territories","Territory Deals"],["awards","Awards Circuit"],["clash","Clash Radar"]],
+  fans:        [["all","All"],["mail","Mail"],["trending","Trending"],["viral","Viral"]],
+  ott:         [["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]],
+  live:        [["linear","Linear Channels"],["stream","Live Stream Hub"],["events","Live Events"],["studio","Host Studio"]],
+  library:     [["films","Films"],["series","Series"],["physical","Physical 4K Media"],["vault","Restoration Vault"]],
+  empire:      [["franchises","Franchises"],["music","Music"],["games","Games"],["comics","Comics"]],
+  games:       [["dev","In Dev"],["released","Released"],["hardware","Hardware Platforms"],["greenlight","Greenlight"]],
 };
 /* which live filter var holds the active sub-tab per section — read as
    functions so the strip always highlights what the view is showing */
 const TAB_SUB_ACTIVE = {
-  develop:()=>DEVELOP_SUB||"scripts",
-  productions:()=>PROD_FILTER||"all",
-  fans:()=>FAN_MAIL_FILTER||"all",
-  ott:()=>OTT_SUB||"home",
-  empire:()=>"franchises",
-  games:()=>"dev",
+  dashboard:   ()=>(typeof DASHBOARD_SUB!=="undefined"?DASHBOARD_SUB:"overview"),
+  studio:      ()=>(typeof STUDIO_SUB!=="undefined"?STUDIO_SUB:"lot"),
+  develop:     ()=>DEVELOP_SUB||"scripts",
+  productions: ()=>PROD_FILTER||"all",
+  boxoffice:   ()=>(typeof BOXOFFICE_SUB!=="undefined"?BOXOFFICE_SUB:"chart"),
+  fans:        ()=>FAN_MAIL_FILTER||"all",
+  ott:         ()=>OTT_SUB||"home",
+  live:        ()=>(G.live?(G.live.activeSub||G.live.subTab||"linear"):"linear"),
+  library:     ()=>(typeof LIBRARY_SUB!=="undefined"?LIBRARY_SUB:"films"),
+  empire:      ()=>(typeof EMPIRE_SUB!=="undefined"?EMPIRE_SUB:"franchises"),
+  games:       ()=>(typeof GAMES_SUB!=="undefined"?GAMES_SUB:"dev"),
 };
-/* which data-* attribute each section's chips carry (kept identical
-   to the old hardcoded markup so existing bindings keep working) */
+/* which data-* attribute each section's chips carry */
 const TAB_SUB_ATTR = {
-  develop:"data-devsub", productions:"data-filter-prod", fans:"data-fanfilter",
-  ott:"data-ottsub", empire:"data-empiretab", games:"data-gamestab",
+  dashboard:   "data-dashsub",
+  studio:      "data-studiosub",
+  develop:     "data-devsub",
+  productions: "data-filter-prod",
+  boxoffice:   "data-bosub",
+  fans:        "data-fanfilter",
+  ott:         "data-ottsub",
+  live:        "data-livesub",
+  library:     "data-libsub",
+  empire:      "data-empiretab",
+  games:       "data-gamestab",
 };
 const TAB_SUB_DEFAULT = {
-  develop:"scripts", productions:"all", fans:"all", ott:"home", empire:"franchises", games:"dev",
+  dashboard:   "overview",
+  studio:      "lot",
+  develop:     "scripts",
+  productions: "all",
+  boxoffice:   "chart",
+  fans:        "all",
+  ott:         "home",
+  live:        "linear",
+  library:     "films",
+  empire:      "franchises",
+  games:       "dev",
 };
 const TAB_SUB_GHOST = { productions:1, fans:1 }; /* inactive chips used btn-ghost here */
+

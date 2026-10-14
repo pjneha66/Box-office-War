@@ -2031,7 +2031,7 @@ function expectedWeightOf(p){
 function weekendCompetitors(p, weekAbs){
   const list = [];
   G.rivals.forEach(r=>{
-    const f = r.slate.find(f=>f.week===weekAbs && !f.dead);
+    const f = (r.slate||[]).find(f=>f.week===weekAbs && !f.dead);
     if(f) list.push({ rival:r.name, weight:Math.max(f.weight||f.opening||6, 0.1), title:f.title, scale:f.scale, genre:f.genre });
   });
   if(p){ // your own other theatrical films same weekend
@@ -2356,7 +2356,7 @@ function tickProjects(){
     if(p.phase==="ready"||p.phase==="delivered") continue;
     if(p.strikePause>0){ p.strikePause--; if(p.strikePause===0) log("✊ Crews back on set for \""+p.title+"\"",""); continue; }
     p.phaseWeek++;
-    const L=p.phaseLen;
+    const L = p.phaseLen || { pre: 4, shoot: 10, post: 6 };
     // cash burn
     let burn=0;
     if(p.phase==="pre")  burn = p.budget*0.10/Math.max(1,L.pre) * econM("prod");
@@ -2411,6 +2411,9 @@ function tickProjects(){
       }
       else if(p.phase==="post"){
         p.quality = computeQuality(p);
+        if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.settleTaxRebate === "function"){
+          FilmLocationsTax.settleTaxRebate(p);
+        }
         if(p.prebuyAccepted){
           finishStreamingOriginal(p);
         }else if(p.plan==="own"){
@@ -2509,8 +2512,29 @@ function releaseFilm(p){
   // v20: Animated fast-track bonus
   if(typeof animatedFastTrackBonus==="function") expected *= animatedFastTrackBonus(p);
   if(p.soundtrack){
-    if(chance(0.30)){ p.soundHit=true; expected*=1.10; log("🎵 The single from \""+p.title+"\" is CHARTING — +10% buzz!","gold"); }
-    else log("🎵 The \""+p.title+"\" single stalled. No chart action.","");
+    if(chance(0.30)){ p.soundHit=true; expected*=1.10; log("The single from \""+p.title+"\" is CHARTING — +10% buzz!","gold"); }
+    else log("The \""+p.title+"\" single stalled. No chart action.","");
+  }
+  if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.applyTheaterCarriageBonus === "function"){
+    expected *= FilmLocationsTax.applyTheaterCarriageBonus(p);
+  }
+  if(p.animalActor && typeof FilmLocationsTax !== "undefined"){
+    const animal = (FilmLocationsTax.ANIMALS||[]).find(a=>a.id===p.animalActor);
+    if(animal && (p.genre==="family"||p.genre==="adventure"||p.genre==="comedy")){
+      expected *= animal.boxOfficeMult;
+    }
+  }
+  if(p.wardrobe && typeof FilmLocationsTax !== "undefined"){
+    const ward = (FilmLocationsTax.WARDROBES||[]).find(w=>w.id===p.wardrobe);
+    if(ward && p.quality){
+      p.quality.overall = Math.min(99, (p.quality.overall||50) + ward.qualityBonus);
+    }
+  }
+  if(p.sponsor && typeof StudioOperationsSuite !== "undefined"){
+    const sp = (StudioOperationsSuite.SPONSORS||[]).find(s=>s.id===p.sponsor);
+    if(sp && p.quality && sp.criticPenalty){
+      p.quality.critic = Math.max(10, (p.quality.critic||50) - sp.criticPenalty);
+    }
   }
   /* v12: advance tickets banked before opening day lift the opening (capped +6%) */
   const advTotal=Math.min(p.advanceTotal||0, Math.round(expected*0.06*10)/10);
@@ -5568,6 +5592,10 @@ function advanceWeek(){
   if(typeof BoardTargets !== "undefined" && typeof BoardTargets.advanceBoardWeek === "function") BoardTargets.advanceBoardWeek(G);
   if(typeof FanConventions !== "undefined" && typeof FanConventions.advanceFanClubWeek === "function") FanConventions.advanceFanClubWeek(G);
   if(typeof MerchLicensing !== "undefined" && typeof MerchLicensing.advanceMerchandiseWeek === "function") MerchLicensing.advanceMerchandiseWeek(G);
+  if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.tickWeekly === "function") FilmLocationsTax.tickWeekly();
+  if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.tickWeekly === "function") StudioOperationsSuite.tickWeekly();
+  if(typeof GameDevHardware !== "undefined" && typeof GameDevHardware.tickWeekly === "function") GameDevHardware.tickWeekly();
+  if(typeof LiveOpsCoPro !== "undefined" && typeof LiveOpsCoPro.tickWeekly === "function") LiveOpsCoPro.tickWeekly();
   G.offers=G.offers.filter(o=>o.expires>=G.week || o.type==="renewal");
   if(typeof refreshIdeas==="function") refreshIdeas();
   if(typeof refreshIpMarket==="function") refreshIpMarket();

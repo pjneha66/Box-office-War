@@ -38,6 +38,10 @@ const spyJs = fs.readFileSync(path.join(ROOT, "studio-espionage.js"), "utf8").re
 const merchJs = fs.readFileSync(path.join(ROOT, "merch-licensing.js"), "utf8").replace(/"use strict";/g, "");
 const territoryJs = fs.readFileSync(path.join(ROOT, "territory-licensing.js"), "utf8").replace(/"use strict";/g, "");
 const sandboxJs = fs.readFileSync(path.join(ROOT, "custom-sandbox.js"), "utf8").replace(/"use strict";/g, "");
+const filmLocTaxJs = fs.readFileSync(path.join(ROOT, "film-locations-tax.js"), "utf8").replace(/"use strict";/g, "");
+const studioOpsJs = fs.readFileSync(path.join(ROOT, "studio-operations-suite.js"), "utf8").replace(/"use strict";/g, "");
+const gameDevHwJs = fs.readFileSync(path.join(ROOT, "gamedev-console-hardware.js"), "utf8").replace(/"use strict";/g, "");
+const liveOpsCoProJs = fs.readFileSync(path.join(ROOT, "live-ops-coproduction.js"), "utf8").replace(/"use strict";/g, "");
 const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8").replace(/"use strict";/g, "");
 
 const bundle = SHIM +
@@ -68,6 +72,10 @@ const bundle = SHIM +
   merchJs + "\n" +
   territoryJs + "\n" +
   sandboxJs + "\n" +
+  filmLocTaxJs + "\n" +
+  studioOpsJs + "\n" +
+  gameDevHwJs + "\n" +
+  liveOpsCoProJs + "\n" +
   smokeBodyJs + "\n";
 
 fs.writeFileSync(OUT, bundle);

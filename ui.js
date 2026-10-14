@@ -1222,52 +1222,132 @@ function studioOpsCard(ctx){
   "</div>";
 }
 function viewStudio(){
-  const st=G.studio;
-  const yr=yearOf(G.week);
-  const myYtd=G.films.filter(f=>f.year===yr).reduce((a,f)=>a+(f.ww||0),0);
-  const live=activeFilms().length, inProd=inProdProjects().length;
-  const lastNet=G.txHistory && G.txHistory.length? G.txHistory[G.txHistory.length-1].net : 0;
-  let rev12=0, net12=0;
-  try{
-    for(const s of (G.txHistory||[])){
-      for(const k in (s.cats||{})){ const v=s.cats[k]||0; if(v>0 && k!=="financing") rev12+=v; }
-      net12+=s.net||0;
-    }
-    rev12=Math.round(rev12*10)/10; net12=Math.round(net12*10)/10;
-  }catch(e){}
-  let studioVal=0;
-  try{ studioVal=Math.round((st.cash-(st.debt||0)+catalogValue()+(G.streamer?(G.streamer.subs||0)*18:0))*10)/10; }catch(e){}
-  const dated=(G.projects||[]).filter(p=>p.releaseWeek>G.week).sort((a,b)=>a.releaseWeek-b.releaseWeek);
-  const readyUnscheduled=(typeof readyProjects==="function"?readyProjects():[]).filter(p=>!p.releaseWeek);
-  const topFr=(G.franchises||[]).slice().sort((a,b)=>(b.decay||0)-(a.decay||0))[0]||null;
-  const frHeat=topFr?Math.round((topFr.decay||0)*100):null;
-  const awardCount=(G.festWins||[]).filter(w=>w.year===yr).length+((G.stats&&G.stats.awards)||[]).filter(a=>a.year===yr).length;
-  let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🏛 Overview</button>"+
-    "<button class='subnav-pill' id='btnOpenFacilities'>🏗 Lot & Soundstages</button>"+
-    "<button class='subnav-pill' id='btnOpenBoard'>📋 Board Directives</button>"+
-    "<button class='subnav-pill' id='btnOpenCrisisPr'>🚨 Crisis PR War Room</button>"+
-    "<button class='subnav-pill' id='btnOpenEspionage'>🕵️ Studio Espionage</button>"+
-    "<button class='subnav-pill' id='btnOpenAwardsCampaign'>🏆 FYC Campaign</button>"+
-    "<button class='subnav-pill' id='btnFestivalPr'>🤝 Festival Circuit</button>"+
-    "<button class='subnav-pill' id='btnOpenCustomSandbox'>🧪 Sandbox Creator</button>"+
-    "<button class='subnav-pill' id='btnOpenFanClub'>📬 Fan Club</button>"+
-  "</div><div class='stat-hero'>"+
-    statCard(fmtM(st.cash),"Cash on hand")+
-    statCard("+"+fmtM(rev12),"Revenue (12w)","var(--green)")+
-    statCard((net12>=0?"+":"")+fmtM(net12),"Profit (12w)", net12>=0?"var(--green)":"var(--red)")+
-    statCard(fmtM((st.debt||0)+(st.mezzDebt||0)),"Debt","var(--red)")+
-    statCard(fmtM(studioVal),"Studio value")+
-    statCard(Math.round(st.rep)+"/100","Reputation","var(--gold2)")+
-    statCard("Y"+yr+" · W"+woyOf(G.week),"Current date")+
-    statCard(String(inProd),"Active productions")+
-    statCard(String(dated.length),"Upcoming releases")+
-    statCard(fmtM(myYtd),"Box office Y"+yr)+
-    statCard(G.streamer?fmtSubs(G.streamer.subs):"—","Streaming subs")+
-    statCard(frHeat===null?"—":frHeat+"%","Franchise heat"+(topFr?" · "+esc(topFr.name):""))+
-    statCard(String(awardCount),"Awards Y"+yr)+
+  const st = G.studio;
+  const yr = yearOf(G.week);
+  if(typeof STUDIO_SUB === "undefined") STUDIO_SUB = "lot";
+
+  // Calculate infrastructure metrics
+  const backlotData = (typeof StudioOperationsSuite !== "undefined" && StudioOperationsSuite.getBacklotData) ?
+    StudioOperationsSuite.getBacklotData() : { stagesBuilt: 1, stagesOccupied: 0, discount: 0 };
+  const csuiteData = (typeof StudioOperationsSuite !== "undefined" && StudioOperationsSuite.getCSuiteData) ?
+    StudioOperationsSuite.getCSuiteData() : { hiredCount: 0, total: 4 };
+  const staffStam = (typeof GameDevHardware !== "undefined" && GameDevHardware.getAverageStaffStamina) ?
+    GameDevHardware.getAverageStaffStamina() : 85;
+
+  let h = "<div class='subnav-pills'>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="lot"?"active":"")+"' data-studiosub='lot'>Studio Lot &amp; Stages</button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="csuite"?"active":"")+"' data-studiosub='csuite'>C-Suite Board</button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="board"?"active":"")+"' data-studiosub='board'>Board &amp; Directives</button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="operations"?"active":"")+"' data-studiosub='operations'>Operations &amp; Crew Care</button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="heritage"?"active":"")+"' data-studiosub='heritage'>Dynasty &amp; Heritage</button>"+
+    "<button class='subnav-pill' id='btnAch'>Achievements</button>"+
+    "<button class='subnav-pill' id='btnOpenCustomSandbox'>Sandbox Creator</button>"+
   "</div>";
-  h+=studioOpsCard({dated, readyUnscheduled, topFr, net12});
+
+  // Studio Infrastructure Telemetry Bar (distinct from Home financial dashboard)
+  h += "<div class='stat-hero' style='margin-bottom:12px'>"+
+    statCard(backlotData.stagesOccupied + " / " + backlotData.stagesBuilt, "Soundstages Active", "var(--gold2)")+
+    statCard("-" + Math.round(backlotData.discount * 100) + "%", "Lot Rental Discount", "var(--green)")+
+    statCard(csuiteData.hiredCount + " / " + csuiteData.total, "C-Suite Quorum")+
+    statCard(Math.round(staffStam) + " / 100", "Staff Stamina", staffStam<40?"var(--red)":staffStam<70?"var(--gold2)":"var(--green)")+
+    statCard(Math.round(st.rep) + "/100", "Studio Prestige", "var(--gold2)")+
+  "</div>";
+
+  if(STUDIO_SUB === "lot"){
+    if(typeof StudioOperationsSuite !== "undefined"){
+      h += StudioOperationsSuite.renderBacklotSection();
+    }
+    if(typeof hqFloorPlanSVG === "function"){
+      try{ h += hqFloorPlanSVG(); }catch(e){}
+    }
+    try{ if(typeof influenceCard === "function") h += influenceCard(); }catch(e){}
+    h += "<div class='section-title'>Lot Upgrades &amp; Facilities</div><div class='grid g2'>"+
+      "<div class='card'><b>Production Facilities &amp; Lot</b><div class='tiny muted' style='margin:4px 0'>Build soundstages, LED virtual production volumes, and backlots. Lease idle space to rivals.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenFacilities'>Manage Studio Facilities</button></div>"+
+      "<div class='card'><b>Corporate Bond Market</b><div class='tiny muted' style='margin:4px 0'>Issue fixed-coupon corporate debt notes (AAA to CCC) to raise massive production capital.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenBonds'>Bond Desk</button></div>"+
+      "<div class='card'><b>TV Syndication Packages</b><div class='tiny muted' style='margin:4px 0'>License catalog films to national broadcast networks and cable syndication for weekly royalties.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenSyndication'>Syndication Desk</button></div>"+
+      "<div class='card'><b>Floor Decor &amp; Amenities</b><div class='tiny muted' style='margin:4px 0'>Install coffee bars, arcade lounges, and screening rooms for permanent staff buffs.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenAmenities'>Studio Floor Amenities</button></div>"+
+    "</div>";
+    h += "<div class='card' style='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px'>"+
+      "<b>Share your studio</b><span class='tiny muted' style='flex:1'>Snapshot your empire as a PNG card.</span>"+
+      "<button class='btn btn-sm btn-primary' id='btnShareCard'>Generate card</button></div>";
+    return h;
+  }
+
+  if(STUDIO_SUB === "csuite"){
+    if(typeof StudioOperationsSuite !== "undefined"){
+      h += StudioOperationsSuite.renderCSuiteSection();
+    }
+    return h;
+  }
+
+  if(STUDIO_SUB === "board"){
+    const dated = (G.projects||[]).filter(p=>p.releaseWeek>G.week).sort((a,b)=>a.releaseWeek-b.releaseWeek);
+    const readyUnscheduled = (typeof readyProjects==="function"?readyProjects():[]).filter(p=>!p.releaseWeek);
+    const topFr = (G.franchises||[]).slice().sort((a,b)=>(b.decay||0)-(a.decay||0))[0]||null;
+    let net12 = 0;
+    try{ for(const s of (G.txHistory||[])) net12 += s.net||0; net12 = Math.round(net12*10)/10; }catch(e){}
+    h += studioOpsCard({dated, readyUnscheduled, topFr, net12});
+    h += "<div class='card'><b>Board Directives &amp; Governance</b><div class='tiny muted' style='margin:4px 0 8px'>Meet quarterly shareholder milestones for executive bonuses and board confidence.</div>"+
+      "<button class='btn btn-sm btn-primary' id='btnOpenBoard'>Open Board of Directors</button></div>";
+    return h;
+  }
+
+  if(STUDIO_SUB === "operations"){
+    if(typeof GameDevHardware !== "undefined"){
+      h += GameDevHardware.renderStaffStaminaSection();
+    }
+    h += "<div class='section-title'>Studio Security, Guilds &amp; Exhibitors</div>";
+    h += "<div class='card' style='border-left:3px solid var(--line)'><div class='spread'><span class='small muted'>Exhibitor relations</span><b class='"+( (G.exhibitor||G.exhibRel||50)>=50?"pos":"neg")+"'>"+Math.round(G.exhibitor||G.exhibRel||50)+"/100</b></div>"+meter(G.exhibitor||G.exhibRel||50,100)+"<div class='tiny muted'>Short windows anger exhibitors and swing openings.</div></div>";
+    {
+      const pl = (typeof piracyLabel==="function") ? piracyLabel() : {tag:"",cls:""};
+      h += "<div class='card' style='border-left:3px solid var(--line)'><div class='spread'><span class='small muted'>Piracy meter</span><b>"+Math.round(G.piracy||0)+"/100 <span class='tag "+pl.cls+"'>"+pl.tag+"</span></b></div>"+
+         meter(G.piracy||0,100,"linear-gradient(90deg,#5a6a90,#ff5d6c)")+
+         "<div class='spread' style='margin-top:6px'><div class='tiny muted'>Drains weekly gross on live runs. The task force scrubs illicit copies.</div>"+
+         "<button class='btn btn-xs btn-alt' id='btnDeployAntiPiracy'>Anti-Piracy Task Force ($4M)</button></div></div>";
+    }
+    {
+      const ul = (typeof unionLabel==="function") ? unionLabel() : {tag:"",cls:""};
+      const um = G.unionMeter || 0;
+      h += "<div class='card' style='border-left:3px solid var(--line)'><div class='spread'><span class='small muted'>Guild relations</span><b>"+Math.round(um)+"/100 <span class='tag "+ul.cls+"'>"+ul.tag+"</span></b></div>"+
+         meter(um,100, um>=60?"linear-gradient(90deg,#f5b942,#ff5d6c)":"linear-gradient(90deg,#3ddc84,#f5b942)")+
+         "<div class='tiny muted'>AI productions, producerless overruns and stonewalled talks heat the guilds.</div></div>";
+    }
+    h += "<div class='grid g2' style='margin-top:10px'>"+
+      "<div class='card'><b>Crisis PR War Room</b><div class='tiny muted' style='margin:4px 0'>Manage director blowups, casting scandals, and trade leaks before they hurt buzz.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenCrisisPr'>Enter War Room</button></div>"+
+      "<div class='card'><b>Industrial Espionage Desk</b><div class='tiny muted' style='margin:4px 0'>Plant undercover informants to steal rival slates and sabotage clash openings.</div>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenEspionage'>Espionage Desk</button></div>"+
+    "</div>";
+    return h;
+  }
+
+  // Heritage & Dynasty
+  h += "<div class='section-title'>Studio Heritage &amp; Dynasty</div><div class='grid g2'>"+
+    "<div class='card'><b>Dynasty &amp; Succession</b><div class='tiny muted' style='margin:4px 0'>Plan succession, prepare heirs, and preserve prestige across generations.</div>"+
+    "<button class='btn btn-sm btn-primary' id='btnOpenDynasty'>Dynasty &amp; Heirs</button></div>"+
+    "<div class='card'><b>Film Restoration Vault</b><div class='tiny muted' style='margin:4px 0'>Restore decayed catalog classics into pristine 4K HDR master prints for re-releases.</div>"+
+    "<button class='btn btn-sm btn-primary' id='btnRestorationVault'>Restoration Vault</button></div>"+
+    "<div class='card'><b>Multi-Picture Talent Pacts</b><div class='tiny muted' style='margin:4px 0'>Lock stars and directors into 3- or 5-picture commitments with volume discounts.</div>"+
+    "<button class='btn btn-sm btn-primary' id='btnOpenContracts'>Talent Contracts</button></div>"+
+    "<div class='card'><b>Shared Cinematic Universes</b><div class='tiny muted' style='margin:4px 0'>Link films across connected universes and build massive crossover team-up events.</div>"+
+    "<button class='btn btn-sm btn-primary' id='btnOpenUniverses'>Cinematic Universes</button></div>"+
+  "</div>";
+  {
+    const got = (typeof achCount==="function") ? achCount() : Object.keys(G.ach||{}).length;
+    if(got){
+      h += "<div class='section-title'>Achievements ("+got+"/"+(typeof achTotal==="function"?achTotal():"?")+")</div><div class='card'><div class='row'>";
+      (G.achv||[]).slice(-14).forEach(function(a){ h += "<span class='tag gold' title='"+esc(a.desc||"")+"'>"+esc(a.title)+"</span>"; });
+      h += "</div></div>";
+    }
+  }
+  return h;
+}
+function viewStudioLegacyRest(){
+  let h = "";
   // scenario / difficulty / sandbox / IPO / streamer / achievements (from main)
   try{
     const scen=DATA.SCENARIOS[G.scenario]||{emoji:"🎬",name:G.scenario||"Standard"};
@@ -1636,8 +1716,13 @@ function marketReport(){
   return h+"</div>";
 }
 let SCRIPT_GENRE_FILTER = "all";
+let DASHBOARD_SUB = "overview";
+let STUDIO_SUB = "lot";
 let DEVELOP_SUB = "scripts";   // v28.9: Develop sub-tab state
+let BOXOFFICE_SUB = "chart";
 let OTT_SUB = "home";          // v28.9 §15: streamer sub-tab state
+let LIBRARY_SUB = "films";
+let GAMES_SUB = "dev";
 
 /* ═══════════ Mobile sub-tab strip renderer ═══════════ */
 /* Renders the horizontal sub-tab bar (#subTabs) based on the active tab.
@@ -1658,20 +1743,33 @@ function renderSubTabs(){
   bar.style.display = "flex";
 }
 function viewDevelop(){
-  /* v28.9: Develop sub-tabs — Scripts (default) / IP Market / Talent Business / Combos Codex.
-     Restored after the v28.7 file restore reverted the routing (helpers stayed, bar was lost). */
   if(!DEVELOP_SUB) DEVELOP_SUB="scripts";
-  const DEV_TABS=[["scripts","📝 Scripts"],["ip","📚 IP Market"],["talent","🎫 Talent Business"],["combos","🧩 Combos Codex"]];
+  const DEV_TABS=[["scripts","Scripts"],["ip","IP Market"],["talent","Talent Business"],["combos","Combos Codex"],["tax","Tax Rebates &amp; Co-Pro"]];
   let h="<div class='subnav-pills'>"+
     DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+
-    "<button class='subnav-pill' id='btnOpenAgencyPackaging'>💼 Agency Packaging (CAA/WME)</button>"+
-    "<button class='subnav-pill' id='btnOpenContracts'>📜 Multi-Pic Contracts</button>"+
-    "<button class='subnav-pill' id='btnOpenTalentAgency'>🎭 Talent Agency</button>"+
-    "<button class='subnav-pill' id='btnClashAnalytics'>⚡ Clash Radar</button>"+
+    "<button class='subnav-pill' id='btnOpenAgencyPackaging'>Agency Packaging (CAA/WME)</button>"+
+    "<button class='subnav-pill' id='btnOpenContracts'>Multi-Pic Contracts</button>"+
+    "<button class='subnav-pill' id='btnOpenTalentAgency'>Talent Agency</button>"+
+    "<button class='subnav-pill' id='btnClashAnalytics'>Clash Radar</button>"+
   "</div>";
   if(DEVELOP_SUB==="combos") return h+viewCombosCodex();
   if(DEVELOP_SUB==="ip") return h+viewDevelopIP();
   if(DEVELOP_SUB==="talent") return h+viewDevelopTalent();
+  if(DEVELOP_SUB==="tax"){
+    let txH = h;
+    if(typeof FilmLocationsTax !== "undefined"){
+      txH += FilmLocationsTax.renderLocationsSection();
+      txH += FilmLocationsTax.renderAnimalsSection();
+      txH += FilmLocationsTax.renderWardrobeSection();
+    }
+    if(typeof StudioOperationsSuite !== "undefined"){
+      txH += StudioOperationsSuite.renderProductPlacementSection();
+    }
+    if(typeof LiveOpsCoPro !== "undefined"){
+      txH += LiveOpsCoPro.renderCoProductionSection();
+    }
+    return txH;
+  }
   try{ if(typeof trendBoard==="function") h+=trendBoard(); }catch(e){}
   try{ if(typeof seasonCorridorHeatmap==="function") h+=seasonCorridorHeatmap(); }catch(e){}
   try{ if(typeof marketReport==="function") h+=marketReport(); }catch(e){}
@@ -4109,15 +4207,30 @@ function boxOfficeVaultBrowser(){
 }
 
 function viewBoxOffice(){
-  let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🎟 Theatrical Runs</button>"+
-    "<button class='subnav-pill' id='btnClashAnalytics'>⚡ Clash Radar</button>"+
-    "<button class='subnav-pill' id='btnOpenTerritoryDeals'>🌍 Territory Licensing (MG vs RevShare)</button>"+
-    "<button class='subnav-pill' id='btnOpenHolidayCalendar'>🗓️ Holiday Calendar</button>"+
-    "<button class='subnav-pill' id='btnOpenTheaters'>🏢 Theater Chains</button>"+
-    "<button class='subnav-pill' onclick='switchTab(\"library\")'>📚 Film Library</button>"+
+  if(typeof BOXOFFICE_SUB === "undefined") BOXOFFICE_SUB = "chart";
+  let h = "<div class='subnav-pills'>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chart"?"active":"")+"' data-bosub='chart'>Theatrical Runs</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chains"?"active":"")+"' data-bosub='chains'>Mega-Chains &amp; PLF</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="territories"?"active":"")+"' data-bosub='territories'>Territory Deals</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="awards"?"active":"")+"' data-bosub='awards'>Awards Circuit</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="clash"?"active":"")+"' data-bosub='clash'>Clash Radar</button>"+
+    "<button class='subnav-pill' onclick='switchTab(\"library\")'>Film Library</button>"+
   "</div>";
-  const chart=weeklyChart();
+
+  if(BOXOFFICE_SUB === "chains"){
+    if(typeof FilmLocationsTax !== "undefined") return h + FilmLocationsTax.renderTheaterChainsSection();
+  }
+  if(BOXOFFICE_SUB === "awards"){
+    if(typeof FilmLocationsTax !== "undefined") return h + FilmLocationsTax.renderAwardCircuitSection();
+  }
+  if(BOXOFFICE_SUB === "territories"){
+    return h + fold("intl-summary", "Regional box office summary", regionSummaryPanel(), {open:true});
+  }
+  if(BOXOFFICE_SUB === "clash"){
+    return h + boxOfficeCorridorForecast() + "<div class='section-title'>Rival Studios</div><div class='grid g3'>" + G.rivals.map(rivalProfile).join("") + "</div>";
+  }
+
+  const chart = weeklyChart();
   h+="<div class='section-title'>This week's chart</div><div class='card chart-bars'>";
   if(!chart.length) h+="<div class='muted small'>Nothing in theaters — the multiplex is a graveyard.</div>";
   const max=Math.max(1,...chart.map(c=>c.gross));
@@ -5026,8 +5139,27 @@ function bindView(){
     beep("click");
   };
   /* v28.9: develop/OTT sub-tabs, vault browser, firesale counter, ledger search */
+  $$("[data-dashsub]").forEach(b=>b.onclick=()=>{ DASHBOARD_SUB=b.dataset.dashsub; beep("click"); render(); });
+  $$("[data-studiosub]").forEach(b=>b.onclick=()=>{ STUDIO_SUB=b.dataset.studiosub; beep("click"); render(); });
   $$("[data-devsub]").forEach(b=>b.onclick=()=>{ DEVELOP_SUB=b.dataset.devsub; beep("click"); render(); });
+  $$("[data-bosub]").forEach(b=>b.onclick=()=>{ BOXOFFICE_SUB=b.dataset.bosub; beep("click"); render(); });
   $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
+  $$("[data-libsub]").forEach(b=>b.onclick=()=>{ LIBRARY_SUB=b.dataset.libsub; beep("click"); render(); });
+  $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ GAMES_SUB=b.dataset.gamestab; beep("click"); render(); });
+
+  const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); if(typeof FilmLocationsTax!=="undefined") FilmLocationsTax.renderLocationsModal(); };
+  const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined") StudioOperationsSuite.renderProductPlacementModal(); };
+  const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined") LiveOpsCoPro.renderBlindBoxModal(); };
+  const btnDHw = $("#btnDashHardware"); if(btnDHw) btnDHw.onclick=()=>{ beep("click"); if(typeof GameDevHardware!=="undefined") GameDevHardware.renderHardwareModal(); };
+  const btnDCo = $("#btnDashCoPro"); if(btnDCo) btnDCo.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined") LiveOpsCoPro.renderCoProductionModal(); };
+  const btnDAwd = $("#btnDashAwards"); if(btnDAwd) btnDAwd.onclick=()=>{ beep("click"); if(typeof FilmLocationsTax!=="undefined") FilmLocationsTax.renderAwardCircuitModal(); };
+  const btnAmen = $("#btnOpenAmenities"); if(btnAmen) btnAmen.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined") LiveOpsCoPro.renderAmenitiesModal(); };
+
+  if(typeof StudioOperationsSuite!=="undefined" && StudioOperationsSuite.bindEvents) StudioOperationsSuite.bindEvents();
+  if(typeof FilmLocationsTax!=="undefined" && FilmLocationsTax.bindEvents) FilmLocationsTax.bindEvents();
+  if(typeof GameDevHardware!=="undefined" && GameDevHardware.bindEvents) GameDevHardware.bindEvents();
+  if(typeof LiveOpsCoPro!=="undefined" && LiveOpsCoPro.bindEvents) LiveOpsCoPro.bindEvents();
+
   const mab=$("#btnMaBrowse"); if(mab) mab.onclick=()=>{ beep("click"); maVaultBrowser(); };
   $$("[data-macounter]").forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
@@ -5302,12 +5434,26 @@ function testScreenModal(pid){
 
 /* ═══════════ VIEW: library (v23) — released films & series vault ═══════════ */
 function viewLibrary(){
-  let h="";
+  if(typeof LIBRARY_SUB === "undefined") LIBRARY_SUB = "films";
+  let h = "<div class='subnav-pills'>"+
+    "<button class='subnav-pill "+(LIBRARY_SUB==="films"?"active":"")+"' data-libsub='films'>Released Films</button>"+
+    "<button class='subnav-pill "+(LIBRARY_SUB==="series"?"active":"")+"' data-libsub='series'>Television Series</button>"+
+    "<button class='subnav-pill "+(LIBRARY_SUB==="physical"?"active":"")+"' data-libsub='physical'>Physical 4K Media &amp; Box Sets</button>"+
+    "<button class='subnav-pill "+(LIBRARY_SUB==="vault"?"active":"")+"' data-libsub='vault'>Restoration Vault</button>"+
+  "</div>";
+
+  if(LIBRARY_SUB === "physical"){
+    if(typeof StudioOperationsSuite !== "undefined") return h + StudioOperationsSuite.renderPhysicalMediaSection();
+  }
+  if(LIBRARY_SUB === "vault"){
+    return h + "<div class='card'><b>Film Restoration Vault</b><div class='tiny muted' style='margin:4px 0 8px'>Digitize and remaster aged film prints to 4K Ultra HD.</div><button class='btn btn-primary' id='btnRestorationVault'>Open Restoration Vault</button></div>";
+  }
+
   const releasedFilms = (G.films||[]).filter(f=>f.ww && f.ww>0);
   const releasedSeries = (G.series||[]).filter(s=>s.seasons?.length>0);
   
   // Filter state
-  const filter = G.libFilter || { genre:"all", type:"all", year:"all", profit:"all", franchise:"all" };
+  const filter = G.libFilter || { genre:"all", type:(LIBRARY_SUB==="series"?"series":"all"), year:"all", profit:"all", franchise:"all" };
   const genres = ["all", ...Object.keys(DATA.GENRES)];
   const types = ["all", "film", "series"];
   const years = ["all", ...[...new Set([
@@ -5322,8 +5468,9 @@ function viewLibrary(){
   // Apply filters
   let films = releasedFilms;
   let series = releasedSeries;
+  if(LIBRARY_SUB==="series" || filter.type==="series") films = [];
+  if(LIBRARY_SUB==="films" && filter.type==="film") series = [];
   if(filter.genre!=="all"){ films = films.filter(f=>f.genre===filter.genre); series = series.filter(s=>s.genre===filter.genre); }
-  if(filter.type!=="all"){ if(filter.type==="film") series=[]; else films=[]; }
   if(filter.year!=="all"){ 
     films = films.filter(f=>yearOf(f.releaseWeek||G.week)===filter.year);
     series = series.filter(s=>s.seasons.some(se=>yearOf(se.when||G.week)===filter.year));
@@ -5333,7 +5480,7 @@ function viewLibrary(){
     series = series.filter(s=>s.franchiseName===filter.franchise);
   }
   
-  h+="<div class='spread'><div class='section-title' style='margin:0'>📚 Library — "+(films.length+series.length)+" titles</div>"+
+  h+="<div class='spread'><div class='section-title' style='margin:0'>Library — "+(films.length+series.length)+" titles</div>"+
     "<div class='row' style='gap:6px'><button class='btn btn-sm btn-alt' id='btnRestorationVault'>Film Restoration</button>"+
     "<button class='btn btn-sm btn-ghost' onclick='openLibraryFilters()'>Filters</button></div></div>";
   
@@ -5510,21 +5657,66 @@ function sharedUniverseDashboard(){
 /* ═══════════ VIEW: game studio (v16) — the movie-game division ═══════════ */
 let GAMES={src:null, dev:"partner", platform:"console"};
 function viewGames(){
-  let h="";
-  const D=G.gamesDiv||{unlocked:false, projects:[], released:[]};
-  h+="<div class='section-title'>🎮 Game studio</div>";
+  if(typeof GAMES_SUB === "undefined") GAMES_SUB = "dev";
+  let h = "<div class='subnav-pills'>"+
+    "<button class='subnav-pill "+(GAMES_SUB==="dev"?"active":"")+"' data-gamestab='dev'>In Development</button>"+
+    "<button class='subnav-pill "+(GAMES_SUB==="released"?"active":"")+"' data-gamestab='released'>Released Games</button>"+
+    "<button class='subnav-pill "+(GAMES_SUB==="hardware"?"active":"")+"' data-gamestab='hardware'>Hardware Platforms</button>"+
+    "<button class='subnav-pill "+(GAMES_SUB==="greenlight"?"active":"")+"' data-gamestab='greenlight'>Greenlight Adaptation</button>"+
+  "</div>";
+
+  if(GAMES_SUB === "hardware"){
+    if(typeof GameDevHardware !== "undefined") return h + GameDevHardware.renderHardwareSection();
+  }
+
+  const D = G.gamesDiv || {unlocked:false, projects:[], released:[]};
+  h += "<div class='section-title'>Game studio</div>";
   if(!D.unlocked){
-    h+="<div class='card'><div class='spread'><div><b>Found the "+esc(G.studio.name)+" game studio</b>"+
+    h += "<div class='card'><div class='spread'><div><b>Found the "+esc(G.studio.name)+" game studio</b>"+
       "<div class='tiny muted' style='margin-top:4px'>Turn your franchises and box-office hits into video games. Pick a developer house, platform, burn weekly through development, launch to a review score with a 12-week sales tail. A 70+ game re-heats its franchise brand, unlocks esports leagues, and allows porting deals.</div></div>"+
       "<button class='btn btn-primary' data-games-unlock='1'>Found it — "+fmtM(50)+"</button></div>"+
       "<div class='tiny muted' style='margin-top:6px'>+$0.4M/wk overhead once live. Up to 3 games in development at once.</div></div>";
-    h+=gameDevLiteHTML();
+    h += gameDevLiteHTML();
     return h;
   }
-  h+="<div class='card'><div class='spread'><b>🕹 "+esc(G.studio.name)+" Interactive</b><span class='tag'>"+D.projects.length+"/3 in dev · "+D.released.length+" released</span></div></div>";
-  h+=gameDevLiteHTML();
-  h+="<div class='section-title'>In development ("+D.projects.length+")</div>";
-  if(!D.projects.length) h+="<div class='card muted small'>The dev floor is quiet — greenlight an adaptation below.</div>";
+  h += "<div class='card'><div class='spread'><b>"+esc(G.studio.name)+" Interactive</b><span class='tag'>"+D.projects.length+"/3 in dev · "+D.released.length+" released</span></div></div>";
+  h += gameDevLiteHTML();
+
+  if(GAMES_SUB === "released"){
+    h += "<div class='section-title'>Released games ("+D.released.length+")</div>";
+    if(!D.released.length) h += "<div class='card muted small'>No releases yet — the first gold master is always the scariest.</div>";
+    D.released.forEach(g=>{
+      const platDef = (DATA.GAME_PLATFORMS||[]).find(p=>p.id===g.platform) || {name:g.platform||"Console"};
+      h += "<div class='card'><div class='spread'><div><b>"+esc(g.title)+"</b> <span class='tag'>"+platDef.name+"</span>"+
+        (g.score>=80? " <span class='tag gold'>Esports League (+$1.5M/wk)</span>":"")+
+        "<div class='tiny muted'>Y"+yearOf(g.when)+" · "+fmtM(g.earned)+" earned"+(g.weeksLeft>0? " · +"+fmtM(g.weekly)+"/wk for "+g.weeksLeft+" more wks":" · sales tail ended")+"</div></div>"+
+        "<div style='text-align:right'><div style='font-size:18px;font-weight:700' class='"+(g.score>=70?"pos":g.score<45?"neg":"gold")+"'>Review: "+g.score+"/100</div>"+
+        "<div class='row' style='gap:4px;margin-top:4px'>"+
+          (g.score>=65 && !g.isSequel ? "<button class='btn btn-xs btn-alt' data-game-sequel='"+g.id+"'>Sequel</button>" : "")+
+          (!g.ported ? "<button class='btn btn-xs btn-alt' data-game-port='"+g.id+"'>Port Deals (+$4M)</button>" : "<span class='tag green tiny'>✓ Ported</span>")+
+        "</div></div></div></div>";
+    });
+    return h;
+  }
+
+  if(GAMES_SUB === "greenlight"){
+    const srcs = gameSources();
+    h += "<div class='section-title'>Greenlight an adaptation</div>";
+    if(!srcs.length){
+      h += "<div class='card muted small'>No eligible sources — land a franchise (any tier) or a 1.2× breakeven release first, and keep them out of development.</div>";
+    }else{
+      h += "<div class='card'><div class='tiny muted' style='margin-bottom:6px'>Pick a source, target platform, then a developer house. Hotter sources make better games.</div>"+
+        "<div class='small muted' style='margin-bottom:6px'>Source</div><div class='row' style='flex-wrap:wrap'>";
+      srcs.slice(0,10).forEach(s=>{
+        h += "<button class='btn btn-sm "+(GAMES.src===s.id?"btn-primary":"btn-alt")+"' data-gsrc='"+s.id+"'>"+esc(s.name)+" ("+s.heat.toFixed(1)+"x heat)</button>";
+      });
+      h += "</div></div>";
+    }
+    return h;
+  }
+
+  h += "<div class='section-title'>In development ("+D.projects.length+")</div>";
+  if(!D.projects.length) h += "<div class='card muted small'>The dev floor is quiet — greenlight an adaptation.</div>";
   D.projects.forEach(pr=>{
     const pct=Math.round((1-pr.weeksLeft/pr.weeks0)*100);
     const platDef = (DATA.GAME_PLATFORMS||[]).find(p=>p.id===pr.platform) || {emoji:"🎮", name:pr.platform||"Console"};
@@ -6908,107 +7100,130 @@ function empireModal(frId){
 /* ── Mobile gestures (item 34): swipe between tabs · pull-down at top = next week ── */
 /* ═══════════ VIEW: dashboard (v17) — Live HQ summary ═══════════ */
 function viewDashboard(){
-  const st=G.studio;
-  const yr=yearOf(G.week);
-  const myYtd=G.films.filter(f=>f.year===yr).reduce((a,f)=>a+(f.ww||0),0);
-  const live=activeFilms().length, inProd=inProdProjects().length;
-  const lastNet=G.txHistory && G.txHistory.length? G.txHistory[G.txHistory.length-1].net : 0;
-  let rev12=0, net12=0;
+  const st = G.studio;
+  const yr = yearOf(G.week);
+  if(typeof DASHBOARD_SUB === "undefined") DASHBOARD_SUB = "overview";
+
+  const myYtd = G.films.filter(f=>f.year===yr).reduce((a,f)=>a+(f.ww||0), 0);
+  const live = activeFilms().length, inProd = inProdProjects().length;
+  let rev12 = 0, net12 = 0;
   try{
     for(const s of (G.txHistory||[])){
       for(const k in (s.cats||{})){ const v=s.cats[k]||0; if(v>0 && k!=="financing") rev12+=v; }
-      net12+=s.net||0;
+      net12 += s.net||0;
     }
-    rev12=Math.round(rev12*10)/10; net12=Math.round(net12*10)/10;
+    rev12 = Math.round(rev12*10)/10; net12 = Math.round(net12*10)/10;
   }catch(e){}
-  let studioVal=0;
-  try{ studioVal=Math.round((st.cash-(st.debt||0)+catalogValue()+(G.streamer?(G.streamer.subs||0)*18:0))*10)/10; }catch(e){}
-  const dated=(G.projects||[]).filter(p=>p.releaseWeek>G.week).sort((a,b)=>a.releaseWeek-b.releaseWeek);
-  const readyUnscheduled=(typeof readyProjects==="function"?readyProjects():[]).filter(p=>!p.releaseWeek);
-  const topFr=(G.franchises||[]).slice().sort((a,b)=>(b.decay||0)-(a.decay||0))[0]||null;
-  const frHeat=topFr?Math.round((topFr.decay||0)*100):null;
-  const awardCount=(G.festWins||[]).filter(w=>w.year===yr).length+(G.stats.awards||[]).filter(a=>a.year===yr).length;
-  
-  // v17: Economic cycle status
-  let econBadge="";
+  let studioVal = 0;
+  try{ studioVal = Math.round((st.cash-(st.debt||0)+catalogValue()+(G.streamer?(G.streamer.subs||0)*18:0))*10)/10; }catch(e){}
+  const dated = (G.projects||[]).filter(p=>p.releaseWeek>G.week).sort((a,b)=>a.releaseWeek-b.releaseWeek);
+  const topFr = (G.franchises||[]).slice().sort((a,b)=>(b.decay||0)-(a.decay||0))[0]||null;
+  const frHeat = topFr ? Math.round((topFr.decay||0)*100) : null;
+  const awardCount = (G.festWins||[]).filter(w=>w.year===yr).length + ((G.stats&&G.stats.awards)||[]).filter(a=>a.year===yr).length;
+
+  let h = "<div class='subnav-pills'>"+
+    "<button class='subnav-pill "+(DASHBOARD_SUB==="overview"?"active":"")+"' data-dashsub='overview'>Executive Overview</button>"+
+    "<button class='subnav-pill "+(DASHBOARD_SUB==="actions"?"active":"")+"' data-dashsub='actions'>Quick Launch</button>"+
+    "<button class='subnav-pill "+(DASHBOARD_SUB==="slate"?"active":"")+"' data-dashsub='slate'>Production Slate</button>"+
+    "<button class='subnav-pill "+(DASHBOARD_SUB==="macro"?"active":"")+"' data-dashsub='macro'>Macro Economy</button>"+
+  "</div>";
+
+  // Executive Telemetry Hero
+  h += "<div class='stat-hero'>"+
+    statCard(fmtM(st.cash), "Cash on hand")+
+    statCard("+" + fmtM(rev12), "Revenue (12w)", "var(--green)")+
+    statCard((net12>=0?"+":"") + fmtM(net12), "Profit (12w)", net12>=0?"var(--green)":"var(--red)")+
+    statCard(fmtM((st.debt||0)+(G.mezz||0)+(st.mezzDebt||0)), "Debt", "var(--red)")+
+    statCard(fmtM(studioVal), "Studio value")+
+    statCard(Math.round(st.rep) + "/100", "Reputation", "var(--gold2)")+
+    statCard("Y" + yr + " · W" + woyOf(G.week), "Current date")+
+    statCard(fmtM(myYtd), "Box office Y" + yr)+
+    statCard(G.streamer ? fmtSubs(G.streamer.subs) : "—", "Streaming subs")+
+    statCard(frHeat===null ? "—" : frHeat+"%", "Franchise heat" + (topFr ? " · " + esc(topFr.name) : ""))+
+  "</div>";
+
+  const quickActionsCard = "<div class='card' style='border-left:3px solid var(--gold)'><b>Executive Quick Actions</b>"+
+    "<div class='row' style='margin-top:10px;gap:8px;flex-wrap:wrap'>"+
+    "<button class='btn btn-primary' onclick=\"switchTab('develop')\">Greenlight a Film</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('live')\" style='border-color:var(--live-red,#ff5d6c);color:var(--live-red,#ff5d6c);font-weight:700'>Live TV Network</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('ott')\" style='border-color:var(--purple,#b48bff);color:var(--purple,#b48bff);font-weight:700'>OTT Streamer</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('boxoffice')\">Box Office Charts</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('productions')\">View Productions</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('studio')\">Studio Lot &amp; Stages</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('finance')\">Finance &amp; Ledger</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnDashLocations'>Global Tax Rebates</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnDashSponsors'>Brand Sponsors Desk</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnDashScout'>Red Carpet Scout</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnDashHardware'>Console Hardware</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnDashCoPro'>Co-Production Deals</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnDashAwards'>Awards Circuit</button>"+
+    "</div></div>";
+
+  if(DASHBOARD_SUB === "actions"){
+    h += quickActionsCard;
+    if(typeof LiveOpsCoPro !== "undefined"){
+      h += LiveOpsCoPro.renderSeasonalBanner();
+    }
+    return h;
+  }
+
+  if(DASHBOARD_SUB === "slate"){
+    h += "<div class='section-title'>Active Pipeline (" + (inProd + dated.length) + " titles)</div>";
+    if(inProd === 0 && dated.length === 0){
+      h += "<div class='card muted small'>No active projects. Greenlight a script to start production.</div>";
+    } else {
+      for(const p of G.projects){
+        h += "<div class='card'><div class='spread'><b>" + esc(p.title) + "</b><span class='tag gold'>" + p.phase.toUpperCase() + "</span></div>"+
+          "<div class='tiny muted'>Budget: " + fmtM(p.budget) + " · Genre: " + esc(p.genre) + " · Director: " + (p.director ? esc(p.director.name) : "None") + "</div></div>";
+      }
+    }
+    return h;
+  }
+
+  if(DASHBOARD_SUB === "macro"){
+    if(G.econCycle){
+      const phase = DATA.ECON_CYCLES.find(c=>c.id===G.econCycle.phase);
+      if(phase){
+        h += "<div class='card' style='border-left:3px solid var(--gold)'><div class='spread'><b>Macro Economy</b><span class='tag gold'>" + phase.name + " (" + G.econCycle.weeksLeft + " wks left)</span></div>"+
+          "<div class='tiny muted' style='margin-top:4px'>Box office ×" + econBoxOfficeMult().toFixed(2) + " · Loan rate ×" + econLoanRateMult().toFixed(2) + " · Stream churn ×" + econStreamChurnMult().toFixed(2) + "</div></div>";
+      }
+    }
+    const last8Weeks = (G.txHistory||[]).slice(-8).map(s=>s.net||0);
+    const sparkline = renderSparklineSVG(last8Weeks, 160, 32, last8Weeks[last8Weeks.length-1]>=0?"var(--green)":"var(--red)");
+    h += "<div class='card'><b>8-Week Net Profit</b>" + sparkline + "</div>";
+    return h;
+  }
+
+  // Default: overview
+  h += quickActionsCard;
+
+  if(typeof LiveOpsCoPro !== "undefined"){
+    h += LiveOpsCoPro.renderSeasonalBanner();
+  }
+
+  // 8-week sparkline
+  const last8Weeks = (G.txHistory||[]).slice(-8).map(s=>s.net||0);
+  const sparkline = renderSparklineSVG(last8Weeks, 160, 32, last8Weeks[last8Weeks.length-1]>=0?"var(--green)":"var(--red)");
+  h += "<div class='card'><b>8-Week Net Profit Trend</b>" + sparkline +
+    "<div class='tiny muted' style='margin-top:4px'>Green = profitable weeks · Red = loss weeks</div></div>";
+
   if(G.econCycle){
     const phase = DATA.ECON_CYCLES.find(c=>c.id===G.econCycle.phase);
     if(phase){
-      econBadge = "<span class='tag "+(phase.id==="boom"?"gold":phase.id==="recession"?"red":phase.id==="streamglut"?"purple":"")+"'>"+phase.emoji+" "+phase.name+" ("+G.econCycle.weeksLeft+" wks)</span>";
+      h += "<div class='card' style='border-left:3px solid var(--gold)'><div class='spread'><b>Economic Cycle</b><span class='tag " + (phase.id==="boom"?"gold":phase.id==="recession"?"red":"purple") + "'>" + phase.name + " (" + G.econCycle.weeksLeft + " wks)</span></div>"+
+        "<div class='tiny muted' style='margin-top:4px'>Box office ×" + econBoxOfficeMult().toFixed(2) + " · Loan rate ×" + econLoanRateMult().toFixed(2) + "</div></div>";
     }
   }
-  
-  // v17: 8-week sparkline data
-  const last8Weeks = (G.txHistory||[]).slice(-8).map(s=>s.net||0);
-  const sparkline = renderSparklineSVG(last8Weeks, 160, 32, last8Weeks[last8Weeks.length-1]>=0?"var(--green)":"var(--red)");
-  
-  let h="<div class='stat-hero'>"+
-    statCard(fmtM(st.cash),"Cash on hand")+
-    statCard("+"+fmtM(rev12),"Revenue (12w)","var(--green)")+
-    statCard((net12>=0?"+":"")+fmtM(net12),"Profit (12w)", net12>=0?"var(--green)":"var(--red)")+
-    statCard(fmtM((st.debt||0)+(G.mezz||0)+(st.mezzDebt||0)),"Debt","var(--red)")+
-    statCard(fmtM(studioVal),"Studio value")+
-    statCard(Math.round(st.rep)+"/100","Reputation","var(--gold2)")+
-    statCard("Y"+yr+" · W"+woyOf(G.week),"Current date")+
-    statCard(String(inProd),"Active productions")+
-    statCard(String(dated.length),"Upcoming releases")+
-    statCard(fmtM(myYtd),"Box office Y"+yr)+
-    statCard(G.streamer?fmtSubs(G.streamer.subs):"—","Streaming subs")+
-    statCard(frHeat===null?"—":frHeat+"%","Franchise heat"+(topFr?" · "+esc(topFr.name):""))+
-    statCard(String(awardCount),"Awards Y"+yr)+
-  "</div>";
-  
-  // Economic cycle badge
-  if(econBadge){
-    h+="<div class='card' style='border-left:3px solid var(--gold)'><div class='spread'><b>🏭 Economy</b>"+econBadge+"</div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Box office ×"+econBoxOfficeMult().toFixed(2)+" · Loan rate ×"+econLoanRateMult().toFixed(2)+" · Stream churn ×"+econStreamChurnMult().toFixed(2)+"</div></div>";
-  }
-  
-  // Sparkline chart
-  h+="<div class='card'><b>📈 8-Week Net Profit</b>"+sparkline+
-    "<div class='tiny muted' style='margin-top:4px'>Green = profitable weeks · Red = loss weeks</div></div>";
-  
-  // Quick actions
-  h+="<div class='card'><b>⚡ Quick Actions</b>"+
-    "<div class='row' style='margin-top:8px;gap:8px;flex-wrap:wrap'>"+
-    "<button class='btn btn-primary' onclick=\"switchTab('develop')\">📝 Greenlight a Film</button>"+
-    "<button class='btn btn-alt' onclick=\"switchTab('productions')\">🎬 View Productions</button>"+
-    "<button class='btn btn-alt' onclick=\"switchTab('boxoffice')\">📊 Box Office Charts</button>"+
-    "<button class='btn btn-alt' onclick=\"switchTab('finance')\">💼 Finance & P&L</button>"+
-    "</div></div>";
-  
-  // Studio ops
-  h+=studioOpsCard({dated, readyUnscheduled, topFr, net12});
-  
-  // Scenario info
-  try{
-    const scen=DATA.SCENARIOS[G.scenario]||{emoji:"🎬",name:G.scenario||"Standard"};
-    const diff=DATA.DIFFICULTIES[G.difficulty]||{emoji:"⚖️",name:G.difficulty||"Normal"};
-    h+="<div class='card'><div class='row'>"+
-      "<span class='tag gold'>"+scen.emoji+" "+scen.name+"</span>"+
-      "<span class='tag blue'>"+diff.emoji+" "+diff.name+"</span>"+
-      (G.sandbox?"<span class='tag purple'>🧪 sandbox</span>":"")+
-      (G.ipo||G.public?"<span class='tag green'>🔔 public company</span>":"")+
-      (G.streamer?"<span class='tag purple'>🛰 "+esc(G.streamer.name)+" · "+(typeof fmtSubs==="function"? fmtSubs(G.streamer.subs) : G.streamer.subs.toFixed(1)+"M")+" subs</span>":"")+
-    "</div></div>";
-  }catch(e){}
-  
-  // Live films
-  if(live||inProd||G.series.some(s=>s.phase!=="between"&&s.status!=="ended")){
-    h+="<div class='card'><div class='row'>"+
-      (live?"<span class='tag gold'>🎥 "+live+" in theaters</span>":"")+
-      (inProd?"<span class='tag blue'>🎬 "+inProd+" in production</span>":"")+
-      (G.series.filter(s=>s.phase==="shoot").length?"<span class='tag purple'>📺 "+G.series.filter(s=>s.phase==="shoot").length+" series shooting</span>":"")+
-      (G.offers.length?"<span class='tag green'>📨 "+G.offers.length+" deal"+(G.offers.length>1?"s":"")+" pending</span>":"")+
+
+  if(live || inProd || G.series.some(s=>s.phase!=="between" && s.status!=="ended")){
+    h += "<div class='card'><div class='row'>"+
+      (live ? "<span class='tag gold'>" + live + " in theaters</span>" : "")+
+      (inProd ? "<span class='tag blue'>" + inProd + " in production</span>" : "")+
+      (G.series.filter(s=>s.phase==="shoot").length ? "<span class='tag purple'>" + G.series.filter(s=>s.phase==="shoot").length + " series shooting</span>" : "")+
+      (G.offers.length ? "<span class='tag green'>" + G.offers.length + " deal" + (G.offers.length>1?"s":"") + " pending</span>" : "")+
     "</div></div>";
   }
-  
-  // Active alerts
-  if(G.streamWar>0) h+="<div class='card' style='border-left:3px solid var(--purple)'><b>⚔️ Streaming war</b> — offers +30% for "+G.streamWar+" more weeks.</div>";
-  if(G.theaterCap>0) h+="<div class='card' style='border-left:3px solid var(--red)'><b>🦠 Theater capacity limits</b> — box office −45% for "+G.theaterCap+" more weeks.</div>";
-  if(G.econCycle && G.econCycle.phase==="recession") h+="<div class='card' style='border-left:3px solid var(--red)'><b>📉 Recession</b> — tickets down, rates up. Consider cheaper productions.</div>";
-  if(G.econCycle && G.econCycle.phase==="boom") h+="<div class='card' style='border-left:3px solid var(--green)'><b>📈 Boom</b> — theaters packed, money cheap. Time for tentpoles!</div>";
-  
+
   return h;
 }
 
@@ -7372,26 +7587,8 @@ function installGestures(){
       }, 1600);
     }
   }catch(e){}
-  const ORDER=["studio","develop","productions","boxoffice","fans","ott","empire","games","finance"];
-  let sx=0, sy=0, topY=0, pulled=false;
-  document.addEventListener("touchstart",e=>{
-    if(!e.touches.length) return;
-    sx=e.touches[0].clientX; sy=e.touches[0].clientY; topY=window.scrollY;
-    pulled=false;
-  },{passive:true});
-  document.addEventListener("touchmove",e=>{
-    if(!e.touches.length || !G || G.over) return;
-    const dy=e.touches[0].clientY-sy, dx=e.touches[0].clientX-sx;
-    // pull-to-refresh = advance one week, only when already at scroll top
-    if(topY<=2 && window.scrollY<=2 && dy>95 && !pulled){
-      pulled=true;
-      if(document.querySelector("#modalRoot .modal-veil")) return;
-      rumble([15,30,15]);
-      toast("⏩ One week, on the house","");
-      doWeek(1);
-    }
-  },{passive:true});
-  // v32.3: horizontal swipe-tab gesture removed to allow unhindered scrolling of mobile subtabs
+  // v32.4: accidental pull-to-advance and swipe-tab gestures completely disabled
+  // All week progression is strictly manual via explicit Next Week taps.
 }
 
 /* ═══════════ PROTOTYPE RPG: character sheets + in-house originals (v26) ═══════════ */

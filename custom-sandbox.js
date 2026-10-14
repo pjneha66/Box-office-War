@@ -83,6 +83,8 @@
         blurb: data.blurb || "Custom rival studio powerhouse",
         cash: parseInt(data.cash || 300, 10),
         rep: parseInt(data.rep || 60, 10),
+        slate: [],
+        ytd: 0,
         custom: true
       };
 
@@ -168,12 +170,12 @@
 
     let activeTab = "talent";
 
-    function renderContent(){
-      let h = "<h3>🧪 Custom Sandbox & Database Editor</h3>";
-      h += "<p class='tiny muted'>Create custom actors, directors, rival studios, franchises, and screenplays to personalize your industry simulation (Box Office Sim 2 parity).</p>";
+    function renderInnerContent(){
+      let h = "<h3>Custom Sandbox &amp; Database Editor</h3>";
+      h += "<p class='tiny muted' style='margin-bottom:12px'>Create custom actors, directors, rival studios, franchises, and screenplays to personalize your industry simulation (Box Office Sim 2 parity).</p>";
 
       // Sub-tabs
-      h += "<div style='display:flex;gap:6px;margin-bottom:12px'>";
+      h += "<div style='display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;touch-action:pan-x;'>";
       h += "<button class='btn btn-xs " + (activeTab === "talent" ? "btn-primary" : "btn-alt") + "' data-stab='talent'>Create Talent</button>";
       h += "<button class='btn btn-xs " + (activeTab === "rival" ? "btn-primary" : "btn-alt") + "' data-stab='rival'>Create Rival Studio</button>";
       h += "<button class='btn btn-xs " + (activeTab === "franchise" ? "btn-primary" : "btn-alt") + "' data-stab='franchise'>Create Franchise</button>";
@@ -234,85 +236,94 @@
       return h;
     }
 
-    const v = (typeof global.openModal === "function") ? global.openModal(renderContent()) : null;
-    if(!v) return;
+    function wireEvents(modalEl){
+      const inner = modalEl.querySelector("#sandboxModalInner");
+      if(!inner) return;
 
-    function attachListeners(modalEl){
-      modalEl.querySelectorAll("[data-stab]").forEach(b => {
-        b.onclick = function(){
+      inner.querySelectorAll("[data-stab]").forEach(b => {
+        b.onclick = function(e){
+          e.stopPropagation();
           activeTab = b.dataset.stab;
-          modalEl.innerHTML = renderContent();
-          attachListeners(modalEl);
+          inner.innerHTML = renderInnerContent();
+          wireEvents(modalEl);
         };
       });
 
-      const bTalent = modalEl.querySelector("#btnSaveTalent");
+      const bTalent = inner.querySelector("#btnSaveTalent");
       if(bTalent){
         bTalent.onclick = function(){
-          const name = (modalEl.querySelector("#cs_name").value || "").trim();
+          const name = (inner.querySelector("#cs_name").value || "").trim();
           if(!name){ alert("Please enter talent name."); return; }
-          const kind = modalEl.querySelector("#cs_kind").value;
-          const power = modalEl.querySelector("#cs_power").value;
-          const favGenre = modalEl.querySelector("#cs_genre").value;
-          const skill = modalEl.querySelector("#cs_skill").value;
-          const quirk = modalEl.querySelector("#cs_quirk").value;
+          const kind = inner.querySelector("#cs_kind").value;
+          const power = inner.querySelector("#cs_power").value;
+          const favGenre = inner.querySelector("#cs_genre").value;
+          const skill = inner.querySelector("#cs_skill").value;
+          const quirk = inner.querySelector("#cs_quirk").value;
           if(BOW_SANDBOX.createCustomTalent({ name, kind, power, favGenre, skill, quirk })){
             if(typeof global.beep === "function") global.beep("gold");
             if(typeof global.render === "function") global.render();
-            global.openCustomSandboxModal();
+            inner.innerHTML = renderInnerContent();
+            wireEvents(modalEl);
           }
         };
       }
 
-      const bRival = modalEl.querySelector("#btnSaveRival");
+      const bRival = inner.querySelector("#btnSaveRival");
       if(bRival){
         bRival.onclick = function(){
-          const name = (modalEl.querySelector("#cr_name").value || "").trim();
+          const name = (inner.querySelector("#cr_name").value || "").trim();
           if(!name){ alert("Please enter rival name."); return; }
-          const style = modalEl.querySelector("#cr_style").value;
-          const cash = modalEl.querySelector("#cr_cash").value;
-          const color = modalEl.querySelector("#cr_color").value;
+          const style = inner.querySelector("#cr_style").value;
+          const cash = inner.querySelector("#cr_cash").value;
+          const color = inner.querySelector("#cr_color").value;
           if(BOW_SANDBOX.createCustomRival({ name, style, cash, color })){
             if(typeof global.beep === "function") global.beep("gold");
             if(typeof global.render === "function") global.render();
-            global.openCustomSandboxModal();
+            inner.innerHTML = renderInnerContent();
+            wireEvents(modalEl);
           }
         };
       }
 
-      const bFr = modalEl.querySelector("#btnSaveFranchise");
+      const bFr = inner.querySelector("#btnSaveFranchise");
       if(bFr){
         bFr.onclick = function(){
-          const name = (modalEl.querySelector("#cfr_name").value || "").trim();
+          const name = (inner.querySelector("#cfr_name").value || "").trim();
           if(!name){ alert("Please enter franchise name."); return; }
-          const genre = modalEl.querySelector("#cfr_genre").value;
-          const lore = (modalEl.querySelector("#cfr_lore").value || "").trim();
+          const genre = inner.querySelector("#cfr_genre").value;
+          const lore = (inner.querySelector("#cfr_lore").value || "").trim();
           if(BOW_SANDBOX.createCustomFranchise({ name, genre, lore })){
             if(typeof global.beep === "function") global.beep("gold");
             if(typeof global.render === "function") global.render();
-            global.openCustomSandboxModal();
+            inner.innerHTML = renderInnerContent();
+            wireEvents(modalEl);
           }
         };
       }
 
-      const bIdea = modalEl.querySelector("#btnSaveIdea");
+      const bIdea = inner.querySelector("#btnSaveIdea");
       if(bIdea){
         bIdea.onclick = function(){
-          const title = (modalEl.querySelector("#cid_title").value || "").trim();
+          const title = (inner.querySelector("#cid_title").value || "").trim();
           if(!title){ alert("Please enter script title."); return; }
-          const genre = modalEl.querySelector("#cid_genre").value;
-          const scale = modalEl.querySelector("#cid_scale").value;
-          const buzz = modalEl.querySelector("#cid_buzz").value;
+          const genre = inner.querySelector("#cid_genre").value;
+          const scale = inner.querySelector("#cid_scale").value;
+          const buzz = inner.querySelector("#cid_buzz").value;
           if(BOW_SANDBOX.createCustomIdea({ title, genre, scale, buzz })){
             if(typeof global.beep === "function") global.beep("gold");
             if(typeof global.render === "function") global.render();
-            global.openCustomSandboxModal();
+            inner.innerHTML = renderInnerContent();
+            wireEvents(modalEl);
           }
         };
       }
     }
 
-    attachListeners(v);
+    const initialHtml = "<div id='sandboxModalInner'>" + renderInnerContent() + "</div>";
+    const v = (typeof global.openModal === "function") ? global.openModal(initialHtml) : null;
+    if(v){
+      wireEvents(v);
+    }
   };
 
   // Dedicated Holiday Release Calendar Modal (Box Office Sim 2 parity)
@@ -321,7 +332,7 @@
     if(!g) return;
     const currentWoy = (typeof woyOf === "function") ? woyOf(g.week) : (((g.week - 1) % 52) + 1);
 
-    let h = "<h3>🗓️ Holiday Release Calendar & Seasonality Corridors</h3>";
+    let h = "<h3>Holiday Release Calendar &amp; Seasonality Corridors</h3>";
     h += "<p class='tiny muted'>Slot your major tentpoles and counterprogramming into high-traffic national holiday corridors to capture massive box office multipliers (Box Office Sim 2 parity).</p>";
 
     h += "<div class='card' style='margin-bottom:12px'>";
