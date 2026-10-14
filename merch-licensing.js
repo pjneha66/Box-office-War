@@ -176,83 +176,112 @@
     };
   }
 
-  function openMerchLicensingModal(){
+  function openMerchLicensingModal(optFilmId){
     const S = _getG();
     if(!S) return;
     initMerchLicensing(S);
 
     const eligibleFilms = (S.films || []).filter(f => (f.gross || f.boxOffice || (f.dom ? f.dom * 2 : 0)) >= 50);
-    const selectedFilm = eligibleFilms[0];
+    let selectedFilm = (optFilmId ? eligibleFilms.find(f => f.id === optFilmId) : null) || eligibleFilms[0];
 
-    const weeklyRunRate = (S.merchandise.activeDeals || []).reduce((acc, d) => acc + (d.weeklyRoyalty || 0), 0);
+    function renderInner(){
+      const weeklyRunRate = (S.merchandise.activeDeals || []).reduce((acc, d) => acc + (d.weeklyRoyalty || 0), 0);
 
-    let h = "<h3>Franchise Merchandise &amp; Product Licensing</h3>";
-    h += "<div class='tiny muted' style='margin-bottom:12px'>Monetize blockbuster intellectual property across action figures, AAA video games, designer streetwear, and destination theme park attractions for huge upfront advances and weekly royalties.</div>";
+      let h = "<h3>Franchise Merchandise &amp; Product Licensing</h3>";
+      h += "<div class='tiny muted' style='margin-bottom:12px'>Monetize blockbuster intellectual property across action figures, AAA video games, designer streetwear, and destination theme park attractions for huge upfront advances and weekly royalties.</div>";
 
-    h += "<div class='stat-hero' style='margin-bottom:12px'>"+
-      "<div class='stat'><div class='s-v' style='color:var(--gold)'>$" + (S.merchandise.totalRoyaltyEarned || 0).toFixed(2) + "M</div><div class='s-l'>Total Royalties Earned</div></div>"+
-      "<div class='stat'><div class='s-v'>" + (S.merchandise.activeDeals || []).length + "</div><div class='s-l'>Active Deals</div></div>"+
-      "<div class='stat'><div class='s-v'>+$" + (weeklyRunRate * 1000).toFixed(0) + "k/wk</div><div class='s-l'>Weekly Cashflow</div></div>"+
-    "</div>";
-
-    if(!selectedFilm){
-      h += "<div class='card tiny muted' style='margin-bottom:12px'>No films currently meet the minimum $50M box office threshold for merchandising. Score a box office hit to unlock commercial licensing!</div>";
-    } else {
-      const grossVal = selectedFilm.gross || selectedFilm.boxOffice || (selectedFilm.dom ? selectedFilm.dom * 2 : 0);
-      h += "<div class='card' style='margin-bottom:12px'>"+
-        "<div class='spread'><b>" + selectedFilm.title + "</b><span class='tag gold'>Box Office: $" + grossVal.toFixed(1) + "M</span></div>"+
+      h += "<div class='stat-hero' style='margin-bottom:12px'>"+
+        "<div class='stat'><div class='s-v' style='color:var(--gold)'>$" + (S.merchandise.totalRoyaltyEarned || 0).toFixed(2) + "M</div><div class='s-l'>Total Royalties Earned</div></div>"+
+        "<div class='stat'><div class='s-v'>" + (S.merchandise.activeDeals || []).length + "</div><div class='s-l'>Active Deals</div></div>"+
+        "<div class='stat'><div class='s-v'>+$" + (weeklyRunRate * 1000).toFixed(0) + "k/wk</div><div class='s-l'>Weekly Cashflow</div></div>"+
       "</div>";
 
-      h += "<div class='section-title'>Available Licensing Rights</div><div class='grid g2'>";
-      for(const key in LICENSING_CATEGORIES){
-        const cat = LICENSING_CATEGORIES[key];
-        const gross = grossVal;
-        const eligible = gross >= cat.minGross;
-        const hasDeal = (S.merchandise.activeDeals || []).some(d => d.filmId === selectedFilm.id && d.categoryId === cat.id);
-
-        h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
-          "<div>"+
-            "<div class='spread'><b>" + cat.name + "</b><span class='tag'>" + cat.durationWeeks + " wks</span></div>"+
-            "<div class='tiny muted' style='margin:6px 0'>" + cat.desc + "</div>"+
-            "<div class='tiny' style='color:var(--gold)'>Req Gross: $" + cat.minGross + "M | Royalty: ~" + (cat.weeklyRoyaltyPct * 100).toFixed(1) + "%</div>"+
-          "</div>"+
-          "<div style='margin-top:10px'>"+
-            (hasDeal ? (
-              "<button class='btn btn-sm' style='width:100%' disabled>Licensed</button>"
-            ) : eligible ? (
-              "<button class='btn btn-sm btn-primary' style='width:100%' data-merchdeal='" + cat.id + "' data-filmid='" + selectedFilm.id + "'>License IP Rights</button>"
-            ) : (
-              "<button class='btn btn-sm' style='width:100%' disabled>Req $" + cat.minGross + "M BO</button>"
-            ))+
-          "</div>"+
-        "</div>";
-      }
-      h += "</div>";
-    }
-
-    if((S.merchandise.activeDeals || []).length > 0){
-      h += "<div class='section-title' style='margin-top:14px'>Active Commercial Deals</div><div class='grid g1' style='gap:6px'>";
-      S.merchandise.activeDeals.forEach(d => {
-        h += "<div class='card tiny spread'><span>" + d.categoryName + " ('" + d.filmTitle + "')</span><span>+$" + (d.weeklyRoyalty * 1000).toFixed(0) + "k/wk</span><b>" + d.weeksRemaining + " wks left</b></div>";
-      });
-      h += "</div>";
-    }
-
-    if(typeof openModal === "function"){
-      const v = openModal(h);
-      if(v){
-        v.querySelectorAll("[data-merchdeal]").forEach(btn => {
-          btn.onclick = () => {
-            const res = signMerchLicensingDeal(btn.dataset.filmid, btn.dataset.merchdeal, S);
-            if(res.ok){
-              if(typeof toast === "function") toast("Licensing contract executed! Advance: +$" + res.advanceCash + "M", "good");
-              openMerchLicensingModal();
-              if(typeof render === "function") render();
-            } else {
-              if(typeof toast === "function") toast(res.msg, "bad");
-            }
-          };
+      if(eligibleFilms.length > 1){
+        h += "<div style='display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;touch-action:pan-x;'>";
+        eligibleFilms.forEach(f => {
+          const isSel = selectedFilm && f.id === selectedFilm.id;
+          const gM = (f.gross || f.boxOffice || (f.dom ? f.dom * 2 : 0)).toFixed(0);
+          h += "<button class='btn btn-xs " + (isSel ? "btn-primary" : "btn-alt") + "' data-sel-merch-film='" + f.id + "'>" + f.title + " ($" + gM + "M)</button>";
         });
+        h += "</div>";
+      }
+
+      if(!selectedFilm){
+        h += "<div class='card tiny muted' style='margin-bottom:12px'>No films currently meet the minimum $50M box office threshold for merchandising. Score a box office hit to unlock commercial licensing!</div>";
+      } else {
+        const grossVal = selectedFilm.gross || selectedFilm.boxOffice || (selectedFilm.dom ? selectedFilm.dom * 2 : 0);
+        h += "<div class='card' style='margin-bottom:12px'>"+
+          "<div class='spread'><b>" + selectedFilm.title + "</b><span class='tag gold'>Box Office: $" + grossVal.toFixed(1) + "M</span></div>"+
+        "</div>";
+
+        h += "<div class='section-title'>Available Licensing Rights</div><div class='grid g2'>";
+        for(const key in LICENSING_CATEGORIES){
+          const cat = LICENSING_CATEGORIES[key];
+          const gross = grossVal;
+          const eligible = gross >= cat.minGross;
+          const hasDeal = (S.merchandise.activeDeals || []).some(d => d.filmId === selectedFilm.id && d.categoryId === cat.id);
+
+          h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+            "<div>"+
+              "<div class='spread'><b>" + cat.name + "</b><span class='tag'>" + cat.durationWeeks + " wks</span></div>"+
+              "<div class='tiny muted' style='margin:6px 0'>" + cat.desc + "</div>"+
+              "<div class='tiny' style='color:var(--gold)'>Req Gross: $" + cat.minGross + "M | Royalty: ~" + (cat.weeklyRoyaltyPct * 100).toFixed(1) + "%</div>"+
+            "</div>"+
+            "<div style='margin-top:10px'>"+
+              (hasDeal ? (
+                "<button class='btn btn-sm' style='width:100%' disabled>Licensed</button>"
+              ) : eligible ? (
+                "<button class='btn btn-sm btn-primary' style='width:100%' data-merchdeal='" + cat.id + "' data-filmid='" + selectedFilm.id + "'>License IP Rights</button>"
+              ) : (
+                "<button class='btn btn-sm' style='width:100%' disabled>Req $" + cat.minGross + "M BO</button>"
+              ))+
+            "</div>"+
+          "</div>";
+        }
+        h += "</div>";
+      }
+
+      if((S.merchandise.activeDeals || []).length > 0){
+        h += "<div class='section-title' style='margin-top:14px'>Active Commercial Deals</div><div class='grid g1' style='gap:6px'>";
+        S.merchandise.activeDeals.forEach(d => {
+          h += "<div class='card tiny spread'><span>" + d.categoryName + " ('" + d.filmTitle + "')</span><span>+$" + (d.weeklyRoyalty * 1000).toFixed(0) + "k/wk</span><b>" + d.weeksRemaining + " wks left</b></div>";
+        });
+        h += "</div>";
+      }
+      return h;
+    }
+
+    function wireEvents(container){
+      if(!container) return;
+      container.querySelectorAll("[data-sel-merch-film]").forEach(btn => {
+        btn.onclick = () => {
+          const targetId = btn.dataset.selMerchFilm;
+          selectedFilm = eligibleFilms.find(f => f.id === targetId) || eligibleFilms[0];
+          container.innerHTML = renderInner();
+          wireEvents(container);
+        };
+      });
+      container.querySelectorAll("[data-merchdeal]").forEach(btn => {
+        btn.onclick = () => {
+          const res = signMerchLicensingDeal(btn.dataset.filmid, btn.dataset.merchdeal, S);
+          if(res.ok){
+            if(typeof toast === "function") toast("Licensing contract executed! Advance: +$" + res.advanceCash + "M", "good");
+            container.innerHTML = renderInner();
+            wireEvents(container);
+            if(typeof render === "function") render();
+          } else {
+            if(typeof toast === "function") toast(res.msg, "bad");
+          }
+        };
+      });
+    }
+
+    const initialHtml = "<div id='merchModalInner'>" + renderInner() + "</div>";
+    if(typeof openModal === "function"){
+      const v = openModal(initialHtml);
+      if(v){
+        const inner = v.querySelector("#merchModalInner") || v;
+        wireEvents(inner);
       }
     }
   }

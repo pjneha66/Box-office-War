@@ -7862,7 +7862,7 @@ function addMilestone(talentId, type, projectName){
   const xpRewards = { first_credit: 500, first_award: 2000, breakthrough: 3000 };
   if(xpRewards[type]) gainXP(talent.id, xpRewards[type], "milestone");
   
-  log("🏆 Milestone: "+type+" for "+talent.name,"gold");
+  log("[MILESTONE] "+type+" for "+talent.name,"gold");
   saveGame();
 }
 
@@ -8305,7 +8305,10 @@ function grantFilmXP(film){
     if(!t || !t.id || !G.talent.some(x=>x.id===t.id)) return;
     gainXP(t.id, xp, "film:"+film.title);
     const live = G.talent.find(x=>x.id===t.id);
-    if(live && !(live.prototype.milestones||[]).some(m=>m.type==="first_credit")) addMilestone(t.id, "first_credit", film.title);
+    if(live){
+      if(!live.prototype) initPrototypeTalent(live);
+      if(!(live.prototype.milestones||[]).some(m=>m.type==="first_credit")) addMilestone(t.id, "first_credit", film.title);
+    }
   });
   // Relationship web: working together builds bonds (and occasional friction)
   for(let i=0;i<crew.length;i++) for(let j=i+1;j<crew.length;j++){
@@ -8324,7 +8327,10 @@ function grantAwardXP(film){
     if(!t || !t.id || !G.talent.some(x=>x.id===t.id)) return;
     gainXP(t.id, 500, "award:"+film.title);
     const live = G.talent.find(x=>x.id===t.id);
-    if(live && !(live.prototype.milestones||[]).some(m=>m.type==="first_award")) addMilestone(t.id, "first_award", film.title);
+    if(live){
+      if(!live.prototype) initPrototypeTalent(live);
+      if(!(live.prototype.milestones||[]).some(m=>m.type==="first_award")) addMilestone(t.id, "first_award", film.title);
+    }
   });
 }
 

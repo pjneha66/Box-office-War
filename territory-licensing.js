@@ -152,7 +152,7 @@
       const logFn = (typeof log === "function") ? log : ((typeof global !== "undefined" && typeof global.log === "function") ? global.log : null);
       const fmtMFn = (typeof fmtM === "function") ? fmtM : (x => "$" + x + "M");
       if(logFn){
-        logFn("🌍 TERRITORY DEAL SIGNED: \"" + f.title + "\" licensed in " + offer.regionName + " (" + offer.modelName + "). Banked +" + fmtMFn(offer.upfront) + " upfront with " + Math.round(offer.royaltyRate*100) + "% backend." + (localize ? " [Dubbing & Subtitling Funded]" : ""), "gold");
+        logFn("[TERRITORY DEAL] \"" + f.title + "\" licensed in " + offer.regionName + " (" + offer.modelName + "). Banked +" + fmtMFn(offer.upfront) + " upfront with " + Math.round(offer.royaltyRate*100) + "% backend." + (localize ? " [Dubbing & Subtitling Funded]" : ""), "gold");
       }
 
       const saveFn = (typeof saveGame === "function") ? saveGame : ((typeof global !== "undefined" && typeof global.saveGame === "function") ? global.saveGame : null);
@@ -193,7 +193,7 @@
     const candidates = (g.projects || []).filter(p => p.phase === "ready" || p.phase === "post" || p.phase === "prod").concat((g.films || []).filter(f => f.inTheaters || (g.week - f.releaseWeek < 12)));
     if(!candidates.length){
       if(typeof global.openModal === "function"){
-        global.openModal("<h3>🌍 International Territory Licensing & Foreign Sales</h3><div class='card text-center' style='padding:24px 16px'><p class='muted'>No active in-production, completed, or currently releasing pictures available for foreign territory licensing. Greenlight a project to negotiate regional deals.</p></div>");
+        global.openModal("<h3>International Territory Licensing & Foreign Sales</h3><div class='card text-center' style='padding:24px 16px'><p class='muted'>No active in-production, completed, or currently releasing pictures available for foreign territory licensing. Greenlight a project to negotiate regional deals.</p></div>");
       }
       return;
     }

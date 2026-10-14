@@ -7514,7 +7514,7 @@ function csStatsHTML(t,p){
     h+="</div>";
   }
   // Mentorship panel
-  h+="<div class='card' style='margin-top:8px'><b class='small'>🧑‍🏫 Mentorship</b>";
+  h+="<div class='card' style='margin-top:8px'><b class='small'>Mentorship</b>";
   if(p.mentor){
     const m=(G.talent||[]).find(x=>x.id===p.mentor);
     h+="<div class='cost-line'><span>Learning from "+esc(m?m.name:"—")+"</span><button class='btn btn-xs btn-ghost' data-cs-unmentor='1'>End</button></div>"+
@@ -7524,19 +7524,23 @@ function csStatsHTML(t,p){
     h+="<div class='cost-line'><span>Teaching "+esc(j?j.name:"—")+"</span><button class='btn btn-xs btn-ghost' data-cs-unmentor='1'>End</button></div>"+
       "<div class='tiny muted'>The mentee gains weekly XP; you gain a little and a loyal ally.</div>";
   } else {
+    let cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>=(p.level||1)+3 && !x.prototype.mentee);
+    if(!cands.length){
+      cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>(p.level||1) && !x.prototype.mentee);
+    }
     h+="<div class='tiny muted' style='margin:4px 0'>No mentorship yet — open a higher-level talent's sheet to take a mentee, or this talent's sheet on a senior colleague.</div>"+
-      "<div class='row' style='gap:4px'>"+(G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>=(p.level||1)+3 && !x.prototype.mentee).slice(0,3).map(m=>
+      "<div class='row' style='gap:4px'>"+cands.slice(0,3).map(m=>
         "<button class='btn btn-xs btn-alt' data-cs-mentor='"+m.id+"'>Ask "+esc(m.name.split(" ")[0])+" (Lv "+(m.prototype.level||1)+")</button>").join("")+"</div>";
   }
   h+="</div>";
   const ms=p.milestones||[];
-  if(ms.length) h+="<div class='tiny muted' style='margin-top:6px'>🏆 "+ms.length+" milestone"+(ms.length===1?"":"s")+" — see the Story tab.</div>";
+  if(ms.length) h+="<div class='tiny muted' style='margin-top:6px'>[MILESTONES] "+ms.length+" milestone"+(ms.length===1?"":"s")+" — see the Story tab.</div>";
   return h;
 }
 
 function csEquipHTML(t,p){
   let h="";
-  [["weapon","🗡 Weapon"],["armor","🛡 Armor"],["accessory","💎 Accessory"],["prop","🎭 Prop"]].forEach(pair=>{
+  [["weapon","Weapon"],["armor","Armor"],["accessory","Accessory"],["prop","Prop"]].forEach(pair=>{
     const slot=pair[0], label=pair[1];
     const curId=p.equipment[slot];
     const cur=curId? (DATA.PROTOTYPE_EQUIPMENT[slot]||[]).find(i=>i.id===curId) : null;
@@ -7561,7 +7565,7 @@ function csEquipHTML(t,p){
 function csEventsHTML(t,p){
   let h="";
   const evs=(p.events||[]).slice().reverse();
-  h+="<div class='card'><b class='small'>📜 Life events</b>"+
+  h+="<div class='card'><b class='small'>Life events</b>"+
     (evs.length? evs.map(e=>"<div class='cost-line'><span>"+(e.icon||"•")+" "+esc(e.desc||e.type)+"</span><b class='tiny muted'>W"+e.week+"</b></div>").join("")
     : "<div class='tiny muted' style='margin-top:4px'>Nothing yet — life events roll each week.</div>")+"</div>";
   // Relationship web
