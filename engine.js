@@ -1302,7 +1302,73 @@ function reviewFilm(f){
   f.freshPct  = Math.round(panel.filter(r=>r.score>=60).length/panel.length*100);
   // the published consensus becomes the film's critic score
   f.quality.critic = clamp(Math.round(f.quality.critic*0.45 + f.criticAvg*0.55), 5, 99);
+
+  // Game Dev Story 4-Judge Review Desk (Famitsu 4x10 out of 40)
+  const gdsOutlets = [
+    { name: "Cinema Quarterly", focus: "Direction & Craft" },
+    { name: "Variety Chronicle", focus: "Star Power & Scale" },
+    { name: "Popcorn Express", focus: "Audience Entertainment" },
+    { name: "Indie Wirehouse", focus: "Screenplay & Vision" }
+  ];
+  f.gdsJudges = gdsOutlets.map(out => {
+    let raw = (f.quality.critic * 0.5 + f.quality.aud * 0.5);
+    if(out.name === "Cinema Quarterly") raw = (f.quality.overall || 50) * 0.6 + (f.quality.critic || 50) * 0.4;
+    else if(out.name === "Variety Chronicle") raw = (f.quality.aud || 50) * 0.4 + (f.budget ? Math.min(100, f.budget * 1.5) : 50) * 0.6;
+    else if(out.name === "Popcorn Express") raw = (f.quality.aud || 50) * 0.8 + (f.quality.overall || 50) * 0.2;
+    else if(out.name === "Indie Wirehouse") raw = (f.quality.critic || 50) * 0.7 + (f.quality.overall || 50) * 0.3;
+    let s = clamp(Math.round((raw / 10) + (gauss() * 0.6)), 2, 10);
+    return { name: out.name, focus: out.focus, score: s };
+  });
+  f.gdsTotal = f.gdsJudges.reduce((sum, j) => sum + j.score, 0);
+  if(f.gdsTotal >= 32){
+    f.hallOfFame = true;
+    G.hallOfFameFilms = G.hallOfFameFilms || [];
+    if(!G.hallOfFameFilms.find(x => x.id === f.id)){
+      G.hallOfFameFilms.push({ id: f.id, title: f.title, score: f.gdsTotal, week: G.week });
+      G.studio.rep = clamp(G.studio.rep + 2, 5, 99);
+      log("[HALL OF FAME] \"" + f.title + "\" scored " + f.gdsTotal + "/40 from the 4-judge review panel! Inducted with Golden Plaque (+2 Studio Rep).", "gold");
+    }
+  }
+
   return panel;
+}
+
+/* ── Social Dev Story Live Ops Viral Campaigns ── */
+function launchLiveOpsCampaign(filmId, type){
+  const f = (G.films || []).find(x => x.id === filmId);
+  if(!f) return { ok: false, reason: "Film not found" };
+  if(!f.inTheaters && (G.week - f.releaseWeek > 10)) return { ok: false, reason: "Film is no longer in theatrical release" };
+
+  const CAMPAIGNS = {
+    tiktok_viral: { name: "TikTok Viral Trend", cost: 1.5, buzz: 20, legs: 0.12, desc: "+12% box office legs and social buzz" },
+    midnight_stunt: { name: "Midnight Fan Stunt", cost: 0.8, aud: 4, legs: 0.15, desc: "+15% legs and +4 audience score" },
+    influencer_blitz: { name: "Influencer Premiere Tour", cost: 2.2, openBoost: 0.22, desc: "+22% immediate weekly box office" },
+    leak_controversy: { name: "Controversy PR Leak", cost: 0.4, buzz: 25, scandal: 0.25, desc: "+25% buzz spike with scandal risk" }
+  };
+  const camp = CAMPAIGNS[type];
+  if(!camp) return { ok: false, reason: "Invalid campaign type" };
+  if(G.studio.cash < camp.cost) return { ok: false, reason: "Insufficient studio cash (requires $" + camp.cost + "M)" };
+
+  spend("marketing", camp.cost);
+  f.liveOpsApplied = f.liveOpsApplied || [];
+  if(f.liveOpsApplied.includes(type)) return { ok: false, reason: "Campaign already deployed for this picture" };
+  f.liveOpsApplied.push(type);
+
+  if(camp.legs) f.campaignLegs = (f.campaignLegs || 0) + camp.legs;
+  if(camp.aud && f.quality) f.quality.aud = clamp(f.quality.aud + camp.aud, 10, 99);
+  if(camp.openBoost && f.weekly && f.weekly.length){
+    const last = f.weekly[f.weekly.length - 1];
+    if(last) last.gross = Math.round(last.gross * (1 + camp.openBoost) * 10) / 10;
+  }
+  if(camp.scandal && chance(camp.scandal)){
+    G.scandals = G.scandals || [];
+    G.scandals.push({ id: nid(), title: "Controversy Backfire on " + f.title, week: G.week, cost: 1.0 });
+    log("[SCANDAL] The controversy leak on \"" + f.title + "\" triggered press backlash!", "bad");
+  }
+
+  log("[LIVE OPS] Launched " + camp.name + " on \"" + f.title + "\" for $" + camp.cost + "M (" + camp.desc + ")", "gold");
+  if(typeof beep === "function") beep("gold");
+  return { ok: true, name: camp.name };
 }
 function audienceScoreOf(f){
   return clamp((f.quality? f.quality.aud:50) - Math.round((f.reviewBombed||0)*0.35), 1, 99);

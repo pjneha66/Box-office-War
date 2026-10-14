@@ -201,13 +201,13 @@
     let activeFilm = candidates.find(f => f.id === optFilmId) || candidates[0];
     const fmtMFn = (typeof fmtM === "function") ? fmtM : (x => "$" + x + "M");
 
-    function renderContent(){
+    function renderInnerContent(){
       activeFilm.territoryDeals = activeFilm.territoryDeals || {};
-      let h = "<h3>🌍 International Territory Licensing Desk</h3>";
-      h += "<p class='tiny muted'>Negotiate theatrical and streaming distribution rights across global territories. Balance guaranteed upfront cash (Minimum Guarantee) against lucrative backend box office participation (Revenue Share).</p>";
+      let h = "<h3>International Territory Licensing Desk</h3>";
+      h += "<p class='tiny muted' style='margin-bottom:10px'>Negotiate theatrical and streaming distribution rights across global territories. Balance guaranteed upfront cash (Minimum Guarantee) against lucrative backend box office participation (Revenue Share).</p>";
 
       // Film selector dropdown/pills
-      h += "<div style='display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px'>";
+      h += "<div style='display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;touch-action:pan-x;'>";
       candidates.forEach(f => {
         const isSel = f.id === activeFilm.id;
         h += "<button class='btn btn-xs " + (isSel ? "btn-primary" : "btn-alt") + "' data-sel-film='" + f.id + "'>" + f.title + " (" + f.genre + ")</button>";
@@ -215,15 +215,15 @@
       h += "</div>";
 
       h += "<div class='card' style='margin-bottom:12px'>";
-      h += "<div class='row' style='justify-content:space-between;align-items:center'>";
+      h += "<div class='row' style='justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;'>";
       h += "<div><b>Selected Picture:</b> <span class='gold'>\"" + activeFilm.title + "\"</span> <span class='muted tiny'>(" + (activeFilm.scale || "Standard") + " · Budget: " + fmtMFn(activeFilm.budget || 20) + ")</span></div>";
       h += "<div class='tiny muted'>Signed Regions: " + Object.keys(activeFilm.territoryDeals).length + "/4</div>";
       h += "</div></div>";
 
-      h += "<div class='grid g2' style='gap:10px'>";
+      h += "<div class='territory-deal-grid'>";
       BOW_TERRITORIES.REGIONS.forEach(reg => {
         const deal = activeFilm.territoryDeals[reg.id];
-        h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>";
+        h += "<div class='card territory-deal-card'>";
         h += "<div>";
         h += "<div class='row' style='justify-content:space-between'><b>" + reg.name + "</b><span class='tag blue'>" + Math.round(reg.marketShare*100) + "% World Mkt</span></div>";
         h += "<div class='tiny muted' style='margin:4px 0'>" + reg.countries + "</div>";
@@ -253,9 +253,9 @@
           h += "<input type='checkbox' id='chk_loc_" + reg.id + "' " + ((g.studio.cash || 0) >= BOW_TERRITORIES.LOCALIZATION_COST ? "" : "disabled") + "> Fund Dubbing & Local Subtitling (-$" + BOW_TERRITORIES.LOCALIZATION_COST + "M for +25% BO)";
           h += "</label>";
 
-          h += "<div class='row' style='gap:6px;margin-top:8px'>";
-          h += "<button class='btn btn-xs btn-primary' data-deal-reg='" + reg.id + "' data-deal-model='MINIMUM_GUARANTEE' style='flex:1'>Sign MG (15%)</button>";
-          h += "<button class='btn btn-xs btn-alt' data-deal-reg='" + reg.id + "' data-deal-model='REVENUE_SHARE' style='flex:1'>Sign RevShare (55%)</button>";
+          h += "<div class='territory-actions-row'>";
+          h += "<button class='btn btn-xs btn-primary territory-action-btn' data-deal-reg='" + reg.id + "' data-deal-model='MINIMUM_GUARANTEE'>Sign MG (15%)</button>";
+          h += "<button class='btn btn-xs btn-alt territory-action-btn' data-deal-reg='" + reg.id + "' data-deal-model='REVENUE_SHARE'>Sign RevShare (55%)</button>";
           h += "</div>";
         }
         h += "</div></div>";
@@ -264,16 +264,30 @@
       return h;
     }
 
+    function renderContent(){
+      return "<div id='territoryModalInner' class='territory-modal-inner'>" + renderInnerContent() + "</div>";
+    }
+
     const v = (typeof global.openModal === "function") ? global.openModal(renderContent()) : null;
     if(!v) return;
+
+    function refresh(modalEl){
+      const inner = modalEl.querySelector("#territoryModalInner");
+      if(inner){
+        inner.innerHTML = renderInnerContent();
+      } else {
+        const m = modalEl.querySelector(".modal") || modalEl;
+        m.innerHTML = renderContent();
+      }
+      attachListeners(modalEl);
+    }
 
     function attachListeners(modalEl){
       modalEl.querySelectorAll("[data-sel-film]").forEach(b => {
         b.onclick = function(){
           const fid = b.dataset.selFilm;
-          activeFilm = candidates.find(f => f.id === fid) || activeFilm;
-          modalEl.innerHTML = renderContent();
-          attachListeners(modalEl);
+          activeFilm = candidates.find(f => String(f.id) === String(fid)) || activeFilm;
+          refresh(modalEl);
         };
       });
 
@@ -287,8 +301,7 @@
           if(BOW_TERRITORIES.signTerritoryDeal(activeFilm.id, regId, modelKey, localize)){
             if(typeof global.beep === "function") global.beep("gold");
             if(typeof global.render === "function") global.render();
-            modalEl.innerHTML = renderContent();
-            attachListeners(modalEl);
+            refresh(modalEl);
           }
         };
       });

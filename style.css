@@ -819,7 +819,7 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
      whichever group is active, so all 11 sections stay one tap away. */
   .subtabs{
     display:flex; gap:6px; padding:0 10px 9px; overflow-x:auto; scrollbar-width:none;
-    -webkit-overflow-scrolling:touch; scroll-padding:0 10px;
+    -webkit-overflow-scrolling:touch; scroll-padding:0 10px; touch-action:pan-x;
   }
   .subtabs::-webkit-scrollbar{display:none}
   .subtabs:empty{display:none}
@@ -2211,6 +2211,7 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding: 4px 2px 8px;
 }
 .subnav-pills::-webkit-scrollbar { display: none; }
@@ -2278,5 +2279,48 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
 .territory-row .t-bar-wrap { flex: 1; height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; }
 .territory-row .t-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--cyan)); border-radius: 4px; }
 .territory-row .t-val { min-width: 70px; text-align: right; font-weight: 800; font-size: 13px; color: var(--gold2); }
+
+/* Territory Licensing Modal Mobile Responsive Fixes */
+.territory-modal-inner {
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+}
+.territory-deal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+@media (min-width: 680px) {
+  .territory-deal-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.territory-deal-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px;
+}
+.territory-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.territory-action-btn {
+  flex: 1 1 120px;
+  min-width: 110px;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
 
 

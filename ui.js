@@ -800,30 +800,131 @@ function hallOfFameModal(){
   openModal(h);
 }
 function moreSheet(){
-  const rows=[
-    ["ott","📺","OTT & Series","Your streamer · licenses · sports rights"],
-    ["empire","🏰","Empire","Franchises · merch · parks · M&A desk"],
-    ["games","🎮","Game Studio","Adapt your hits & franchises into games"],
-    ["finance","💼","Finance","Loans · IPO · executives · P&L ledger"],
-  ];
-  let h="<h3>⋯ More</h3><div class='plan-pick' style='margin-top:10px'>";
-  rows.forEach(([t,icon,name,sub])=>{
-    h+="<div class='plan-opt' data-more-tab='"+t+"'><h5>"+icon+" "+name+"</h5><div class='p-sub'>"+sub+"</div></div>";
-  });
-  h+="</div><div class='row' style='margin-top:12px'>"+
-    "<button class='btn btn-alt' id='moreAch'>🏅 Awards</button>"+
-    "<button class='btn btn-alt' id='moreHall'>🏆 Hall of Fame</button>"+
-    "<button class='btn btn-alt' id='moreSet'>⚙ Settings</button>"+
-    "<button class='btn btn-alt' id='moreHelp'>❓ Help</button></div>"+
-    "<div class='row' style='margin-top:10px;align-items:center'><button class='btn btn-sm btn-ghost' id='moreSave'>💾 Save now</button><span class='tiny muted' id='moreSaveInfo'></span></div>"+
-    "<div class='tiny muted' style='margin-top:12px;text-align:center'>📦 Box Office War v"+((typeof bowAppVersion==="function")?bowAppVersion():"dev")+" · APK updates land on the GitHub Releases page</div>";
+  let h="<div class='modal-head'><h3>Quick Actions &amp; Studio Command Hub</h3></div>";
+  h+="<div class='tiny muted' style='margin-bottom:12px'>Instant 1-click command center for all production, distribution, intelligence, and studio empire operations.</div>";
+
+  // Section 1: Distribution & Licensing
+  h+="<div class='card' style='margin-bottom:10px'>";
+  h+="<div class='row spread' style='margin-bottom:6px'><b>[DISTRIBUTION &amp; MARKETS]</b><span class='tag blue'>Global Sales</span></div>";
+  h+="<div class='grid g2' style='gap:6px'>";
+  h+="<button class='btn btn-sm btn-alt' id='qaTerritory' style='text-align:left;padding:8px 10px'><b>Territory Licensing</b><div class='tiny muted'>Foreign MG &amp; backend deals</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaClash' style='text-align:left;padding:8px 10px'><b>Clash Radar</b><div class='tiny muted'>Counter-program rival releases</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaOtt' data-more-tab='ott' style='text-align:left;padding:8px 10px'><b>OTT Streamer</b><div class='tiny muted'>Manage subscriber tiers &amp; catalog</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaLiveTv' data-more-tab='live' style='text-align:left;padding:8px 10px'><b>Linear TV EPG</b><div class='tiny muted'>Program 24h broadcast schedule</div></button>";
+  h+="</div></div>";
+
+  // Section 2: Talent & Production Operations
+  h+="<div class='card' style='margin-bottom:10px'>";
+  h+="<div class='row spread' style='margin-bottom:6px'><b>[TALENT &amp; PRODUCTION]</b><span class='tag gold'>Slate Power</span></div>";
+  h+="<div class='grid g2' style='gap:6px'>";
+  h+="<button class='btn btn-sm btn-alt' id='qaAgency' style='text-align:left;padding:8px 10px'><b>Agency Packaging</b><div class='tiny muted'>CAA / WME star packages</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaContracts' style='text-align:left;padding:8px 10px'><b>Multi-Pic Contracts</b><div class='tiny muted'>Lock directors &amp; stars for 3-5 films</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaFacilities' style='text-align:left;padding:8px 10px'><b>Studio Facilities</b><div class='tiny muted'>Soundstages, VFX houses &amp; backlots</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaTestScreens' style='text-align:left;padding:8px 10px'><b>Test Screenings</b><div class='tiny muted'>Audience previews &amp; reshoots</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaScouting' style='text-align:left;padding:8px 10px'><b>Location Scouting</b><div class='tiny muted'>Global rebates &amp; tax credits</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaInsurance' style='text-align:left;padding:8px 10px'><b>Production Bonds</b><div class='tiny muted'>Completion insurance &amp; overrun shield</div></button>";
+  h+="</div></div>";
+
+  // Section 3: Corporate Strategy, Risk & Intelligence
+  h+="<div class='card' style='margin-bottom:10px'>";
+  h+="<div class='row spread' style='margin-bottom:6px'><b>[CORPORATE &amp; INTELLIGENCE]</b><span class='tag red'>Risk &amp; Defense</span></div>";
+  h+="<div class='grid g2' style='gap:6px'>";
+  h+="<button class='btn btn-sm btn-alt' id='qaCrisis' style='text-align:left;padding:8px 10px'><b>Crisis PR War Room</b><div class='tiny muted'>Spin doctor scandals &amp; leaks</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaSpy' style='text-align:left;padding:8px 10px'><b>Studio Espionage</b><div class='tiny muted'>Sabotage rivals &amp; steal scripts</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaMerch' data-more-tab='empire' style='text-align:left;padding:8px 10px'><b>Merchandising Empire</b><div class='tiny muted'>Toys, apparel &amp; theme park rights</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaBonds' data-more-tab='finance' style='text-align:left;padding:8px 10px'><b>Bond Debt Market</b><div class='tiny muted'>Issue institutional junk &amp; AAA notes</div></button>";
+  h+="</div></div>";
+
+  // Section 4: Prestige, Culture & Creative Live Ops
+  h+="<div class='card' style='margin-bottom:12px'>";
+  h+="<div class='row spread' style='margin-bottom:6px'><b>[PRESTIGE &amp; EXPANSION]</b><span class='tag purple'>Awards &amp; IP</span></div>";
+  h+="<div class='grid g2' style='gap:6px'>";
+  h+="<button class='btn btn-sm btn-alt' id='qaAwards' style='text-align:left;padding:8px 10px'><b>FYC Awards Campaigns</b><div class='tiny muted'>Guild screenings &amp; Oscar pushes</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaFestivals' style='text-align:left;padding:8px 10px'><b>Festival Circuit</b><div class='tiny muted'>Cannes, Venice &amp; Sundance premieres</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaConventions' style='text-align:left;padding:8px 10px'><b>Comic-Con Hall H</b><div class='tiny muted'>Teaser trailers &amp; fandom hype spikes</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaDynasty' style='text-align:left;padding:8px 10px'><b>Franchise Dynasty</b><div class='tiny muted'>Multi-generation studio lineage</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaGames' data-more-tab='games' style='text-align:left;padding:8px 10px'><b>Game Studio</b><div class='tiny muted'>Adapt IP into games &amp; live ops</div></button>";
+  h+="<button class='btn btn-sm btn-alt' id='qaSandbox' style='text-align:left;padding:8px 10px'><b>Sandbox Creator</b><div class='tiny muted'>Custom talent, rivals &amp; franchises</div></button>";
+  h+="</div></div>";
+
+  // Utility row
+  h+="<div class='row' style='gap:6px;flex-wrap:wrap;margin-bottom:10px'>"+
+    "<button class='btn btn-sm btn-alt' id='moreAch'>Awards Ledger</button>"+
+    "<button class='btn btn-sm btn-alt' id='moreHall'>Hall of Fame</button>"+
+    "<button class='btn btn-sm btn-alt' id='moreFinanceLedger' data-more-tab='finance'>Finance Ledger</button>"+
+    "<button class='btn btn-sm btn-alt' id='moreSet'>Settings</button>"+
+    "<button class='btn btn-sm btn-alt' id='moreHelp'>Help &amp; Guide</button>"+
+    "</div>";
+
+  h+="<div class='row spread' style='align-items:center;padding:8px 12px;background:var(--card-sub);border-radius:var(--radius-sm);border:1px solid var(--line)'>"+
+    "<button class='btn btn-xs btn-primary' id='moreSave'>Save Progress</button>"+
+    "<span class='tiny muted' id='moreSaveInfo'>Box Office War v"+((typeof bowAppVersion==='function')?bowAppVersion():'32.3')+"</span>"+
+    "</div>";
+
   const v=openModal(h);
   v.querySelectorAll("[data-more-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.moreTab); });
-  v.querySelector("#moreAch").onclick=()=>{ closeModal(); achievementsModal(); };
-  v.querySelector("#moreHall").onclick=()=>{ closeModal(); hallOfFameModal(); };   // v14 §57
-  v.querySelector("#moreSet").onclick=()=>{ closeModal(); settingsModal(); };
-  v.querySelector("#moreHelp").onclick=()=>{ closeModal(); helpModal(); };
-  v.querySelector("#moreSave").onclick=()=>{ saveGame(); const i=v.querySelector("#moreSaveInfo"); if(i) i.textContent="Saved ✓"; beep("click"); };
+
+  // Wire Distribution
+  const btnTerritory = v.querySelector("#qaTerritory");
+  if(btnTerritory) btnTerritory.onclick=()=>{ closeModal(); if(typeof global.openTerritoryDealsModal==='function') global.openTerritoryDealsModal(); else if(typeof BOW_TERRITORIES!=='undefined') BOW_TERRITORIES.openDesk(); };
+  const btnClash = v.querySelector("#qaClash");
+  if(btnClash) btnClash.onclick=()=>{ closeModal(); if(typeof clashAnalyticsModal==='function') clashAnalyticsModal(); else switchTab("boxoffice"); };
+  const btnOtt = v.querySelector("#qaOtt");
+  if(btnOtt) btnOtt.onclick=()=>{ closeModal(); switchTab("ott"); };
+  const btnLiveTv = v.querySelector("#qaLiveTv");
+  if(btnLiveTv) btnLiveTv.onclick=()=>{ closeModal(); switchTab("live"); };
+
+  // Wire Talent & Production
+  const btnAgency = v.querySelector("#qaAgency");
+  if(btnAgency) btnAgency.onclick=()=>{ closeModal(); if(typeof agencyPackagingModal==='function') agencyPackagingModal(); else switchTab("develop"); };
+  const btnContracts = v.querySelector("#qaContracts");
+  if(btnContracts) btnContracts.onclick=()=>{ closeModal(); if(typeof contractDeskModal==='function') contractDeskModal(); else switchTab("studio"); };
+  const btnFacilities = v.querySelector("#qaFacilities");
+  if(btnFacilities) btnFacilities.onclick=()=>{ closeModal(); if(typeof facilitiesModal==='function') facilitiesModal(); else switchTab("studio"); };
+  const btnTest = v.querySelector("#qaTestScreens");
+  if(btnTest) btnTest.onclick=()=>{ closeModal(); if(typeof testScreeningsModal==='function') testScreeningsModal(); else switchTab("productions"); };
+  const btnScouting = v.querySelector("#qaScouting");
+  if(btnScouting) btnScouting.onclick=()=>{ closeModal(); if(typeof scoutingModal==='function') scoutingModal(); else switchTab("develop"); };
+  const btnInsurance = v.querySelector("#qaInsurance");
+  if(btnInsurance) btnInsurance.onclick=()=>{ closeModal(); if(typeof insuranceModal==='function') insuranceModal(); else switchTab("productions"); };
+
+  // Wire Corporate & Risk
+  const btnCrisis = v.querySelector("#qaCrisis");
+  if(btnCrisis) btnCrisis.onclick=()=>{ closeModal(); if(typeof crisisPrModal==='function') crisisPrModal(); else switchTab("fans"); };
+  const btnSpy = v.querySelector("#qaSpy");
+  if(btnSpy) btnSpy.onclick=()=>{ closeModal(); if(typeof espionageModal==='function') espionageModal(); else switchTab("fans"); };
+  const btnMerch = v.querySelector("#qaMerch");
+  if(btnMerch) btnMerch.onclick=()=>{ closeModal(); if(typeof merchLicensingModal==='function') merchLicensingModal(); else switchTab("empire"); };
+  const btnBonds = v.querySelector("#qaBonds");
+  if(btnBonds) btnBonds.onclick=()=>{ closeModal(); if(typeof bondMarketModal==='function') bondMarketModal(); else switchTab("finance"); };
+
+  // Wire Prestige & Expansion
+  const btnAwards = v.querySelector("#qaAwards");
+  if(btnAwards) btnAwards.onclick=()=>{ closeModal(); if(typeof awardsCampaignModal==='function') awardsCampaignModal(); else switchTab("fans"); };
+  const btnFestivals = v.querySelector("#qaFestivals");
+  if(btnFestivals) btnFestivals.onclick=()=>{ closeModal(); if(typeof festivalPrModal==='function') festivalPrModal(); else switchTab("boxoffice"); };
+  const btnConventions = v.querySelector("#qaConventions");
+  if(btnConventions) btnConventions.onclick=()=>{ closeModal(); if(typeof fanConventionModal==='function') fanConventionModal(); else switchTab("fans"); };
+  const btnDynasty = v.querySelector("#qaDynasty");
+  if(btnDynasty) btnDynasty.onclick=()=>{ closeModal(); if(typeof dynastyLegacyModal==='function') dynastyLegacyModal(); else switchTab("empire"); };
+  const btnGames = v.querySelector("#qaGames");
+  if(btnGames) btnGames.onclick=()=>{ closeModal(); switchTab("games"); };
+  const btnSandbox = v.querySelector("#qaSandbox");
+  if(btnSandbox) btnSandbox.onclick=()=>{ closeModal(); if(typeof customCreatorModal==='function') customCreatorModal(); else switchTab("develop"); };
+
+  // Wire Utilities
+  const btnAch = v.querySelector("#moreAch");
+  if(btnAch) btnAch.onclick=()=>{ closeModal(); achievementsModal(); };
+  const btnHall = v.querySelector("#moreHall");
+  if(btnHall) btnHall.onclick=()=>{ closeModal(); hallOfFameModal(); };
+  const btnFin = v.querySelector("#moreFinanceLedger");
+  if(btnFin) btnFin.onclick=()=>{ closeModal(); financeOverviewSheet(); };
+  const btnSet = v.querySelector("#moreSet");
+  if(btnSet) btnSet.onclick=()=>{ closeModal(); settingsModal(); };
+  const btnHelp = v.querySelector("#moreHelp");
+  if(btnHelp) btnHelp.onclick=()=>{ closeModal(); helpModal(); };
+  const btnSave = v.querySelector("#moreSave");
+  if(btnSave) btnSave.onclick=()=>{ saveGame(); const i=v.querySelector("#moreSaveInfo"); if(i) i.textContent="Saved successfully"; beep("click"); };
 }
 /* v10 spec §5: tap the cash chip → finance overview drawer */
 function financeOverviewSheet(){
@@ -3547,7 +3648,37 @@ function reviewsModal(fid){
   const negCount = revs.filter(r=>r.score<40).length;
   const totRevs = Math.max(1, posCount + mixCount + negCount);
 
-  let h="<h3>🗞 Reviews — “"+esc(f.title)+"”</h3>"+scoreSplit(f);
+  let h="<h3>Reviews: “"+esc(f.title)+"”</h3>"+scoreSplit(f);
+
+  // Game Dev Story 4-Judge Magazine Panel (/40)
+  if(f.gdsJudges && f.gdsJudges.length){
+    const hof = (f.gdsTotal >= 32);
+    h+="<div class='card' style='margin:10px 0;background:"+(hof?"rgba(245,185,66,0.08)":"var(--card-sub)")+";border:1px solid "+(hof?"var(--gold)":"var(--line)")+"'>"+
+      "<div class='spread' style='align-items:center'><b>[INDUSTRY CRITIC DESK]</b><span class='gold' style='font-family:var(--font-mono);font-size:16px;font-weight:800'>"+f.gdsTotal+" / 40</span></div>"+
+      (hof?"<div class='tiny gold' style='margin:4px 0 8px'>[HALL OF FAME INDUCTION] Golden Plaque awarded! Boosted studio reputation and sequel hype.</div>":"<div class='tiny muted' style='margin:4px 0 8px'>32/40 required for Hall of Fame induction</div>")+
+      "<div class='row' style='gap:6px;flex-wrap:wrap'>";
+    f.gdsJudges.forEach(j => {
+      h+="<div style='flex:1;min-width:110px;padding:6px 8px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--line)'>"+
+        "<div class='tiny muted'>"+esc(j.name)+"</div>"+
+        "<div class='spread' style='align-items:center;margin-top:2px'><span class='tiny'>"+esc(j.focus)+"</span><b class='"+(j.score>=8?"pos":j.score<=4?"neg":"")+"'>"+j.score+"/10</b></div>"+
+        "</div>";
+    });
+    h+="</div></div>";
+  }
+
+  // Social Dev Story Live Ops Campaigns for Active Theatrical Releases
+  if(f.inTheaters){
+    h+="<div class='card' style='margin:10px 0'>"+
+      "<div class='spread' style='margin-bottom:6px'><b>[SOCIAL DEV STORY: LIVE OPS CAMPAIGNS]</b><span class='tag blue'>Theatrical Boosts</span></div>"+
+      "<div class='tiny muted' style='margin-bottom:8px'>Deploy targeted viral marketing, stunt screenings, or influencer tours while the film is on screens.</div>"+
+      "<div class='row' style='gap:6px;flex-wrap:wrap'>"+
+      "<button class='btn btn-xs btn-alt' id='revLiveTiktok' style='flex:1;min-width:120px'>TikTok Viral ($1.5M)<div class='tiny muted'>+12% legs</div></button>"+
+      "<button class='btn btn-xs btn-alt' id='revLiveMidnight' style='flex:1;min-width:120px'>Midnight Stunt ($0.8M)<div class='tiny muted'>+4 aud, +15% legs</div></button>"+
+      "<button class='btn btn-xs btn-alt' id='revLiveBlitz' style='flex:1;min-width:120px'>Influencer Tour ($2.2M)<div class='tiny muted'>+22% weekly BO</div></button>"+
+      "<button class='btn btn-xs btn-alt' id='revLiveLeak' style='flex:1;min-width:120px'>Controversy Leak ($0.4M)<div class='tiny muted'>+25% buzz (risk)</div></button>"+
+      "</div></div>";
+  }
+
   if(revs.length){
     h+="<div class='card' style='margin:8px 0'>"+
       "<div class='spread small'><b>Score Distribution (Metacritic style)</b><span class='tiny muted'>"+posCount+" Pos · "+mixCount+" Mixed · "+negCount+" Neg</span></div>"+
@@ -3575,12 +3706,22 @@ function reviewsModal(fid){
        "<b class='"+(r.score>=70?"pos":r.score>=50?"":"neg")+"'>"+r.score+"/100</b></div>"+
        "<div class='small' style='margin-top:4px'>“"+esc(r.quote)+"”</div>"+
        "<div class='grid g2' style='margin-top:6px'><div>"+
-       catRow("story","📖 Story")+catRow("direction","🎬 Direction")+catRow("acting","🎭 Acting")+"</div><div>"+
-       catRow("production","🏗 Production")+catRow("entertainment","🍿 Entertainment")+catRow("originality","💡 Originality")+"</div></div></div>";
+       catRow("story","Story")+catRow("direction","Direction")+catRow("acting","Acting")+"</div><div>"+
+       catRow("production","Production")+catRow("entertainment","Entertainment")+catRow("originality","Originality")+"</div></div></div>";
   });
-  if(f.reviewBombed) h+="<div class='card' style='border-left:3px solid var(--red)'><b>🍅 Review bombing</b><div class='tiny muted'>An organised pile-on cost this film "+f.reviewBombed+" audience points — and the word of mouth that goes with them.</div></div>";
+  if(f.reviewBombed) h+="<div class='card' style='border-left:3px solid var(--red)'><b>Review bombing</b><div class='tiny muted'>An organised pile-on cost this film "+f.reviewBombed+" audience points — and the word of mouth that goes with them.</div></div>";
   h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Close</button></div>";
-  openModal(h);
+  const v = openModal(h);
+
+  // Wire Live Ops buttons
+  const bTiktok = v.querySelector("#revLiveTiktok");
+  if(bTiktok) bTiktok.onclick=()=>{ launchLiveOpsCampaign(f.id, "tiktok_viral"); closeModal(); reviewsModal(fid); };
+  const bMid = v.querySelector("#revLiveMidnight");
+  if(bMid) bMid.onclick=()=>{ launchLiveOpsCampaign(f.id, "midnight_stunt"); closeModal(); reviewsModal(fid); };
+  const bBlitz = v.querySelector("#revLiveBlitz");
+  if(bBlitz) bBlitz.onclick=()=>{ launchLiveOpsCampaign(f.id, "influencer_blitz"); closeModal(); reviewsModal(fid); };
+  const bLeak = v.querySelector("#revLiveLeak");
+  if(bLeak) bLeak.onclick=()=>{ launchLiveOpsCampaign(f.id, "leak_controversy"); closeModal(); reviewsModal(fid); };
 }
 
 /* ═══════════ v32: Individual Film Details & Full International Breakdown ═══════════ */
@@ -7250,16 +7391,7 @@ function installGestures(){
       doWeek(1);
     }
   },{passive:true});
-  document.addEventListener("touchend",e=>{
-    if(!G || pulled || !e.changedTouches.length) return;
-    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
-    if(Math.abs(dx)>72 && Math.abs(dx)>Math.abs(dy)*1.5){
-      if(document.querySelector("#modalRoot .modal-veil")) return;
-      const i=ORDER.indexOf(TAB); if(i<0) return;
-      const next=ORDER[clamp(dx<0? i+1 : i-1, 0, ORDER.length-1)];
-      if(next!==TAB){ rumble(12); switchTab(next); }
-    }
-  },{passive:true});
+  // v32.3: horizontal swipe-tab gesture removed to allow unhindered scrolling of mobile subtabs
 }
 
 /* ═══════════ PROTOTYPE RPG: character sheets + in-house originals (v26) ═══════════ */
@@ -7731,9 +7863,9 @@ function viewLiveLinear(){
 
   const schedule = ch.schedule || [];
   for(let hour = 0; hour < 24; hour++){
-    const slot = schedule[hour] || { hour, blockId: "primetime_movie", contentId: null, customTitle: null };
-    const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => s.hour === hour) || { name: hour + ":00", weight: 1.0, isPrimeTime: hour >= 20 && hour <= 22 };
-    const blockMeta = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === slot.blockId) || { name: "General Broadcast", adTier: 1.0 };
+    const slot = schedule[hour] || { hour, blockId: "movie", contentId: null, customTitle: null };
+    const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => (s.hour === hour || s.h === hour)) || { name: hour + ":00", label: hour + ":00", weight: 1.0, isPrimeTime: hour >= 20 && hour <= 22 };
+    const blockMeta = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === slot.blockId) || { name: "General Broadcast", label: "General Broadcast", adTier: 1.0 };
 
     let filmTitle = null;
     let filmQuality = null;
@@ -8001,10 +8133,12 @@ function viewLiveStudio(){
 function liveSlotModal(channelId, hour){
   const ch = getLiveChannel(channelId);
   if(!ch) return;
-  const currentSlot = (ch.schedule || [])[hour] || { hour, blockId: "primetime_movie", contentId: null, customTitle: null };
-  const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => s.hour === hour) || { name: hour + ":00" };
+  const chDef = (typeof DATA.liveChannel === "function" ? DATA.liveChannel(channelId) : (DATA.LIVE_CHANNELS || []).find(c => c.id === channelId)) || {};
+  const chName = chDef.name || ch.name || channelId;
+  const currentSlot = (ch.schedule || [])[hour] || { hour, blockId: "movie", contentId: null, customTitle: null };
+  const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => (s.hour === hour || s.h === hour)) || { name: hour + ":00", label: hour + ":00" };
 
-  let h = "<h3>Program Slot: " + esc(ch.name) + " (" + esc(slotMeta.name) + ")</h3>"+
+  let h = "<h3>Program Slot: " + esc(chName) + " (" + esc(slotMeta.name || slotMeta.label) + ")</h3>"+
     "<div class='tiny muted' style='margin-bottom:12px'>Assign a programming format or broadcast a feature film from your studio catalog.</div>";
 
   // Option 1: Pick Program Block Type
@@ -8012,7 +8146,9 @@ function liveSlotModal(channelId, hour){
     "<div class='row' style='gap:6px;flex-wrap:wrap;margin-top:8px'>";
   for(const block of DATA.PROGRAM_BLOCKS || []){
     const isSel = currentSlot.blockId === block.id && !currentSlot.contentId;
-    h += "<button class='btn btn-sm " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotBlock_" + block.id + "'>" + esc(block.name) + " (" + block.adTier + "x)</button>";
+    const bName = block.name || block.label || block.id;
+    const bTier = block.adTier !== undefined ? block.adTier : (block.dur ? block.dur + "x" : "1.0x");
+    h += "<button class='btn btn-sm " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotBlock_" + block.id + "'>" + esc(bName) + " (" + bTier + (typeof bTier === "number" ? "x" : "") + ")</button>";
   }
   h += "</div></div>";
 
@@ -8373,23 +8509,6 @@ function deepfakeModal(){
   const tiers=deepfakeDifficulty();
   const tier=Math.min(df.tier||0, tiers.length-1);
   const cfg=tiers[tier];
-  let h="<div class='modal-head'><h3>🎭 Deepfake Drill</h3></div>";
-  h+="<div class='modal-body'>";
-  h+="<p>A viral deepfake is circulating. Spot the fake frames before the clock runs out.</p>";
-  h+="<div class='df-timer' id='dfTimer'>⏱ "+cfg.time+"s</div>";
-  h+="<div class='df-frames'>";
-  for(let i=0;i<cfg.frames;i++){
-    h+="<button class='df-frame' data-frame='"+i+"'>Frame "+(i+1)+"</button>";
-  }
-  h+="</div>";
-  h+="<div class='tiny muted' style='margin-top:6px'>Flag every synthetic frame, then submit. The clock running out counts as a miss. Best streak: "+(G.dfStreak||0)+" · wins "+(G.dfWins||0)+" / losses "+(G.dfLosses||0)+"</div>";
-  h+="<div class='df-actions'><button class='btn btn-alt' id='dfDefer'>Defer (−rep)</button><button class='btn btn-primary' id='dfSolve'>Submit</button></div>";
-  h+="</div>";
-  /* v31 fix: these buttons were bound through bindView(sel, fn) — bindView takes
-     no arguments, so the handlers never attached and the drill soft-locked the
-     week (a pending sports auction blocks advanceWeeks while this modal keeps
-     re-opening ahead of it). Bind on the modal element itself. */
-  const v=openModal(h);
   /* deterministic fake set per event — the same drill on every reopen */
   let _s=0; const _key=String((df.talentId||"x")+"|"+(df.week||G.week));
   for(let i=0;i<_key.length;i++) _s=(_s*31+_key.charCodeAt(i))>>>0;
@@ -8397,13 +8516,33 @@ function deepfakeModal(){
   const _nFake=Math.max(1, Math.min(cfg.frames-1, 1+tier));
   const fakes=new Set();
   for(let i=0;i<_nFake;i++) fakes.add(Math.min(cfg.frames-1, Math.floor(_next()*cfg.frames)));
+
+  const totalTime = Math.max(16, (cfg.time || 8) * 2);
+  let h="<div class='modal-head'><h3>Deepfake Forensic Drill</h3></div>";
+  h+="<div class='modal-body'>";
+  h+="<p>A viral synthetic video is circulating. Inspect the spectral forensic scan below and flag the synthetic anomaly frames before the clock runs out.</p>";
+  h+="<div class='df-timer' id='dfTimer'>Time Remaining: "+totalTime+"s</div>";
+  h+="<div class='df-frames' style='display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;'>";
+  for(let i=0;i<cfg.frames;i++){
+    const isFake = fakes.has(i);
+    const badge = isFake ?
+      "<span class='tag red' style='font-size:9.5px;padding:2px 6px;margin-top:6px'>SYNTHETIC (Glitch 88%)</span>" :
+      "<span class='tag green' style='font-size:9.5px;padding:2px 6px;margin-top:6px'>AUTHENTIC (Clean 96%)</span>";
+    h+="<button class='df-frame' data-frame='"+i+"' style='flex:1;min-width:90px;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 6px'><b>Frame "+(i+1)+"</b>"+badge+"</button>";
+  }
+  h+="</div>";
+  h+="<div class='tiny muted' style='margin-top:6px'>Flag every synthetic frame, then submit. Clock running out counts as a miss. Best streak: "+(G.dfStreak||0)+" · wins "+(G.dfWins||0)+" / losses "+(G.dfLosses||0)+"</div>";
+  h+="<div class='df-actions' style='margin-top:14px;display:flex;gap:10px'><button class='btn btn-alt' id='dfDefer' style='flex:1'>Defer (-1 rep)</button><button class='btn btn-primary' id='dfSolve' style='flex:1'>Submit Verification</button></div>";
+  h+="</div>";
+  const v=openModal(h);
+
   const picked=new Set();
   let finished=false;
-  let left=cfg.time;
+  let left=totalTime;
   const timerEl=v.querySelector("#dfTimer");
   const tick=setInterval(function(){
     left--;
-    if(timerEl) timerEl.textContent="⏱ "+left+"s";
+    if(timerEl) timerEl.textContent="Time Remaining: "+left+"s";
     if(left<=0 && !finished){ finished=true; clearInterval(tick); submit(false, true); }
   }, 1000);
   try{ if(tick && tick.unref) tick.unref(); }catch(e){}
@@ -8413,8 +8552,8 @@ function deepfakeModal(){
     clearInterval(tick);
     G.pendingDeepfake=null;
     resolveDeepfake(correct, {tier});
-    if(correct){ G.dfWins=(G.dfWins||0)+1; beep("gold"); toast("🧬 Deepfake exposed! Streak "+(G.dfStreak||0)+" · +1 rep.","good"); }
-    else { G.dfLosses=(G.dfLosses||0)+1; beep("bad"); toast(timedOut? "⏱ Out of time — the fake metastasized. Streak reset." : "🚫 Wrong frame flagged — the fake metastasized. Streak reset.","bad"); }
+    if(correct){ G.dfWins=(G.dfWins||0)+1; beep("gold"); toast("[FORENSICS] Deepfake exposed! Streak "+(G.dfStreak||0)+" · +1 rep.","good"); }
+    else { G.dfLosses=(G.dfLosses||0)+1; beep("bad"); toast(timedOut? "Out of time — the fake metastasized. Streak reset." : "Wrong frame flagged — the fake metastasized. Streak reset.","bad"); }
     saveGame();
     closeModal();
   }
@@ -8431,7 +8570,7 @@ function deepfakeModal(){
     finished=true; clearInterval(tick);
     G.pendingDeepfake=null;
     G.studio.rep=clamp(G.studio.rep-1,5,99);
-    log("🧬 Deepfake deferred — the press noticed the delay. −1 rep.","bad");
+    log("Deepfake deferred — the press noticed the delay. -1 rep.","bad");
     saveGame();
     closeModal();
   };
@@ -8506,14 +8645,3 @@ function installPromptModal(){
 }
 
 
-/* ── v29 more sheet (for test compatibility) ── */
-function moreSheet(){
-  const tabs = ["dashboard","studio","develop","productions","boxoffice","fans","ott","live","empire","library","games","finance"];
-  let h="<h3>⋯ All sections</h3><div class='plan-pick'>";
-  tabs.forEach(tab=>{
-    h+="<div class='plan-opt"+(TAB===tab?" sel":"")+"' data-more-tab='"+tab+"'><h5>"+tab+"</h5></div>";
-  });
-  h+="</div>";
-  const v=openModal(h);
-  v.querySelectorAll("[data-more-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.moreTab); });
-}
