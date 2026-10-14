@@ -397,6 +397,112 @@
     }
   }
 
+  function renderLocationsSection(){
+    const S = _getG();
+    initFilmLocationsTax(S);
+    const inProd = (S && S.projects ? S.projects : []).filter(p => p.phase === "prod" || p.phase === "pre" || p.phase === "shoot" || p.phase === "post");
+    let h = "<div class='section-title'>Global Filming Destinations &amp; Regional Tax Credits</div>";
+    h += "<p class='tiny muted' style='margin-bottom:8px'>Shoot on-location across certified regional commissions to capture up to 35% cash production rebates upon post-production wrap.</p>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    for(const k in DESTINATIONS){
+      const d = DESTINATIONS[k];
+      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+        "<div><div class='spread'><b>" + d.name + "</b><span class='tag gold'>" + Math.round(d.taxRebatePct*100) + "% Tax Credit</span></div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + d.desc + "</div>"+
+        "<div class='tiny' style='color:var(--blue)'>Region: " + d.region + " | Travel Cost: $" + d.travelCost + "M</div></div>"+
+        "<div style='margin-top:8px'>";
+      if(inProd.length){
+        h += "<button class='btn btn-xs btn-primary' style='width:100%' data-dest-id='" + d.id + "'>Contract for \"" + (inProd[0].title || "Project") + "\"</button>";
+      } else {
+        h += "<button class='btn btn-xs' style='width:100%' disabled>No In-Production Titles</button>";
+      }
+      h += "</div></div>";
+    }
+    h += "</div>";
+    return h;
+  }
+
+  function renderAnimalsSection(){
+    let h = "<div class='section-title' style='margin-top:14px'>Animal &amp; Mascot Actors Division</div>";
+    h += "<p class='tiny muted' style='margin-bottom:8px'>Certified creature performers driving viral audience buzz and family demographic multipliers.</p>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    ANIMAL_TALENT.forEach(a => {
+      h += "<div class='card'>"+
+        "<div class='spread'><b>" + a.name + "</b><span class='tag purple'>" + a.species + "</span></div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + a.desc + "</div>"+
+        "<div class='tiny gold'>Handler Fee: $" + a.handlerFee + "M | Family Pull: +" + Math.round(a.bonusFamilyPull*100) + "% | Quality: +" + a.bonusQuality + "</div>"+
+      "</div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderWardrobeSection(){
+    let h = "<div class='section-title' style='margin-top:14px'>Haute-Couture &amp; Wardrobe Collections</div>";
+    h += "<div class='grid g3' style='gap:8px'>";
+    WARDROBE_COLLECTIONS.forEach(w => {
+      h += "<div class='card'>"+
+        "<b>" + w.name + "</b>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + w.desc + "</div>"+
+        "<div class='tiny' style='color:var(--gold)'>Budget: $" + w.cost + "M | Quality: +" + w.qualityBoost + " | Costume Odds: +" + Math.round(w.costumeAwardOdds*100) + "%</div>"+
+      "</div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderTheaterChainsSection(){
+    let h = "<div class='section-title'>Premium Large Format (PLF) &amp; Global Multiplex Circuits</div>";
+    h += "<div class='grid g3' style='gap:8px'>";
+    THEATER_CIRCUITS.forEach(c => {
+      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+        "<div><div class='spread'><b>" + c.name + "</b><span class='tag gold'>BO ×" + c.plfMultiplier + "</span></div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + c.desc + "</div>"+
+        "<div class='tiny' style='color:var(--blue)'>Dedicated Screens: " + c.screens + " | Bidding Advance: $" + c.upfrontBiddingCost + "M</div></div>"+
+      "</div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderAwardCircuitSection(){
+    let h = "<div class='section-title'>Seasonal Award Bodies &amp; Film Festivals</div>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    AWARD_CIRCUITS.forEach(a => {
+      h += "<div class='card spread'>"+
+        "<div><b>" + a.name + "</b><div class='tiny muted'>" + a.focus + "</div></div>"+
+        "<span class='tag purple'>Week " + a.week + "</span>"+
+      "</div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderAwardCircuitModal(){
+    let h = "<h3>Seasonal Multi-Ceremony Award Circuits</h3>";
+    h += "<p class='tiny muted' style='margin-bottom:12px'>Compete across four distinct industry award ceremonies throughout the year (Box Office Sim 2 parity).</p>";
+    h += renderAwardCircuitSection();
+    h += "<div class='modal-actions' style='margin-top:14px'><button class='btn btn-primary' onclick='closeModal()'>Close</button></div>";
+    if(typeof openModal === "function") openModal(h);
+  }
+
+  function bindEvents(){
+    const S = _getG();
+    if(!S) return;
+    const inProd = (S.projects || []).filter(p => p.phase === "prod" || p.phase === "pre" || p.phase === "shoot" || p.phase === "post");
+    document.querySelectorAll("[data-dest-id]").forEach(btn => {
+      btn.onclick = () => {
+        const destId = btn.dataset.destId;
+        if(inProd.length > 0){
+          const res = assignFilmingDestination(inProd[0].id, destId, S);
+          if(res.ok && typeof toast === "function") toast(res.msg, "good");
+          else if(typeof toast === "function") toast(res.msg, "bad");
+          if(typeof render === "function") render();
+        }
+      };
+    });
+  }
+
   const FilmLocationsTaxAPI = {
     DESTINATIONS,
     LOCATIONS: Object.values(DESTINATIONS),
@@ -412,7 +518,15 @@
     assignFilmingDestination,
     settleTaxRebate,
     signPLFCarriageAgreement,
-    openLocationsTaxModal
+    openLocationsTaxModal,
+    renderLocationsModal: openLocationsTaxModal,
+    renderLocationsSection,
+    renderAnimalsSection,
+    renderWardrobeSection,
+    renderTheaterChainsSection,
+    renderAwardCircuitSection,
+    renderAwardCircuitModal,
+    bindEvents
   };
 
   if(typeof module !== "undefined" && module.exports){

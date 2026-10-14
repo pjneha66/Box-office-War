@@ -359,6 +359,135 @@
     }
   }
 
+  function getBacklotData(){
+    const S = _getG();
+    const ops = initStudioOperations(S);
+    const owned = (ops && ops.ownedSoundstages) ? ops.ownedSoundstages : [];
+    let discount = 0;
+    owned.forEach(id => {
+      const st = SOUNDSTAGE_LOTS.find(s => s.id === id);
+      if(st) discount += st.budgetDiscountPct;
+    });
+    return {
+      stagesBuilt: Math.max(1, owned.length + 1),
+      stagesOccupied: (S && S.projects ? S.projects.filter(p => p.phase === "shoot").length : 0),
+      discount: Math.min(0.5, discount)
+    };
+  }
+
+  function getCSuiteData(){
+    const S = _getG();
+    const ops = initStudioOperations(S);
+    const hired = (ops && ops.hiredCSuite) ? Object.keys(ops.hiredCSuite).length : 0;
+    return { hiredCount: hired, total: CSUITE_OFFICERS.length };
+  }
+
+  function renderBacklotSection(){
+    const S = _getG();
+    const ops = initStudioOperations(S);
+    const owned = (ops && ops.ownedSoundstages) ? ops.ownedSoundstages : [];
+    let h = "<div class='section-title'>Studio Backlot Soundstages &amp; Virtual Production Stages</div>";
+    h += "<p class='tiny muted' style='margin-bottom:8px'>Expand physical infrastructure to slash in-house production budgets and shoot complex VFX on lot.</p>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    SOUNDSTAGE_LOTS.forEach(st => {
+      const isOwned = owned.includes(st.id);
+      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+        "<div><div class='spread'><b>" + st.name + "</b>" +
+        (isOwned ? "<span class='tag green'>CONSTRUCTED</span>" : "<span class='tag gold'>$" + st.cost + "M Build</span>") + "</div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + st.desc + "</div>"+
+        "<div class='tiny' style='color:var(--green)'>Production Discount: -" + Math.round(st.budgetDiscountPct*100) + "% per shoot</div></div>"+
+        "<div style='margin-top:8px'>";
+      if(isOwned){
+        h += "<button class='btn btn-xs' style='width:100%' disabled>Active on Studio Backlot</button>";
+      } else {
+        h += "<button class='btn btn-xs btn-primary' style='width:100%' data-stage-buy='" + st.id + "'>Build Stage (-$" + st.cost + "M)</button>";
+      }
+      h += "</div></div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderCSuiteSection(){
+    const S = _getG();
+    const ops = initStudioOperations(S);
+    const hired = (ops && ops.hiredCSuite) ? ops.hiredCSuite : {};
+    let h = "<div class='section-title'>Executive C-Suite Board of Directors</div>";
+    h += "<p class='tiny muted' style='margin-bottom:8px'>Contract seasoned studio chiefs to safeguard financing, boost marketing pull, and eliminate production overruns.</p>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    CSUITE_OFFICERS.forEach(off => {
+      const isHired = !!hired[off.id];
+      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+        "<div><div class='spread'><b>" + off.title + "</b>" +
+        (isHired ? "<span class='tag green'>SEATED</span>" : "<span class='tag purple'>Appoint</span>") + "</div>"+
+        "<div class='small' style='margin:2px 0;color:var(--gold)'>" + off.name + "</div>"+
+        "<div class='tiny muted'>" + off.perk + "</div>"+
+        "<div class='tiny' style='margin-top:4px;color:var(--blue)'>Signing: $" + off.signingFee + "M · Salary: $" + (off.weeklySalary*1000).toFixed(0) + "k/wk</div></div>"+
+        "<div style='margin-top:8px'>";
+      if(isHired){
+        h += "<button class='btn btn-xs' style='width:100%' disabled>Contract Active</button>";
+      } else {
+        h += "<button class='btn btn-xs btn-primary' style='width:100%' data-csuite-hire='" + off.id + "'>Hire Officer (-$" + off.signingFee + "M)</button>";
+      }
+      h += "</div></div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderProductPlacementSection(){
+    let h = "<div class='section-title' style='margin-top:14px'>Commercial Product Placement &amp; Brand Sponsorships</div>";
+    h += "<p class='tiny muted' style='margin-bottom:8px'>Monetize in-production projects with high-value brand tie-ins (Box Office Inc parity).</p>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    SPONSOR_TIERS.forEach(sp => {
+      h += "<div class='card'>"+
+        "<div class='spread'><b>" + sp.name + "</b><span class='tag gold'>+$" + sp.cashAdvance + "M Upfront</span></div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + sp.desc + "</div>"+
+        "<div class='tiny' style='color:var(--purple)'>Category: " + sp.category + " | Critic Backlash Risk: " + Math.round(sp.criticPenaltyRisk*100) + "%</div>"+
+      "</div>";
+    });
+    h += "</div>";
+    return h;
+  }
+
+  function renderPhysicalMediaSection(){
+    let h = "<div class='section-title'>Physical Home Video &amp; 4K Collector Editions</div>";
+    h += "<div class='grid g2' style='gap:8px'>";
+    for(const k in PHYSICAL_FORMATS){
+      const fmt = PHYSICAL_FORMATS[k];
+      h += "<div class='card'>"+
+        "<div class='spread'><b>" + fmt.name + "</b><span class='tag green'>$" + fmt.retailPrice + " Retail</span></div>"+
+        "<div class='tiny muted' style='margin:4px 0'>Manufacturing run: " + (fmt.unitBatchSize*1000).toFixed(0) + "k units at $" + fmt.unitCost + "/unit.</div>"+
+        "<div class='tiny gold'>Expected Margin: $" + fmt.profitMarginPerUnit + " per unit sold</div>"+
+      "</div>";
+    }
+    h += "</div>";
+    return h;
+  }
+
+  function bindEvents(){
+    const S = _getG();
+    if(!S) return;
+    document.querySelectorAll("[data-stage-buy]").forEach(btn => {
+      btn.onclick = () => {
+        const stageId = btn.dataset.stageBuy;
+        const res = purchaseSoundstageLot(stageId, S);
+        if(res.ok && typeof toast === "function") toast(res.msg, "good");
+        else if(typeof toast === "function") toast(res.msg, "bad");
+        if(typeof render === "function") render();
+      };
+    });
+    document.querySelectorAll("[data-csuite-hire]").forEach(btn => {
+      btn.onclick = () => {
+        const offId = btn.dataset.csuiteHire;
+        const res = hireCSuiteOfficer(offId, S);
+        if(res.ok && typeof toast === "function") toast(res.msg, "good");
+        else if(typeof toast === "function") toast(res.msg, "bad");
+        if(typeof render === "function") render();
+      };
+    });
+  }
+
   const StudioOperationsAPI = {
     SPONSOR_TIERS,
     PHYSICAL_FORMATS,
@@ -369,7 +498,15 @@
     pressPhysicalMediaBatch,
     hireCSuiteOfficer,
     purchaseSoundstageLot,
-    openProductPlacementModal
+    openProductPlacementModal,
+    renderProductPlacementModal: openProductPlacementModal,
+    getBacklotData,
+    getCSuiteData,
+    renderBacklotSection,
+    renderCSuiteSection,
+    renderProductPlacementSection,
+    renderPhysicalMediaSection,
+    bindEvents
   };
 
   if(typeof module !== "undefined" && module.exports){

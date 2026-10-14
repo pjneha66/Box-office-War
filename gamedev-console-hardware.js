@@ -277,6 +277,109 @@
     }
   }
 
+  function getAverageStaffStamina(state){
+    const S = _getG(state);
+    if(!S) return 85;
+    initGameDevHardware(S);
+    const talent = S.talent || [];
+    if(!talent.length) return 85;
+    let sum = 0;
+    talent.forEach(t => {
+      const st = (S.gameDevHardware.staffStamina && typeof S.gameDevHardware.staffStamina[t.id] === "number")
+        ? S.gameDevHardware.staffStamina[t.id]
+        : 85;
+      sum += st;
+    });
+    return Math.round(sum / talent.length);
+  }
+
+  function renderStaffStaminaSection(state){
+    const S = _getG(state);
+    if(!S) return "";
+    initGameDevHardware(S);
+    const talent = S.talent || [];
+    const avg = getAverageStaffStamina(S);
+    let h = "<div class='card' style='margin-bottom:12px'>";
+    h += "<div class='spread'><b>Staff Stamina &amp; Sabbaticals (Burnout Protection)</b><span class='tag " + (avg >= 70 ? "green" : avg >= 40 ? "gold" : "red") + "'>Avg " + avg + "%</span></div>";
+    h += "<div class='tiny muted' style='margin:4px 0 10px'>Exhausted talent suffer severe production debuffs and high scandal vulnerability. Send tired staff to Swiss luxury wellness retreats to restore stamina.</div>";
+    if(!talent.length){
+      h += "<div class='tiny muted'>No contracted talent currently on the roster.</div>";
+    } else {
+      h += "<div style='display:flex;flex-direction:column;gap:6px'>";
+      talent.slice(0, 6).forEach(t => {
+        const stam = (S.gameDevHardware.staffStamina && typeof S.gameDevHardware.staffStamina[t.id] === "number") ? S.gameDevHardware.staffStamina[t.id] : 85;
+        const color = stam >= 70 ? "var(--green)" : stam >= 40 ? "var(--gold)" : "var(--red)";
+        h += "<div style='display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:4px;gap:8px'>" +
+          "<div style='flex:1;min-width:120px'>" +
+            "<div style='font-size:12px;font-weight:600'>" + t.name + " <span class='tiny muted'>(" + (t.kind || "talent") + ")</span></div>" +
+            "<div style='background:rgba(255,255,255,0.1);height:4px;border-radius:2px;overflow:hidden;margin-top:4px'>" +
+              "<div style='background:" + color + ";width:" + stam + "%;height:100%'></div>" +
+            "</div>" +
+          "</div>" +
+          "<div style='font-size:11px;font-weight:bold;color:" + color + ";min-width:35px;text-align:right'>" + stam + "%</div>" +
+          "<button class='btn btn-xs btn-alt btnSendSabbatical' data-sabbatical-id='" + t.id + "' style='font-size:10px;padding:3px 8px'>Rest ($0.2M)</button>" +
+        "</div>";
+      });
+      h += "</div>";
+    }
+    h += "</div>";
+    return h;
+  }
+
+  function renderHardwareSection(state){
+    const S = _getG(state);
+    if(!S) return "";
+    initGameDevHardware(S);
+    const licensed = S.gameDevHardware.licensedPlatforms || [];
+    const consoleActive = S.gameDevHardware.proprietaryConsoleActive;
+    let h = "<div class='card' style='margin-bottom:12px'>";
+    h += "<div class='spread'><b>Console Dev Kits &amp; Proprietary Hardware</b><span class='tag " + (consoleActive ? "purple" : "gold") + "'>" + (consoleActive ? "Proprietary Console Active" : licensed.length + " Dev Kits Licensed") + "</span></div>";
+    h += "<div class='tiny muted' style='margin:4px 0 10px'>Acquire platform development licenses (PlayStatus, BoxOne, Switcher) and manufacture proprietary studio gaming hardware ecosystems (Game Dev Story parity).</div>";
+    h += "<div class='grid g2' style='gap:8px;margin-bottom:10px'>";
+    GAMING_PLATFORMS.forEach(p => {
+      const owned = licensed.includes(p.id);
+      h += "<div style='background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:4px;border-left:3px solid " + (owned ? "var(--green)" : "var(--gold)") + "'>" +
+        "<div class='spread'><b>" + p.name + "</b><span class='tag " + (owned ? "green" : "gold") + "'>" + (owned ? "Active" : "$" + p.devKitCost + "M") + "</span></div>" +
+        "<div class='tiny muted' style='margin-top:2px'>Share: " + Math.round(p.marketShare*100) + "% | Royalty: " + Math.round(p.platformRoyaltyRate*100) + "%</div>" +
+      "</div>";
+    });
+    h += "</div>";
+    h += "<button class='btn btn-sm btn-primary' id='btnOpenHardwareDesk' style='width:100%'>Open Hardware &amp; Platform Desk</button>";
+    h += "</div>";
+    return h;
+  }
+
+  function renderHardwareModal(state){
+    openHardwareDeskModal();
+  }
+
+  function bindEvents(container, state){
+    const root = container || (typeof document !== "undefined" ? document : null);
+    if(!root) return;
+    const S = _getG(state);
+
+    root.querySelectorAll(".btnSendSabbatical").forEach(btn => {
+      btn.onclick = (e) => {
+        if(e) e.stopPropagation();
+        const id = btn.dataset.sabbaticalId;
+        const res = sendOnSabbatical(id, S);
+        if(res.ok){
+          if(typeof toast === "function") toast(res.msg, "good");
+          if(typeof render === "function") render();
+        } else {
+          if(typeof toast === "function") toast(res.msg, "bad");
+        }
+      };
+    });
+
+    const btnDesk = root.querySelector("#btnOpenHardwareDesk");
+    if(btnDesk){
+      btnDesk.onclick = () => {
+        openHardwareDeskModal();
+      };
+    }
+  }
+
   const GameDevHardwareAPI = {
     GAMING_PLATFORMS,
     PROPRIETARY_HARDWARE,
@@ -285,7 +388,12 @@
     acquireDevKitLicense,
     buildProprietaryConsole,
     sendOnSabbatical,
-    openHardwareDeskModal
+    openHardwareDeskModal,
+    getAverageStaffStamina,
+    renderStaffStaminaSection,
+    renderHardwareSection,
+    renderHardwareModal,
+    bindEvents
   };
 
   if(typeof module !== "undefined" && module.exports){

@@ -335,6 +335,124 @@
     }
   }
 
+  function renderSeasonalBanner(state){
+    const S = _getG(state);
+    if(!S) return "";
+    initLiveOpsCoPro(S);
+    const week = S.week || 1;
+    const seasonIdx = Math.floor((week / 4) % SEASONAL_EVENTS.length);
+    const ev = SEASONAL_EVENTS[seasonIdx] || SEASONAL_EVENTS[0];
+    const targetGross = ev.targetGross || 100;
+    const progressGross = S.liveOpsCoPro.eventProgressGross || 0;
+    const pct = Math.min(100, Math.round((progressGross / targetGross) * 100));
+
+    let h = "<div class='card' style='background:linear-gradient(135deg, rgba(218,165,32,0.12), rgba(20,30,48,0.7));border-left:4px solid var(--gold);margin-bottom:12px;padding:10px 14px'>";
+    h += "<div class='spread'><b style='color:var(--gold)'>[SEASONAL EVENT] " + ev.name + "</b><span class='tag gold'>" + (ev.boostGenre ? ev.boostGenre.toUpperCase() : "EVENT") + " +" + Math.round((ev.boostMultiplier - 1) * 100) + "% BO</span></div>";
+    h += "<div class='tiny muted' style='margin:4px 0 8px'>" + ev.desc + "</div>";
+    h += "<div style='display:flex;align-items:center;gap:10px'>";
+    h += "<div style='flex:1;background:rgba(255,255,255,0.1);height:6px;border-radius:3px;overflow:hidden'><div style='background:var(--gold);width:" + pct + "%;height:100%'></div></div>";
+    h += "<div class='tiny' style='color:var(--gold);font-weight:bold'>$" + Math.round(progressGross) + "M / $" + targetGross + "M (" + pct + "%)</div>";
+    h += "</div>";
+    h += "</div>";
+    return h;
+  }
+
+  function renderCoProductionSection(state){
+    const S = _getG(state);
+    if(!S) return "";
+    initLiveOpsCoPro(S);
+    let h = "<div class='card' style='margin-bottom:12px'>";
+    h += "<div class='spread'><b>Co-Production Studio Alliances &amp; Risk Sharing</b><span class='tag blue'>Syndicate Deals</span></div>";
+    h += "<div class='tiny muted' style='margin:4px 0 10px'>Partner with rival studios to co-finance expensive productions. Partners cover 40-50% of the production budget in exchange for backend box office splits (Social Dev Story parity).</div>";
+    h += "<div class='grid g2' style='gap:8px;margin-bottom:10px'>";
+    RIVAL_ALLIANCES.forEach(p => {
+      h += "<div style='background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:4px;border-left:3px solid var(--blue)'>" +
+        "<div class='spread'><b>" + p.name + "</b><span class='tag blue'>" + Math.round(p.costSharePct * 100) + "% Co-Finance</span></div>" +
+        "<div class='tiny muted' style='margin-top:2px'>" + p.desc + "</div>" +
+        "<div class='tiny' style='color:var(--gold);margin-top:4px'>Partner Rep: " + p.partnerRep + " | Backend Cut: " + Math.round(p.revSharePct * 100) + "%</div>" +
+      "</div>";
+    });
+    h += "</div>";
+    h += "<button class='btn btn-sm btn-alt' id='btnOpenCoProDesk' style='width:100%'>Manage Co-Production Pacts</button>";
+    h += "</div>";
+    return h;
+  }
+
+  function renderBlindBoxModal(state){
+    openTalentScoutModal();
+  }
+
+  function renderAmenitiesModal(state){
+    openTalentScoutModal();
+  }
+
+  function renderCoProductionModal(state){
+    const S = _getG(state);
+    if(!S) return;
+    initLiveOpsCoPro(S);
+
+    const projs = (S.projects || []).filter(p => !p.released && !p.coProductionPact);
+
+    function renderInner(){
+      let h = "<h3>Co-Production Studio Alliances</h3>";
+      h += "<p class='tiny muted' style='margin-bottom:12px'>Sign co-financing pacts on active projects to immediately recoup 40-50% of the budget from partner studios.</p>";
+
+      if(!projs.length){
+        h += "<div class='card' style='text-align:center;padding:16px'><div class='tiny muted'>No active unreleased projects available for co-production financing. Start a project in pre-production first.</div></div>";
+      } else {
+        h += "<div class='section-title'>Eligible Active Projects</div>";
+        projs.forEach(p => {
+          h += "<div class='card' style='margin-bottom:8px'>";
+          h += "<div class='spread'><b>" + p.title + "</b><span class='tag gold'>Budget: $" + (p.budget || 20) + "M</span></div>";
+          h += "<div class='tiny muted' style='margin:4px 0 8px'>Genre: " + (p.genre || "Drama") + " | Phase: " + (p.phase || "development") + "</div>";
+          h += "<div style='display:flex;gap:6px;flex-wrap:wrap'>";
+          RIVAL_ALLIANCES.forEach(a => {
+            const savings = Math.round((p.budget || 20) * a.costSharePct * 10) / 10;
+            h += "<button class='btn btn-xs btn-alt btnSignPact' data-proj-id='" + p.id + "' data-pact-id='" + a.id + "'>Sign " + a.name + " (Recoup +$" + savings + "M)</button>";
+          });
+          h += "</div></div>";
+        });
+      }
+      return h;
+    }
+
+    function wireEvents(container){
+      container.querySelectorAll(".btnSignPact").forEach(btn => {
+        btn.onclick = () => {
+          const res = signCoProductionPact(btn.dataset.projId, btn.dataset.pactId, S);
+          if(res.ok){
+            if(typeof toast === "function") toast(res.msg, "good");
+            container.innerHTML = renderInner();
+            wireEvents(container);
+            if(typeof render === "function") render();
+          } else {
+            if(typeof toast === "function") toast(res.msg, "bad");
+          }
+        };
+      });
+    }
+
+    const initialHtml = "<div id='coProModalInner'>" + renderInner() + "</div>";
+    if(typeof openModal === "function"){
+      const v = openModal(initialHtml);
+      if(v){
+        const inner = v.querySelector("#coProModalInner") || v;
+        wireEvents(inner);
+      }
+    }
+  }
+
+  function bindEvents(container, state){
+    const root = container || (typeof document !== "undefined" ? document : null);
+    if(!root) return;
+    const btnCo = root.querySelector("#btnOpenCoProDesk");
+    if(btnCo){
+      btnCo.onclick = () => {
+        renderCoProductionModal(state);
+      };
+    }
+  }
+
   const LiveOpsCoProAPI = {
     GACHA_RARITIES,
     SEASONAL_EVENTS,
@@ -344,7 +462,13 @@
     pullGachaTalentScout,
     installAmenity,
     signCoProductionPact,
-    openTalentScoutModal
+    openTalentScoutModal,
+    renderSeasonalBanner,
+    renderCoProductionSection,
+    renderBlindBoxModal,
+    renderCoProductionModal,
+    renderAmenitiesModal,
+    bindEvents
   };
 
   if(typeof module !== "undefined" && module.exports){

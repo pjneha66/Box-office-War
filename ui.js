@@ -1057,13 +1057,15 @@ function _renderImpl(){
     if(typeof console!=="undefined") console.error("Render boundary caught error:", err);
     const v = $("#view");
     if(v){
+      const errMsg = (err && err.message) ? String(err.message).replace(/[<>]/g, "") : "Unknown display exception";
       v.innerHTML = "<div class='card' style='max-width:540px;margin:40px auto;text-align:center;padding:24px'>"+
-        "<div style='font-size:36px'>🎬 ⚠️</div>"+
+        "<div style='font-size:18px;font-weight:bold;color:var(--gold);letter-spacing:1px;margin-bottom:8px'>[STUDIO RECOVERY INTERFACE]</div>"+
         "<h3 style='margin:12px 0 6px'>Something interrupted the studio</h3>"+
-        "<p class='small muted' style='margin-bottom:16px'>A temporary display glitch occurred. Your save data is safe.</p>"+
+        "<p class='small muted' style='margin-bottom:12px'>A temporary display glitch occurred. Your save data is safe.</p>"+
+        "<div class='tiny muted' style='background:rgba(255,255,255,0.04);padding:8px;border-radius:4px;margin-bottom:16px;font-family:monospace;word-break:break-word'>" + errMsg + "</div>"+
         "<div class='row' style='justify-content:center;gap:10px'>"+
-        "<button class='btn btn-primary' onclick='location.reload()'>🔄 Reload Studio</button>"+
-        "<button class='btn btn-alt' onclick='try{loadGame();}catch(e){}location.reload()'>💾 Reload Last Save</button>"+
+        "<button class='btn btn-primary' onclick='location.reload()'>Reload Studio</button>"+
+        "<button class='btn btn-alt' onclick='try{loadGame();}catch(e){}location.reload()'>Reload Last Save</button>"+
         "</div></div>";
     }
   }
@@ -1254,7 +1256,7 @@ function viewStudio(){
   "</div>";
 
   if(STUDIO_SUB === "lot"){
-    if(typeof StudioOperationsSuite !== "undefined"){
+    if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderBacklotSection === "function"){
       h += StudioOperationsSuite.renderBacklotSection();
     }
     if(typeof hqFloorPlanSVG === "function"){
@@ -1278,7 +1280,7 @@ function viewStudio(){
   }
 
   if(STUDIO_SUB === "csuite"){
-    if(typeof StudioOperationsSuite !== "undefined"){
+    if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderCSuiteSection === "function"){
       h += StudioOperationsSuite.renderCSuiteSection();
     }
     return h;
@@ -1297,7 +1299,7 @@ function viewStudio(){
   }
 
   if(STUDIO_SUB === "operations"){
-    if(typeof GameDevHardware !== "undefined"){
+    if(typeof GameDevHardware !== "undefined" && typeof GameDevHardware.renderStaffStaminaSection === "function"){
       h += GameDevHardware.renderStaffStaminaSection();
     }
     h += "<div class='section-title'>Studio Security, Guilds &amp; Exhibitors</div>";
@@ -1758,14 +1760,14 @@ function viewDevelop(){
   if(DEVELOP_SUB==="tax"){
     let txH = h;
     if(typeof FilmLocationsTax !== "undefined"){
-      txH += FilmLocationsTax.renderLocationsSection();
-      txH += FilmLocationsTax.renderAnimalsSection();
-      txH += FilmLocationsTax.renderWardrobeSection();
+      if(typeof FilmLocationsTax.renderLocationsSection === "function") txH += FilmLocationsTax.renderLocationsSection();
+      if(typeof FilmLocationsTax.renderAnimalsSection === "function") txH += FilmLocationsTax.renderAnimalsSection();
+      if(typeof FilmLocationsTax.renderWardrobeSection === "function") txH += FilmLocationsTax.renderWardrobeSection();
     }
-    if(typeof StudioOperationsSuite !== "undefined"){
+    if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderProductPlacementSection === "function"){
       txH += StudioOperationsSuite.renderProductPlacementSection();
     }
-    if(typeof LiveOpsCoPro !== "undefined"){
+    if(typeof LiveOpsCoPro !== "undefined" && typeof LiveOpsCoPro.renderCoProductionSection === "function"){
       txH += LiveOpsCoPro.renderCoProductionSection();
     }
     return txH;
@@ -4218,10 +4220,10 @@ function viewBoxOffice(){
   "</div>";
 
   if(BOXOFFICE_SUB === "chains"){
-    if(typeof FilmLocationsTax !== "undefined") return h + FilmLocationsTax.renderTheaterChainsSection();
+    if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.renderTheaterChainsSection === "function") return h + FilmLocationsTax.renderTheaterChainsSection();
   }
   if(BOXOFFICE_SUB === "awards"){
-    if(typeof FilmLocationsTax !== "undefined") return h + FilmLocationsTax.renderAwardCircuitSection();
+    if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.renderAwardCircuitSection === "function") return h + FilmLocationsTax.renderAwardCircuitSection();
   }
   if(BOXOFFICE_SUB === "territories"){
     return h + fold("intl-summary", "Regional box office summary", regionSummaryPanel(), {open:true});
@@ -5147,18 +5149,18 @@ function bindView(){
   $$("[data-libsub]").forEach(b=>b.onclick=()=>{ LIBRARY_SUB=b.dataset.libsub; beep("click"); render(); });
   $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ GAMES_SUB=b.dataset.gamestab; beep("click"); render(); });
 
-  const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); if(typeof FilmLocationsTax!=="undefined") FilmLocationsTax.renderLocationsModal(); };
-  const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined") StudioOperationsSuite.renderProductPlacementModal(); };
-  const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined") LiveOpsCoPro.renderBlindBoxModal(); };
-  const btnDHw = $("#btnDashHardware"); if(btnDHw) btnDHw.onclick=()=>{ beep("click"); if(typeof GameDevHardware!=="undefined") GameDevHardware.renderHardwareModal(); };
-  const btnDCo = $("#btnDashCoPro"); if(btnDCo) btnDCo.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined") LiveOpsCoPro.renderCoProductionModal(); };
-  const btnDAwd = $("#btnDashAwards"); if(btnDAwd) btnDAwd.onclick=()=>{ beep("click"); if(typeof FilmLocationsTax!=="undefined") FilmLocationsTax.renderAwardCircuitModal(); };
-  const btnAmen = $("#btnOpenAmenities"); if(btnAmen) btnAmen.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined") LiveOpsCoPro.renderAmenitiesModal(); };
+  const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); if(typeof FilmLocationsTax!=="undefined" && typeof FilmLocationsTax.renderLocationsModal === "function") FilmLocationsTax.renderLocationsModal(); };
+  const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.renderProductPlacementModal === "function") StudioOperationsSuite.renderProductPlacementModal(); };
+  const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderBlindBoxModal === "function") LiveOpsCoPro.renderBlindBoxModal(); };
+  const btnDHw = $("#btnDashHardware"); if(btnDHw) btnDHw.onclick=()=>{ beep("click"); if(typeof GameDevHardware!=="undefined" && typeof GameDevHardware.renderHardwareModal === "function") GameDevHardware.renderHardwareModal(); };
+  const btnDCo = $("#btnDashCoPro"); if(btnDCo) btnDCo.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderCoProductionModal === "function") LiveOpsCoPro.renderCoProductionModal(); };
+  const btnDAwd = $("#btnDashAwards"); if(btnDAwd) btnDAwd.onclick=()=>{ beep("click"); if(typeof FilmLocationsTax!=="undefined" && typeof FilmLocationsTax.renderAwardCircuitModal === "function") FilmLocationsTax.renderAwardCircuitModal(); };
+  const btnAmen = $("#btnOpenAmenities"); if(btnAmen) btnAmen.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderAmenitiesModal === "function") LiveOpsCoPro.renderAmenitiesModal(); };
 
-  if(typeof StudioOperationsSuite!=="undefined" && StudioOperationsSuite.bindEvents) StudioOperationsSuite.bindEvents();
-  if(typeof FilmLocationsTax!=="undefined" && FilmLocationsTax.bindEvents) FilmLocationsTax.bindEvents();
-  if(typeof GameDevHardware!=="undefined" && GameDevHardware.bindEvents) GameDevHardware.bindEvents();
-  if(typeof LiveOpsCoPro!=="undefined" && LiveOpsCoPro.bindEvents) LiveOpsCoPro.bindEvents();
+  if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.bindEvents === "function") StudioOperationsSuite.bindEvents();
+  if(typeof FilmLocationsTax!=="undefined" && typeof FilmLocationsTax.bindEvents === "function") FilmLocationsTax.bindEvents();
+  if(typeof GameDevHardware!=="undefined" && typeof GameDevHardware.bindEvents === "function") GameDevHardware.bindEvents();
+  if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.bindEvents === "function") LiveOpsCoPro.bindEvents();
 
   const mab=$("#btnMaBrowse"); if(mab) mab.onclick=()=>{ beep("click"); maVaultBrowser(); };
   $$("[data-macounter]").forEach(b=>b.onclick=(e)=>{
@@ -5443,7 +5445,7 @@ function viewLibrary(){
   "</div>";
 
   if(LIBRARY_SUB === "physical"){
-    if(typeof StudioOperationsSuite !== "undefined") return h + StudioOperationsSuite.renderPhysicalMediaSection();
+    if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderPhysicalMediaSection === "function") return h + StudioOperationsSuite.renderPhysicalMediaSection();
   }
   if(LIBRARY_SUB === "vault"){
     return h + "<div class='card'><b>Film Restoration Vault</b><div class='tiny muted' style='margin:4px 0 8px'>Digitize and remaster aged film prints to 4K Ultra HD.</div><button class='btn btn-primary' id='btnRestorationVault'>Open Restoration Vault</button></div>";
@@ -5666,7 +5668,7 @@ function viewGames(){
   "</div>";
 
   if(GAMES_SUB === "hardware"){
-    if(typeof GameDevHardware !== "undefined") return h + GameDevHardware.renderHardwareSection();
+    if(typeof GameDevHardware !== "undefined" && typeof GameDevHardware.renderHardwareSection === "function") return h + GameDevHardware.renderHardwareSection();
   }
 
   const D = G.gamesDiv || {unlocked:false, projects:[], released:[]};
@@ -7161,7 +7163,7 @@ function viewDashboard(){
 
   if(DASHBOARD_SUB === "actions"){
     h += quickActionsCard;
-    if(typeof LiveOpsCoPro !== "undefined"){
+    if(typeof LiveOpsCoPro !== "undefined" && typeof LiveOpsCoPro.renderSeasonalBanner === "function"){
       h += LiveOpsCoPro.renderSeasonalBanner();
     }
     return h;
@@ -7197,7 +7199,7 @@ function viewDashboard(){
   // Default: overview
   h += quickActionsCard;
 
-  if(typeof LiveOpsCoPro !== "undefined"){
+  if(typeof LiveOpsCoPro !== "undefined" && typeof LiveOpsCoPro.renderSeasonalBanner === "function"){
     h += LiveOpsCoPro.renderSeasonalBanner();
   }
 
