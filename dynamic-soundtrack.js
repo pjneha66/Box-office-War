@@ -23,6 +23,8 @@
       somber:     [ [98.00, 116.54, 146.83], [82.41, 98.00, 123.47], [73.42, 87.31, 110.00] ]       // Gm, Em, Dm low
     },
 
+    sfxEnabled: true,
+
     init(){
       if(typeof window === "undefined") return;
       try {
@@ -30,6 +32,8 @@
         if(stored === "true") this.enabled = true;
         const storedVol = localStorage.getItem("bow_music_vol");
         if(storedVol !== null) this.volume = parseFloat(storedVol) || 0.18;
+        const storedSfx = localStorage.getItem("bow_sfx_enabled");
+        if(storedSfx !== null) this.sfxEnabled = (storedSfx !== "false");
       } catch(e){}
     },
 
@@ -58,6 +62,18 @@
       try { localStorage.setItem("bow_music_vol", this.volume); } catch(e){}
       if(this.masterGain && this.ctx){
         this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+      }
+    },
+
+    setSFXEnabled(val){
+      this.sfxEnabled = !!val;
+      try { localStorage.setItem("bow_sfx_enabled", this.sfxEnabled ? "true" : "false"); } catch(e){}
+    },
+
+    playSFX(kind){
+      if(!this.sfxEnabled) return;
+      if(typeof global.beep === "function"){
+        global.beep(kind);
       }
     },
 
@@ -152,6 +168,74 @@
       if(!state) return;
       const newMood = this.evaluateMood(state);
       this.setMood(newMood);
+    },
+
+    openAudioSettingsModal(){
+      if(typeof global.openModal !== "function") return;
+      let h = "<h3>Audio &amp; SoundFX Studio Suite</h3>";
+      h += "<div class='tiny muted' style='margin-bottom:12px'>Procedural WebAudio soundscapes and retro tactile sound effects from itch.io free game audio packs.</div>";
+
+      h += "<div class='card' style='margin-bottom:10px'>";
+      h += "<div class='spread'><b>Adaptive Music Score</b><button class='btn btn-sm " + (this.enabled ? "btn-primary" : "btn-alt") + "' id='btnToggleMusic'>" + (this.enabled ? "Music: ON" : "Music: OFF") + "</button></div>";
+      h += "<div class='tiny muted' style='margin-top:6px'>Current Mood: <b style='text-transform:uppercase;color:var(--gold)'>" + this.currentMood + "</b> (evaluates financial health, hit streaks, and awards)</div>";
+      h += "<div style='margin-top:8px'><label class='tiny'>Music Master Volume: <span id='volDisplay'>" + Math.round(this.volume * 100) + "%</span></label>";
+      h += "<input type='range' id='rngMusicVol' min='0' max='100' value='" + Math.round(this.volume * 100) + "' style='width:100%'></div>";
+      h += "</div>";
+
+      h += "<div class='card' style='margin-bottom:10px'>";
+      h += "<div class='spread'><b>Tactile Sound FX (SFX)</b><button class='btn btn-sm " + (this.sfxEnabled ? "btn-primary" : "btn-alt") + "' id='btnToggleSFX'>" + (this.sfxEnabled ? "SFX: ON" : "SFX: OFF") + "</button></div>";
+      h += "<div class='tiny muted' style='margin:6px 0 10px'>Crisp clicks, cash registers, 35mm projector hum, award fanfares, clapper snaps, and camera flashes.</div>";
+      h += "<div class='row' style='flex-wrap:wrap;gap:6px'>";
+      h += "<button class='btn btn-xs' data-testsfx='click'>Click</button>";
+      h += "<button class='btn btn-xs' data-testsfx='cash'>Cash Register</button>";
+      h += "<button class='btn btn-xs' data-testsfx='camera'>Camera Flash</button>";
+      h += "<button class='btn btn-xs' data-testsfx='projector'>35mm Projector</button>";
+      h += "<button class='btn btn-xs' data-testsfx='clap'>Clapper Slate</button>";
+      h += "<button class='btn btn-xs' data-testsfx='fanfare'>Fanfare</button>";
+      h += "<button class='btn btn-xs' data-testsfx='cheer'>Crowd Cheer</button>";
+      h += "<button class='btn btn-xs' data-testsfx='disaster'>Disaster Rumble</button>";
+      h += "</div>";
+      h += "</div>";
+
+      h += "<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
+
+      const v = global.openModal(h);
+      if(!v) return;
+
+      const btnMus = v.querySelector("#btnToggleMusic");
+      if(btnMus){
+        btnMus.onclick = () => {
+          const on = this.toggle();
+          btnMus.className = "btn btn-sm " + (on ? "btn-primary" : "btn-alt");
+          btnMus.textContent = on ? "Music: ON" : "Music: OFF";
+        };
+      }
+
+      const rng = v.querySelector("#rngMusicVol");
+      const vDisp = v.querySelector("#volDisplay");
+      if(rng){
+        rng.oninput = (e) => {
+          const val = parseInt(e.target.value, 10) / 100;
+          this.setVolume(val);
+          if(vDisp) vDisp.textContent = Math.round(val * 100) + "%";
+        };
+      }
+
+      const btnSfx = v.querySelector("#btnToggleSFX");
+      if(btnSfx){
+        btnSfx.onclick = () => {
+          this.setSFXEnabled(!this.sfxEnabled);
+          btnSfx.className = "btn btn-sm " + (this.sfxEnabled ? "btn-primary" : "btn-alt");
+          btnSfx.textContent = this.sfxEnabled ? "SFX: ON" : "SFX: OFF";
+          if(this.sfxEnabled) this.playSFX("click");
+        };
+      }
+
+      v.querySelectorAll("[data-testsfx]").forEach(b => {
+        b.onclick = () => {
+          this.playSFX(b.dataset.testsfx);
+        };
+      });
     }
   };
 
@@ -166,6 +250,10 @@
       global.toast(on ? "Adaptive Soundtrack: Enabled" : "Adaptive Soundtrack: Muted", on ? "gold" : "good");
     }
     return on;
+  };
+
+  global.openAudioSettingsModal = function(){
+    BOW_SOUNDTRACK.openAudioSettingsModal();
   };
 
 })(typeof window !== "undefined" ? window : global);

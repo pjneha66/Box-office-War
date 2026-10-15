@@ -402,10 +402,11 @@ step("series pitch wizard", ()=>{
   click(sr);
   if(!$("#szPitch")) throw new Error("pitch button missing");
   click($("#szPitch"));
+  window.eval("closeModal();");
 });
 step("film pitch wizard", ()=>{
   // like a real player: shore up rep/cash for better pitch odds, then re-pitch if the board passes
-  window.eval("G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
+  window.eval("closeModal(); G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
   const before=g().projects.length;
   for(let tries=0; tries<12 && g().projects.length===before; tries++){
     // fresh render each try so the button exists and its wiring is fresh
@@ -838,6 +839,45 @@ step("run 30 more weeks stays stable", ()=>{
     dismissSideModals();
   }
   if(!g() || !Number.isFinite(g().studio.cash)) throw new Error("cash not finite");
+});
+step("v32.6 itch.io assets expansion suite verification", ()=>{
+  // 1. Verify Theme Switcher & 9 themes
+  const themeCount = window.eval("THEMES.length");
+  if(themeCount < 9) throw new Error("expected at least 9 themes, got " + themeCount);
+  window.eval("applyTheme('cyberpunk');");
+  if(window.document.body.dataset.theme !== "cyberpunk") throw new Error("cyberpunk theme not applied");
+  window.eval("applyTheme('gold');");
+
+  // 2. Verify Audio SFX & Settings modal
+  window.eval("if(typeof openAudioSettingsModal === 'function') openAudioSettingsModal();");
+  const sfxModal = $(".modal");
+  if(!sfxModal) throw new Error("audio settings modal did not open");
+  window.eval("closeModal();");
+
+  // 3. Verify Studio Campus Map in Facilities Modal
+  window.eval("openStudioFacilitiesModal();");
+  const campusMap = $(".studio-campus-map");
+  if(!campusMap) throw new Error("studio campus map missing from facilities modal");
+  const lots = $$(".studio-lot-tile");
+  if(lots.length < 4) throw new Error("expected 4 studio lot parcels, got " + lots.length);
+  window.eval("closeModal();");
+
+  // 4. Verify Award Trophy Ceremony Cutscene
+  window.eval("AwardsCampaign.showAwardTrophyCeremony('Best Picture', 'Masterpiece Epic', 'Director Star');");
+  const trophyModal = $(".film-frame-gold");
+  if(!trophyModal) throw new Error("award trophy ceremony modal missing");
+  window.eval("closeModal();");
+
+  // 5. Verify Location Scouting Weather Overlays
+  window.eval(`
+    if(!G.projects.some(p => p.phase === "pre" || p.phase === "dev")){
+      G.projects.push({ id: 9911, title: "Weather Test Epic", genre: "scifi", phase: "dev", budget: 40 });
+    }
+    openLocationScoutingModal();
+  `);
+  const weatherCards = $$(".weather-fx-rain, .weather-fx-snow, .weather-fx-heat, .weather-fx-neon");
+  if(weatherCards.length < 3) throw new Error("expected at least 3 weather fx location cards, got " + weatherCards.length);
+  window.eval("closeModal();");
 });
 
 console.log("");

@@ -176,12 +176,20 @@
       if(!unreleased.length){
         h += "<div class='card' style='text-align:center;padding:16px'><div class='tiny muted'>No active unreleased projects available to market. Start a film in development first.</div></div>";
       } else {
-        h += "<div class='section-title'>Active Slate Projects</div>";
+        h += "<div class='section-title'>Active Slate Projects &amp; Poster Artwork Studio</div>";
         unreleased.forEach(p => {
           const activeCamps = p.activeCampaigns || [];
-          h += "<div class='card' style='margin-bottom:8px'>" +
+          const frameStyle = p.posterFrame || "film-frame-cell";
+          h += "<div class='card " + frameStyle + "' style='margin-bottom:12px;padding:12px;transition:box-shadow 0.2s ease'>" +
             "<div class='spread'><b>" + p.title + "</b><span class='tag gold'>Buzz: " + (p.buzz || 50) + "/100</span></div>" +
-            "<div class='tiny muted' style='margin:4px 0 8px'>Genre: " + (p.genre || "Action") + " | Active Campaigns: " + (activeCamps.length ? activeCamps.join(", ") : "None") + "</div>" +
+            "<div class='tiny muted' style='margin:4px 0 8px'>Genre: <span class='tag'>" + (p.genre || "Action").toUpperCase() + "</span> | Cast: " + (p.director || "A-List") + " | Active Campaigns: " + (activeCamps.length ? activeCamps.join(", ") : "None") + "</div>" +
+            "<div style='display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px'>" +
+              "<span class='tiny muted'>Poster Frame:</span>" +
+              "<button class='btn btn-xs " + (frameStyle === "film-frame-cell" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-cell' data-pid='" + p.id + "'>35mm Cell</button>" +
+              "<button class='btn btn-xs " + (frameStyle === "film-frame-gold" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-gold' data-pid='" + p.id + "'>Gold Prestige</button>" +
+              "<button class='btn btn-xs " + (frameStyle === "film-frame-neon" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-neon' data-pid='" + p.id + "'>Neon Sci-Fi</button>" +
+              "<button class='btn btn-xs " + (frameStyle === "film-frame-vhs" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-vhs' data-pid='" + p.id + "'>Retro VHS</button>" +
+            "</div>" +
             "<div style='display:flex;gap:6px;flex-wrap:wrap'>" +
               MARKETING_TIERS.map(c => {
                 const already = activeCamps.includes(c.id);
@@ -198,10 +206,24 @@
     }
 
     function wireEvents(container){
+      container.querySelectorAll("[data-setframe]").forEach(btn => {
+        btn.onclick = () => {
+          const pid = btn.dataset.pid;
+          const frame = btn.dataset.setframe;
+          const proj = (S.projects || []).find(p => p.id === pid || p.title === pid);
+          if(proj){
+            proj.posterFrame = frame;
+            if(typeof beep === "function") beep("click");
+            container.innerHTML = renderInner();
+            wireEvents(container);
+          }
+        };
+      });
       container.querySelectorAll(".btnLaunchCamp").forEach(btn => {
         btn.onclick = () => {
           const res = launchCampaign(btn.dataset.projId, btn.dataset.campId, S);
           if(res.ok){
+            if(typeof beep === "function") beep("cash");
             if(typeof toast === "function") toast(res.msg, "good");
             container.innerHTML = renderInner();
             wireEvents(container);

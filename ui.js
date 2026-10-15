@@ -106,6 +106,33 @@ const STINGS = {
   chime(ac,t){ tone(ac,t,880,0.28,{gain:0.05,type:"sine"}); tone(ac,t+0.14,1174,0.4,{gain:0.045,type:"sine"}); },
   /* 🎬 clapper snap on week advance */
   clap(ac,t){ noise(ac,t,0.09,{freq:2200,gain:0.045,q:0.6,decay:3}); tone(ac,t,320,0.06,{gain:0.04,type:"square"}); },
+  /* 📸 paparazzi camera flash + mechanical shutter snap */
+  camera(ac,t){
+    tone(ac,t,2400,0.06,{gain:0.04,type:"sine",glide:4800});
+    noise(ac,t+0.05,0.09,{freq:3400,gain:0.065,q:1.2,decay:2.5});
+    tone(ac,t+0.08,420,0.04,{gain:0.035,type:"square"});
+  },
+  /* 📽 vintage 35mm projector reel motor flutter */
+  projector(ac,t){
+    for(let i=0; i<6; i++){
+      const at = t + i*0.065;
+      tone(ac,at,180+(i%2?40:0),0.035,{gain:0.04,type:"square"});
+      noise(ac,at+0.01,0.03,{freq:1800,gain:0.03,decay:3});
+    }
+  },
+  /* 🚨 disaster rumble stinger on critical failure or PR crisis */
+  disaster(ac,t){
+    tone(ac,t,110,0.45,{gain:0.08,type:"sawtooth",glide:55,filter:400});
+    tone(ac,t+0.12,82.4,0.55,{gain:0.075,type:"sawtooth",glide:45,filter:300});
+    noise(ac,t+0.05,0.6,{freq:800,gain:0.045,decay:1.5});
+  },
+  /* 🥂 awards celebration crowd cheer & sparkle */
+  cheer(ac,t){
+    noise(ac,t,0.85,{freq:2200,gain:0.04,decay:1.2,q:0.5});
+    [NOTE.C5,NOTE.E5,NOTE.G5,NOTE.C6].forEach((f,i)=>{
+      tone(ac,t+0.15+i*0.05,f,0.4,{gain:0.035,type:"triangle"});
+    });
+  },
 };
 /* v5: haptics — big beats buzz the phone (navigator.vibrate), if the user left it on */
 let HAPTICS = true;
@@ -114,7 +141,7 @@ function rumble(pattern){
   if(!HAPTICS) return;
   try{ if(navigator && navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
-const HAPTIC_MAP = { fanfare:[35], cash:[20], drums:[25,40,25], smash:[40,60,40], buzz:[90], gold:[20,30,20], bad:[70], clap:[15], click:[6], chime:[18], good:[18] };
+const HAPTIC_MAP = { fanfare:[35], cash:[20], drums:[25,40,25], smash:[40,60,40], buzz:[90], gold:[20,30,20], bad:[70], clap:[15], click:[6], chime:[18], good:[18], camera:[10,20,10], projector:[15,15,15], disaster:[80,100], cheer:[30,50,30] };
 let MUTE_UNTIL = 0;
 try{ MUTE_UNTIL = +(localStorage.getItem("bow_mute_until")||0); }catch(e){}
 function beep(kind){
@@ -140,11 +167,15 @@ function applyMotionPref(){
 let THEME = "gold";
 try{ THEME = localStorage.getItem("bow_theme") || "gold"; }catch(e){}
 const THEMES=[
-  {id:"gold",   name:"Midnight Gold",   a:"#f5b942", b:"#10141f"},
-  {id:"aurora", name:"Aurora Night",    a:"#4dd6e8", b:"#0f1822"},
-  {id:"violet", name:"Violet Premiere", a:"#b28fce", b:"#151027"},
-  {id:"carpet", name:"Red Carpet",      a:"#f09199", b:"#1e1114"},
-  {id:"silver", name:"Silver Screen",   a:"#c9ccd1", b:"#15171a"},
+  {id:"gold",      name:"Midnight Gold",    a:"#f5b942", b:"#10141f"},
+  {id:"aurora",    name:"Aurora Night",     a:"#4dd6e8", b:"#0f1822"},
+  {id:"violet",    name:"Violet Premiere",  a:"#b28fce", b:"#151027"},
+  {id:"carpet",    name:"Red Carpet",       a:"#f09199", b:"#1e1114"},
+  {id:"silver",    name:"Silver Screen",    a:"#c9ccd1", b:"#15171a"},
+  {id:"cyberpunk", name:"Neon Cyberpunk",   a:"#00f0ff", b:"#070a14"},
+  {id:"noir",      name:"1920s Film Noir",  a:"#d4af37", b:"#120f0c"},
+  {id:"slate",     name:"Titanium Slate",   a:"#94a3b8", b:"#090d14"},
+  {id:"emerald",   name:"Studio Emerald",   a:"#10b981", b:"#06130d"},
 ];
 function applyTheme(t){
   if(t) THEME=t;
@@ -156,7 +187,10 @@ function applyTheme(t){
   try{
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if(metaTheme){
-      const colors = { gold:"#0b0e14", aurora:"#0a0f15", violet:"#0d0b16", carpet:"#120b0c", silver:"#0b0c0e" };
+      const colors = {
+        gold:"#0b0e14", aurora:"#0a0f15", violet:"#0d0b16", carpet:"#120b0c",
+        silver:"#0b0c0e", cyberpunk:"#070a14", noir:"#120f0c", slate:"#090d14", emerald:"#06130d"
+      };
       metaTheme.setAttribute("content", colors[THEME] || "#0b0e14");
     }
   }catch(e){}

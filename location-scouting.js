@@ -21,7 +21,9 @@
       taxRebate: 0.25, // 25% cash tax rebate on production budget
       qualityBuff: 2,
       genresFavored: ["drama", "thriller", "action"],
-      desc: "25% British Film Institute tax credit rebate on qualified spend. World-class crew and heritage stages."
+      desc: "25% British Film Institute tax credit rebate on qualified spend. World-class crew and heritage stages.",
+      weather: "Temperate Rain",
+      fxClass: "weather-fx-rain"
     },
     {
       id: "iceland",
@@ -29,7 +31,9 @@
       taxRebate: 0.15,
       qualityBuff: 6,
       genresFavored: ["scifi", "fantasy"],
-      desc: "Stunning, alien-like natural topography. Adds +6 visual quality points to Sci-Fi and Fantasy epics."
+      desc: "Stunning, alien-like natural topography. Adds +6 visual quality points to Sci-Fi and Fantasy epics.",
+      weather: "Sub-Zero Blizzard",
+      fxClass: "weather-fx-snow"
     },
     {
       id: "atlanta",
@@ -37,7 +41,9 @@
       taxRebate: 0.28,
       qualityBuff: 1,
       genresFavored: ["action", "comedy", "horror"],
-      desc: "Massive 28% production tax incentive. Deep soundstage availability and low overhead."
+      desc: "Massive 28% production tax incentive. Deep soundstage availability and low overhead.",
+      weather: "Southern Heat Haze",
+      fxClass: "weather-fx-heat"
     },
     {
       id: "new_zealand",
@@ -45,7 +51,9 @@
       taxRebate: 0.20,
       qualityBuff: 5,
       genresFavored: ["fantasy", "adventure"],
-      desc: "Pristine landscapes with world-renowned practical set infrastructure. Elevates award pedigree."
+      desc: "Pristine landscapes with world-renowned practical set infrastructure. Elevates award pedigree.",
+      weather: "Misty Mountain Air",
+      fxClass: "weather-fx-rain"
     },
     {
       id: "tokyo",
@@ -53,7 +61,9 @@
       taxRebate: 0.10,
       qualityBuff: 4,
       genresFavored: ["action", "thriller", "scifi"],
-      desc: "High visual atmosphere and street authenticity. Boosts opening weekend awareness in Asia-Pacific by +15%."
+      desc: "High visual atmosphere and street authenticity. Boosts opening weekend awareness in Asia-Pacific by +15%.",
+      weather: "Cyberpunk Neon Fog",
+      fxClass: "weather-fx-neon"
     }
   ];
 
@@ -115,10 +125,11 @@
       const rebateM = Math.round(target.budget * loc.taxRebate * 10) / 10;
       const isFavored = loc.genresFavored.includes(target.genre);
 
-      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+      h += "<div class='card " + (loc.fxClass || "") + "' style='display:flex;flex-direction:column;justify-content:space-between;position:relative'>"+
         "<div>"+
           "<div class='spread'><b>" + esc(loc.name) + "</b><span class='tag " + (isFavored ? "green" : "") + "'>" + Math.round(loc.taxRebate * 100) + "% Rebate</span></div>"+
-          "<div class='tiny muted' style='margin:6px 0'>" + esc(loc.desc) + "</div>"+
+          "<div class='tiny' style='color:var(--gold);margin:4px 0'>Weather Atmosphere: <b>" + esc(loc.weather || "Clear") + "</b></div>"+
+          "<div class='tiny muted' style='margin:4px 0 6px'>" + esc(loc.desc) + "</div>"+
           "<div class='tiny' style='margin:4px 0'>"+
             "Estimated Tax Cash Back: <b>+$" + rebateM + "M</b> | Visual Boost: <b>+" + (loc.qualityBuff + (isFavored ? 2 : 0)) + " pts</b>" +
           "</div>"+

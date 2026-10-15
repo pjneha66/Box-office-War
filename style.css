@@ -1479,9 +1479,227 @@ body[data-theme="silver"]{
     radial-gradient(880px 520px at -12% 108%, rgba(142,149,163,.08), transparent 60%),
     radial-gradient(700px 420px at 55% 118%, rgba(35,38,43,.5), transparent 62%);
 }
+/* ── Neon Cyberpunk — High-tech laser grid & vibrant magenta/cyan ── */
+body[data-theme="cyberpunk"]{
+  --bg:#070a14; --bg2:#0b1122; --card:#0f1730; --card2:#172244;
+  --line:#1f2f5c; --line2:#334d94;
+  --gold:#00f0ff; --gold2:#70f7ff; --goldDim:#007a82;
+  --cyan:#00f0ff; --purple:#ff007f;
+  --btnA:#70F7FF; --btnB:#00F0FF; --btnC:#FF007F; --btnText:#040e1f;
+  --hudRing: linear-gradient(155deg, rgba(0,240,255,.35), rgba(255,0,127,.25) 50%, rgba(31,47,92,.7));
+  background-image:
+    radial-gradient(1100px 560px at 85% -10%, rgba(0,240,255,.14), transparent 60%),
+    radial-gradient(880px 520px at -10% 110%, rgba(255,0,127,.12), transparent 58%),
+    radial-gradient(700px 420px at 50% 120%, rgba(15,23,48,.8), transparent 65%);
+}
+/* ── 1920s Film Noir — Vintage sepia, cigar smoke & classic cinema ── */
+body[data-theme="noir"]{
+  --bg:#120f0c; --bg2:#181410; --card:#201a14; --card2:#2a231b;
+  --line:#3d3328; --line2:#57493a;
+  --gold:#d4af37; --gold2:#e6cf7a; --goldDim:#69561a;
+  --btnA:#E6CF7A; --btnB:#D4AF37; --btnC:#8C6D1F; --btnText:#1e1708;
+  --hudRing: linear-gradient(155deg, rgba(212,175,55,.28), rgba(87,73,58,.65) 45%, rgba(61,51,40,.6));
+  background-image:
+    radial-gradient(1100px 560px at 80% -12%, rgba(212,175,55,.12), transparent 62%),
+    radial-gradient(880px 520px at -10% 108%, rgba(87,73,58,.16), transparent 60%),
+    radial-gradient(700px 420px at 55% 118%, rgba(32,26,20,.6), transparent 62%);
+}
+/* ── Titanium Slate — Ultra-modern minimalist executive studio ── */
+body[data-theme="slate"]{
+  --bg:#090d14; --bg2:#0e131d; --card:#131a26; --card2:#1a2333;
+  --line:#243044; --line2:#364763;
+  --gold:#94a3b8; --gold2:#cbd5e1; --goldDim:#475569;
+  --btnA:#CBD5E1; --btnB:#94A3B8; --btnC:#475569; --btnText:#090d14;
+  --hudRing: linear-gradient(155deg, rgba(148,163,184,.25), rgba(54,71,99,.6) 40%, rgba(36,48,68,.6));
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, rgba(148,163,184,.10), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, rgba(36,48,68,.20), transparent 60%);
+}
+/* ── Studio Emerald — Prestige Beverly Hills luxury mogul ── */
+body[data-theme="emerald"]{
+  --bg:#06130d; --bg2:#0a1c14; --card:#0f271c; --card2:#153426;
+  --line:#1e4835; --line2:#2d6a4f;
+  --gold:#10b981; --gold2:#6ee7b7; --goldDim:#065f46;
+  --btnA:#6EE7B7; --btnB:#10B981; --btnC:#047857; --btnText:#031c11;
+  --hudRing: linear-gradient(155deg, rgba(16,185,129,.30), rgba(45,106,79,.65) 40%, rgba(30,72,53,.6));
+  background-image:
+    radial-gradient(1100px 560px at 80% -12%, rgba(16,185,129,.14), transparent 60%),
+    radial-gradient(880px 520px at -10% 108%, rgba(6,95,70,.18), transparent 60%);
+}
 /* theme swatches in Settings */
 .theme-swatch{display:inline-flex; align-items:center; gap:6px}
 .theme-dot{width:13px; height:13px; border-radius:50%; border:1px solid rgba(255,255,255,.3); box-shadow:inset 0 1px 2px rgba(255,255,255,.35)}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FILM FRAME BORDERS & POSTER ARTWORK STYLES
+   ═════════════════════════════════════════════════════════════════════════ */
+.film-frame-cell {
+  position: relative;
+  border-left: 14px solid #14171d;
+  border-right: 14px solid #14171d;
+  background-clip: padding-box;
+}
+.film-frame-cell::before,
+.film-frame-cell::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; width: 8px;
+  background-image: repeating-linear-gradient(to bottom, #fff 0px, #fff 6px, transparent 6px, transparent 14px);
+  opacity: 0.28;
+  pointer-events: none;
+}
+.film-frame-cell::before { left: -11px; }
+.film-frame-cell::after { right: -11px; }
+
+.film-frame-gold {
+  position: relative;
+  border: 2px solid var(--gold);
+  border-radius: 8px;
+  box-shadow: 0 0 16px var(--gold-glow), inset 0 0 8px rgba(245,185,66,.2);
+}
+.film-frame-gold::before {
+  content: "★ ★ ★";
+  position: absolute;
+  top: -10px; left: 50%; transform: translateX(-50%);
+  background: var(--bg);
+  padding: 0 8px;
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.film-frame-neon {
+  border: 2px solid var(--cyan);
+  border-radius: 8px;
+  box-shadow: 0 0 14px rgba(0,240,255,.45), 0 0 28px rgba(255,0,127,.25);
+}
+
+.film-frame-vhs {
+  border: 2px dashed #e6cf7a;
+  background: linear-gradient(rgba(18,15,12,.92), rgba(18,15,12,.92)), repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 2px, transparent 2px, transparent 4px);
+  border-radius: 6px;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   PRODUCTION WEATHER FX OVERLAYS
+   ═════════════════════════════════════════════════════════════════════════ */
+.weather-fx-rain {
+  position: relative;
+  overflow: hidden;
+}
+.weather-fx-rain::after {
+  content: "";
+  position: absolute;
+  top: -50px; left: -50px; right: -50px; bottom: -50px;
+  background: repeating-linear-gradient(105deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 90%, rgba(120,200,255,0.25) 92%, rgba(255,255,255,0) 96%);
+  background-size: 60px 60px;
+  animation: weatherRainAnim 0.75s linear infinite;
+  pointer-events: none;
+  opacity: 0.65;
+}
+@keyframes weatherRainAnim {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-30px, 60px); }
+}
+
+.weather-fx-snow {
+  position: relative;
+  overflow: hidden;
+}
+.weather-fx-snow::after {
+  content: "";
+  position: absolute;
+  top: -40px; left: -40px; right: -40px; bottom: -40px;
+  background: radial-gradient(circle at 10px 10px, rgba(255,255,255,0.7) 1.5px, transparent 0),
+              radial-gradient(circle at 35px 40px, rgba(255,255,255,0.6) 2px, transparent 0),
+              radial-gradient(circle at 55px 15px, rgba(255,255,255,0.8) 1.2px, transparent 0);
+  background-size: 70px 70px;
+  animation: weatherSnowAnim 2.8s linear infinite;
+  pointer-events: none;
+  opacity: 0.7;
+}
+@keyframes weatherSnowAnim {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(70px); }
+}
+
+.weather-fx-heat {
+  position: relative;
+  overflow: hidden;
+}
+.weather-fx-heat::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 100%, rgba(255,140,0,0.18), transparent 70%);
+  pointer-events: none;
+}
+
+.weather-fx-neon {
+  position: relative;
+  overflow: hidden;
+}
+.weather-fx-neon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,240,255,.08), rgba(255,0,127,.08));
+  pointer-events: none;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   STUDIO CAMPUS MAP STYLING
+   ═════════════════════════════════════════════════════════════════════════ */
+.studio-campus-map {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px;
+  margin-bottom: 14px;
+}
+@media (max-width: 640px) {
+  .studio-campus-map {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.studio-lot-tile {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  position: relative;
+}
+.studio-lot-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.studio-lot-tile.active-tier {
+  border-color: var(--border-bright);
+}
+.studio-lot-tile.active-tier.gold-tier {
+  border-color: var(--gold);
+  background: linear-gradient(145deg, var(--bg-card), rgba(245,185,66,0.06));
+}
+.studio-lot-tile .lot-icon {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.studio-lot-tile .lot-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+.studio-lot-tile .lot-status {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
 
 /* ── THEME HYGIENE (Item 89 & 167) ──
    CRITICAL: Whenever setting `background` on text clipped elements,

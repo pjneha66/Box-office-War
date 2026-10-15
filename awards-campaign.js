@@ -205,6 +205,7 @@
           btn.onclick = () => {
             const res = launchCampaign(btn.dataset.filmid, btn.dataset.fyc, "best_picture", S);
             if(res.ok){
+              if(typeof beep === "function") beep("camera");
               if(typeof toast === "function") toast("FYC campaign launched successfully!", "good");
               openAwardsCampaignModal(btn.dataset.filmid);
               if(typeof render === "function") render();
@@ -217,6 +218,46 @@
     }
   }
 
+  function showAwardTrophyCeremony(awardTitle, filmTitle, nominee){
+    if(typeof openModal !== "function") return;
+    if(typeof beep === "function"){
+      beep("fanfare");
+      setTimeout(() => beep("cheer"), 450);
+    }
+    if(typeof confetti === "function"){
+      confetti({ count: 160 });
+    }
+
+    let h = "<div style='text-align:center;padding:16px 8px;position:relative;overflow:hidden'>";
+    h += "<div style='position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle, rgba(245,185,66,0.18) 0%, transparent 70%);pointer-events:none'></div>";
+    h += "<div style='font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:700'>Academy of Motion Picture Arts &amp; Sciences</div>";
+    h += "<h2 style='margin:8px 0 4px;color:var(--gold)'>" + esc(awardTitle || "Best Picture") + " Winner</h2>";
+    h += "<div class='tiny muted' style='margin-bottom:14px'>The envelope has been unsealed. Worldwide industry standing elevated.</div>";
+
+    // Animated Golden Trophy SVG
+    h += "<div style='margin:16px auto;width:96px;height:120px;filter:drop-shadow(0 0 16px rgba(245,185,66,0.6));animation:trophyFloat 2.4s ease-in-out infinite alternate'>";
+    h += "<svg viewBox='0 0 64 80' width='100%' height='100%' fill='none' xmlns='http://www.w3.org/2000/svg'>";
+    h += "<circle cx='32' cy='14' r='8' fill='#ffd479' stroke='#b88628' stroke-width='1.5'/>";
+    h += "<path d='M26 22 L38 22 L35 48 L29 48 Z' fill='#f5b942' stroke='#b88628' stroke-width='1.5'/>";
+    h += "<path d='M22 26 L26 36 M42 26 L38 36' stroke='#ffd479' stroke-width='2' stroke-linecap='round'/>";
+    h += "<rect x='25' y='48' width='14' height='6' rx='1' fill='#ffd479'/>";
+    h += "<rect x='20' y='54' width='24' height='12' rx='2' fill='#1e2636' stroke='#f5b942' stroke-width='1.5'/>";
+    h += "<rect x='16' y='66' width='32' height='6' rx='1' fill='#111722' stroke='#b88628' stroke-width='1'/>";
+    h += "</svg>";
+    h += "</div>";
+
+    h += "<div class='card film-frame-gold' style='margin:12px auto;max-width:380px;padding:12px'>";
+    h += "<div style='font-size:18px;font-weight:800;color:var(--text)'>“" + esc(filmTitle || "Masterpiece") + "”</div>";
+    if(nominee) h += "<div class='tiny muted' style='margin-top:4px'>Honoring: " + esc(nominee) + "</div>";
+    h += "<div class='tiny' style='color:var(--gold);margin-top:6px'>+40 Studio Reputation | Box Office Re-Release Momentum</div>";
+    h += "</div>";
+
+    h += "<div class='modal-actions' style='margin-top:16px'><button class='btn btn-primary' onclick='closeModal()'>Accept Award with Honor</button></div>";
+    h += "</div>";
+
+    openModal(h);
+  }
+
   const AwardsCampaignAPI = {
     CAMPAIGN_TIERS,
     AWARD_CATEGORIES,
@@ -224,7 +265,8 @@
     launchCampaign,
     getFilmAwardsLobbying,
     getActiveCampaigns,
-    openAwardsCampaignModal
+    openAwardsCampaignModal,
+    showAwardTrophyCeremony
   };
 
   if(typeof module !== "undefined" && module.exports){
@@ -232,4 +274,5 @@
   }
   global.AwardsCampaign = AwardsCampaignAPI;
   global.openAwardsCampaignModal = openAwardsCampaignModal;
+  global.showAwardTrophyCeremony = showAwardTrophyCeremony;
 })(typeof window !== "undefined" ? window : global);

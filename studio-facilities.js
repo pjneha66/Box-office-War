@@ -200,6 +200,39 @@
       "<div class='stat'><div class='s-v' style='color:var(--red)'>$" + (S.facilities.totalMaintenancePaid || 0) + "M</div><div class='s-l'>Maintenance Paid</div></div>"+
     "</div>";
 
+    // ── Interactive Studio Campus Lot Map ──
+    const soundFac = S.facilities.soundstage || { tier: 0, rented: false };
+    const ledFac = S.facilities.virtual_led || { tier: 0, rented: false };
+    const postFac = S.facilities.post_suite || { tier: 0, rented: false };
+    const backFac = S.facilities.backlot || { tier: 0, rented: false };
+
+    h += "<div style='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px'>Studio Lot Campus Map</div>";
+    h += "<div class='studio-campus-map'>";
+    h += "<div class='studio-lot-tile " + (soundFac.tier > 0 ? "active-tier gold-tier" : "") + "' data-mapfocus='soundstage'>";
+    h += "<div class='lot-icon'>🎬</div>";
+    h += "<div class='lot-name'>Soundstage Lot</div>";
+    h += "<div class='lot-status'>" + (soundFac.tier > 0 ? ("Tier " + soundFac.tier + " (" + (soundFac.rented ? "Leased" : "In-House") + ")") : "Vacant Lot") + "</div>";
+    h += "</div>";
+
+    h += "<div class='studio-lot-tile " + (ledFac.tier > 0 ? "active-tier gold-tier" : "") + "' data-mapfocus='virtual_led'>";
+    h += "<div class='lot-icon'>🔮</div>";
+    h += "<div class='lot-name'>LED Volume</div>";
+    h += "<div class='lot-status'>" + (ledFac.tier > 0 ? ("Tier " + ledFac.tier + " (" + (ledFac.rented ? "Leased" : "In-House") + ")") : "Unbuilt") + "</div>";
+    h += "</div>";
+
+    h += "<div class='studio-lot-tile " + (postFac.tier > 0 ? "active-tier gold-tier" : "") + "' data-mapfocus='post_suite'>";
+    h += "<div class='lot-icon'>🎧</div>";
+    h += "<div class='lot-name'>Dolby Atmos Post</div>";
+    h += "<div class='lot-status'>" + (postFac.tier > 0 ? ("Tier " + postFac.tier + " (" + (postFac.rented ? "Leased" : "In-House") + ")") : "Unbuilt") + "</div>";
+    h += "</div>";
+
+    h += "<div class='studio-lot-tile " + (backFac.tier > 0 ? "active-tier gold-tier" : "") + "' data-mapfocus='backlot'>";
+    h += "<div class='lot-icon'>🏛️</div>";
+    h += "<div class='lot-name'>Historic Backlot</div>";
+    h += "<div class='lot-status'>" + (backFac.tier > 0 ? ("Tier " + backFac.tier + " (" + (backFac.rented ? "Leased" : "In-House") + ")") : "Open Land") + "</div>";
+    h += "</div>";
+    h += "</div>";
+
     h += "<div class='grid g2'>";
     for(const k in FACILITY_TYPES){
       const def = FACILITY_TYPES[k];
@@ -208,7 +241,7 @@
       const maintenanceWk = fac.tier > 0 ? (def.baseCost * fac.tier * def.maintenanceRate).toFixed(2) : "0.00";
       const rentalWk = fac.tier > 0 ? (def.baseCost * fac.tier * def.maintenanceRate * 1.5).toFixed(2) : "0.00";
 
-      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
+      h += "<div class='card' id='fac-card-" + k + "' style='display:flex;flex-direction:column;justify-content:space-between;transition:box-shadow 0.2s ease'>"+
         "<div>"+
           "<div class='spread'><b>" + esc(def.name) + "</b><span class='tag " + (fac.tier > 0 ? "gold" : "") + "'>Tier " + fac.tier + "/" + def.maxTier + "</span></div>"+
           "<div class='tiny muted' style='margin:6px 0'>" + esc(def.desc) + "</div>"+
@@ -240,6 +273,19 @@
     "</div>";
 
     const v = openModal(h);
+    v.querySelectorAll("[data-mapfocus]").forEach(tile => {
+      tile.onclick = () => {
+        const targetId = tile.dataset.mapfocus;
+        const targetCard = v.querySelector("#fac-card-" + targetId);
+        if(targetCard){
+          v.querySelectorAll(".card").forEach(c => { c.style.boxShadow = ""; c.style.borderColor = ""; });
+          targetCard.style.boxShadow = "0 0 16px var(--gold-glow)";
+          targetCard.style.borderColor = "var(--gold)";
+          targetCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          if(typeof beep === "function") beep("click");
+        }
+      };
+    });
     v.querySelectorAll("[data-facupgrade]").forEach(b => {
       b.onclick = () => {
         const res = upgradeFacility(b.dataset.facupgrade);
