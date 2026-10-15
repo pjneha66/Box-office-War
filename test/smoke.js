@@ -42,6 +42,11 @@ const filmLocTaxJs = fs.readFileSync(path.join(ROOT, "film-locations-tax.js"), "
 const studioOpsJs = fs.readFileSync(path.join(ROOT, "studio-operations-suite.js"), "utf8").replace(/"use strict";/g, "");
 const gameDevHwJs = fs.readFileSync(path.join(ROOT, "gamedev-console-hardware.js"), "utf8").replace(/"use strict";/g, "");
 const liveOpsCoProJs = fs.readFileSync(path.join(ROOT, "live-ops-coproduction.js"), "utf8").replace(/"use strict";/g, "");
+const crisesJs = fs.readFileSync(path.join(ROOT, "hollywood-crises-pr.js"), "utf8").replace(/"use strict";/g, "");
+const demoJs = fs.readFileSync(path.join(ROOT, "demographics-audiences.js"), "utf8").replace(/"use strict";/g, "");
+const prodCreativityJs = fs.readFileSync(path.join(ROOT, "production-creativity-suite.js"), "utf8").replace(/"use strict";/g, "");
+const plfJs = fs.readFileSync(path.join(ROOT, "exhibition-plf-concessions.js"), "utf8").replace(/"use strict";/g, "");
+const mktgBlitzJs = fs.readFileSync(path.join(ROOT, "marketing-blitz-engine.js"), "utf8").replace(/"use strict";/g, "");
 const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8").replace(/"use strict";/g, "");
 
 const bundle = SHIM +
@@ -76,6 +81,11 @@ const bundle = SHIM +
   studioOpsJs + "\n" +
   gameDevHwJs + "\n" +
   liveOpsCoProJs + "\n" +
+  crisesJs + "\n" +
+  demoJs + "\n" +
+  prodCreativityJs + "\n" +
+  plfJs + "\n" +
+  mktgBlitzJs + "\n" +
   smokeBodyJs + "\n";
 
 fs.writeFileSync(OUT, bundle);

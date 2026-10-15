@@ -17,6 +17,7 @@ const FILES = [
   "awards-campaign.js", "board-targets.js", "fan-conventions.js", "test-screenings.js",
   "studio-espionage.js", "merch-licensing.js", "territory-licensing.js", "custom-sandbox.js",
   "film-locations-tax.js", "studio-operations-suite.js", "gamedev-console-hardware.js", "live-ops-coproduction.js",
+  "hollywood-crises-pr.js", "demographics-audiences.js", "production-creativity-suite.js", "exhibition-plf-concessions.js", "marketing-blitz-engine.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 

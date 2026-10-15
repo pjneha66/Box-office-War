@@ -215,6 +215,109 @@ input[type=text]{font-family:inherit}
 
 /* ═══ Kenney UI end ═══ */
 
+/* ═══ Itch.io Free Game Assets Integration (Tiny Swords & Free Asset Pack) ═══ */
+.itch-avatar{
+  width:52px; height:52px; border-radius:12px;
+  background:rgba(20,28,45,0.85); border:2px solid var(--goldDim);
+  box-shadow:0 4px 12px rgba(0,0,0,0.35); overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .15s ease-out; flex-shrink:0;
+}
+.itch-avatar:hover{transform:scale(1.1) rotate(-3deg)}
+.itch-avatar img{
+  width:100%; height:100%; object-fit:contain;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+
+.itch-btn-primary{
+  background-image:url("assets/itch-ui/buttons/BigBlueButton_Regular.png");
+  background-size:100% 100%; background-position:center; background-repeat:no-repeat;
+  border:none; color:#ffffff; font-weight:700; min-height:44px; padding:10px 20px;
+  image-rendering:pixelated; image-rendering:crisp-edges; text-shadow:0 2px 2px rgba(0,0,0,.7);
+  box-shadow:0 4px 12px rgba(0,0,0,.4); cursor:pointer;
+  transition:transform .08s ease-out;
+}
+.itch-btn-primary:active{
+  background-image:url("assets/itch-ui/buttons/BigBlueButton_Pressed.png");
+  transform:translateY(2px) scale(.98);
+}
+.itch-btn-danger{
+  background-image:url("assets/itch-ui/buttons/BigRedButton_Regular.png");
+  background-size:100% 100%; background-position:center; background-repeat:no-repeat;
+  border:none; color:#ffffff; font-weight:700; min-height:44px; padding:10px 20px;
+  image-rendering:pixelated; image-rendering:crisp-edges; text-shadow:0 2px 2px rgba(0,0,0,.7);
+  box-shadow:0 4px 12px rgba(0,0,0,.4); cursor:pointer;
+  transition:transform .08s ease-out;
+}
+.itch-btn-danger:active{
+  background-image:url("assets/itch-ui/buttons/BigRedButton_Pressed.png");
+  transform:translateY(2px) scale(.98);
+}
+.itch-btn-round{
+  background-image:url("assets/itch-ui/buttons/SmallBlueRoundButton_Regular.png");
+  background-size:contain; background-position:center; background-repeat:no-repeat;
+  border:none; width:44px; height:44px; min-height:44px; padding:0;
+  image-rendering:pixelated; image-rendering:crisp-edges; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.itch-btn-round:active{
+  background-image:url("assets/itch-ui/buttons/SmallBlueRoundButton_Pressed.png");
+  transform:translateY(2px) scale(.94);
+}
+.itch-banner-header{
+  background-image:url("assets/itch-ui/banners/Banner.png");
+  background-size:100% 100%; background-position:center; background-repeat:no-repeat;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  padding:16px 28px; color:#ffffff; text-shadow:0 2px 4px rgba(0,0,0,.85);
+  font-weight:900; letter-spacing:.08em; text-transform:uppercase;
+  display:flex; align-items:center; justify-content:center; border-radius:8px;
+}
+.itch-ribbon{
+  background-image:url("assets/itch-ui/ribbons/SmallRibbons.png");
+  background-size:contain; background-position:center; background-repeat:no-repeat;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:6px 14px; font-weight:800; font-size:11.5px; color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+}
+.itch-paper{
+  background-image:url("assets/itch-ui/papers/RegularPaper.png");
+  background-size:100% 100%; background-position:center;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  color:#1b1915; padding:16px; border-radius:10px;
+}
+.itch-paper *{color:#1b1915}
+.itch-special-paper{
+  background-image:url("assets/itch-ui/papers/SpecialPaper.png");
+  background-size:100% 100%; background-position:center;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+  color:#1b1915; padding:18px; border-radius:10px;
+}
+.itch-special-paper *{color:#1b1915}
+.itch-wood{
+  background-image:url("assets/itch-ui/wood/WoodTable.png");
+  background-size:cover; background-position:center;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+.itch-bar-track{
+  background-image:url("assets/itch-ui/bars/BigBar_Base.png");
+  background-size:100% 100%; background-repeat:no-repeat;
+  height:18px; width:100%; position:relative; overflow:hidden;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+.itch-bar-fill{
+  background-image:url("assets/itch-ui/bars/BigBar_Fill.png");
+  background-size:auto 100%; background-repeat:repeat-x;
+  height:100%; transition:width .25s ease-out;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+.itch-icon{
+  display:inline-block; width:22px; height:22px; vertical-align:middle;
+  background-size:contain; background-position:center; background-repeat:no-repeat;
+  image-rendering:pixelated; image-rendering:crisp-edges;
+}
+/* ═══ Itch.io UI end ═══ */
+
 .chip{
   background:rgba(19,24,38,.85); border:1px solid var(--line); border-radius:999px; padding:4px 11px;
   font-size:13px; white-space:nowrap; color:var(--dim); backdrop-filter:blur(6px);
@@ -886,35 +989,43 @@ hr.sep{border:none; border-top:1px solid var(--line); margin:12px 0}
   .toast{max-width:100%; font-size:12.5px}
   .split{gap:10px}
   .section-title{font-size:12.5px; margin:22px 0 10px}
-  .card{padding:15px}
-  .card+.card{margin-top:12px}
-  .btn{min-height:44px}
-  .btn-sm{min-height:44px; font-size:13px; padding:7px 12px}
-  .btn-xs{min-height:40px; font-size:12px; padding:4px 10px}
-  .news-item{padding:11px 12px; font-size:13.5px}
-  .talent-card .t-avatar{font-size:30px; width:48px}
-  .cost-line{padding:7px 0; font-size:14px}
-  .wk-cash{font-size:36px}
+  /* Mobile layout polish — eliminate crowding & visual clutter */
+  .card{padding:14px; border-radius:12px; margin-bottom:12px}
+  .card+.card{margin-top:10px}
+  .stat-hero{grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px}
+  .stat{padding:10px 12px; border-radius:10px}
+  .stat .s-v{font-size:17px}
+  .stat .s-l{font-size:10.5px; letter-spacing:0.04em}
+  .subnav-pills{display:flex; overflow-x:auto; gap:6px; padding-bottom:8px; -webkit-overflow-scrolling:touch}
+  .subnav-pill{flex:0 0 auto; white-space:nowrap; padding:6px 12px; font-size:12px}
+  .btn{min-height:40px}
+  .btn-sm{min-height:36px; font-size:12.5px; padding:6px 10px}
+  .btn-xs{min-height:32px; font-size:11.5px; padding:3px 8px}
+  .news-item{padding:9px 10px; font-size:12.5px}
+  .talent-card{display:flex; gap:10px; align-items:center}
+  .talent-card .t-avatar{width:52px; height:52px; flex:0 0 52px}
+  .cost-line{padding:5px 0; font-size:13px}
+  .wk-cash{font-size:32px}
   .fab-week{display:block}
 
-  /* Mobile P2: minimum font sizes */
-  .tiny{font-size:12px !important}
-  .small{font-size:12.5px !important}
-  .muted{font-size:12px !important}
-  button, select, input, textarea{font-size:12px !important}
+  /* Mobile typography clarity */
+  .tiny{font-size:11px !important}
+  .small{font-size:12px !important}
+  .muted{font-size:11.5px !important}
 }
 /* ─────────── tiny phone breakpoint (<= 400px) ─────────── */
 @media(max-width:400px){
-  body{font-size:14px}
-  .view{padding:10px 10px calc(118px + env(safe-area-inset-bottom))}
+  body{font-size:13.5px}
+  .view{padding:10px 8px calc(118px + env(safe-area-inset-bottom))}
   .chip:nth-child(4){display:none} /* hide date chip on tiny screens */
-  .stat-hero{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
-  .stat{padding:10px}
-  .stat .s-v{font-size:16px; overflow-wrap:anywhere}
-  .g2,.g3{grid-template-columns:minmax(0,1fr)}
-  #btnWeek{min-height:44px}
+  .stat-hero{grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px}
+  .stat{padding:8px 10px}
+  .stat .s-v{font-size:15px; overflow-wrap:anywhere}
+  .stat .s-l{font-size:10px}
+  .g2,.g3{grid-template-columns:minmax(0,1fr); gap:8px}
+  #btnWeek{min-height:42px}
   .modal{padding:14px 12px calc(14px + env(safe-area-inset-bottom))}
-  .news-item{font-size:12.5px}
+  .news-item{font-size:12px}
 }
 @media(min-width:1100px){
   .view{max-width:1160px}

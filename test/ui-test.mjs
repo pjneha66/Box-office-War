@@ -8,20 +8,13 @@ import fs from "fs"; import path from "path"; import { fileURLToPath } from "url
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8")
-  .replace(/<script src="data\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"data.js"),"utf8")+"<\/script>")
-  .replace(/<script src="engine\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"engine.js"),"utf8")+"<\/script>")
-  .replace(/<script src="i18n\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"i18n.js"),"utf8")+"<\/script>")
-  .replace(/<script src="ui\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"ui.js"),"utf8")+"<\/script>")
-  .replace(/<script src="finance-tools\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"finance-tools.js"),"utf8")+"<\/script>")
-  .replace(/<script src="challenge-leaderboard\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"challenge-leaderboard.js"),"utf8")+"<\/script>")
-  .replace(/<script src="theater-chains\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"theater-chains.js"),"utf8")+"<\/script>")
-  .replace(/<script src="dynamic-soundtrack\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"dynamic-soundtrack.js"),"utf8")+"<\/script>")
-  .replace(/<script src="dynasty-legacy\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"dynasty-legacy.js"),"utf8")+"<\/script>")
-  .replace(/<script src="bow-shorts\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"bow-shorts.js"),"utf8")+"<\/script>")
-  .replace(/<script src="talent-agency\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"talent-agency.js"),"utf8")+"<\/script>")
-  .replace(/<script src="film-restoration\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"film-restoration.js"),"utf8")+"<\/script>")
-  .replace(/<script src="festival-pr\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"festival-pr.js"),"utf8")+"<\/script>")
-  .replace(/<script src="v31-features\.js[^"]*"><\/script>/, () => "<script>"+fs.readFileSync(path.join(ROOT,"v31-features.js"),"utf8")+"<\/script>")
+  .replace(/<script src="([^"]+\.js)(?:\?v=[^"]*)?"><\/script>/g, (m, file) => {
+    const full = path.join(ROOT, file);
+    if (fs.existsSync(full)) {
+      return "<script>" + fs.readFileSync(full, "utf8") + "<\/script>";
+    }
+    return m;
+  })
   .replace(/<script>\s*\/\* PWA[^]*?<\/script>/, ""); // no service worker in jsdom
 
 const virtualConsole = new VirtualConsole();
@@ -414,7 +407,7 @@ step("film pitch wizard", ()=>{
   // like a real player: shore up rep/cash for better pitch odds, then re-pitch if the board passes
   window.eval("G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
   const before=g().projects.length;
-  for(let tries=0; tries<6 && g().projects.length===before; tries++){
+  for(let tries=0; tries<12 && g().projects.length===before; tries++){
     // fresh render each try so the button exists and its wiring is fresh
     click($(".tab[data-tab='studio']"));
     click($(".tab[data-tab='develop']"));

@@ -5545,6 +5545,7 @@ function advanceWeek(){
   if(typeof tickGameStudio==="function") tickGameStudio();   // v16: game dev burns weekly, ships at gold master
   if(typeof tickGameSales==="function") tickGameSales();     // v16: released games' sales tail
   if(typeof tickFanMail==="function") tickFanMail();         // v15: the audience writes back
+  if(typeof HollywoodCrises !== "undefined" && typeof HollywoodCrises.processWeeklyCrises === "function") HollywoodCrises.processWeeklyCrises();
   for(const p of [...G.projects]){
     if(p.phase==="ready" && !p.prebuyAccepted && p.releaseWeek && p.releaseWeek<=G.week){
       const rest = Math.max(0, p.marketing - (p.marketingPaid||0));

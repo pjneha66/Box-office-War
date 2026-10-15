@@ -40,68 +40,64 @@ const AV_ROLE_COLOR = { actor:"#f5b942", director:"#b28fce", writer:"#4dd6e8", p
    archetype (actor waves, writer writes, director claps,
    producer checks the clipboard).
    ═══════════════════════════════════════════════════════════ */
+const AV_PIXEL_SPRITES = [
+  "assets/itch-avatars/Avatars_01.png",
+  "assets/itch-avatars/Avatars_02.png",
+  "assets/itch-avatars/Avatars_03.png",
+  "assets/itch-avatars/Avatars_04.png",
+  "assets/itch-avatars/Avatars_05.png",
+  "assets/itch-avatars/Avatars_06.png",
+  "assets/itch-avatars/Avatars_07.png",
+  "assets/itch-avatars/Avatars_08.png",
+  "assets/itch-avatars/Avatars_09.png",
+  "assets/itch-avatars/Avatars_10.png",
+  "assets/itch-avatars/Avatars_11.png",
+  "assets/itch-avatars/Avatars_12.png",
+  "assets/itch-avatars/Avatars_13.png",
+  "assets/itch-avatars/Avatars_14.png",
+  "assets/itch-avatars/Avatars_15.png",
+  "assets/itch-avatars/Avatars_16.png",
+  "assets/itch-avatars/Avatars_17.png",
+  "assets/itch-avatars/Avatars_18.png",
+  "assets/itch-avatars/Avatars_19.png",
+  "assets/itch-avatars/Avatars_20.png",
+  "assets/itch-avatars/Avatars_21.png",
+  "assets/itch-avatars/Avatars_22.png",
+  "assets/itch-avatars/Avatars_23.png",
+  "assets/itch-avatars/Avatars_24.png",
+  "assets/itch-avatars/Avatars_25.png",
+  "assets/pixel-characters/char-female-1.png",
+  "assets/pixel-characters/char-male-1.png",
+  "assets/pixel-characters/char-female-2.png",
+  "assets/pixel-characters/char-male-2.png",
+  "assets/pixel-characters/char-female-cheer.png",
+  "assets/pixel-characters/char-male-cheer.png",
+  "assets/pixel-characters/char-robot.png",
+  "assets/pixel-characters/char-zombie.png"
+];
+
 function talentAvatarSVG(t, opts){
   opts = opts || {};
   const seed = v31Hash((t.id!=null?t.id:"") + "|" + (t.name||"") + "|" + (t.kind||""));
   const kind = t.kind || "actor";
   const roleColor = AV_ROLE_COLOR[kind] || "#c9ccd1";
-  const skin  = v31Pick(AV_SKINS,  seed);
-  const skinD = v31Pick(AV_SKINS,  seed >> 3);
-  const hair  = v31Pick(AV_HAIRS,  seed >> 5);
-  const style = v31Pick(["short","sidepart","long","bun","buzz","afro","bald"], seed >> 7);
-  const glasses = (seed >> 9) % 4 === 0;
-  const bearded = ((seed >> 11) % 5 === 0) && kind !== "writer";
-  const shirt = roleColor;
+  
+  let pool = AV_PIXEL_SPRITES;
+  if(kind === "actor"){
+    pool = AV_PIXEL_SPRITES.slice(0, 10).concat(AV_PIXEL_SPRITES.slice(25, 29));
+  } else if(kind === "director"){
+    pool = AV_PIXEL_SPRITES.slice(8, 16);
+  } else if(kind === "writer"){
+    pool = AV_PIXEL_SPRITES.slice(14, 21);
+  } else if(kind === "producer"){
+    pool = AV_PIXEL_SPRITES.slice(19, 25).concat(AV_PIXEL_SPRITES.slice(31, 33));
+  }
+  const sprite = v31Pick(pool, seed);
+  const size = opts.size || 52;
 
-  let hairSVG = "";
-  if(style === "short")
-    hairSVG = `<path class="av-hair" d="M19 33 Q18 18 32 18 Q46 18 47 33 Q44 25 32 25 Q20 25 19 33 Z" fill="${hair}"/>`;
-  else if(style === "sidepart")
-    hairSVG = `<path class="av-hair" d="M19 34 Q17 17 32 18 Q47 19 47 32 L41 26 Q38 22 31 24 Q23 26 21 34 Z" fill="${hair}"/>`;
-  else if(style === "long")
-    hairSVG = `<path class="av-hair" d="M17 40 Q15 16 32 16 Q49 16 47 40 L47 52 L41 52 L41 34 Q40 24 32 24 Q24 24 23 34 L23 52 L17 52 Z" fill="${hair}"/>`;
-  else if(style === "bun")
-    hairSVG = `<circle cx="32" cy="14" r="6" fill="${hair}"/><path class="av-hair" d="M19 33 Q18 17 32 17 Q46 17 47 33 Q44 24 32 24 Q20 24 19 33 Z" fill="${hair}"/>`;
-  else if(style === "buzz")
-    hairSVG = `<path class="av-hair" d="M20 32 Q20 20 32 20 Q44 20 44 32 Q42 26 32 26 Q22 26 20 32 Z" fill="${hair}" opacity=".75"/>`;
-  else if(style === "afro")
-    hairSVG = `<circle cx="32" cy="26" r="17" fill="${hair}"/><path class="av-hair" d="M19 33 Q19 19 32 19 Q45 19 45 33 Q42 26 32 26 Q22 26 19 33 Z" fill="${hair}"/>`;
-
-  const glassesSVG = glasses
-    ? `<g stroke="#232733" stroke-width="1.4" fill="none"><circle cx="26" cy="34" r="4.6"/><circle cx="38" cy="34" r="4.6"/><path d="M30.6 34h2.8"/><path d="M21.4 33 L18 31"/><path d="M42.6 33 L46 31"/></g>`
-    : "";
-  const beardSVG = bearded
-    ? `<path d="M21 38 Q22 50 32 51 Q42 50 43 38 Q40 45 32 45 Q24 45 21 38 Z" fill="${hair}" opacity=".85"/>`
-    : "";
-
-  /* archetype flourish — one per role, animated by CSS */
-  let flourish = "";
-  if(kind === "actor")
-    flourish = `<g class="av-fl-actor"><rect x="49" y="50" width="7" height="9" rx="3.5" fill="${skinD}"/></g>`;
-  else if(kind === "writer")
-    flourish = `<g class="av-fl-writer"><rect x="45" y="47" width="9" height="11" rx="1.5" fill="#e8e4da"/><rect x="47.5" y="41" width="2.4" height="8" rx="1.2" fill="#f5b942" transform="rotate(24 48.7 45)"/></g>`;
-  else if(kind === "director")
-    flourish = `<g class="av-fl-director"><rect x="8" y="49" width="17" height="10" rx="2" fill="#232733"/><path d="M8 49 l17 0 M13 49 l0 -4 M18 49 l0 -4 M23 49 l0 -4" stroke="#e8e4da" stroke-width="2.4"/></g>`;
-  else if(kind === "producer")
-    flourish = `<g class="av-fl-producer"><rect x="9" y="47" width="12" height="14" rx="2" fill="#3a4152"/><rect x="12" y="45" width="6" height="4" rx="1.5" fill="#c9ccd1"/><path d="M12 53 h6 M12 56 h6" stroke="#c9ccd1" stroke-width="1.2"/></g>`;
-
-  return `<svg class="av-svg" viewBox="0 0 64 72" width="100%" height="100%" style="display:block" role="img" aria-label="${esc(t.name||"talent")} portrait">`+
-    `<circle class="av-aura" cx="32" cy="36" r="28" fill="${roleColor}" opacity=".18"/>`+
-    `<g class="av-body">`+
-      `<path d="M13 72 Q13 56 32 56 Q51 56 51 72 Z" fill="${shirt}"/>`+
-      `<path d="M27 55 h10 v6 h-10 Z" fill="${skinD}"/>`+
-      `<ellipse cx="32" cy="34" rx="13" ry="15" fill="${skin}"/>`+
-      `<ellipse cx="19.5" cy="35" rx="2.2" ry="3" fill="${skinD}"/><ellipse cx="44.5" cy="35" rx="2.2" ry="3" fill="${skinD}"/>`+
-      hairSVG +
-      `<g class="av-eyes"><ellipse class="av-eye" cx="26" cy="33.5" rx="1.9" ry="2.3" fill="#20242e"/><ellipse class="av-eye" cx="38" cy="33.5" rx="1.9" ry="2.3" fill="#20242e"/></g>`+
-      `<path d="M23.5 29.5 q2.5 -1.6 5 0" stroke="${hair}" stroke-width="1.4" fill="none"/>`+
-      `<path d="M35.5 29.5 q2.5 -1.6 5 0" stroke="${hair}" stroke-width="1.4" fill="none"/>`+
-      `<path d="M32 36 q-1.6 2.4 0 3.2 q1.6 -.8 0 -3.2" fill="${skinD}"/>`+
-      `<path d="M28.5 43 q3.5 2.4 7 0" stroke="#8a5a4a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`+
-      beardSVG + glassesSVG +
-      flourish +
-    `</g>`+
-  `</svg>`;
+  return `<div class="itch-avatar kenney-avatar" style="width:${size}px;height:${size}px;border-color:${roleColor};" title="${esc(t.name||"talent")}">`+
+    `<img src="${sprite}" alt="${esc(t.name||"character")}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges">`+
+  `</div>`;
 }
 
 /* ═══════════════════════════════════════════════════════════

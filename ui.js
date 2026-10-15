@@ -1241,6 +1241,7 @@ function viewStudio(){
     "<button class='subnav-pill "+(STUDIO_SUB==="csuite"?"active":"")+"' data-studiosub='csuite'>C-Suite Board</button>"+
     "<button class='subnav-pill "+(STUDIO_SUB==="board"?"active":"")+"' data-studiosub='board'>Board &amp; Directives</button>"+
     "<button class='subnav-pill "+(STUDIO_SUB==="operations"?"active":"")+"' data-studiosub='operations'>Operations &amp; Crew Care</button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="crisis"?"active":"")+"' data-studiosub='crisis'>PR Crisis &amp; Scandals</button>"+
     "<button class='subnav-pill "+(STUDIO_SUB==="heritage"?"active":"")+"' data-studiosub='heritage'>Dynasty &amp; Heritage</button>"+
     "<button class='subnav-pill' id='btnAch'>Achievements</button>"+
     "<button class='subnav-pill' id='btnOpenCustomSandbox'>Sandbox Creator</button>"+
@@ -1324,6 +1325,13 @@ function viewStudio(){
       "<div class='card'><b>Industrial Espionage Desk</b><div class='tiny muted' style='margin:4px 0'>Plant undercover informants to steal rival slates and sabotage clash openings.</div>"+
       "<button class='btn btn-sm btn-alt' id='btnOpenEspionage'>Espionage Desk</button></div>"+
     "</div>";
+    return h;
+  }
+
+  if(STUDIO_SUB === "crisis"){
+    if(typeof HollywoodCrises !== "undefined" && typeof HollywoodCrises.renderCrisisCenterSection === "function"){
+      h += HollywoodCrises.renderCrisisCenterSection();
+    }
     return h;
   }
 
@@ -1746,7 +1754,15 @@ function renderSubTabs(){
 }
 function viewDevelop(){
   if(!DEVELOP_SUB) DEVELOP_SUB="scripts";
-  const DEV_TABS=[["scripts","Scripts"],["ip","IP Market"],["talent","Talent Business"],["combos","Combos Codex"],["tax","Tax Rebates &amp; Co-Pro"]];
+  const DEV_TABS=[
+    ["scripts","Scripts"],
+    ["demographics","Demographics &amp; Dial Tests"],
+    ["creativity","Lenses &amp; Remake Vault"],
+    ["ip","IP Market"],
+    ["talent","Talent Business"],
+    ["combos","Combos Codex"],
+    ["tax","Tax Rebates &amp; Co-Pro"]
+  ];
   let h="<div class='subnav-pills'>"+
     DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+
     "<button class='subnav-pill' id='btnOpenAgencyPackaging'>Agency Packaging (CAA/WME)</button>"+
@@ -1754,6 +1770,20 @@ function viewDevelop(){
     "<button class='subnav-pill' id='btnOpenTalentAgency'>Talent Agency</button>"+
     "<button class='subnav-pill' id='btnClashAnalytics'>Clash Radar</button>"+
   "</div>";
+  if(DEVELOP_SUB==="demographics"){
+    let dH = h;
+    if(typeof DemographicsEngine !== "undefined" && typeof DemographicsEngine.renderDemographicsSection === "function"){
+      dH += DemographicsEngine.renderDemographicsSection();
+    }
+    return dH;
+  }
+  if(DEVELOP_SUB==="creativity"){
+    let cH = h;
+    if(typeof ProductionCreativity !== "undefined" && typeof ProductionCreativity.renderProductionCreativitySection === "function"){
+      cH += ProductionCreativity.renderProductionCreativitySection();
+    }
+    return cH;
+  }
   if(DEVELOP_SUB==="combos") return h+viewCombosCodex();
   if(DEVELOP_SUB==="ip") return h+viewDevelopIP();
   if(DEVELOP_SUB==="talent") return h+viewDevelopTalent();
@@ -4212,7 +4242,9 @@ function viewBoxOffice(){
   if(typeof BOXOFFICE_SUB === "undefined") BOXOFFICE_SUB = "chart";
   let h = "<div class='subnav-pills'>"+
     "<button class='subnav-pill "+(BOXOFFICE_SUB==="chart"?"active":"")+"' data-bosub='chart'>Theatrical Runs</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chains"?"active":"")+"' data-bosub='chains'>Mega-Chains &amp; PLF</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chains"?"active":"")+"' data-bosub='chains'>Mega-Chains</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="plf"?"active":"")+"' data-bosub='plf'>PLF &amp; Concessions</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="blitz"?"active":"")+"' data-bosub='blitz'>Marketing Blitz</button>"+
     "<button class='subnav-pill "+(BOXOFFICE_SUB==="territories"?"active":"")+"' data-bosub='territories'>Territory Deals</button>"+
     "<button class='subnav-pill "+(BOXOFFICE_SUB==="awards"?"active":"")+"' data-bosub='awards'>Awards Circuit</button>"+
     "<button class='subnav-pill "+(BOXOFFICE_SUB==="clash"?"active":"")+"' data-bosub='clash'>Clash Radar</button>"+
@@ -4221,6 +4253,12 @@ function viewBoxOffice(){
 
   if(BOXOFFICE_SUB === "chains"){
     if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.renderTheaterChainsSection === "function") return h + FilmLocationsTax.renderTheaterChainsSection();
+  }
+  if(BOXOFFICE_SUB === "plf"){
+    if(typeof ExhibitionPLF !== "undefined" && typeof ExhibitionPLF.renderExhibitionPLFSection === "function") return h + ExhibitionPLF.renderExhibitionPLFSection();
+  }
+  if(BOXOFFICE_SUB === "blitz"){
+    if(typeof MarketingBlitz !== "undefined" && typeof MarketingBlitz.renderMarketingBlitzSection === "function") return h + MarketingBlitz.renderMarketingBlitzSection();
   }
   if(BOXOFFICE_SUB === "awards"){
     if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.renderAwardCircuitSection === "function") return h + FilmLocationsTax.renderAwardCircuitSection();
@@ -5305,6 +5343,23 @@ function bindView(){
   /* Financial Analysis Lab bindings */
   if(typeof FINANCE_TOOLS !== 'undefined' && FINANCE_TOOLS.bindFinancialAnalysis){
     FINANCE_TOOLS.bindFinancialAnalysis();
+  }
+
+  /* 120-Feature Expansion Modules Event Bindings */
+  if(typeof HollywoodCrises !== "undefined" && typeof HollywoodCrises.bindEvents === "function"){
+    HollywoodCrises.bindEvents(document, G);
+  }
+  if(typeof DemographicsEngine !== "undefined" && typeof DemographicsEngine.bindEvents === "function"){
+    DemographicsEngine.bindEvents(document, G);
+  }
+  if(typeof ProductionCreativity !== "undefined" && typeof ProductionCreativity.bindEvents === "function"){
+    ProductionCreativity.bindEvents(document, G);
+  }
+  if(typeof ExhibitionPLF !== "undefined" && typeof ExhibitionPLF.bindEvents === "function"){
+    ExhibitionPLF.bindEvents(document, G);
+  }
+  if(typeof MarketingBlitz !== "undefined" && typeof MarketingBlitz.bindEvents === "function"){
+    MarketingBlitz.bindEvents(document, G);
   }
 }
 
