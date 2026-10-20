@@ -163,7 +163,24 @@
       b.active_title = title || "";
       b.active_phase = phase || "";
       b.progress = Math.max(0, Math.min(1, progress || 0));
-      b.filming_active = phase === "shoot" || phase === "post";
+      b.filming_active = phase === "shoot" || phase === "post" || phase === "production" || phase === "reshoot";
+      return true;
+    }
+
+    start_directing(buildingId) {
+      const b = this.buildings.find(item => item.id === buildingId);
+      if (!b) return false;
+      b.filming_active = true;
+      if (!b.active_title) b.active_title = "Directing Take";
+      return true;
+    }
+
+    advance_directing() {
+      for (const b of this.buildings) {
+        if (b.filming_active) {
+          b.progress = Math.min(1.0, (b.progress || 0) + 0.25);
+        }
+      }
       return true;
     }
 
@@ -351,26 +368,66 @@
       return this.engine;
     },
 
+    getLotState() {
+      const eng = this.getEngine();
+      try {
+        const jsonStr = eng.get_lot_state_json();
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        return { buildings: [], agents: [], total_tickets_sold: 0, box_office_buzz: 1.0 };
+      }
+    },
+
+    placeBuilding(type, x, y) {
+      const eng = this.getEngine();
+      const id = eng.place_building(type, x, y);
+      return { ok: !!id, id };
+    },
+
+    upgradeBuilding(id) {
+      const eng = this.getEngine();
+      return eng.upgrade_building(id);
+    },
+
+    demolishBuilding(id) {
+      const eng = this.getEngine();
+      return eng.demolish_building(id);
+    },
+
+    tick(dt) {
+      const eng = this.getEngine();
+      return eng.tick(dt);
+    },
+
     syncWithGameState(G) {
-      if (!G || !this.engine) return;
+      if (!G) return;
+      const eng = this.getEngine();
+      if (!eng) return;
+
       // Sync facilities
       if (G.facilities) {
-        this.engine.sync_studio_facilities(JSON.stringify(G.facilities));
+        try {
+          eng.sync_studio_facilities(JSON.stringify(G.facilities));
+        } catch(e) {}
       }
 
       // Sync active productions into soundstages
       if (G.projects && G.projects.length > 0) {
-        const stateStr = this.engine.get_lot_state_json();
+        const stateStr = eng.get_lot_state_json();
         const lot = JSON.parse(stateStr);
-        const soundstages = (lot.buildings || []).filter(b => b.b_type === "soundstage" || b.b_type === "virtual_led" || b.type_str === "soundstage" || b.type_str === "virtual_led");
+        const soundstages = (lot.buildings || []).filter(b => 
+          b.b_type === "soundstage" || b.b_type === "virtual_led" ||
+          b.type_str === "soundstage" || b.type_str === "virtual_led" ||
+          b.building_type === "Soundstage" || b.building_type === "VirtualLED"
+        );
 
         let stageIdx = 0;
         for (const p of G.projects) {
-          if (p.phase === "shoot" || p.phase === "post" || p.phase === "reshoot") {
+          if (p.phase === "shoot" || p.phase === "post" || p.phase === "reshoot" || p.phase === "production") {
             if (stageIdx < soundstages.length) {
               const stage = soundstages[stageIdx];
               const progress = (p.phaseWeek || 1) / Math.max(1, (p.phaseLen && p.phaseLen[p.phase]) || 10);
-              this.engine.assign_production(stage.id, p.id || p.title, p.title, p.phase, progress);
+              eng.assign_production(stage.id, String(p.id || p.title), p.title, p.phase, progress);
               stageIdx++;
             }
           }
@@ -381,7 +438,7 @@
       if (G.films && G.films.length > 0) {
         const recentHit = G.films.find(f => (f.weeks || 0) <= 3 && (f.lastWeekGross || f.grossDom || 0) > 5);
         if (recentHit) {
-          this.engine.trigger_box_office_surge(recentHit.title, recentHit.lastWeekGross || 15);
+          eng.trigger_box_office_surge(recentHit.title, recentHit.lastWeekGross || 15);
         }
       }
     }

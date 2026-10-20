@@ -137,5 +137,5 @@ LIVE=$(curl -s https://box-office-war.vercel.app/sw.js | grep -o 'bow-v[0-9]*-ca
 echo "  live SW: $LIVE (expect bow-v$((CUR_SW+1))-cache)"
 LIVEV=$(curl -s https://box-office-war.vercel.app/version.json | grep -o '"v": *"[0-9.]*"')
 echo "  live version.json: $LIVEV (expect \"v\": \"$VERSION\")"
-[ "$LIVE" = "bow-v$((CUR_SW+1))-cache" ] && echo "✅ RELEASE COMPLETE — web + Android both live" \
-  || echo "⚠ Vercel still building — check https://vercel.com/dashboard in a minute"
+[ "$LIVE" = "bow-v$((CUR_SW+1))-cache" ] && echo "[SUCCESS] RELEASE COMPLETE -- web + Android both live" \
+  || echo "[WAIT] Vercel still building -- check https://vercel.com/dashboard in a minute"

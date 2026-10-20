@@ -5410,9 +5410,17 @@ function bindView(){
 
   if(TAB==="studiolot"){
     if(typeof StudioLotBridge !== "undefined" && typeof StudioLot2D !== "undefined"){
-      StudioLotBridge.init().then(()=>{
+      try {
         StudioLotBridge.syncWithGameState(G);
         StudioLot2D.mount("studiolotContainer");
+      } catch(e) {
+        console.warn("StudioLot immediate mount fallback:", e);
+      }
+      StudioLotBridge.init().then(()=>{
+        StudioLotBridge.syncWithGameState(G);
+        if(!document.querySelector("#studiolotContainer canvas")){
+          StudioLot2D.mount("studiolotContainer");
+        }
       });
       const btnSync = $("#btnSyncLotState");
       if(btnSync) btnSync.onclick = ()=>{
