@@ -406,7 +406,7 @@ step("series pitch wizard", ()=>{
 });
 step("film pitch wizard", ()=>{
   // like a real player: shore up rep/cash for better pitch odds, then re-pitch if the board passes
-  window.eval("closeModal(); G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
+  window.eval("DEVELOP_SUB='scripts'; closeModal(); G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
   const before=g().projects.length;
   for(let tries=0; tries<12 && g().projects.length===before; tries++){
     window.eval("closeModal();");
