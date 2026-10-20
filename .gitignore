@@ -18,3 +18,5 @@ apk/android/app/src/main/assets/
 kenney-assets/
 ref-data/
 .vscode/
+target/
+*.summary.md

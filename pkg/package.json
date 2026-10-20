@@ -1,0 +1,19 @@
+{
+  "name": "box_office_core",
+  "type": "module",
+  "collaborators": [
+    "Hermes <poshstudio@local>"
+  ],
+  "description": "High-performance Rust 2D studio lot simulation engine and isometric pathfinder for Box Office War",
+  "version": "1.0.0",
+  "files": [
+    "box_office_core_bg.wasm",
+    "box_office_core.js",
+    "box_office_core.d.ts"
+  ],
+  "main": "box_office_core.js",
+  "types": "box_office_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

@@ -40,7 +40,8 @@ for f in data.js engine.js i18n.js ui.js sw.js finance-tools.js v31-features.js 
          awards-campaign.js board-targets.js fan-conventions.js test-screenings.js \
          studio-espionage.js merch-licensing.js territory-licensing.js custom-sandbox.js \
          demographics-audiences.js exhibition-plf-concessions.js hollywood-crises-pr.js \
-         marketing-blitz-engine.js production-creativity-suite.js; do node --check "$f"; done
+         marketing-blitz-engine.js production-creativity-suite.js \
+         studio-lot-engine.js studio-lot-2d.js; do node --check "$f"; done
 echo "✓ syntax clean (all core and modular engine files)"
 if [ "$SKIP_TESTS" = false ]; then
   npm test > /tmp/bow-test.log 2>&1 || { echo "✗ tests failed — see /tmp/bow-test.log"; grep -E "✗|ERRORS|FAILED" /tmp/bow-test.log | head; exit 1; }

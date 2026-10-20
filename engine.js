@@ -5694,6 +5694,9 @@ if(G.scenario && !G.sandbox){
     log("🏆 SCENARIO COMPLETE: "+DATA.SCENARIOS[G.scenario].name+" won at week "+G.week+" (rep: "+G.studio.rep+")","gold");
   }
 }
+if(typeof StudioLotBridge !== "undefined" && typeof StudioLotBridge.syncWithGameState === "function"){
+  try{ StudioLotBridge.syncWithGameState(G); }catch(e){}
+}
 saveGame();
 return G.flash;
 }

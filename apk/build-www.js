@@ -18,13 +18,16 @@ const FILES = [
   "studio-espionage.js", "merch-licensing.js", "territory-licensing.js", "custom-sandbox.js",
   "film-locations-tax.js", "studio-operations-suite.js", "gamedev-console-hardware.js", "live-ops-coproduction.js",
   "hollywood-crises-pr.js", "demographics-audiences.js", "production-creativity-suite.js", "exhibition-plf-concessions.js", "marketing-blitz-engine.js",
+  "studio-lot-engine.js", "studio-lot-2d.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 
 fs.rmSync(WWW, { recursive: true, force: true });
 fs.mkdirSync(WWW, { recursive: true });
 for (const f of FILES) fs.copyFileSync(path.join(ROOT, f), path.join(WWW, f));
-fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true });
+if (fs.existsSync(path.join(ROOT, "assets"))) fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true });
+if (fs.existsSync(path.join(ROOT, "pkg"))) fs.cpSync(path.join(ROOT, "pkg"), path.join(WWW, "pkg"), { recursive: true });
+if (fs.existsSync(path.join(ROOT, "kenney-assets"))) fs.cpSync(path.join(ROOT, "kenney-assets"), path.join(WWW, "kenney-assets"), { recursive: true });
 
 // strip the SW registration <script> block from the copied index.html
 const idxPath = path.join(WWW, "index.html");

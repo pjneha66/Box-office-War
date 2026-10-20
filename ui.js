@@ -714,6 +714,9 @@ function enterApp(fresh){
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   if(t==="develop") DEVELOP_SUB = "scripts";
+  if(TAB==="studiolot" && t!=="studiolot" && typeof StudioLot2D!=="undefined" && StudioLot2D.unmount){
+    try{ StudioLot2D.unmount(); }catch(e){}
+  }
   TAB=t; try{ beep("click"); }catch(e){}   // v28.9: never let audio/haptics kill the render flush
   $$(".tab,.btab").forEach(b=>{
     const match = b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
@@ -1066,6 +1069,7 @@ function _renderImpl(){
     const v=$("#view");
     let h="";
     if(TAB==="dashboard") h=viewDashboard();
+    else if(TAB==="studiolot") h=viewStudioLot2D();
     else if(TAB==="studio") h=viewStudio();
     else if(TAB==="develop") h=viewDevelop();
     else if(TAB==="productions") h=viewProductions();
@@ -5395,6 +5399,25 @@ function bindView(){
   if(typeof MarketingBlitz !== "undefined" && typeof MarketingBlitz.bindEvents === "function"){
     MarketingBlitz.bindEvents(document, G);
   }
+
+  if(TAB==="studiolot"){
+    if(typeof StudioLotBridge !== "undefined" && typeof StudioLot2D !== "undefined"){
+      StudioLotBridge.init().then(()=>{
+        StudioLotBridge.syncWithGameState(G);
+        StudioLot2D.mount("studiolotContainer");
+      });
+      const btnSync = $("#btnSyncLotState");
+      if(btnSync) btnSync.onclick = ()=>{
+        beep("click");
+        StudioLotBridge.syncWithGameState(G);
+      };
+      const btnFacLot = $("#btnOpenFacilitiesFromLot");
+      if(btnFacLot) btnFacLot.onclick = ()=>{
+        beep("click");
+        if(typeof openStudioFacilitiesModal === "function") openStudioFacilitiesModal();
+      };
+    }
+  }
 }
 
 /* ═══════════ streaming auction modal ═══════════ */
@@ -7188,7 +7211,26 @@ function empireModal(frId){
   v.querySelectorAll("[data-em-merge]").forEach(b=>b.onclick=go(()=>mergeUniverse(fr.id,+b.dataset.emMerge)));
 }
 
-/* ── Mobile gestures (item 34): swipe between tabs · pull-down at top = next week ── */
+/* ═══════════ VIEW: 2D Studio Lot Simulation (Rust Core) ═══════════ */
+function viewStudioLot2D(){
+  return `<div class="studiolot-wrapper" style="padding:4px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div>
+        <h2 style="margin:0;font-size:18px;color:var(--gold);display:flex;align-items:center;gap:8px">
+          2D STUDIO LOT SIMULATION
+          <span class="tag gold" style="font-size:10px">Rust WASM Core Active</span>
+        </h2>
+        <p class="tiny muted" style="margin:2px 0 0">Interactive soundstage lot, live film shoots, A* pathfinding, and box office crowd simulation.</p>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button id="btnSyncLotState" class="btn btn-alt btn-sm">Refresh State</button>
+        <button id="btnOpenFacilitiesFromLot" class="btn btn-primary btn-sm">Physical Lot Tiers</button>
+      </div>
+    </div>
+    <div id="studiolotContainer" style="width:100%;height:calc(100vh - 195px);min-height:500px"></div>
+  </div>`;
+}
+
 /* ═══════════ VIEW: dashboard (v17) — Live HQ summary ═══════════ */
 function viewDashboard(){
   const st = G.studio;
@@ -7236,6 +7278,7 @@ function viewDashboard(){
   const quickActionsCard = "<div class='card' style='border-left:3px solid var(--gold)'><b>Executive Quick Actions</b>"+
     "<div class='row' style='margin-top:10px;gap:8px;flex-wrap:wrap'>"+
     "<button class='btn btn-primary' onclick=\"switchTab('develop')\">Greenlight a Film</button>"+
+    "<button class='btn btn-alt' onclick=\"switchTab('studiolot')\" style='border-color:var(--gold);color:var(--gold);font-weight:700'>2D Studio Lot (Rust Core)</button>"+
     "<button class='btn btn-alt' onclick=\"switchTab('live')\" style='border-color:var(--live-red,#ff5d6c);color:var(--live-red,#ff5d6c);font-weight:700'>Live TV Network</button>"+
     "<button class='btn btn-alt' onclick=\"switchTab('ott')\" style='border-color:var(--purple,#b48bff);color:var(--purple,#b48bff);font-weight:700'>OTT Streamer</button>"+
     "<button class='btn btn-alt' onclick=\"switchTab('boxoffice')\">Box Office Charts</button>"+

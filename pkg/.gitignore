@@ -1,0 +1,6 @@
+# Keep compiled wasm artifacts for deployment
+!box_office_core.js
+!box_office_core.d.ts
+!box_office_core_bg.wasm
+!box_office_core_bg.wasm.d.ts
+!package.json
