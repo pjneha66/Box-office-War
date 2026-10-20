@@ -1,6 +1,6 @@
 {
   "name": "box-office-war",
-  "version": "32.8.0",
+  "version": "32.9.0",
   "description": "A realistic movie-business simulation game that runs in any browser — phone, tablet, or PC. No installs, no dependencies, no server: pure HTML/CSS/JS, works offline (just open index.html).",
   "main": "data.js",
   "directories": {
