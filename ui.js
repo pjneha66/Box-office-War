@@ -699,26 +699,10 @@ function enterApp(fresh){
   app.style.display="flex";
   try{ if(motionOK()){ app.style.animation="viewIn .45s cubic-bezier(.2,.85,.3,1)"; } }catch(e){}
   if(fresh){
-    const isMobileApp = typeof window !== "undefined" && (
-      window.cordova || window.Capacitor ||
-      (navigator && navigator.userAgent && (navigator.userAgent.includes("Android") || navigator.userAgent.includes("wv")))
-    );
-    if(isMobileApp){
-      try{
-        localStorage.setItem("bow_privacy_ok","1");
-        localStorage.setItem("bow_coppa_ok","1");
-      }catch(e){}
-    } else {
-      let coppaConsented = false;
-      try{ coppaConsented = !!localStorage.getItem("bow_coppa_ok"); }catch(e){}
-      let consented = false;
-      try{ consented = !!localStorage.getItem("bow_privacy_ok"); }catch(e){}
-      if(!coppaConsented){
-        setTimeout(()=>{ coppaModal(); }, 400);
-      } else if(!consented){
-        setTimeout(()=>{ privacyModal(true); }, 400);
-      }
-    }
+    try{
+      localStorage.setItem("bow_privacy_ok","1");
+      localStorage.setItem("bow_coppa_ok","1");
+    }catch(e){}
   }
   switchTab("studiolot");
   render();
@@ -7248,21 +7232,8 @@ function empireModal(frId){
 
 /* ═══════════ VIEW: 2D Studio Lot Simulation (Rust Core) ═══════════ */
 function viewStudioLot2D(){
-  return `<div class="studiolot-wrapper" style="padding:4px 0">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <div>
-        <h2 style="margin:0;font-size:18px;color:var(--gold);display:flex;align-items:center;gap:8px">
-          2D STUDIO LOT SIMULATION
-          <span class="tag gold" style="font-size:10px">Rust WASM Core Active</span>
-        </h2>
-        <p class="tiny muted" style="margin:2px 0 0">Interactive soundstage lot, live film shoots, A* pathfinding, and box office crowd simulation.</p>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button id="btnSyncLotState" class="btn btn-alt btn-sm">Refresh State</button>
-        <button id="btnOpenFacilitiesFromLot" class="btn btn-primary btn-sm">Physical Lot Tiers</button>
-      </div>
-    </div>
-    <div id="studiolotContainer" style="width:100%;height:calc(100vh - 195px);min-height:500px"></div>
+  return `<div class="studiolot-wrapper" style="padding:0;width:100%;height:calc(100vh - 95px);min-height:560px">
+    <div id="studiolotContainer" style="width:100%;height:100%;min-height:560px"></div>
   </div>`;
 }
 

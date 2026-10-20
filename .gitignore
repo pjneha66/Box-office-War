@@ -20,3 +20,5 @@ ref-data/
 .vscode/
 target/
 *.summary.md
+mac-local-*.png
+game_screenshot.png
