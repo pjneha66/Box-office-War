@@ -409,6 +409,7 @@ step("film pitch wizard", ()=>{
   window.eval("closeModal(); G.studio.rep=Math.max(G.studio.rep,90); G.studio.cash=Math.max(G.studio.cash,600); if(G.upgrades) G.upgrades.rd=true;");
   const before=g().projects.length;
   for(let tries=0; tries<12 && g().projects.length===before; tries++){
+    window.eval("closeModal();");
     // fresh render each try so the button exists and its wiring is fresh
     click($(".tab[data-tab='studio']"));
     click($(".tab[data-tab='develop']"));
