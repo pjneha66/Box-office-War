@@ -2819,3 +2819,299 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
 .kairo-nav-tab:active {
   transform: translateY(1px);
 }
+
+/* ═══════════ Kairosoft Department Animated Banners ═══════════ */
+.kairo-dept-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #0f172a linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 2px solid rgba(245, 197, 24, 0.4);
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  flex-wrap: wrap;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kairo-dept-banner:hover {
+  border-color: var(--gold);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 197, 24, 0.25);
+}
+
+/* Animated Vignettes */
+.kairo-dept-vignette {
+  width: 90px;
+  height: 70px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kairo-dept-info {
+  flex: 1;
+  min-width: 280px;
+}
+
+.kairo-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kairo-dept-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(245, 197, 24, 0.15);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+.kairo-dept-badge.blue { background: rgba(59, 130, 246, 0.15); border-color: #60a5fa; color: #93c5fd; }
+.kairo-dept-badge.cyan { background: rgba(6, 182, 212, 0.15); border-color: #22d3ee; color: #67e8f9; }
+.kairo-dept-badge.red { background: rgba(239, 68, 68, 0.15); border-color: #f87171; color: #fca5a5; }
+.kairo-dept-badge.magenta { background: rgba(236, 72, 153, 0.15); border-color: #f472b6; color: #fbcfe8; }
+.kairo-dept-badge.purple { background: rgba(168, 85, 247, 0.15); border-color: #c084fc; color: #e9d5ff; }
+.kairo-dept-badge.green { background: rgba(16, 185, 129, 0.15); border-color: #34d399; color: #a7f3d0; }
+.kairo-dept-badge.yellow { background: rgba(234, 179, 8, 0.15); border-color: #facc15; color: #fef08a; }
+
+.kairo-dept-subtag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.kairo-dept-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.kairo-stats-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kairo-stat-chip {
+  display: flex;
+  flex-direction: column;
+}
+
+.kairo-stat-chip .k-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kairo-stat-chip .k-val {
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.k-val.gold { color: var(--gold); }
+.k-val.green { color: #10b981; }
+.k-val.cyan { color: #38bdf8; }
+.k-val.red { color: #f43f5e; }
+.k-val.yellow { color: #f59e0b; }
+.k-val.blue { color: #60a5fa; }
+.k-val.magenta { color: #ec4899; }
+.k-val.purple { color: #a855f7; }
+
+.kairo-dept-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.kairo-btn-action {
+  background: rgba(30, 41, 59, 0.9);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.kairo-btn-action:hover {
+  color: #ffffff;
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.kairo-btn-action.gold {
+  background: #d97706 linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  color: #ffffff;
+  border-color: #fde68a;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.4);
+}
+
+.kairo-btn-action.gold:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.6);
+}
+
+.kairo-btn-action.blue {
+  background: #2563eb linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+
+.kairo-btn-action.blue:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.6);
+}
+
+/* ═══════════ Micro-Animations ═══════════ */
+@keyframes kairoBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.kairo-bob { animation: kairoBob 1.6s ease-in-out infinite; }
+
+@keyframes kairoGlint {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5) drop-shadow(0 0 6px rgba(245, 197, 24, 0.8)); }
+}
+.kairo-glint { animation: kairoGlint 2.4s ease-in-out infinite; }
+
+@keyframes kairoSteamRise {
+  0% { opacity: 0; transform: translateY(2px) scale(0.8); }
+  50% { opacity: 0.8; transform: translateY(-6px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(1.3); }
+}
+.kairo-steam-rise { animation: kairoSteamRise 2s ease-out infinite; }
+
+@keyframes kairoTallyBlink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px #ef4444; }
+  50% { opacity: 0.2; box-shadow: none; }
+}
+.kairo-tally-blink { animation: kairoTallyBlink 1s ease-in-out infinite; }
+
+@keyframes kairoMarqueeGlow {
+  0%, 100% { border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.6); }
+  50% { border-color: #fde047; box-shadow: 0 0 18px rgba(253, 224, 71, 0.9); }
+}
+.kairo-marquee-glow { animation: kairoMarqueeGlow 1.8s ease-in-out infinite; }
+
+@keyframes kairoServerBlink {
+  0%, 100% { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  33% { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+  66% { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+}
+.kairo-server-blink { animation: kairoServerBlink 1.4s steps(1) infinite; }
+
+@keyframes kairoLaserSweep {
+  0% { transform: translateY(-20px); opacity: 0.3; }
+  50% { transform: translateY(20px); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0.3; }
+}
+.kairo-laser-sweep { animation: kairoLaserSweep 2s ease-in-out infinite; }
+
+@keyframes kairoSpriteJump {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px) scaleY(1.1); }
+  50% { transform: translateY(-10px) scaleY(1); }
+  60% { transform: translateY(-8px) scaleY(0.9); }
+}
+.kairo-sprite-jump { animation: kairoSpriteJump 1.2s ease-in-out infinite; }
+
+@keyframes kairoScanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+.kairo-scanline::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 100%;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(56,189,248,0.15) 50%, rgba(255,255,255,0) 100%);
+  animation: kairoScanline 3s linear infinite;
+  pointer-events: none;
+}
+
+/* Pixel Art Vignette Elements */
+.kairo-pixel-desk { width: 44px; height: 22px; background: #854d0e; border: 2px solid #451a03; border-radius: 2px; position: absolute; bottom: 8px; }
+.kairo-pixel-chair { width: 18px; height: 32px; background: #1e293b; border: 2px solid #0f172a; border-radius: 4px; position: absolute; bottom: 12px; }
+.kairo-pixel-trophy { width: 14px; height: 20px; background: #f59e0b; border: 1px solid #fde047; position: absolute; top: 10px; right: 12px; border-radius: 2px; }
+.kairo-pixel-typewriter { width: 28px; height: 18px; background: #334155; border: 2px solid #1e293b; position: absolute; bottom: 12px; }
+.kairo-pixel-steam { width: 6px; height: 6px; background: rgba(255, 255, 255, 0.6); border-radius: 50%; position: absolute; top: 16px; right: 14px; }
+.kairo-pixel-cameradolly { width: 36px; height: 24px; background: #475569; border: 2px solid #1e293b; position: absolute; bottom: 10px; }
+.kairo-pixel-tallylight { width: 8px; height: 8px; background: #ef4444; border-radius: 50%; position: absolute; top: 8px; left: 8px; }
+.kairo-pixel-marquee { width: 60px; height: 32px; background: #1e1b4b; border: 2px solid #f59e0b; border-radius: 4px; position: absolute; top: 12px; }
+.kairo-pixel-serverrack { width: 32px; height: 50px; background: #0f172a; border: 2px solid #334155; position: absolute; bottom: 8px; }
+.kairo-pixel-leds { width: 20px; height: 4px; position: absolute; top: 10px; left: 6px; }
+.kairo-pixel-laser { width: 100%; height: 2px; background: #06b6d4; box-shadow: 0 0 6px #06b6d4; position: absolute; }
+.kairo-pixel-crtgame { width: 44px; height: 36px; background: #022c22; border: 3px solid #1e293b; border-radius: 4px; position: absolute; bottom: 12px; }
+.kairo-pixel-sprite { width: 12px; height: 12px; background: #10b981; border-radius: 2px; position: absolute; bottom: 8px; left: 16px; }
+.kairo-pixel-goldvault { width: 36px; height: 44px; background: #713f12; border: 3px solid #eab308; border-radius: 4px; position: absolute; bottom: 10px; }
+
+/* Subnav Pills Enhancement */
+.subnav-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0 10px;
+  scrollbar-width: none;
+}
+.subnav-pills::-webkit-scrollbar { display: none; }
+
+.subnav-pill {
+  background: rgba(30, 41, 59, 0.85);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subnav-pill:hover {
+  color: #ffffff;
+  border-color: var(--gold);
+  background: rgba(45, 60, 85, 0.95);
+  transform: translateY(-1px);
+}
+
+.subnav-pill.active {
+  background: #2563eb linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
+}
+
+.subnav-pill:active {
+  transform: translateY(1px);
+}

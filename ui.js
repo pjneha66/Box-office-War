@@ -1093,9 +1093,11 @@ function _renderImpl(){
     else if(TAB==="library") h=viewLibrary();
     else if(TAB==="games") h=viewGames();
     else if(TAB==="finance") h=viewFinance();
-    else if(TAB==="notifications") h=viewNotifications();
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    v.innerHTML = (tb? tb : "") + h;
+    const kairoBanner = (typeof KairoTheme !== "undefined" && TAB !== "studiolot")
+      ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : (TAB === "productions" ? (typeof PROD_FILTER !== "undefined" ? PROD_FILTER : null) : null)))
+      : "";
+    v.innerHTML = (tb? tb : "") + kairoBanner + h;
     bindView();
     bindFolds(v);   // v15: collapsible sections remember their state
     updateBellBadge();   // v28.16: keep the bell badge fresh on every render

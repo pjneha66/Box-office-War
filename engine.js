@@ -2729,8 +2729,8 @@ function tickEconomyCycle(){
       G.econCycle.weeksLeft = rint(phases[nextIdx].dur[0], phases[nextIdx].dur[1]);
       log("🏭 Economy shifts: "+phases[currentIdx].name+" → "+phases[nextIdx].name+". "+phases[nextIdx].desc,"gold");
       // Apply immediate effects
-      if(G.econCycle.phase==="boom"){ G.infl = Math.min(1.08, G.infl*1.02); }
-      else if(G.econCycle.phase==="recession"){ G.infl = Math.max(0.98, G.infl*0.98); }
+      if(G.econCycle.phase==="boom"){ G.infl = Math.round(G.infl * 1.015 * 1000)/1000; }
+      else if(G.econCycle.phase==="recession"){ G.infl = Math.max(Math.pow(1.015, Math.max(0, yearOf(G.week)-1)), Math.round(G.infl * 0.985 * 1000)/1000); }
     }else{
       G.econCycle.weeksLeft = rint(phases[currentIdx].dur[0], phases[currentIdx].dur[1]);
     }

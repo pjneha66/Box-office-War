@@ -171,6 +171,48 @@ async function run() {
   fs.writeFileSync(path.join(ARTIFACT_DIR, "itch_screen_4_productions.png"), Buffer.from(shot4.data, "base64"));
   console.log("Captured: itch_screen_4_productions.png");
 
+  // 5. Dashboard Tab
+  await send("Runtime.evaluate", { expression: `window.switchTab("dashboard");` });
+  await sleep(1000);
+  const shotDash = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_dashboard.png"), Buffer.from(shotDash.data, "base64"));
+  console.log("Captured: kairo_screen_dashboard.png");
+
+  // 6. Develop Tab
+  await send("Runtime.evaluate", { expression: `window.switchTab("develop");` });
+  await sleep(1000);
+  const shotDev = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_develop.png"), Buffer.from(shotDev.data, "base64"));
+  console.log("Captured: kairo_screen_develop.png");
+
+  // 7. Box Office Tab
+  await send("Runtime.evaluate", { expression: `window.switchTab("boxoffice");` });
+  await sleep(1000);
+  const shotBO = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_boxoffice.png"), Buffer.from(shotBO.data, "base64"));
+  console.log("Captured: kairo_screen_boxoffice.png");
+
+  // 8. OTT Tab
+  await send("Runtime.evaluate", { expression: `window.switchTab("ott");` });
+  await sleep(1000);
+  const shotOTT = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_ott.png"), Buffer.from(shotOTT.data, "base64"));
+  console.log("Captured: kairo_screen_ott.png");
+
+  // 9. Game Studio Tab
+  await send("Runtime.evaluate", { expression: `window.switchTab("games");` });
+  await sleep(1000);
+  const shotGames = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_games.png"), Buffer.from(shotGames.data, "base64"));
+  console.log("Captured: kairo_screen_games.png");
+
+  // 10. Finance Tab
+  await send("Runtime.evaluate", { expression: `window.switchTab("finance");` });
+  await sleep(1000);
+  const shotFinance = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_finance.png"), Buffer.from(shotFinance.data, "base64"));
+  console.log("Captured: kairo_screen_finance.png");
+
   // Cleanup
   ws.close();
   try {
