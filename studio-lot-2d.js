@@ -37,29 +37,31 @@
   const spriteCache = {};
   const ASSET_PATHS = {
     // Buildings
-    soundstage: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_014.png",
-    virtual_led: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_015.png",
-    post_suite: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_018.png",
-    writers_bungalow: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_020.png",
-    studio_gate: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_022.png",
-    backlot: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_028.png",
-    cinema_theater: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_034.png",
-    executive: "kenney-assets/kenney_isometric-buildings/PNG/buildingTiles_036.png",
+    soundstage: "assets/2d/soundstage.png",
+    virtual_led: "assets/2d/virtual_led.png",
+    post_suite: "assets/2d/post_suite.png",
+    writers_bungalow: "assets/2d/writers_bungalow.png",
+    studio_gate: "assets/2d/studio_gate.png",
+    backlot: "assets/2d/backlot.png",
+    cinema_theater: "assets/2d/cinema_theater.png",
+    executive: "assets/2d/executive.png",
+
+    // Ground tiles
+    tile_road: "assets/2d/tile_road.png",
+    tile_plaza: "assets/2d/tile_plaza.png",
+    tile_concrete: "assets/2d/tile_concrete.png",
+    tile_grass: "assets/2d/tile_grass.png",
 
     // Characters
-    male_idle: "kenney-assets/kenney_toon-characters/Male person/PNG/Poses/character_malePerson_idle.png",
-    male_walk0: "kenney-assets/kenney_toon-characters/Male person/PNG/Poses/character_malePerson_walk0.png",
-    male_walk1: "kenney-assets/kenney_toon-characters/Male person/PNG/Poses/character_malePerson_walk1.png",
-    male_talk: "kenney-assets/kenney_toon-characters/Male person/PNG/Poses/character_malePerson_talk.png",
-    male_cheer: "kenney-assets/kenney_toon-characters/Male person/PNG/Poses/character_malePerson_cheer0.png",
-
-    female_idle: "kenney-assets/kenney_toon-characters/Female person/PNG/Poses/character_femalePerson_idle.png",
-    female_walk0: "kenney-assets/kenney_toon-characters/Female person/PNG/Poses/character_femalePerson_walk0.png",
-    female_walk1: "kenney-assets/kenney_toon-characters/Female person/PNG/Poses/character_femalePerson_walk1.png",
-    female_talk: "kenney-assets/kenney_toon-characters/Female person/PNG/Poses/character_femalePerson_talk.png",
-
-    robot_idle: "kenney-assets/kenney_toon-characters/Robot/PNG/Poses/character_robot_idle.png",
-    robot_walk: "kenney-assets/kenney_toon-characters/Robot/PNG/Poses/character_robot_walk0.png"
+    director: "assets/2d/char_director.png",
+    cameraman: "assets/2d/char_cameraman.png",
+    star_actor: "assets/2d/char_star_actor.png",
+    extra: "assets/2d/char_extra.png",
+    audience: "assets/2d/char_audience.png",
+    male_idle: "assets/2d/char_male_idle.png",
+    male_walk0: "assets/2d/char_male_walk0.png",
+    male_walk1: "assets/2d/char_male_walk1.png",
+    female_walk0: "assets/2d/char_female_walk0.png"
   };
 
   function loadAsset(key, url) {
@@ -270,6 +272,16 @@
     const w = TILE_W * camera.zoom;
     const h = TILE_H * camera.zoom;
 
+    // Use cached 2D isometric tile sprite if loaded
+    const tileKey = type === 1 ? "tile_road" :
+                    type === 2 ? "tile_plaza" :
+                    type === 3 ? "tile_concrete" : "tile_grass";
+    const cached = spriteCache[tileKey];
+    if (cached && cached.loaded) {
+      ctx.drawImage(cached.img, sx - w / 2, sy - h / 2, w, h);
+      return;
+    }
+
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sx, sy - h / 2);
@@ -456,11 +468,19 @@
 
   function drawAgent(ctx, a) {
     const scr = gridToScreen(a.x, a.y);
-    const spriteKey = a.kind_str === "star_actor" ? "female_idle" :
-                      a.kind_str === "audience" ? "male_cheer" :
-                      a.kind_str === "director" ? "male_talk" : "male_idle";
+    let spriteKey = "director";
+    if (a.kind_str === "star_actor") spriteKey = "star_actor";
+    else if (a.kind_str === "cameraman") spriteKey = "cameraman";
+    else if (a.kind_str === "audience") spriteKey = "audience";
+    else if (a.kind_str === "extra") spriteKey = "extra";
+    else if (a.kind_str === "director") spriteKey = "director";
+    else if (a.state_str === "walking") {
+      spriteKey = (Math.floor((a.anim_timer || 0) * 4) % 2 === 0) ? "male_walk0" : "male_walk1";
+    } else {
+      spriteKey = "male_idle";
+    }
 
-    const cached = spriteCache[spriteKey];
+    const cached = spriteCache[spriteKey] || spriteCache["male_idle"];
 
     ctx.save();
     // Shadow
@@ -799,7 +819,7 @@
       preloadAllAssets();
 
       container.innerHTML = `
-        <div class="studiolot-viewport" style="position:relative;width:100%;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;min-height:500px;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
           <div id="lotPaletteRoot" style="position:absolute;top:12px;left:12px;z-index:10"></div>
           <div class="lot-controls" style="position:absolute;bottom:16px;left:16px;z-index:10;display:flex;gap:6px">
             <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In">+</button>

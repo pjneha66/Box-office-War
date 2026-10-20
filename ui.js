@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 "use strict";
 
-let TAB = "studio";
+let TAB = "studiolot";
 let WZ = null;          // greenlight/pitch wizard state
 let SCHEDULE = null;    // release scheduling state
 let SOUND = true;
@@ -701,6 +701,7 @@ function enterApp(fresh){
       setTimeout(()=>{ privacyModal(true); }, 400);
     }
   }
+  switchTab("studiolot");
   render();
   if(G.pendingEarnings) earningsModal();
   else if(G.pendingChoice) choiceModal();
@@ -1295,6 +1296,13 @@ function viewStudio(){
   "</div>";
 
   if(STUDIO_SUB === "lot"){
+    h += "<div class='card' style='margin-bottom:12px;background:rgba(218,165,32,0.08);border:1px solid var(--gold);padding:12px'>"+
+      "<div style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px'>"+
+        "<div><b style='color:var(--gold);font-size:15px'>Interactive 2D Studio Lot</b>"+
+        "<div class='tiny muted'>Rust WASM simulation, soundstage sets, actor pathfinding &amp; directing minigame</div></div>"+
+        "<button class='btn btn-primary btn-sm' onclick='switchTab(\"studiolot\")'>Open Fullscreen 2D Lot</button>"+
+      "</div>"+
+    "</div>";
     if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderBacklotSection === "function"){
       h += StudioOperationsSuite.renderBacklotSection();
     }
@@ -7858,6 +7866,12 @@ function csStatsHTML(t,p){
     let cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>=(p.level||1)+3 && !x.prototype.mentee);
     if(!cands.length){
       cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>(p.level||1) && !x.prototype.mentee);
+    }
+    if(!cands.length){
+      cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>(p.level||1));
+    }
+    if(!cands.length){
+      cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype);
     }
     h+="<div class='tiny muted' style='margin:4px 0'>No mentorship yet — open a higher-level talent's sheet to take a mentee, or this talent's sheet on a senior colleague.</div>"+
       "<div class='row' style='gap:4px'>"+cands.slice(0,3).map(m=>
