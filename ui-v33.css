@@ -1,0 +1,444 @@
+/* ═══════════════════════════════════════════════════════════
+   BOX OFFICE WAR — v33 UI Enhancement Layer
+   Applied over style.css — no structural breaks, pure visual uplift
+   Typography · Glassmorphism · Depth · Motion polish
+   ═══════════════════════════════════════════════════════════ */
+
+/* 1. Typography */
+body {
+  font-family: var(--font-sans);
+  background-color: #06080d;
+  background-image:
+    radial-gradient(1400px 700px at 80% -18%, rgba(245,185,66,.08), transparent 60%),
+    radial-gradient(1000px 600px at -14% 110%, rgba(59,130,246,.06), transparent 58%),
+    radial-gradient(800px 500px at 52% 120%, rgba(168,85,247,.045), transparent 60%);
+}
+h1,h2,h3,h4,h5,h6,
+.logo-title,.brand,.wk-cash,.stat .s-v,
+.start-card-title,.resume-title,.modal-head h3 {
+  font-family: var(--font-display);
+  letter-spacing: -.01em;
+}
+.resume-cash,.wk-cash,.stat .s-v,.slider-val {
+  font-family: var(--font-mono);
+}
+
+/* 2. Topbar */
+.topbar {
+  background: rgba(6,8,13,.96);
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  box-shadow: 0 1px 0 rgba(245,185,66,.14), 0 6px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.topbar::after {
+  background: linear-gradient(90deg, transparent 5%, rgba(245,185,66,.55) 40%, rgba(255,212,121,.7) 50%, rgba(245,185,66,.55) 60%, transparent 95%);
+  height: 1px;
+}
+.brand {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 900;
+  letter-spacing: -.01em;
+  background: linear-gradient(100deg, #ffd479 0%, #f5b942 38%, #ffe8a3 55%, #f5b942 72%, #ffd479 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: brandShimmer 8s linear infinite;
+}
+@keyframes brandShimmer {
+  from { background-position: 0% center }
+  to   { background-position: -200% center }
+}
+
+/* 3. HUD Chips */
+.chip {
+  background: linear-gradient(180deg, rgba(20,26,40,.9), rgba(12,16,23,.95));
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-family: var(--font-sans);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 8px rgba(0,0,0,.35);
+  transition: border-color .2s, box-shadow .2s, transform .12s;
+}
+.chip b { color: var(--gold-light); font-weight: 700; }
+.chip-cash b { color: var(--gold-light); }
+.chip-debt b { color: var(--danger); }
+.chip:hover {
+  border-color: rgba(245,185,66,.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 14px rgba(245,185,66,.12), 0 3px 12px rgba(0,0,0,.4);
+}
+
+/* 4. Tab Bar */
+.tabs {
+  background: rgba(6,8,13,.9);
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  gap: 2px;
+  padding: 5px 10px 0;
+}
+.tab {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  padding: 9px 14px 10px;
+  border-radius: 8px 8px 0 0;
+  color: rgba(139,149,163,.7);
+  transition: color .18s, background .18s;
+}
+.tab:hover {
+  color: rgba(240,242,245,.85);
+  background: rgba(255,255,255,.045);
+}
+.tab.active {
+  color: var(--gold-light);
+  background: rgba(245,185,66,.07);
+  text-shadow: 0 0 20px rgba(245,185,66,.5);
+}
+.tab.active::after {
+  background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  height: 2.5px;
+  box-shadow: 0 -2px 10px rgba(245,185,66,.5);
+}
+
+/* 5. Cards */
+.card {
+  background: linear-gradient(165deg, rgba(20,26,42,.85), rgba(11,14,22,.92));
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 4px 20px rgba(0,0,0,.3);
+  transition: transform .2s var(--spring), border-color .2s, box-shadow .2s;
+}
+.card:hover {
+  border-color: rgba(245,185,66,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 28px rgba(0,0,0,.45), 0 0 0 1px rgba(245,185,66,.08);
+  transform: translateY(-2px);
+}
+
+/* Stat cards */
+.stat {
+  background: linear-gradient(165deg, rgba(20,26,42,.9), rgba(11,14,22,.95));
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 3px 14px rgba(0,0,0,.28);
+  overflow: hidden;
+}
+.stat::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), rgba(255,220,100,.6) 50%, transparent 80%);
+  opacity: .6;
+}
+.stat:hover {
+  border-color: rgba(245,185,66,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 6px 24px rgba(0,0,0,.4), 0 0 18px rgba(245,185,66,.07);
+  transform: translateY(-2px);
+}
+.stat .s-v { font-size: 22px; font-weight: 800; }
+.stat .s-l { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; }
+
+/* 6. Buttons */
+.btn {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: .01em;
+  border-radius: 10px;
+  padding: 9px 16px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: linear-gradient(180deg, rgba(25,32,50,.95), rgba(14,18,28,.98));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 2px 8px rgba(0,0,0,.3);
+  transition: transform .1s, border-color .18s, box-shadow .18s, background .18s;
+}
+.btn:hover {
+  border-color: rgba(245,185,66,.32);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 4px 16px rgba(0,0,0,.4), 0 0 0 1px rgba(245,185,66,.1);
+}
+.btn:active { transform: scale(.96) translateY(1px); }
+.btn-primary {
+  background: linear-gradient(145deg, #ffe08a, #f5b942 40%, #d98f10 80%, #c07d0c);
+  border: 1px solid rgba(255,220,100,.45);
+  color: #1a1204;
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 4px 18px rgba(245,185,66,.35), 0 1px 4px rgba(0,0,0,.4);
+}
+.btn-primary:hover {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 24px rgba(245,185,66,.5), 0 2px 6px rgba(0,0,0,.5);
+  filter: brightness(1.06);
+}
+.btn-alt {
+  background: linear-gradient(180deg, rgba(30,40,62,.95), rgba(18,23,38,.98));
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 8px rgba(0,0,0,.3);
+}
+.btn-danger {
+  background: linear-gradient(145deg, #ff7a87, #ef4444 45%, #c53030);
+  border: 1px solid rgba(255,100,100,.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 4px 18px rgba(239,68,68,.3);
+}
+
+/* 7. News Feed */
+.news-item {
+  background: linear-gradient(180deg, rgba(18,23,36,.85), rgba(12,15,24,.9));
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 2px 8px rgba(0,0,0,.2);
+  font-size: 13px;
+}
+.news-item:hover {
+  border-color: rgba(245,185,66,.22);
+  transform: translateX(2px);
+  box-shadow: 0 2px 14px rgba(0,0,0,.3), 0 0 0 1px rgba(245,185,66,.08);
+}
+.news-item.good { border-left: 3px solid var(--success); background: linear-gradient(180deg, rgba(18,40,26,.7), rgba(12,22,17,.85)); }
+.news-item.bad  { border-left: 3px solid var(--danger);  background: linear-gradient(180deg, rgba(40,16,16,.7), rgba(24,12,12,.85)); }
+.news-item.gold { border-left: 3px solid var(--gold);    background: linear-gradient(180deg, rgba(40,30,10,.7), rgba(24,18,8,.85)); }
+
+/* 8. Modal */
+.modal-veil {
+  background: rgba(3,5,9,.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.modal {
+  background: linear-gradient(180deg, rgba(16,20,32,.97), rgba(10,13,20,.99));
+  border: 1px solid rgba(255,255,255,.1);
+  border-bottom: none;
+  box-shadow: 0 -20px 60px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(245,185,66,.06);
+}
+@media(min-width:700px) {
+  .modal { border: 1px solid rgba(255,255,255,.1); box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255,255,255,.08); }
+}
+.modal-head h3 { font-family: var(--font-display); font-size: 18px; font-weight: 800; }
+
+/* 9. Toasts */
+.toast {
+  background: linear-gradient(180deg, rgba(22,28,44,.96), rgba(14,18,28,.98));
+  border: 1px solid rgba(255,255,255,.1);
+  border-left: 3px solid var(--info);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.toast.good { border-left-color: var(--success); }
+.toast.bad  { border-left-color: var(--danger); }
+.toast.gold { border-left-color: var(--gold); }
+
+/* 10. Section Titles */
+.section-title {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  letter-spacing: .18em;
+  color: var(--text-dim);
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 20px 0 10px;
+}
+.section-title::after { background: linear-gradient(90deg, rgba(45,57,80,.8), transparent); }
+
+/* 11. Start Screen */
+.start-card {
+  background: linear-gradient(165deg, rgba(22,28,46,.92), rgba(13,16,26,.96));
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.07), 0 0 40px rgba(245,185,66,.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.start-resume-card {
+  background: linear-gradient(135deg, rgba(32,40,64,.97), rgba(16,21,34,.99));
+  border: 1px solid rgba(245,185,66,.22);
+  box-shadow: 0 0 30px rgba(245,185,66,.1), var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.logo-title { font-family: var(--font-display); font-size: clamp(32px, 7vw, 50px); font-weight: 900; letter-spacing: -.02em; }
+.logo-sub { font-family: var(--font-sans); letter-spacing: .28em; font-size: 10.5px; font-weight: 600; }
+.arch {
+  background: linear-gradient(180deg, rgba(16,21,34,.9), rgba(10,13,20,.95));
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 8px rgba(0,0,0,.25);
+  border-radius: 14px;
+}
+.arch.sel {
+  border-color: rgba(245,185,66,.45);
+  background: linear-gradient(135deg, rgba(38,30,12,.9), rgba(22,24,14,.95));
+  box-shadow: 0 0 24px rgba(245,185,66,.18), inset 0 0 24px rgba(245,185,66,.06), inset 0 1px 0 rgba(255,220,100,.15);
+}
+
+/* 12. Pick List */
+.pick-list .card {
+  background: linear-gradient(180deg, rgba(17,22,35,.88), rgba(11,14,23,.95));
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 8px rgba(0,0,0,.25);
+}
+.pick-list .card:hover {
+  border-color: rgba(245,185,66,.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 4px 16px rgba(0,0,0,.4), 0 0 14px rgba(245,185,66,.1);
+}
+.sel-card {
+  border-color: var(--gold) !important;
+  background: linear-gradient(135deg, rgba(36,28,10,.88), rgba(22,22,12,.95)) !important;
+  box-shadow: 0 0 24px rgba(245,185,66,.2), inset 0 1px 0 rgba(255,220,100,.15), inset 0 0 20px rgba(245,185,66,.06) !important;
+}
+
+/* 13. Calendar Rows */
+.calendar-row {
+  background: linear-gradient(180deg, rgba(16,21,34,.9), rgba(10,13,20,.95));
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 2px 6px rgba(0,0,0,.22);
+}
+.calendar-row:hover { border-color: rgba(245,185,66,.24); box-shadow: 0 3px 14px rgba(0,0,0,.35), 0 0 0 1px rgba(245,185,66,.08); }
+.calendar-row.sel { border-color: rgba(245,185,66,.5); background: linear-gradient(180deg, rgba(32,26,10,.9), rgba(20,18,8,.95)); box-shadow: 0 0 20px rgba(245,185,66,.2), inset 0 1px 0 rgba(255,220,100,.12); }
+
+/* 14. Talent Cards */
+.talent-card .t-name { font-family: var(--font-sans); font-weight: 800; font-size: 14px; }
+
+/* 15. Mobile Bottom Nav */
+@media(max-width:760px) {
+  .bottomnav {
+    background: rgba(6,8,13,.97);
+    border-top: 1px solid rgba(255,255,255,.07);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -8px 32px rgba(0,0,0,.6);
+  }
+  .bottomnav::before { background: linear-gradient(90deg, transparent, rgba(245,185,66,.45), transparent); }
+  .btab { font-family: var(--font-sans); font-size: 9px; font-weight: 700; letter-spacing: .02em; }
+  .btab.active { color: var(--gold-light); }
+  .btab.active span { filter: drop-shadow(0 2px 10px rgba(245,185,66,.6)); }
+  .btab.active::before {
+    background: linear-gradient(90deg, transparent, var(--gold-light), var(--gold), var(--gold-light), transparent);
+    box-shadow: 0 2px 12px rgba(245,185,66,.45);
+  }
+  .stab { font-family: var(--font-sans); font-size: 12px; font-weight: 700; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); }
+  .stab.active { background: linear-gradient(135deg, #ffd479, #f5b942); border-color: var(--gold); color: #1a1204; box-shadow: 0 4px 16px rgba(245,185,66,.35), inset 0 1px 0 rgba(255,255,255,.35); }
+  .fab-week {
+    background: linear-gradient(145deg, #ffe08a, #f5b942 40%, #d98f10 80%, #c07d0c);
+    border-color: rgba(255,220,100,.5);
+    box-shadow: 0 8px 28px rgba(245,185,66,.5), 0 3px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4);
+    font-family: var(--font-display);
+    font-weight: 900;
+  }
+}
+
+/* 16. Tags */
+.tag { font-family: var(--font-sans); font-size: 10px; font-weight: 800; letter-spacing: .07em; padding: 2px 8px; border-radius: 999px; }
+.tag.gold { background: rgba(245,185,66,.1); border-color: rgba(245,185,66,.28); box-shadow: 0 0 8px rgba(245,185,66,.12); }
+.tag.green { background: rgba(34,197,94,.1); border-color: rgba(34,197,94,.28); }
+.tag.red { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.28); }
+
+/* 17. Fold/Collapsible */
+.fold-head {
+  background: linear-gradient(180deg, rgba(20,26,42,.7), rgba(12,16,26,.75));
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  font-family: var(--font-sans);
+  font-weight: 700;
+}
+.fold-head:hover { border-color: rgba(245,185,66,.25); background: linear-gradient(180deg, rgba(26,33,52,.75), rgba(14,18,30,.8)); }
+
+/* 18. Platform Logos */
+.platform-logo { border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.4), inset 0 -4px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.2); }
+
+/* 19. Progress Bars */
+.bar { background: rgba(5,8,14,.9); border: 1px solid rgba(255,255,255,.06); border-radius: 999px; }
+.bar > i { background: linear-gradient(90deg, var(--gold-dark), var(--gold), #ffe8a3); }
+
+/* 20. Primary action buttons */
+#btnWeek { font-family: var(--font-display); font-weight: 900; letter-spacing: -.01em; }
+#btnFast { font-family: var(--font-sans); font-size: 12px; font-weight: 800; letter-spacing: .01em; }
+
+/* 21. Studio Name Input */
+#studioName {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  background: rgba(6,8,14,.95);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  color: var(--text);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.35), inset 0 -1px 0 rgba(255,255,255,.04);
+}
+#studioName:focus {
+  border-color: rgba(245,185,66,.45);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.35), 0 0 0 3px rgba(245,185,66,.12), 0 0 20px rgba(245,185,66,.08);
+}
+
+/* 22. Wizard Steps */
+.wiz-step span { font-family: var(--font-sans); font-size: 11px; font-weight: 800; letter-spacing: .05em; padding: 3px 12px; border-radius: 999px; background: rgba(14,18,28,.9); border: 1px solid rgba(255,255,255,.07); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+.wiz-step span.on { color: var(--gold-light); border-color: rgba(245,185,66,.32); background: rgba(32,26,10,.9); box-shadow: 0 0 14px rgba(245,185,66,.2), inset 0 1px 0 rgba(255,220,100,.12); }
+.wiz-step span.done { color: var(--success); border-color: rgba(34,197,94,.28); background: rgba(10,24,14,.9); }
+
+/* 23. Resume Cash */
+.resume-cash { font-size: 24px; font-weight: 900; font-family: var(--font-mono); color: var(--success); text-shadow: 0 0 20px rgba(34,197,94,.3); }
+
+/* 24. Stock Sparkline */
+.stock-spark { background: rgba(5,8,14,.9); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+.stock-spark i { background: linear-gradient(180deg, var(--gold-light), var(--gold-dark)); }
+
+/* 25. Plan Options */
+.plan-opt { background: linear-gradient(180deg, rgba(16,21,34,.9), rgba(10,13,20,.95)); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); font-family: var(--font-sans); }
+.plan-opt:hover { border-color: rgba(245,185,66,.22); box-shadow: 0 3px 14px rgba(0,0,0,.35), 0 0 0 1px rgba(245,185,66,.08); }
+.plan-opt.sel { border-color: rgba(245,185,66,.45); background: linear-gradient(135deg, rgba(36,28,10,.9), rgba(22,22,12,.95)); box-shadow: 0 0 22px rgba(245,185,66,.2), inset 0 1px 0 rgba(255,220,100,.14); }
+
+/* 26. Film Row */
+.film-row { border-bottom: 1px solid rgba(255,255,255,.04); }
+
+/* 27. Chart bars */
+.chart-bar .cb-rank { font-family: var(--font-display); font-weight: 900; color: var(--text-dim); }
+.chart-bar .cb-name { font-family: var(--font-sans); font-weight: 700; }
+.chart-bar .cb-track { background: rgba(5,8,14,.9); border: 1px solid rgba(255,255,255,.06); border-radius: 8px; }
+.chart-bar .cb-fill { border-radius: 7px; }
+
+/* 28. Franchise */
+.fr-emblem { box-shadow: 0 0 20px rgba(245,185,66,.2), inset 0 1px 0 rgba(255,220,100,.2), 0 4px 16px rgba(0,0,0,.4); border: 1px solid rgba(245,185,66,.22); }
+.fr-meter { background: linear-gradient(180deg, rgba(16,21,34,.9), rgba(10,13,20,.95)); border: 1px solid rgba(255,255,255,.06); border-radius: 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+
+/* 29. Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(45,57,80,.8); border-radius: 999px; border: 2px solid rgba(6,8,13,.95); }
+::-webkit-scrollbar-thumb:hover { background: rgba(245,185,66,.4); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* 30. Desktop Subtabs Isolation (mobile only bar) */
+@media (min-width: 769px) {
+  .subtabs, #subTabs {
+    display: none !important;
+  }
+}
+
+/* 31. Command Palette & Floating Dialogs */
+.cmd-palette {
+  background: rgba(10, 14, 23, 0.96) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border: 1px solid rgba(245, 185, 66, 0.25) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(245, 185, 66, 0.12) !important;
+}
+.cmd-input {
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  color: var(--text) !important;
+  background: rgba(5, 8, 14, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+}
+.cmd-item {
+  font-family: var(--font-sans) !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+}
+.cmd-item:hover, .cmd-item.active {
+  background: linear-gradient(90deg, rgba(245, 185, 66, 0.16), rgba(245, 185, 66, 0.04)) !important;
+  color: var(--gold-light) !important;
+}
