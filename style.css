@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   BOX OFFICE WAR — v29 styles (Kenney.nl rebrand)
+   BOX OFFICE WAR — v33 styles (Itch.io 2D Game Assets)
    Dark cinematic theme · animated · mobile-first · offline
    ═══════════════════════════════════════════════════════════ */
 :root{
@@ -95,125 +95,115 @@ input[type=text]{font-family:inherit}
 .btn:disabled{opacity:.45; cursor:not-allowed; transform:none}
 .btn-sm{padding:5px 10px; min-height:32px; font-size:12.5px; border-radius:9px}
 
-/* ═══ Kenney.nl UI Asset Integration ═══ */
-.kenney-btn-primary{
-  background-image:url("assets/kenney-ui/btn-primary.png");
-  background-size:cover; background-position:center; background-repeat:no-repeat;
-  border:none; color:#1a1204; font-weight:700;
-  text-shadow:0 1px 0 rgba(255,255,255,.3);
+/* ═══ Itch.io Game UI Asset Integration ═══ */
+.itch-btn-primary {
+  background-image: url("assets/itch-ui/buttons/BigBlueButton_Regular.png");
+  background-size: 100% 100%; background-position: center; background-repeat: no-repeat;
+  border: none; color: #ffffff; font-weight: 800; font-family: var(--font-display);
+  text-shadow: 0 2px 4px rgba(0,0,0,.6); padding: 8px 18px; border-radius: 8px;
 }
-.kenney-btn-primary:active{transform:scale(.96)}
-.kenney-btn-secondary{
-  background-image:url("assets/kenney-ui/btn-secondary.png");
-  background-size:cover; background-position:center; background-repeat:no-repeat;
-  border:none; color:var(--text);
+.itch-btn-primary:active {
+  background-image: url("assets/itch-ui/buttons/BigBlueButton_Pressed.png");
+  transform: translateY(2px);
 }
-.kenney-btn-secondary:active{transform:scale(.96)}
-.kenney-btn-round{
-  background-image:url("assets/kenney-ui/btn-round.png");
-  background-size:cover; background-position:center; background-repeat:no-repeat;
-  border:none; border-radius:50%; padding:12px;
+.itch-btn-secondary {
+  background-image: url("assets/itch-ui/buttons/SmallBlueSquareButton_Regular.png");
+  background-size: 100% 100%; background-position: center; background-repeat: no-repeat;
+  border: none; color: #ffffff; font-weight: 700;
+  padding: 6px 14px; border-radius: 6px;
 }
-.kenney-btn-round:active{transform:scale(.92)}
-.kenney-btn-square{
-  background-image:url("assets/kenney-ui/btn-square.png");
-  background-size:cover; background-position:center; background-repeat:no-repeat;
-  border:none; border-radius:4px;
+.itch-btn-secondary:active {
+  background-image: url("assets/itch-ui/buttons/SmallBlueSquareButton_Pressed.png");
+  transform: translateY(2px);
 }
-.kenney-panel{
-  background-image:url("assets/kenney-ui/btn-primary-gradient.png");
-  background-size:cover; background-position:center; background-repeat:no-repeat;
-  border-radius:12px; padding:16px;
-  border:1px solid var(--goldDim);
-  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.15);
+.itch-btn-round {
+  background-image: url("assets/itch-ui/buttons/SmallBlueRoundButton_Regular.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  border: none; border-radius: 50%; padding: 12px;
 }
-.kenney-divider{
-  background-image:url("assets/kenney-ui/divider.png");
-  background-size:100% 100%; height:4px; border:none;
+.itch-btn-round:active {
+  background-image: url("assets/itch-ui/buttons/SmallBlueRoundButton_Pressed.png");
+  transform: translateY(2px);
 }
-.kenney-divider-edges{
-  background-image:url("assets/kenney-ui/divider-edges.png");
-  background-size:100% 100%; height:4px; border:none;
+.itch-btn-danger {
+  background-image: url("assets/itch-ui/buttons/BigRedButton_Regular.png");
+  background-size: 100% 100%; background-position: center; background-repeat: no-repeat;
+  border: none; color: #ffffff; font-weight: 800;
 }
-.kenney-star{
-  background-image:url("assets/kenney-ui/star.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:24px; height:24px; display:inline-block;
+.itch-btn-danger:active {
+  background-image: url("assets/itch-ui/buttons/BigRedButton_Pressed.png");
+  transform: translateY(2px);
 }
-.kenney-star-outline{
-  background-image:url("assets/kenney-ui/star-outline.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:24px; height:24px; display:inline-block;
+.itch-panel {
+  background-image: url("assets/itch-ui/wood/wood_tile.png");
+  background-size: 120px auto; background-repeat: repeat;
+  border-radius: 12px; padding: 18px;
+  border: 2px solid rgba(245,185,66,.3);
+  box-shadow: 0 12px 36px rgba(0,0,0,.6);
 }
-.kenney-icon-film{
-  background-image:url("assets/kenney-ui/icon-film.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:20px; height:20px; display:inline-block;
+.itch-parchment {
+  background-image: url("assets/itch-ui/papers/RegularPaper.png");
+  background-size: 100% 100%; background-repeat: no-repeat;
+  color: #1a1204; border-radius: 8px; padding: 16px;
 }
-.kenney-icon-video{
-  background-image:url("assets/kenney-ui/icon-video.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:20px; height:20px; display:inline-block;
+.itch-parchment-special {
+  background-image: url("assets/itch-ui/papers/SpecialPaper.png");
+  background-size: 100% 100%; background-repeat: no-repeat;
+  color: #1a1204; border-radius: 8px; padding: 16px;
 }
-.kenney-icon-gear{
-  background-image:url("assets/kenney-ui/icon-gear.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:20px; height:20px; display:inline-block;
+.itch-star {
+  background-image: url("assets/itch-ui/icons/Icon_01.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 24px; height: 24px; display: inline-block; vertical-align: middle;
 }
-.kenney-icon-home{
-  background-image:url("assets/kenney-ui/icon-home.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:20px; height:20px; display:inline-block;
+.itch-star-outline {
+  background-image: url("assets/itch-ui/icons/Icon_04.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 24px; height: 24px; display: inline-block; vertical-align: middle;
 }
-.kenney-icon-info{
-  background-image:url("assets/kenney-ui/icon-info.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:20px; height:20px; display:inline-block;
+.itch-icon-film {
+  background-image: url("assets/itch-ui/icons/Icon_06.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 24px; height: 24px; display: inline-block; vertical-align: middle;
 }
-.kenney-icon-play{
-  background-image:url("assets/kenney-ui/icon-play.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:24px; height:24px; display:inline-block;
+.itch-icon-video {
+  background-image: url("assets/itch-ui/icons/Icon_05.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 20px; height: 20px; display: inline-block; vertical-align: middle;
 }
-.kenney-icon-arrow-down{
-  background-image:url("assets/kenney-ui/icon-arrow-down.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:16px; height:16px; display:inline-block;
+.itch-icon-gear {
+  background-image: url("assets/itch-ui/icons/Icon_10.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 20px; height: 20px; display: inline-block; vertical-align: middle;
 }
-.kenney-icon-arrow-up{
-  background-image:url("assets/kenney-ui/icon-arrow-up.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:16px; height:16px; display:inline-block;
+.itch-icon-home {
+  background-image: url("assets/itch-ui/icons/Icon_05.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 20px; height: 20px; display: inline-block; vertical-align: middle;
 }
-.kenney-check{
-  background-image:url("assets/kenney-ui/check-round.png");
-  background-size:contain; background-position:center; background-repeat:no-repeat;
-  width:20px; height:20px; display:inline-block;
+.itch-icon-info {
+  background-image: url("assets/itch-ui/icons/Icon_12.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 20px; height: 20px; display: inline-block; vertical-align: middle;
 }
-.kenney-input{
-  background-image:url("assets/kenney-ui/input-bg.png");
-  background-size:100% 100%; border:none; border-radius:8px;
-  padding:10px 14px; color:var(--text); background-color:transparent;
+.itch-icon-play {
+  background-image: url("assets/itch-ui/icons/Icon_09.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 20px; height: 20px; display: inline-block; vertical-align: middle;
 }
-.kenney-input:focus{outline:none; box-shadow:0 0 0 2px var(--gold)}
-
-/* Character avatar helpers */
-.kenney-avatar{
-  width:48px; height:48px; border-radius:50%;
-  background-size:cover; background-position:center;
-  border:2px solid var(--goldDim); box-shadow:var(--shadow-sm);
+.itch-check {
+  background-image: url("assets/itch-ui/icons/Icon_07.png");
+  background-size: contain; background-position: center; background-repeat: no-repeat;
+  width: 20px; height: 20px; display: inline-block; vertical-align: middle;
 }
-.kenney-avatar-sm{width:32px; height:32px}
-.kenney-avatar-lg{width:64px; height:64px}
-
-/* Isometric building display */
-.kenney-building{
-  image-rendering:pixelated; image-rendering:crisp-edges;
-  filter:drop-shadow(4px 4px 8px rgba(0,0,0,.5));
+.itch-avatar {
+  width: 48px; height: 48px; border-radius: 8px;
+  background-size: cover; background-position: center;
+  border: 2px solid var(--goldDim); box-shadow: var(--shadow-sm);
+  image-rendering: pixelated;
 }
-.kenney-building-row{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
-
-/* ═══ Kenney UI end ═══ */
+.itch-avatar-sm { width: 32px; height: 32px; }
+.itch-avatar-lg { width: 64px; height: 64px; }
 
 /* ═══ Itch.io Free Game Assets Integration (Tiny Swords & Free Asset Pack) ═══ */
 .itch-avatar{
@@ -295,8 +285,8 @@ input[type=text]{font-family:inherit}
 }
 .itch-special-paper *{color:#1b1915}
 .itch-wood{
-  background-image:url("assets/itch-ui/wood/WoodTable.png");
-  background-size:cover; background-position:center;
+  background-image:url("assets/itch-ui/wood/wood_tile.png");
+  background-size:120px auto; background-repeat:repeat;
   image-rendering:pixelated; image-rendering:crisp-edges;
 }
 .itch-bar-track{

@@ -1239,8 +1239,10 @@
               <button id="btnLotNextWeek" class="itch-btn-blue">Next Week (+1W)</button>
               <button id="btnLotFastWeek" class="itch-btn-blue">Fast (+4W)</button>
               <button id="btnLotDevelop" class="itch-btn-gold">+ Greenlight</button>
+              <button id="btnLotSlate" class="btn btn-alt btn-sm">Active Slate</button>
               <button id="btnLotTalent" class="btn btn-alt btn-sm">Talent</button>
-              <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Marquee</button>
+              <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Box Office</button>
+              <button id="btnLotFinance" class="btn btn-alt btn-sm">Finance</button>
             </div>
           </div>
 
@@ -1355,11 +1357,26 @@
         };
       }
 
+      const btnSlate = document.getElementById("btnLotSlate");
+      if (btnSlate) {
+        btnSlate.onclick = () => {
+          if (typeof window.switchTab === "function") window.switchTab("productions");
+        };
+      }
+
       const btnBox = document.getElementById("btnLotBoxOffice");
       if (btnBox) {
         btnBox.onclick = () => {
           if (typeof window.boxOfficeModal === "function") window.boxOfficeModal();
           else if (typeof window.switchTab === "function") window.switchTab("boxoffice");
+        };
+      }
+
+      const btnFin = document.getElementById("btnLotFinance");
+      if (btnFin) {
+        btnFin.onclick = () => {
+          if (typeof window.financeOverviewSheet === "function") window.financeOverviewSheet();
+          else if (typeof window.switchTab === "function") window.switchTab("finance");
         };
       }
 

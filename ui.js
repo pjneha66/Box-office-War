@@ -727,6 +727,14 @@ function switchTab(t){
     b.classList.toggle("active", match);
     b.setAttribute("aria-current", match?"true":"false");   // v27 a11y
   });
+  const fabLot = document.getElementById("fabLot");
+  if(fabLot){
+    fabLot.style.display = (t === "studiolot") ? "none" : "block";
+    if(!fabLot._wired){
+      fabLot._wired = true;
+      fabLot.onclick = () => switchTab("studiolot");
+    }
+  }
   /* v28.9: flush the debounced render immediately on tab switch — fixes the
      race where a fast click (or the UI test) hits a not-yet-rendered view */
   if(_renderTimer){ clearTimeout(_renderTimer); _renderTimer=null; }

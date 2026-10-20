@@ -95,7 +95,7 @@ function talentAvatarSVG(t, opts){
   const sprite = v31Pick(pool, seed);
   const size = opts.size || 52;
 
-  return `<div class="itch-avatar kenney-avatar" style="width:${size}px;height:${size}px;border-color:${roleColor};" title="${esc(t.name||"talent")}">`+
+  return `<div class="itch-avatar" style="width:${size}px;height:${size}px;border-color:${roleColor};" title="${esc(t.name||"talent")}">`+
     `<img src="${sprite}" alt="${esc(t.name||"character")}" style="width:100%;height:100%;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges">`+
   `</div>`;
 }
