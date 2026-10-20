@@ -91,10 +91,54 @@ async function run() {
 
   await sleep(1500);
 
-  // 2. Capture 2D Studio Lot
+  // 2. Capture 2D Studio Lot (Campus)
   const shot2 = await send("Page.captureScreenshot", { format: "png" });
-  fs.writeFileSync(path.join(ARTIFACT_DIR, "itch_screen_2_studiolot.png"), Buffer.from(shot2.data, "base64"));
-  console.log("Captured: itch_screen_2_studiolot.png");
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_campus.png"), Buffer.from(shot2.data, "base64"));
+  console.log("Captured: kairo_screen_campus.png");
+
+  // 2b. Switch to Soundstage View
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      if (typeof window.StudioLot2D !== "undefined") window.StudioLot2D.setView("soundstage");
+    })()`
+  });
+  await sleep(1500);
+  const shotStage = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_soundstage.png"), Buffer.from(shotStage.data, "base64"));
+  console.log("Captured: kairo_screen_soundstage.png");
+
+  // 2c. Switch to Writers Room View
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      if (typeof window.StudioLot2D !== "undefined") window.StudioLot2D.setView("writers");
+    })()`
+  });
+  await sleep(1000);
+  const shotWriters = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_writers.png"), Buffer.from(shotWriters.data, "base64"));
+  console.log("Captured: kairo_screen_writers.png");
+
+  // 2d. Switch to Post View
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      if (typeof window.StudioLot2D !== "undefined") window.StudioLot2D.setView("post");
+    })()`
+  });
+  await sleep(1000);
+  const shotPost = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_post.png"), Buffer.from(shotPost.data, "base64"));
+  console.log("Captured: kairo_screen_post.png");
+
+  // 2e. Switch to Cinema Theater View
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      if (typeof window.StudioLot2D !== "undefined") window.StudioLot2D.setView("cinema");
+    })()`
+  });
+  await sleep(1000);
+  const shotCinema = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_cinema.png"), Buffer.from(shotCinema.data, "base64"));
+  console.log("Captured: kairo_screen_cinema.png");
 
   // 3. Open Settings Modal
   await send("Runtime.evaluate", {
@@ -113,7 +157,7 @@ async function run() {
   fs.writeFileSync(path.join(ARTIFACT_DIR, "itch_screen_3_modal.png"), Buffer.from(shot3.data, "base64"));
   console.log("Captured: itch_screen_3_modal.png");
 
-  // 4. Close modal and navigate to Productions Tab to check itch wood cards
+  // 4. Close modal and navigate to Productions Tab
   await send("Runtime.evaluate", {
     expression: `(function(){
       if (typeof window.closeModal === "function") window.closeModal();

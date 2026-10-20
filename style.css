@@ -2784,6 +2784,38 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
   flex-shrink: 0;
 }
 
+/* ═══════════ Kairosoft 2D Simulation UI Styles ═══════════ */
+.kairo-top-header {
+  flex-wrap: wrap;
+}
 
+.kairo-nav-tab {
+  background: rgba(30, 41, 59, 0.85);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
 
+.kairo-nav-tab:hover {
+  color: #fff;
+  border-color: var(--gold);
+  background: rgba(45, 60, 85, 0.95);
+  transform: translateY(-1px);
+}
 
+.kairo-nav-tab.active {
+  background: #2563eb linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.kairo-nav-tab:active {
+  transform: translateY(1px);
+}
