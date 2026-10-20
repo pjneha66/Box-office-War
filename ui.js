@@ -718,8 +718,34 @@ function enterApp(fresh){
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   if(t==="develop") DEVELOP_SUB = "scripts";
-  if(TAB==="studiolot" && t!=="studiolot" && typeof StudioLot2D!=="undefined" && StudioLot2D.unmount){
-    try{ StudioLot2D.unmount(); }catch(e){}
+  const stage = document.getElementById("studiolotGlobalStage");
+  if(stage){
+    stage.className = "studiolot-global-stage " + (t === "studiolot" ? "lot-full" : "lot-compact");
+    stage.style.display = "block";
+  }
+  const roomMap = {
+    studiolot: "campus",
+    dashboard: "executive",
+    studio: "campus",
+    develop: "writers",
+    productions: "soundstage",
+    boxoffice: "cinema",
+    fans: "cinema",
+    ott: "post",
+    live: "post",
+    empire: "executive",
+    library: "post",
+    games: "post",
+    finance: "executive",
+    notifications: "executive"
+  };
+  const targetRoom = roomMap[t] || "campus";
+  if(typeof StudioLot2D !== "undefined"){
+    if(!document.querySelector("#studiolotContainer canvas")){
+      try{ StudioLot2D.mount("studiolotContainer", targetRoom, { compact: t !== "studiolot" }); }catch(e){}
+    } else {
+      try{ StudioLot2D.setView(targetRoom); if(typeof StudioLot2D.resize==="function") StudioLot2D.resize(); }catch(e){}
+    }
   }
   TAB=t; try{ beep("click"); }catch(e){}   // v28.9: never let audio/haptics kill the render flush
   $$(".tab,.btab").forEach(b=>{
@@ -5421,31 +5447,50 @@ function bindView(){
     MarketingBlitz.bindEvents(document, G);
   }
 
-  if(TAB==="studiolot"){
-    if(typeof StudioLotBridge !== "undefined" && typeof StudioLot2D !== "undefined"){
-      try {
-        StudioLotBridge.syncWithGameState(G);
-        StudioLot2D.mount("studiolotContainer");
-      } catch(e) {
-        console.warn("StudioLot immediate mount fallback:", e);
+  if(typeof StudioLotBridge !== "undefined" && typeof StudioLot2D !== "undefined"){
+    const roomMap = {
+      studiolot: "campus",
+      dashboard: "executive",
+      studio: "campus",
+      develop: "writers",
+      productions: "soundstage",
+      boxoffice: "cinema",
+      fans: "cinema",
+      ott: "post",
+      live: "post",
+      empire: "executive",
+      library: "post",
+      games: "post",
+      finance: "executive",
+      notifications: "executive"
+    };
+    const targetRoom = roomMap[TAB] || "campus";
+    try {
+      StudioLotBridge.syncWithGameState(G);
+      if(!document.querySelector("#studiolotContainer canvas")){
+        StudioLot2D.mount("studiolotContainer", targetRoom, { compact: TAB !== "studiolot" });
+      } else {
+        StudioLot2D.setView(targetRoom);
       }
-      StudioLotBridge.init().then(()=>{
-        StudioLotBridge.syncWithGameState(G);
-        if(!document.querySelector("#studiolotContainer canvas")){
-          StudioLot2D.mount("studiolotContainer");
-        }
-      });
-      const btnSync = $("#btnSyncLotState");
-      if(btnSync) btnSync.onclick = ()=>{
-        beep("click");
-        StudioLotBridge.syncWithGameState(G);
-      };
-      const btnFacLot = $("#btnOpenFacilitiesFromLot");
-      if(btnFacLot) btnFacLot.onclick = ()=>{
-        beep("click");
-        if(typeof openStudioFacilitiesModal === "function") openStudioFacilitiesModal();
-      };
+    } catch(e) {
+      console.warn("StudioLot mount fallback:", e);
     }
+    StudioLotBridge.init().then(()=>{
+      StudioLotBridge.syncWithGameState(G);
+      if(!document.querySelector("#studiolotContainer canvas")){
+        StudioLot2D.mount("studiolotContainer", targetRoom, { compact: TAB !== "studiolot" });
+      }
+    });
+    const btnSync = $("#btnSyncLotState");
+    if(btnSync) btnSync.onclick = ()=>{
+      beep("click");
+      StudioLotBridge.syncWithGameState(G);
+    };
+    const btnFacLot = $("#btnOpenFacilitiesFromLot");
+    if(btnFacLot) btnFacLot.onclick = ()=>{
+      beep("click");
+      if(typeof openStudioFacilitiesModal === "function") openStudioFacilitiesModal();
+    };
   }
 }
 
@@ -7242,8 +7287,9 @@ function empireModal(frId){
 
 /* ═══════════ VIEW: 2D Studio Lot Simulation (Rust Core) ═══════════ */
 function viewStudioLot2D(){
-  return `<div class="studiolot-wrapper" style="padding:0;width:100%;height:calc(100vh - 95px);min-height:560px">
-    <div id="studiolotContainer" style="width:100%;height:100%;min-height:560px"></div>
+  return `<div class="studiolot-lot-footer" style="padding:10px 16px;text-align:center">
+    <span class="tag gold">HOLLYWOOD 2D STUDIO LOT SIMULATION ACTIVE</span>
+    <span class="tiny muted" style="margin-left:8px">Pan with drag · Zoom with mouse wheel or +/- · Click buildings &amp; characters</span>
   </div>`;
 }
 

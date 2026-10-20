@@ -17,17 +17,9 @@
     return "$" + (Math.round((n || 0) * 10) / 10).toFixed(1) + "M";
   }
 
-  /* Authentic 16-bit Kairosoft Scene Window with Real Pixel Avatars & Speech Bubbles */
+  /* Streamlined vignette — the active 2D simulation canvas above serves as the hero stage */
   function renderVignette(sceneImg, actorLeft, actorRight, bubbleText, bubbleTheme, tagText) {
-    return `
-      <div class="kairo-dept-vignette">
-        <img src="${sceneImg}" class="kairo-vignette-bg" alt="Kairo Scene" />
-        ${actorLeft ? `<img src="${actorLeft}" class="kairo-char-actor left kairo-bob" alt="Staff" />` : ""}
-        ${actorRight ? `<img src="${actorRight}" class="kairo-char-actor right kairo-bob" style="animation-delay:0.5s" alt="Staff" />` : ""}
-        <div class="kairo-speech-bubble ${bubbleTheme || 'gold'}">${bubbleText}</div>
-        <div class="kairo-vignette-live-tag">${tagText}</div>
-      </div>
-    `;
+    return "";
   }
 
   const KairoTheme = {

@@ -599,6 +599,43 @@
     }
     ctx.restore();
 
+    // Animated Post & Broadcast Artists
+    const artists = [
+      { role: "Audio Mixer", x: _canvas.width * 0.32, y: _canvas.height * 0.65, av: "avatar_04", color: "#38bdf8", quote: "Dialogue normalization 100%" },
+      { role: "VFX Colorist", x: _canvas.width * 0.65, y: _canvas.height * 0.62, av: "avatar_07", color: "#ec4899", quote: "Master color grade locked" }
+    ];
+    for (let i = 0; i < artists.length; i++) {
+      const art = artists[i];
+      const bounce = Math.sin(time * 0.5 + i) * 2;
+      const cached = spriteCache[art.av];
+      ctx.save();
+      if (cached && cached.loaded) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(cached.img, art.x - 22, art.y - 44 + bounce, 44, 44);
+      }
+      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+      ctx.strokeStyle = art.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(art.x - 45, art.y + 4, 90, 16, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(art.role, art.x, art.y + 15);
+      if (Math.sin(time * 0.3 + i * 2) > 0.4) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(art.x - 65, art.y - 68, 130, 20, 4);
+        ctx.fill();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 9px system-ui, sans-serif";
+        ctx.fillText(art.quote, art.x, art.y - 55);
+      }
+      ctx.restore();
+    }
+
     drawKairosoftScoreboard(ctx, "POST-PRODUCTION — SOUND & VFX MIX");
   }
 
@@ -615,7 +652,6 @@
     ctx.fillRect(0, 0, _canvas.width, _canvas.height);
 
     // Critic scorecards banner
-    const G = typeof window !== "undefined" ? window.G : null;
     const cardW = 280;
     const cardH = 68;
     const cardX = 20;
@@ -653,6 +689,44 @@
     }
     ctx.restore();
 
+    // Animated Audience Moviegoers
+    const audience = [
+      { role: "Opening Night Fan", x: _canvas.width * 0.35, y: _canvas.height * 0.70, av: "avatar_09", quote: "Opening weekend sold out!" },
+      { role: "Film Buff", x: _canvas.width * 0.52, y: _canvas.height * 0.72, av: "avatar_14", quote: "Standing ovation!" },
+      { role: "Concession Lead", x: _canvas.width * 0.68, y: _canvas.height * 0.68, av: "avatar_18", quote: "Popcorn line out the door" }
+    ];
+    for (let i = 0; i < audience.length; i++) {
+      const aud = audience[i];
+      const bounce = Math.sin(time * 2 + i) * 2;
+      const cached = spriteCache[aud.av];
+      ctx.save();
+      if (cached && cached.loaded) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(cached.img, aud.x - 22, aud.y - 44 + bounce, 44, 44);
+      }
+      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+      ctx.strokeStyle = "#f5c518";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(aud.x - 45, aud.y + 4, 90, 16, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(aud.role, aud.x, aud.y + 15);
+      if (Math.sin(time * 1.5 + i * 2) > 0.5) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(aud.x - 65, aud.y - 68, 130, 20, 4);
+        ctx.fill();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 9px system-ui, sans-serif";
+        ctx.fillText(aud.quote, aud.x, aud.y - 55);
+      }
+      ctx.restore();
+    }
+
     drawKairosoftScoreboard(ctx, "CINEMA MARQUEE — BOX OFFICE AUDIENCE");
   }
 
@@ -661,7 +735,57 @@
     const asset = spriteCache["kairo_executive"];
     drawRoomBackdrop(ctx, asset);
 
+    const time = performance.now() * 0.003;
     const G = typeof window !== "undefined" ? window.G : null;
+    const stCash = (G && G.studio) ? "$" + (Math.round((G.studio.cash||0)*10)/10).toFixed(1) + "M" : "$0M";
+
+    // Animated Executive Staff
+    const execs = [
+      { role: "Studio Boss", x: _canvas.width * 0.36, y: _canvas.height * 0.65, av: "avatar_01", color: "#f5c518", quote: "Greenlight the slate!" },
+      { role: "CFO Treasurer", x: _canvas.width * 0.58, y: _canvas.height * 0.68, av: "avatar_03", color: "#10b981", quote: "War Chest: " + stCash }
+    ];
+
+    for (let i = 0; i < execs.length; i++) {
+      const ex = execs[i];
+      const bounce = Math.sin(time * 2.5 + i) * 2;
+      const cached = spriteCache[ex.av];
+
+      ctx.save();
+      if (cached && cached.loaded) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(cached.img, ex.x - 24, ex.y - 48 + bounce, 48, 48);
+      } else {
+        ctx.fillStyle = ex.color;
+        ctx.beginPath();
+        ctx.arc(ex.x, ex.y - 20 + bounce, 16, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+      ctx.strokeStyle = ex.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(ex.x - 45, ex.y + 4, 90, 16, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 9px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(ex.role, ex.x, ex.y + 15);
+
+      if (Math.sin(time * 1.8 + i) > 0.4) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(ex.x - 65, ex.y - 70, 130, 20, 4);
+        ctx.fill();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 9px system-ui, sans-serif";
+        ctx.fillText(ex.quote, ex.x, ex.y - 57);
+      }
+      ctx.restore();
+    }
+
     drawKairosoftScoreboard(ctx, "EXECUTIVE SUITE — STUDIO OVERVIEW");
   }
 
@@ -1171,8 +1295,11 @@
     if (!_canvas) return;
     const parent = _canvas.parentElement;
     if (parent) {
+      const stage = document.getElementById("studiolotGlobalStage");
+      const isCompact = stage && stage.classList.contains("lot-compact");
+      const targetH = isCompact ? (window.innerWidth < 768 ? 300 : 380) : Math.max(500, window.innerHeight - 150);
       _canvas.width = parent.clientWidth || window.innerWidth;
-      _canvas.height = Math.max(500, window.innerHeight - 150);
+      _canvas.height = parent.clientHeight || targetH;
     }
   }
 
@@ -1527,14 +1654,21 @@
 
   // Public Interface mounted to window
   const StudioLot2D = {
-    mount(containerId) {
+    mount(containerId, initialView, options) {
       const container = document.getElementById(containerId);
       if (!container) return;
 
       preloadAllAssets();
 
+      if (container.querySelector("#studioLotCanvas")) {
+        if (initialView) setLotView(initialView);
+        resizeCanvas();
+        updateLotHud();
+        return;
+      }
+
       container.innerHTML = `
-        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;min-height:560px;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
           
           <!-- Top Kairosoft Control Console -->
           <div style="position:absolute;top:8px;left:10px;right:10px;z-index:20;display:flex;flex-direction:column;gap:6px;pointer-events:none">
@@ -1573,12 +1707,13 @@
                 <button class="kairo-nav-tab active" data-view="campus">Campus Lot</button>
                 <button class="kairo-nav-tab" data-view="soundstage">Soundstage</button>
                 <button class="kairo-nav-tab" data-view="writers">Writers Room</button>
-                <button class="kairo-nav-tab" data-view="post">Post & VFX</button>
+                <button class="kairo-nav-tab" data-view="post">Post &amp; VFX</button>
                 <button class="kairo-nav-tab" data-view="cinema">Cinema Theater</button>
                 <button class="kairo-nav-tab" data-view="executive">Executive Suite</button>
               </div>
 
               <div style="pointer-events:auto;display:flex;align-items:center;gap:4px;background:rgba(15,23,42,0.85);padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.1)">
+                <button id="btnLotFullscreen" class="btn btn-alt btn-sm" style="color:var(--gold);border-color:var(--gold);font-weight:bold" title="Toggle Fullscreen 2D Lot">Lot ⛶</button>
                 <button id="btnLotSlate" class="btn btn-alt btn-sm">Slate</button>
                 <button id="btnLotTalent" class="btn btn-alt btn-sm">Talent</button>
                 <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Box Office</button>
@@ -1607,15 +1742,19 @@
       `;
 
       _canvas = document.getElementById("studioLotCanvas");
-      _ctx = _canvas.getContext("2d");
+      _ctx = _canvas ? _canvas.getContext("2d") : null;
 
       resizeCanvas();
+      window.removeEventListener("resize", resizeCanvas);
       window.addEventListener("resize", resizeCanvas);
 
-      // Center initial camera
-      camera.x = _canvas.width / 2;
-      camera.y = _canvas.height / 2;
-      camera.zoom = 1.0;
+      if (initialView) {
+        setLotView(initialView);
+      } else {
+        camera.x = _canvas ? _canvas.width / 2 : 0;
+        camera.y = _canvas ? _canvas.height / 2 : 0;
+        camera.zoom = 1.0;
+      }
 
       setupEvents();
       renderPalette();
@@ -1628,27 +1767,65 @@
           if (view) {
             setLotView(view);
             if (typeof beep === "function") beep("click");
+            if (typeof window.switchTab === "function") {
+              const tabForView = {
+                campus: "studio",
+                soundstage: "productions",
+                writers: "develop",
+                post: "ott",
+                cinema: "boxoffice",
+                executive: "dashboard"
+              };
+              const mappedTab = tabForView[view];
+              if (mappedTab && window.TAB !== mappedTab && window.TAB !== "studiolot") {
+                window.switchTab(mappedTab);
+              }
+            }
           }
         };
       });
 
-      document.getElementById("btnZoomIn").onclick = () => { camera.zoom = Math.min(2.5, camera.zoom * 1.2); };
-      document.getElementById("btnZoomOut").onclick = () => { camera.zoom = Math.max(0.5, camera.zoom / 1.2); };
-      document.getElementById("btnResetView").onclick = () => {
-        camera.x = _canvas.width / 2;
-        camera.y = _canvas.height / 2;
-        camera.zoom = 1.0;
-      };
-      document.getElementById("btnFocusShoot").onclick = () => {
-        setLotView("soundstage");
-      };
+      const btnFs = document.getElementById("btnLotFullscreen");
+      if (btnFs) {
+        btnFs.onclick = () => {
+          if (typeof window.switchTab === "function") {
+            if (window.TAB === "studiolot") {
+              window.switchTab("dashboard");
+            } else {
+              window.switchTab("studiolot");
+            }
+          }
+        };
+      }
+
+      const btnZIn = document.getElementById("btnZoomIn");
+      if (btnZIn) btnZIn.onclick = () => { camera.zoom = Math.min(2.5, camera.zoom * 1.2); };
+      const btnZOut = document.getElementById("btnZoomOut");
+      if (btnZOut) btnZOut.onclick = () => { camera.zoom = Math.max(0.5, camera.zoom / 1.2); };
+      const btnRst = document.getElementById("btnResetView");
+      if (btnRst) {
+        btnRst.onclick = () => {
+          if (_canvas) {
+            camera.x = _canvas.width / 2;
+            camera.y = _canvas.height / 2;
+            camera.zoom = 1.0;
+          }
+        };
+      }
+      const btnFocus = document.getElementById("btnFocusShoot");
+      if (btnFocus) {
+        btnFocus.onclick = () => {
+          setLotView("soundstage");
+        };
+      }
 
       const palRoot = document.getElementById("lotPaletteRoot");
-      document.getElementById("btnTogglePalette").onclick = () => {
-        if (palRoot) {
+      const btnPal = document.getElementById("btnTogglePalette");
+      if (btnPal && palRoot) {
+        btnPal.onclick = () => {
           palRoot.style.display = (palRoot.style.display === "none") ? "block" : "none";
-        }
-      };
+        };
+      }
 
       // Wire in-canvas 2D game loops
       const btnNext = document.getElementById("btnLotNextWeek");
@@ -1657,7 +1834,7 @@
           if (typeof window.doWeek === "function") {
             window.doWeek(1);
             updateLotHud();
-            addFloatingText("+WEEKLY PROGRESS", _canvas.width * 0.5, _canvas.height * 0.5, "#10b981");
+            if (_canvas) addFloatingText("+WEEKLY PROGRESS", _canvas.width * 0.5, _canvas.height * 0.5, "#10b981");
             if (_selectedBuildingId) renderInspector();
           }
         };
@@ -1669,7 +1846,7 @@
           if (typeof window.doWeek === "function") {
             window.doWeek(4);
             updateLotHud();
-            addFloatingText("+4 WEEKS ELAPSED", _canvas.width * 0.5, _canvas.height * 0.5, "#38bdf8");
+            if (_canvas) addFloatingText("+4 WEEKS ELAPSED", _canvas.width * 0.5, _canvas.height * 0.5, "#38bdf8");
             if (_selectedBuildingId) renderInspector();
           }
         };
@@ -1736,6 +1913,14 @@
 
     getView() {
       return _currentLotView;
+    },
+
+    resize() {
+      resizeCanvas();
+    },
+
+    updateHud() {
+      updateLotHud();
     }
   };
 
