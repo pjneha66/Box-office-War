@@ -2825,37 +2825,144 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  background: #0f172a linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-  border: 2px solid rgba(245, 197, 24, 0.4);
+  gap: 18px;
+  background: #141b2e linear-gradient(180deg, #18233c 0%, #0e1322 100%);
+  border: 3px solid #2e3e62;
+  border-top: 3px solid #4a6396;
+  border-bottom: 5px solid #080b12;
   border-radius: 10px;
   padding: 12px 18px;
   margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 0 #05070e, inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 30px rgba(0, 0, 0, 0.6);
   position: relative;
   overflow: hidden;
   flex-wrap: wrap;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .kairo-dept-banner:hover {
-  border-color: var(--gold);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 197, 24, 0.25);
+  border-color: #ffd479;
+  border-top-color: #ffe6a6;
+  box-shadow: 0 6px 0 #05070e, 0 0 20px rgba(245, 185, 66, 0.25);
 }
 
-/* Animated Vignettes */
+/* Authentic 16-Bit Kairosoft Department Scene Window */
 .kairo-dept-vignette {
-  width: 90px;
-  height: 70px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 176px;
+  height: 104px;
+  border: 3px solid #f5b942;
+  border-top: 3px solid #ffdf9a;
+  border-bottom: 4px solid #b47810;
   border-radius: 8px;
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background-color: #0d121e;
+  box-shadow: 0 4px 0 #060910, inset 0 0 16px rgba(0,0,0,0.6);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.kairo-vignette-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  transform: scale(1.04);
+  transition: transform 0.25s ease;
+}
+.kairo-dept-banner:hover .kairo-vignette-bg {
+  transform: scale(1.08);
+}
+
+.kairo-char-actor {
+  position: absolute;
+  bottom: 2px;
+  height: 48px;
+  width: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.85));
+  z-index: 2;
+}
+.kairo-char-actor.left { left: 8px; }
+.kairo-char-actor.center { left: 50%; transform: translateX(-50%); }
+.kairo-char-actor.right { right: 8px; }
+
+.kairo-speech-bubble {
+  position: absolute;
+  top: 6px;
+  padding: 3px 7px;
+  background: #ffffff;
+  color: #111827;
+  border: 2px solid #111827;
+  border-radius: 4px;
+  font-family: var(--font-display, monospace);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 #000, 0 4px 8px rgba(0,0,0,0.4);
+  z-index: 5;
+  animation: kairoBubbleBob 2s ease-in-out infinite;
+}
+.kairo-speech-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 10px;
+  border-width: 5px 4px 0;
+  border-style: solid;
+  border-color: #111827 transparent;
+  display: block;
+  width: 0;
+}
+.kairo-speech-bubble.gold {
+  background: #fef08a;
+  border-color: #854d0e;
+  color: #713f12;
+}
+.kairo-speech-bubble.gold::after {
+  border-color: #854d0e transparent;
+}
+.kairo-speech-bubble.cyan {
+  background: #cffafe;
+  border-color: #0e7490;
+  color: #155e75;
+}
+.kairo-speech-bubble.cyan::after {
+  border-color: #0e7490 transparent;
+}
+.kairo-speech-bubble.red {
+  background: #fee2e2;
+  border-color: #991b1b;
+  color: #991b1b;
+}
+.kairo-speech-bubble.red::after {
+  border-color: #991b1b transparent;
+}
+
+@keyframes kairoBubbleBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.kairo-vignette-live-tag {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #4ade80;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  z-index: 4;
 }
 
 .kairo-dept-info {

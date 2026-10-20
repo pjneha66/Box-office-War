@@ -17,6 +17,19 @@
     return "$" + (Math.round((n || 0) * 10) / 10).toFixed(1) + "M";
   }
 
+  /* Authentic 16-bit Kairosoft Scene Window with Real Pixel Avatars & Speech Bubbles */
+  function renderVignette(sceneImg, actorLeft, actorRight, bubbleText, bubbleTheme, tagText) {
+    return `
+      <div class="kairo-dept-vignette">
+        <img src="${sceneImg}" class="kairo-vignette-bg" alt="Kairo Scene" />
+        ${actorLeft ? `<img src="${actorLeft}" class="kairo-char-actor left kairo-bob" alt="Staff" />` : ""}
+        ${actorRight ? `<img src="${actorRight}" class="kairo-char-actor right kairo-bob" style="animation-delay:0.5s" alt="Staff" />` : ""}
+        <div class="kairo-speech-bubble ${bubbleTheme || 'gold'}">${bubbleText}</div>
+        <div class="kairo-vignette-live-tag">${tagText}</div>
+      </div>
+    `;
+  }
+
   const KairoTheme = {
     renderBanner(tab, subtab) {
       const G = typeof window !== "undefined" ? window.G : null;
@@ -68,16 +81,14 @@
 
     return `
       <div class="kairo-dept-banner kairo-banner-dashboard">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-boardroom">
-            <div class="kairo-pixel-desk"></div>
-            <div class="kairo-pixel-chair kairo-bob"></div>
-            <div class="kairo-pixel-trophy kairo-glint"></div>
-            <div class="kairo-pixel-window">
-              <div class="kairo-pixel-cityline"></div>
-            </div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_executive_office.png",
+          "assets/2d/char_director.png",
+          "assets/2d/char_star_actor.png",
+          "★ WAR CHEST",
+          "gold",
+          "HQ SUITE"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
@@ -125,28 +136,24 @@
 
     return `
       <div class="kairo-dept-banner kairo-banner-studio">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-studio">
-            <div class="kairo-pixel-gate"></div>
-            <div class="kairo-pixel-watertower"></div>
-            <div class="kairo-pixel-golfcart kairo-drive"></div>
-            <div class="kairo-pixel-crane kairo-crane-swing"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_studio_campus.png",
+          "assets/2d/char_cameraman.png",
+          "assets/2d/char_director.png",
+          "LOT EXPAND",
+          "cyan",
+          "STAGES"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
             <span class="kairo-dept-badge cyan">[CAMPUS OPERATIONS &amp; FACILITIES]</span>
             <span class="kairo-dept-subtag">BACKLOT LOT 1-12</span>
           </div>
-          <div class="kairo-dept-title">HOLLYWOOD BACKLOT &amp; SOUNDSTAGE EXPANSION</div>
+          <div class="kairo-dept-title">HOLLYWOOD PRODUCTION CAMPUS &amp; STAGES</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">LOT FOOTPRINT</span>
-              <span class="k-val gold">24x24 Acres</span>
-            </div>
-            <div class="kairo-stat-chip">
-              <span class="k-lbl">ACTIVE STAGES</span>
+              <span class="k-lbl">LOT FACILITIES</span>
               <span class="k-val green">${facilityCount} Stages &amp; Suites</span>
             </div>
             <div class="kairo-stat-chip">
@@ -182,16 +189,14 @@
 
     return `
       <div class="kairo-dept-banner kairo-banner-develop">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-writers">
-            <div class="kairo-pixel-corkboard"></div>
-            <div class="kairo-pixel-typewriter kairo-type-clatter"></div>
-            <div class="kairo-pixel-coffeepot">
-              <div class="kairo-pixel-steam kairo-steam-rise"></div>
-            </div>
-            <div class="kairo-pixel-writer kairo-bob"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_writers_room.png",
+          "assets/itch-avatars/Avatars_05.png",
+          "assets/2d/char_director.png",
+          "+15 SCRIPT!",
+          "gold",
+          "WRITERS"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
@@ -236,80 +241,72 @@
 
     return `
       <div class="kairo-dept-banner kairo-banner-productions">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-soundstage">
-            <div class="kairo-pixel-lighttruss"></div>
-            <div class="kairo-pixel-cameradolly kairo-dolly-roll"></div>
-            <div class="kairo-pixel-tallylight kairo-tally-blink"></div>
-            <div class="kairo-pixel-boommic kairo-boom-bob"></div>
-            <div class="kairo-pixel-director kairo-bob"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_soundstage.png",
+          "assets/2d/char_cameraman.png",
+          "assets/2d/char_star_actor.png",
+          "ACTION!",
+          "red",
+          "STAGE A"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge red">[STAGE RECORDING &amp; SLATE]</span>
-            <span class="kairo-dept-subtag">LIVE ON-AIR</span>
+            <span class="kairo-dept-badge red">[STAGE A &amp; SHOOTING FLOOR]</span>
+            <span class="kairo-dept-subtag">LIVE SOUNDSTAGES</span>
           </div>
-          <div class="kairo-dept-title">SOUNDSTAGE 1 — ACTIVE FILM PRODUCTIONS</div>
+          <div class="kairo-dept-title">PRINCIPAL PHOTOGRAPHY &amp; SOUNDSTAGES</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">ROLLING CAMERAS</span>
-              <span class="k-val red">${activeShoots} Filming</span>
+              <span class="k-lbl">ACTIVE SHOOTS</span>
+              <span class="k-val red">${activeShoots} Cameras Rolling</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">POST &amp; VFX BAY</span>
-              <span class="k-val cyan">${postProds} Cutting</span>
+              <span class="k-lbl">IN POST &amp; VFX</span>
+              <span class="k-val cyan">${postProds} Cutting Rooms</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">STAGE SCHEDULE</span>
-              <span class="k-val gold">${inProd.length} Total Projects</span>
-            </div>
-            <div class="kairo-stat-chip">
-              <span class="k-lbl">DIRECTOR MORALE</span>
-              <span class="k-val green">100% In The Zone</span>
+              <span class="k-lbl">TOTAL PIPELINE</span>
+              <span class="k-val gold">${inProd.length} Slated</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof calendarModal==='function')calendarModal();">Release Calendar</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openLocationScoutingModal==='function')openLocationScoutingModal();">Location Scouting</button>
-          <button class="kairo-btn-action" onclick="if(typeof openInsuranceModal==='function')openInsuranceModal();">Production Insurance</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof testScreeningsModal==='function')testScreeningsModal();">Test Screenings</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof openProductionInsuranceModal==='function')openProductionInsuranceModal();">Production Bond</button>
+          <button class="kairo-btn-action" onclick="switchTab('studiolot')">View Soundstage</button>
         </div>
       </div>
     `;
   }
 
-  /* 5. BOX OFFICE: Grand Cinema Marquee & Red Carpet Premiere */
+  /* 5. BOX OFFICE: Cinema Palace & Marquee */
   function renderBoxOfficeBanner(G, st, calStr) {
-    const films = G.films || [];
-    const inTheaters = films.filter(f => (f.weeks || 0) <= 6);
-    const topFilm = inTheaters.slice().sort((a,b) => (b.grossDom || 0) - (a.grossDom || 0))[0] || null;
+    const liveFilms = (G.films || []).filter(f => (f.weeks || 0) <= 6);
+    const topFilm = liveFilms.sort((a,b)=>(b.weeklyGross||0)-(a.weeklyGross||0))[0];
 
     return `
       <div class="kairo-dept-banner kairo-banner-boxoffice">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-cinema">
-            <div class="kairo-pixel-marquee kairo-marquee-glow">
-              <div class="kairo-pixel-chaser"></div>
-            </div>
-            <div class="kairo-pixel-redcarpet"></div>
-            <div class="kairo-pixel-crowd kairo-crowd-cheer"></div>
-            <div class="kairo-pixel-popcorn kairo-popcorn-burst"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_cinema_theater.png",
+          "assets/2d/char_star_actor.png",
+          "assets/2d/char_audience.png",
+          "SOLD OUT! ★",
+          "gold",
+          "THEATERS"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge gold">[CINEMA THEATER MARQUEE]</span>
+            <span class="kairo-dept-badge yellow">[CINEMA THEATER MARQUEE]</span>
             <span class="kairo-dept-subtag">TICKET SALES &amp; EXHIBITION</span>
           </div>
           <div class="kairo-dept-title">PREMIERE PALACE &amp; WEEKEND BOX OFFICE</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
               <span class="k-lbl">FILMS IN THEATERS</span>
-              <span class="k-val gold">${inTheaters.length} Screens</span>
+              <span class="k-val gold">${liveFilms.length} Screens</span>
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">TOP MARQUEE</span>
@@ -327,81 +324,77 @@
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof boxOfficeModal==='function')boxOfficeModal();">Weekend Grosses</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof clashAnalyticsModal==='function')clashAnalyticsModal();">Weekend Grosses</button>
           <button class="kairo-btn-action blue" onclick="if(typeof openTheaterChainsModal==='function')openTheaterChainsModal();">Theater Chains</button>
-          <button class="kairo-btn-action" onclick="if(typeof openTestScreeningModal==='function')openTestScreeningModal();">Audience Screenings</button>
+          <button class="kairo-btn-action" onclick="if(typeof festivalPrModal==='function')festivalPrModal();">Audience Screenings</button>
         </div>
       </div>
     `;
   }
 
-  /* 6. FANS: Comic-Con Hall H & Fan Mailroom */
+  /* 6. FANS: Fan Club, Mail Room & Convention Hall */
   function renderFansBanner(G, st, calStr) {
-    const unread = (G.mail || []).filter(m => !m.read).length;
-    const totalFans = (G.fanbase || (st.rep * 125000)) || 250000;
+    const unreadMail = (G.fanMail || []).filter(m => !m.read).length;
+    const fanCount = G.fans || 45000;
 
     return `
       <div class="kairo-dept-banner kairo-banner-fans">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-fans">
-            <div class="kairo-pixel-stage"></div>
-            <div class="kairo-pixel-fanposters kairo-wave"></div>
-            <div class="kairo-pixel-mailbags"></div>
-            <div class="kairo-pixel-cosplay kairo-bob"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_cinema_theater.png",
+          "assets/2d/char_audience.png",
+          "assets/itch-avatars/Avatars_03.png",
+          "+5K FANS!",
+          "cyan",
+          "FAN CLUB"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge magenta">[COMIC-CON &amp; FANDOM]</span>
-            <span class="kairo-dept-subtag">COMMUNITY RELATIONS</span>
+            <span class="kairo-dept-badge magenta">[FAN RELATIONS &amp; AUDIENCE]</span>
+            <span class="kairo-dept-subtag">CONVENTION HALL &amp; MAILROOM</span>
           </div>
-          <div class="kairo-dept-title">HALL H STAGE &amp; FAN MAIL ARCHIVE</div>
+          <div class="kairo-dept-title">GLOBAL FANDOM &amp; BRAND LOYALTY</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">DEVOTED FANDOM</span>
-              <span class="k-val magenta">${Math.round(totalFans).toLocaleString()} Fans</span>
+              <span class="k-lbl">FAN BASE</span>
+              <span class="k-val magenta">${fanCount.toLocaleString()} Devotees</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">UNREAD MAIL</span>
-              <span class="k-val yellow">${unread} Letters</span>
+              <span class="k-lbl">UNREAD FAN MAIL</span>
+              <span class="k-val yellow">${unreadMail} Letters</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">FAN FIDELITY</span>
-              <span class="k-val green">99% Devotion</span>
-            </div>
-            <div class="kairo-stat-chip">
-              <span class="k-lbl">VIRAL HEAT</span>
-              <span class="k-val cyan">Trending Globally</span>
+              <span class="k-lbl">FAN EXCITEMENT</span>
+              <span class="k-val green">Electric 98%</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof openFanConventionModal==='function')openFanConventionModal();">Host Convention</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openFestivalModal==='function')openFestivalModal();">Film Festival PR</button>
-          <button class="kairo-btn-action" onclick="if(typeof markAllMailRead==='function')markAllMailRead();">Sort All Mail</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof fanConventionModal==='function')fanConventionModal();">Comic-Con Hall H</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof awardsCampaignModal==='function')awardsCampaignModal();">FYC Awards Push</button>
+          <button class="kairo-btn-action" onclick="if(typeof crisisPrModal==='function')crisisPrModal();">Crisis PR War Room</button>
         </div>
       </div>
     `;
   }
 
-  /* 7. OTT & SERIES: Streaming Network NOC & Global Server Bay */
+  /* 7. OTT: Streaming Network Operations Center */
   function renderOttBanner(G, st, calStr) {
-    const subs = G.streamer ? (G.streamer.subs || 0) : 0;
-    const rev = G.streamer ? (G.streamer.monthlyRev || 0) : 0;
+    const streamer = G.streamer || null;
+    const subs = streamer ? (streamer.subs || 0) : 0;
+    const rev = streamer ? (streamer.revenueWeekly || 0) : 0;
 
     return `
       <div class="kairo-dept-banner kairo-banner-ott">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-ott">
-            <div class="kairo-pixel-serverrack">
-              <div class="kairo-pixel-leds kairo-server-blink"></div>
-            </div>
-            <div class="kairo-pixel-satellite kairo-satellite-ping"></div>
-            <div class="kairo-pixel-streamflow"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_post_suite.png",
+          "assets/itch-avatars/Avatars_09.png",
+          "assets/2d/char_director.png",
+          "4K STREAM",
+          "cyan",
+          "NOC CLOUD"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
@@ -412,11 +405,11 @@
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
               <span class="k-lbl">SUBSCRIBER BASE</span>
-              <span class="k-val cyan">${subs ? (subs.toFixed(1) + "M Subs") : "Launch Streamer"}</span>
+              <span class="k-val cyan">${subs > 0 ? (subs/1000000).toFixed(1) + "M Subs" : "Launch Streamer"}</span>
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">MONTHLY REVENUE</span>
-              <span class="k-val green">${fmtM(rev)}</span>
+              <span class="k-val green">${fmtM(rev * 4)}</span>
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">UPTIME</span>
@@ -430,178 +423,170 @@
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof streamerPitchModal==='function')streamerPitchModal();">Series Pitch</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openAuctionModal==='function')openAuctionModal();">Streamer Auction</button>
-          <button class="kairo-btn-action" onclick="if(typeof launchStreamerModal==='function')launchStreamerModal();">Manage Platform</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof startSeriesWizard==='function')startSeriesWizard();">Series Pitch</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof shopToStreamersModal==='function')shopToStreamersModal();">Streamer Auction</button>
+          <button class="kairo-btn-action" onclick="if(typeof openStreamerTierModal==='function')openStreamerTierModal();">Manage Platform</button>
         </div>
       </div>
     `;
   }
 
-  /* 8. LIVE TV: Television Broadcast Control Room */
+  /* 8. LIVE TV: Broadcast Studio & Master Control Room */
   function renderLiveBanner(G, st, calStr) {
+    const liveSubs = G.liveTvSubs || 0;
+
     return `
       <div class="kairo-dept-banner kairo-banner-live">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-live">
-            <div class="kairo-pixel-crtmonitors kairo-scanline"></div>
-            <div class="kairo-pixel-audiomixer kairo-fader-bounce"></div>
-            <div class="kairo-pixel-livebeacon kairo-tally-blink"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_soundstage.png",
+          "assets/2d/char_cameraman.png",
+          "assets/itch-avatars/Avatars_02.png",
+          "● ON AIR",
+          "red",
+          "CONTROL"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge red">[LIVE TELEVISION CONTROL]</span>
-            <span class="kairo-dept-subtag">PRIME-TIME BROADCAST</span>
+            <span class="kairo-dept-badge red">[LIVE MASTER CONTROL]</span>
+            <span class="kairo-dept-subtag">BROADCAST NETWORK</span>
           </div>
-          <div class="kairo-dept-title">BROADCAST MASTHEAD &amp; SYNDICATION BAY</div>
+          <div class="kairo-dept-title">24/7 LIVE SATELLITE &amp; LINEAR TELEVISION</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">PRIME-TIME SHARE</span>
-              <span class="k-val red">24.2 Rating</span>
+              <span class="k-lbl">BROADCAST REACH</span>
+              <span class="k-val red">${liveSubs > 0 ? (liveSubs/1000).toFixed(0)+"K" : "Linear Network"}</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">AFFILIATE REACH</span>
-              <span class="k-val gold">210 Markets</span>
+              <span class="k-lbl">SIGNAL STATUS</span>
+              <span class="k-val green">1080p Satellite Synced</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">BROADCAST STATUS</span>
-              <span class="k-val green">ON AIR LIVE</span>
-            </div>
-            <div class="kairo-stat-chip">
-              <span class="k-lbl">AD REVENUE</span>
-              <span class="k-val yellow">$2.4M / Show</span>
+              <span class="k-lbl">COMMERCIAL TIME</span>
+              <span class="k-val gold">Premium CPMs</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof launchLiveBroadcast==='function')launchLiveBroadcast();">Broadcast Special</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openSyndicationModal==='function')openSyndicationModal();">TV Syndication</button>
-          <button class="kairo-btn-action" onclick="if(typeof openCrisesWarRoomModal==='function')openCrisesWarRoomModal();">Crisis War Room</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof buySportsRightsModal==='function')buySportsRightsModal();">Live Sports Rights</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof syndicationModal==='function')syndicationModal();">Syndication Deals</button>
+          <button class="kairo-btn-action" onclick="if(typeof tvUpfrontsModal==='function')tvUpfrontsModal();">Ad Upfronts</button>
         </div>
       </div>
     `;
   }
 
-  /* 9. EMPIRE: Franchise Theme Park & Merchandising Factory */
+  /* 9. EMPIRE: Media Conglomerate & Theme Parks */
   function renderEmpireBanner(G, st, calStr) {
     const franchises = G.franchises || [];
+    const frCount = franchises.length;
 
     return `
       <div class="kairo-dept-banner kairo-banner-empire">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-empire">
-            <div class="kairo-pixel-castle"></div>
-            <div class="kairo-pixel-coaster kairo-coaster-climb"></div>
-            <div class="kairo-pixel-factorybelt kairo-conveyor-roll"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_studio_campus.png",
+          "assets/2d/char_director.png",
+          "assets/itch-avatars/Avatars_01.png",
+          "EMPIRE",
+          "gold",
+          "CONGLOM"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge purple">[FRANCHISE EMPIRE &amp; RESORTS]</span>
-            <span class="kairo-dept-subtag">GLOBAL LICENSING</span>
+            <span class="kairo-dept-badge gold">[MEDIA CONGLOMERATE]</span>
+            <span class="kairo-dept-subtag">EXPEDITIONS &amp; PARKS</span>
           </div>
-          <div class="kairo-dept-title">THEME PARK RESORT &amp; TOY MERCH FACTORY</div>
+          <div class="kairo-dept-title">GLOBAL ENTERTAINMENT EMPIRE &amp; LICENSING</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">ACTIVE UNIVERSES</span>
-              <span class="k-val purple">${franchises.length} Franchises</span>
+              <span class="k-lbl">ACTIVE FRANCHISES</span>
+              <span class="k-val gold">${frCount} Universes</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">PARK ATTRACTIONS</span>
-              <span class="k-val gold">Thrill Level 5</span>
+              <span class="k-lbl">THEME PARK ATTRACTIONS</span>
+              <span class="k-val green">World Class</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">MERCH PIPELINE</span>
-              <span class="k-val green">Global Retail</span>
-            </div>
-            <div class="kairo-stat-chip">
-              <span class="k-lbl">LICENSING VAL</span>
-              <span class="k-val cyan">Multi-Year Deals</span>
+              <span class="k-lbl">MERCHANDISE HEAT</span>
+              <span class="k-val yellow">Global Supply</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof openUniverseModal==='function')openUniverseModal();">Build Universe</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openMerchModal==='function')openMerchModal();">Merch Licensing</button>
-          <button class="kairo-btn-action" onclick="if(typeof openTerritoryModal==='function')openTerritoryModal();">Territory Rights</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof cinematicUniverseModal==='function')cinematicUniverseModal();">Cinematic Universe</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof merchLicensingModal==='function')merchLicensingModal();">Toy &amp; Merch Deals</button>
+          <button class="kairo-btn-action" onclick="if(typeof dynastyLegacyModal==='function')dynastyLegacyModal();">Dynasty &amp; Trust</button>
         </div>
       </div>
     `;
   }
 
-  /* 10. LIBRARY: Master Film Vault & 4K Restoration Lab */
+  /* 10. LIBRARY: Film Vault & Restorations */
   function renderLibraryBanner(G, st, calStr) {
     const films = G.films || [];
-    const catVal = typeof window.catalogValue === "function" ? window.catalogValue() : (films.length * 8.5);
+    const libraryFilms = films.filter(f => (f.weeks || 0) > 6);
+    const catalogVal = libraryFilms.reduce((s, f) => s + (f.ww || 0) * 0.12, 0);
 
     return `
       <div class="kairo-dept-banner kairo-banner-library">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-library">
-            <div class="kairo-pixel-vaultdoor"></div>
-            <div class="kairo-pixel-filmcans"></div>
-            <div class="kairo-pixel-restorescanner">
-              <div class="kairo-pixel-laser kairo-laser-sweep"></div>
-            </div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_post_suite.png",
+          "assets/itch-avatars/Avatars_12.png",
+          "assets/2d/char_director.png",
+          "4K VAULT",
+          "cyan",
+          "ARCHIVE"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge gold">[MASTER ARCHIVAL VAULT]</span>
-            <span class="kairo-dept-subtag">4K DIGITAL PRESERVATION</span>
+            <span class="kairo-dept-badge purple">[HERITAGE FILM VAULT]</span>
+            <span class="kairo-dept-subtag">CATALOG PRESERVATION</span>
           </div>
-          <div class="kairo-dept-title">HISTORIC CATALOG &amp; FILM RESTORATION LAB</div>
+          <div class="kairo-dept-title">HISTORICAL FILM ARCHIVE &amp; 4K REMASTERING</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">CATALOG VALUE</span>
-              <span class="k-val gold">${fmtM(catVal)}</span>
-            </div>
-            <div class="kairo-stat-chip">
               <span class="k-lbl">VAULTED TITLES</span>
-              <span class="k-val cyan">${films.length} Classics</span>
+              <span class="k-val purple">${libraryFilms.length} Classics</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">PRESERVATION</span>
-              <span class="k-val green">100% Nitrate Safe</span>
+              <span class="k-lbl">CATALOG VALUATION</span>
+              <span class="k-val green">${fmtM(catalogVal)}</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">ANNUAL ROYALTIES</span>
-              <span class="k-val yellow">Perpetual Cashflow</span>
+              <span class="k-lbl">MASTER PRESERVATION</span>
+              <span class="k-val gold">Acetate &amp; Dolby 4K</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof openRestorationModal==='function')openRestorationModal();">4K Remaster</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openSyndicationModal==='function')openSyndicationModal();">Syndicate Catalog</button>
-          <button class="kairo-btn-action" onclick="if(typeof calendarModal==='function')calendarModal();">Re-Release Date</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof filmRestorationModal==='function')filmRestorationModal();">4K UHD Remaster</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof territoryLicensingModal==='function')territoryLicensingModal();">Territory Rights</button>
+          <button class="kairo-btn-action" onclick="if(typeof bondMarketModal==='function')bondMarketModal();">IP Securitization</button>
         </div>
       </div>
     `;
   }
 
-  /* 11. GAMES: Game Dev Story Studio */
+  /* 11. GAMES: 8-Phase GDD Development Studio */
   function renderGamesBanner(G, st, calStr) {
-    const games = G.games || [];
-    const launched = games.filter(g => g.shipped);
+    const games = G.gameStudioGames || [];
+    const shipped = games.filter(g => g.shipped).length;
 
     return `
       <div class="kairo-dept-banner kairo-banner-games">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-games">
-            <div class="kairo-pixel-devcubicle"></div>
-            <div class="kairo-pixel-crtgame">
-              <div class="kairo-pixel-sprite kairo-sprite-jump"></div>
-            </div>
-            <div class="kairo-pixel-gamepad"></div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_writers_room.png",
+          "assets/itch-avatars/Avatars_15.png",
+          "assets/itch-avatars/Avatars_22.png",
+          "8-BIT GDD",
+          "gold",
+          "DEV LAB"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
@@ -612,7 +597,7 @@
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
               <span class="k-lbl">TITLES SHIPPED</span>
-              <span class="k-val green">${launched.length} Games</span>
+              <span class="k-val green">${shipped} Games</span>
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">DEV ENGINE</span>
@@ -630,30 +615,29 @@
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof openGddPitchModal==='function')openGddPitchModal();">Greenlight GDD Game</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof openDevKitModal==='function')openDevKitModal();">Hardware Licenses</button>
-          <button class="kairo-btn-action" onclick="if(typeof openSabbaticalModal==='function')openSabbaticalModal();">Send on Sabbatical</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof openGddModal==='function')openGddModal();">Greenlight GDD Game</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof consoleDevKitModal==='function')consoleDevKitModal();">Hardware Licenses</button>
+          <button class="kairo-btn-action" onclick="if(typeof talentSabbaticalModal==='function')talentSabbaticalModal();">Send on Sabbatical</button>
         </div>
       </div>
     `;
   }
 
-  /* 12. FINANCE: Wall Street Treasury Vault */
+  /* 12. FINANCE: Corporate Treasury & Wall Street Ledger */
   function renderFinanceBanner(G, st, calStr) {
     const debt = st.debt || 0;
-    const cash = st.cash || 0;
+    const profitMargin = 34.8;
 
     return `
       <div class="kairo-dept-banner kairo-banner-finance">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-finance">
-            <div class="kairo-pixel-goldvault kairo-gold-shine"></div>
-            <div class="kairo-pixel-ledgermachine"></div>
-            <div class="kairo-pixel-stockchart">
-              <div class="kairo-pixel-trendline kairo-ticker-up"></div>
-            </div>
-          </div>
-        </div>
+        ${renderVignette(
+          "assets/2d/kairo_executive_office.png",
+          "assets/itch-avatars/Avatars_07.png",
+          "assets/2d/char_director.png",
+          "+$$$ CASH",
+          "gold",
+          "TREASURY"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
@@ -664,7 +648,7 @@
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
               <span class="k-lbl">LIQUID RESERVES</span>
-              <span class="k-val green">${fmtM(cash)}</span>
+              <span class="k-val green">${fmtM(st.cash)}</span>
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">CORPORATE DEBT</span>
@@ -676,56 +660,66 @@
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">PROFIT MARGIN</span>
-              <span class="k-val cyan">+34.8% RoIC</span>
+              <span class="k-val cyan">+${profitMargin}% RoIC</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof openBondMarketModal==='function')openBondMarketModal();">Corporate Bonds</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof financeOverviewSheet==='function')financeOverviewSheet();">P&amp;L Statements</button>
-          <button class="kairo-btn-action" onclick="if(typeof openCSuiteModal==='function')openCSuiteModal();">CFO Operations</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof bondMarketModal==='function')bondMarketModal();">Corporate Bonds</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof ipoModal==='function')ipoModal();">P&amp;L Statements</button>
+          <button class="kairo-btn-action" onclick="if(typeof cfoOfficeModal==='function')cfoOfficeModal();">CFO Operations</button>
         </div>
       </div>
     `;
   }
 
-  /* 13. NOTIFICATIONS: Studio Teletype & Press Dispatch */
+  /* 13. NOTIFICATIONS: Studio Wire & Teletype Feed */
   function renderNotificationsBanner(G, st, calStr) {
+    const unreadCount = (G.notifications || []).filter(n => !n.read).length;
+
     return `
-      <div class="kairo-dept-banner kairo-banner-notifs">
-        <div class="kairo-dept-vignette">
-          <div class="kairo-anim-notifs">
-            <div class="kairo-pixel-teletype kairo-teletype-print"></div>
-            <div class="kairo-pixel-newsbell kairo-bell-ring"></div>
-          </div>
-        </div>
+      <div class="kairo-dept-banner kairo-banner-notifications">
+        ${renderVignette(
+          "assets/2d/kairo_writers_room.png",
+          "assets/itch-avatars/Avatars_18.png",
+          "assets/2d/char_cameraman.png",
+          "STUDIO WIRE",
+          "cyan",
+          "NEWS DESK"
+        )}
 
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
-            <span class="kairo-dept-badge yellow">[STUDIO TELETYPE DISPATCH]</span>
-            <span class="kairo-dept-subtag">WIRE PRESS</span>
+            <span class="kairo-dept-badge blue">[HOLLYWOOD DISPATCH &amp; TELETYPE]</span>
+            <span class="kairo-dept-subtag">WIRE TRANSMISSIONS</span>
           </div>
-          <div class="kairo-dept-title">HOLLYWOOD INTELLIGENCE &amp; WIRE NOTICES</div>
+          <div class="kairo-dept-title">STUDIO INTELLIGENCE &amp; WIRE NOTIFICATIONS</div>
           <div class="kairo-stats-strip">
             <div class="kairo-stat-chip">
-              <span class="k-lbl">WIRE STATUS</span>
-              <span class="k-val green">Active Feed</span>
+              <span class="k-lbl">DISPATCH QUEUE</span>
+              <span class="k-val yellow">${unreadCount} Unread Wires</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">TELEGRAMS</span>
-              <span class="k-val gold">Real-Time Alerts</span>
+              <span class="k-lbl">PRIORITY LEVEL</span>
+              <span class="k-val red">FLASH ALERT</span>
+            </div>
+            <div class="kairo-stat-chip">
+              <span class="k-lbl">TELETYPE STATUS</span>
+              <span class="k-val green">Real-Time Sync</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action blue" onclick="if(typeof clearNotifications==='function')clearNotifications();">Acknowledge All</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof markAllNotificationsRead==='function')markAllNotificationsRead();">Clear Wires</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof openStudioEspionageModal==='function')openStudioEspionageModal();">Studio Espionage</button>
         </div>
       </div>
     `;
   }
 
+  // Export to global scope
   global.KairoTheme = KairoTheme;
 
-})(typeof window !== "undefined" ? window : global);
+})(typeof window !== "undefined" ? window : globalThis);
