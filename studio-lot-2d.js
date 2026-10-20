@@ -28,6 +28,7 @@
 
   // Selected state
   let _selectedBuildingId = null;
+  let _selectedAgentId = null;
   let _hoveredGridPos = null;
   let _buildModeType = null;
   let _floatingTexts = [];
@@ -52,7 +53,7 @@
     tile_concrete: "assets/2d/tile_concrete.png",
     tile_grass: "assets/2d/tile_grass.png",
 
-    // Characters
+    // Legacy Characters
     director: "assets/2d/char_director.png",
     cameraman: "assets/2d/char_cameraman.png",
     star_actor: "assets/2d/char_star_actor.png",
@@ -61,7 +62,43 @@
     male_idle: "assets/2d/char_male_idle.png",
     male_walk0: "assets/2d/char_male_walk0.png",
     male_walk1: "assets/2d/char_male_walk1.png",
-    female_walk0: "assets/2d/char_female_walk0.png"
+    female_walk0: "assets/2d/char_female_walk0.png",
+
+    // 25 Itch Pixel Avatars
+    avatar_01: "assets/itch-avatars/Avatars_01.png",
+    avatar_02: "assets/itch-avatars/Avatars_02.png",
+    avatar_03: "assets/itch-avatars/Avatars_03.png",
+    avatar_04: "assets/itch-avatars/Avatars_04.png",
+    avatar_05: "assets/itch-avatars/Avatars_05.png",
+    avatar_06: "assets/itch-avatars/Avatars_06.png",
+    avatar_07: "assets/itch-avatars/Avatars_07.png",
+    avatar_08: "assets/itch-avatars/Avatars_08.png",
+    avatar_09: "assets/itch-avatars/Avatars_09.png",
+    avatar_10: "assets/itch-avatars/Avatars_10.png",
+    avatar_11: "assets/itch-avatars/Avatars_11.png",
+    avatar_12: "assets/itch-avatars/Avatars_12.png",
+    avatar_13: "assets/itch-avatars/Avatars_13.png",
+    avatar_14: "assets/itch-avatars/Avatars_14.png",
+    avatar_15: "assets/itch-avatars/Avatars_15.png",
+    avatar_16: "assets/itch-avatars/Avatars_16.png",
+    avatar_17: "assets/itch-avatars/Avatars_17.png",
+    avatar_18: "assets/itch-avatars/Avatars_18.png",
+    avatar_19: "assets/itch-avatars/Avatars_19.png",
+    avatar_20: "assets/itch-avatars/Avatars_20.png",
+    avatar_21: "assets/itch-avatars/Avatars_21.png",
+    avatar_22: "assets/itch-avatars/Avatars_22.png",
+    avatar_23: "assets/itch-avatars/Avatars_23.png",
+    avatar_24: "assets/itch-avatars/Avatars_24.png",
+    avatar_25: "assets/itch-avatars/Avatars_25.png",
+
+    // Itch UI Graphics
+    itch_banner: "assets/itch-ui/banners/Banner.png",
+    itch_banner_slots: "assets/itch-ui/banners/Banner_Slots.png",
+    itch_btn_blue: "assets/itch-ui/buttons/BigBlueButton_Regular.png",
+    itch_btn_red: "assets/itch-ui/buttons/BigRedButton_Regular.png",
+    itch_btn_round: "assets/itch-ui/buttons/SmallBlueRoundButton_Regular.png",
+    itch_wood: "assets/itch-ui/wood/WoodTable.png",
+    itch_paper: "assets/itch-ui/papers/RegularPaper.png"
   };
 
   function loadAsset(key, url) {
@@ -466,45 +503,98 @@
     ctx.restore();
   }
 
+  function getAgentAvatarKey(a) {
+    const rawId = typeof a.id === "number" ? a.id : (a.id ? a.id.toString().charCodeAt(0) : 1);
+    const num = (Math.abs(rawId) % 25) + 1;
+    return "avatar_" + num.toString().padStart(2, "0");
+  }
+
+  function getAgentRoleInfo(a) {
+    if (a.kind_str === "director") return { role: "Director", color: "#f5c518", ring: "#f5c518", badge: "DIR" };
+    if (a.kind_str === "star_actor") return { role: "A-List Talent", color: "#38bdf8", ring: "#38bdf8", badge: "STAR" };
+    if (a.kind_str === "cameraman") return { role: "Cinematographer", color: "#10b981", ring: "#10b981", badge: "CREW" };
+    if (a.kind_str === "audience") return { role: "Moviegoer", color: "#f43f5e", ring: "#f43f5e", badge: "FAN" };
+    if (a.kind_str === "extra") return { role: "Supporting Cast", color: "#a855f7", ring: "#a855f7", badge: "CAST" };
+    return { role: "Studio Crew", color: "#94a3b8", ring: "#94a3b8", badge: "CREW" };
+  }
+
   function drawAgent(ctx, a) {
     const scr = gridToScreen(a.x, a.y);
-    let spriteKey = "director";
-    if (a.kind_str === "star_actor") spriteKey = "star_actor";
-    else if (a.kind_str === "cameraman") spriteKey = "cameraman";
-    else if (a.kind_str === "audience") spriteKey = "audience";
-    else if (a.kind_str === "extra") spriteKey = "extra";
-    else if (a.kind_str === "director") spriteKey = "director";
-    else if (a.state_str === "walking") {
-      spriteKey = (Math.floor((a.anim_timer || 0) * 4) % 2 === 0) ? "male_walk0" : "male_walk1";
-    } else {
-      spriteKey = "male_idle";
-    }
-
-    const cached = spriteCache[spriteKey] || spriteCache["male_idle"];
+    const avKey = getAgentAvatarKey(a);
+    const cached = spriteCache[avKey] || spriteCache["male_idle"] || spriteCache["director"];
+    const roleInfo = getAgentRoleInfo(a);
 
     ctx.save();
-    // Shadow
-    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    // 1. Soft Ground Shadow
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
     ctx.beginPath();
-    ctx.ellipse(scr.x, scr.y, 8 * camera.zoom, 4 * camera.zoom, 0, 0, Math.PI * 2);
+    ctx.ellipse(scr.x, scr.y, 10 * camera.zoom, 5 * camera.zoom, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    if (cached && cached.loaded) {
-      const img = cached.img;
-      const charScale = 0.45 * camera.zoom;
-      const drawW = img.width * charScale;
-      const drawH = img.height * charScale;
-      // Slight bounce on walking
-      const bounce = a.state_str === "walking" ? Math.sin(a.anim_timer * 12) * 2 : 0;
-      ctx.drawImage(img, scr.x - drawW / 2, scr.y - drawH + bounce, drawW, drawH);
-    } else {
-      // Circle fallback
-      ctx.fillStyle = a.kind_str === "director" ? "#f59e0b" :
-                      a.kind_str === "star_actor" ? "#ec4899" :
-                      a.kind_str === "cameraman" ? "#3b82f6" : "#10b981";
+    // 2. Role Base Ring
+    ctx.strokeStyle = roleInfo.ring;
+    ctx.lineWidth = 2 * camera.zoom;
+    ctx.beginPath();
+    ctx.ellipse(scr.x, scr.y, 8 * camera.zoom, 4 * camera.zoom, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Selection Reticle / Diamond
+    if (_selectedAgentId === a.id) {
+      const pulse = Math.sin(performance.now() * 0.008) * 4;
+      ctx.strokeStyle = "#f5c518";
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(scr.x, scr.y - 10 * camera.zoom, 6 * camera.zoom, 0, Math.PI * 2);
+      ctx.arc(scr.x, scr.y - 18 * camera.zoom, (18 + pulse) * camera.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "#f5c518";
+      ctx.beginPath();
+      ctx.moveTo(scr.x, scr.y - (38 + pulse) * camera.zoom);
+      ctx.lineTo(scr.x - 5 * camera.zoom, scr.y - (45 + pulse) * camera.zoom);
+      ctx.lineTo(scr.x + 5 * camera.zoom, scr.y - (45 + pulse) * camera.zoom);
+      ctx.closePath();
       ctx.fill();
+    }
+
+    // 4. Character Sprite (Itch pixel avatar)
+    const charH = 38 * camera.zoom;
+    const charW = 38 * camera.zoom;
+    const bounce = a.state_str === "walking"
+      ? Math.abs(Math.sin((a.anim_timer || 0) * 12)) * 3 * camera.zoom
+      : Math.sin(performance.now() * 0.004 + (a.id || 0)) * 1 * camera.zoom;
+
+    if (cached && cached.loaded) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(cached.img, scr.x - charW / 2, scr.y - charH - bounce, charW, charH);
+    } else {
+      ctx.fillStyle = roleInfo.color;
+      ctx.beginPath();
+      ctx.arc(scr.x, scr.y - 14 * camera.zoom - bounce, 8 * camera.zoom, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 5. Nameplate / Status
+    if (camera.zoom >= 0.85 || _selectedAgentId === a.id) {
+      const label = a.name || roleInfo.role;
+      ctx.font = "bold " + Math.max(9, Math.round(10 * camera.zoom)) + "px system-ui, sans-serif";
+      const tw = ctx.measureText(label).width;
+      const th = 14 * camera.zoom;
+      const tx = scr.x - tw / 2 - 4;
+      const ty = scr.y - charH - bounce - 14 * camera.zoom;
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+      ctx.strokeStyle = roleInfo.ring;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(tx, ty, tw + 8, th, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, scr.x, ty + th / 2);
+      ctx.textAlign = "left";
     }
 
     ctx.restore();
@@ -606,9 +696,28 @@
         return;
       }
 
-      // Check if a building was clicked
       const stateStr = engine.get_lot_state_json();
       const lot = JSON.parse(stateStr);
+
+      // Check if an agent was clicked first
+      let clickedAgent = null;
+      for (const a of (lot.agents || [])) {
+        const scr = gridToScreen(a.x, a.y);
+        const dist = Math.hypot(scr.x - mouseX, (scr.y - 18 * camera.zoom) - mouseY);
+        if (dist <= 24 * camera.zoom) {
+          clickedAgent = a;
+          break;
+        }
+      }
+
+      if (clickedAgent) {
+        _selectedAgentId = clickedAgent.id;
+        _selectedBuildingId = null;
+        renderAgentInspector(clickedAgent);
+        return;
+      }
+
+      // Check if a building was clicked
       let clickedBld = null;
       for (const b of (lot.buildings || [])) {
         if (gPos.x >= b.grid_x && gPos.x < b.grid_x + b.span_w &&
@@ -619,6 +728,7 @@
       }
 
       _selectedBuildingId = clickedBld ? clickedBld.id : null;
+      _selectedAgentId = null;
       renderInspector();
     });
 
@@ -669,11 +779,123 @@
     const parent = _canvas.parentElement;
     if (parent) {
       _canvas.width = parent.clientWidth || window.innerWidth;
-      _canvas.height = Math.max(480, window.innerHeight - 170);
+      _canvas.height = Math.max(500, window.innerHeight - 150);
     }
   }
 
-  // DOM Views (Inspector Drawer & Build Palette)
+  // Agent Inspector (Itch Pixel Character Dossier)
+  function renderAgentInspector(agent) {
+    const root = document.getElementById("lotInspectorRoot");
+    if (!root) return;
+    if (!agent) {
+      root.innerHTML = "";
+      root.style.display = "none";
+      return;
+    }
+
+    root.style.display = "block";
+    const avKey = getAgentAvatarKey(agent);
+    const roleInfo = getAgentRoleInfo(agent);
+    const imgSrc = ASSET_PATHS[avKey] || "assets/itch-avatars/Avatars_01.png";
+    const G = typeof window !== "undefined" ? window.G : null;
+
+    root.innerHTML = `
+      <div class="lot-card itch-wood-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="tag gold" style="font-size:10px">${roleInfo.badge} DOSSIER</span>
+          <button id="btnCloseInspector" class="btn btn-ghost btn-sm" style="padding:2px 8px">✕</button>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;margin:10px 0">
+          <div class="itch-avatar-frame">
+            <img src="${imgSrc}" alt="${agent.name || roleInfo.role}" style="width:68px;height:68px;image-rendering:pixelated;object-fit:cover;border-radius:6px;display:block">
+          </div>
+          <div>
+            <b style="font-size:15px;color:#fff">${agent.name || roleInfo.role}</b>
+            <div style="font-size:12px;color:${roleInfo.color};font-weight:600">${roleInfo.role}</div>
+            <div class="tiny muted" style="margin-top:2px">Status: ${agent.state_str || "Roaming Lot"}</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.08)">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+            <span class="muted">Morale / Energy</span>
+            <span style="color:#10b981;font-weight:bold">95%</span>
+          </div>
+          <div class="itch-bar-container" style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden">
+            <div style="width:95%;height:100%;background:#10b981"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${agent.kind_str === "director" ? `
+            <button id="btnAgentDirect" class="btn btn-primary btn-sm">Assign to Next Production</button>
+            <button id="btnAgentPitch" class="btn btn-alt btn-sm">Hear Director Pitch</button>
+          ` : agent.kind_str === "star_actor" ? `
+            <button id="btnAgentCast" class="btn btn-primary btn-sm">Attach Star to Slate</button>
+            <button id="btnAgentPress" class="btn btn-alt btn-sm">Launch Press Interview (+Buzz)</button>
+          ` : `
+            <button id="btnAgentSnack" class="btn btn-primary btn-sm">Send to Craft Services (+Energy)</button>
+            <button id="btnAgentGuide" class="btn btn-alt btn-sm">Assign Lot Duty</button>
+          `}
+          <button id="btnAgentFocus" class="btn btn-ghost btn-sm">Follow Character</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btnCloseInspector").onclick = () => {
+      _selectedAgentId = null;
+      renderAgentInspector(null);
+    };
+
+    const btnAgentFocus = document.getElementById("btnAgentFocus");
+    if (btnAgentFocus) {
+      btnAgentFocus.onclick = () => {
+        const scr = gridToScreen(agent.x, agent.y);
+        camera.x += (_canvas.width / 2 - scr.x);
+        camera.y += (_canvas.height / 2 - scr.y);
+        addFloatingText("FOLLOWING", agent.x, agent.y, "#f5c518");
+      };
+    }
+
+    const btnSnack = document.getElementById("btnAgentSnack");
+    if (btnSnack) {
+      btnSnack.onclick = () => {
+        addFloatingText("+MORALE BOOST", agent.x, agent.y, "#10b981");
+        if (typeof beep === "function") beep("gold");
+      };
+    }
+
+    const btnDirect = document.getElementById("btnAgentDirect");
+    if (btnDirect && typeof window.switchTab === "function") {
+      btnDirect.onclick = () => {
+        if (typeof window.developModal === "function") window.developModal();
+        else window.switchTab("develop");
+      };
+    }
+
+    const btnCast = document.getElementById("btnAgentCast");
+    if (btnCast && typeof window.switchTab === "function") {
+      btnCast.onclick = () => {
+        if (typeof window.talentModal === "function") window.talentModal();
+        else window.switchTab("develop");
+      };
+    }
+
+    const btnPress = document.getElementById("btnAgentPress");
+    if (btnPress) {
+      btnPress.onclick = () => {
+        addFloatingText("+12 HYPEX", agent.x, agent.y, "#38bdf8");
+        if (typeof beep === "function") beep("cash");
+      };
+    }
+
+    const btnPitch = document.getElementById("btnAgentPitch");
+    if (btnPitch && typeof window.buyScriptModal === "function") {
+      btnPitch.onclick = () => window.buyScriptModal();
+    }
+  }
+
+  // Building Inspector with Tycoon Action Suites
   function renderInspector() {
     const root = document.getElementById("lotInspectorRoot");
     if (!root) return;
@@ -696,46 +918,87 @@
 
     root.style.display = "block";
     const G = typeof window !== "undefined" ? window.G : null;
+    const btype = bld.b_type || bld.type_str;
 
-    let directingHtml = "";
-    if (bld.filming_active) {
-      if (_directingState && _directingState.stageId === bld.id) {
-        const btnLabel = _directingState.step === 1 ? "Call 'Roll Camera!'" :
-                         _directingState.step === 2 ? "Call 'Action!'" : "Call 'Cut & Print It!'";
-        directingHtml = `
-          <div class="directing-box" style="margin-top:12px;padding:10px;background:rgba(245,197,24,0.1);border:1px solid var(--gold);border-radius:6px">
-            <div style="font-weight:bold;color:var(--gold);font-size:12px">ACTIVE SHOOT DIRECTING</div>
-            <p style="font-size:12px;margin:6px 0">${_directingState.feedback}</p>
-            <button id="btnAdvanceDirecting" class="btn btn-primary btn-sm" style="width:100%">${btnLabel}</button>
-          </div>
-        `;
+    let actionsHtml = "";
+    if (btype === "soundstage" || btype === "virtual_led") {
+      if (bld.filming_active) {
+        if (_directingState && _directingState.stageId === bld.id) {
+          const btnLabel = _directingState.step === 1 ? "Call 'Roll Camera!'" :
+                           _directingState.step === 2 ? "Call 'Action!'" : "Call 'Cut & Print It!'";
+          actionsHtml = `
+            <div class="directing-box" style="margin-top:10px;padding:10px;background:rgba(245,197,24,0.12);border:1px solid var(--gold);border-radius:6px">
+              <div style="font-weight:bold;color:var(--gold);font-size:12px">ACTIVE SHOOT DIRECTING</div>
+              <p style="font-size:12px;margin:6px 0">${_directingState.feedback}</p>
+              <button id="btnAdvanceDirecting" class="btn btn-primary btn-sm" style="width:100%">${btnLabel}</button>
+            </div>
+          `;
+        } else {
+          actionsHtml = `
+            <button id="btnStartDirecting" class="btn btn-primary btn-sm" style="width:100%">Direct Scene (Minigame)</button>
+            <button id="btnRushShoot" class="btn btn-alt btn-sm" style="width:100%">Rush Shoot (+Speed, -$2M)</button>
+          `;
+        }
       } else {
-        directingHtml = `
-          <button id="btnStartDirecting" class="btn btn-alt btn-sm" style="margin-top:10px;width:100%">Direct Scene</button>
+        actionsHtml = `
+          <button id="btnGreenlightStage" class="btn btn-primary btn-sm" style="width:100%">Greenlight Film on this Stage</button>
+          <button id="btnRentStage" class="btn btn-alt btn-sm" style="width:100%">Sublease to Commercial (+$1.5M)</button>
         `;
       }
+    } else if (btype === "writers_bungalow") {
+      actionsHtml = `
+        <button id="btnCommissionScript" class="btn btn-primary btn-sm" style="width:100%">Commission Custom Screenplay</button>
+        <button id="btnPolishRoom" class="btn btn-alt btn-sm" style="width:100%">Writers Room Workshop (+4 Q)</button>
+      `;
+    } else if (btype === "cinema_theater") {
+      actionsHtml = `
+        <button id="btnViewBoxOffice" class="btn btn-primary btn-sm" style="width:100%">Weekend Box Office Charts</button>
+        <button id="btnPremiereBlitz" class="btn btn-alt btn-sm" style="width:100%">Red Carpet Premiere Blitz</button>
+      `;
+    } else if (btype === "post_suite") {
+      actionsHtml = `
+        <button id="btnTestScreen" class="btn btn-primary btn-sm" style="width:100%">Audience Test Screening</button>
+        <button id="btnScoreMaster" class="btn btn-alt btn-sm" style="width:100%">4K HDR & Orchestral Master</button>
+      `;
+    } else if (btype === "executive") {
+      actionsHtml = `
+        <button id="btnExecFinance" class="btn btn-primary btn-sm" style="width:100%">Financial Ledger & P&L</button>
+        <button id="btnExecBonds" class="btn btn-alt btn-sm" style="width:100%">Issue Production Bonds</button>
+      `;
+    } else if (btype === "studio_gate") {
+      actionsHtml = `
+        <button id="btnGateScout" class="btn btn-primary btn-sm" style="width:100%">Scout A-List Stars & Directors</button>
+        <button id="btnGateAgency" class="btn btn-alt btn-sm" style="width:100%">CAA / WME Talent Agency</button>
+      `;
+    } else if (btype === "backlot") {
+      actionsHtml = `
+        <button id="btnBacklotMerch" class="btn btn-primary btn-sm" style="width:100%">Theme Park & Merchandising</button>
+        <button id="btnBacklotRent" class="btn btn-alt btn-sm" style="width:100%">Rent Backlot to Rival (+$2M)</button>
+      `;
     }
 
     root.innerHTML = `
-      <div class="lot-card">
+      <div class="lot-card itch-wood-panel">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <b style="font-size:15px;color:var(--gold)">${bld.name}</b>
           <button id="btnCloseInspector" class="btn btn-ghost btn-sm" style="padding:2px 8px">✕</button>
         </div>
         <div class="tag-row" style="margin:8px 0">
           <span class="tag gold">Tier ${bld.tier} / 5</span>
-          <span class="tag blue">${bld.b_type || bld.type_str}</span>
-          ${bld.filming_active ? '<span class="tag red">Shooting Active</span>' : '<span class="tag muted">Idle</span>'}
+          <span class="tag blue">${btype}</span>
+          ${bld.filming_active ? '<span class="tag red">Shooting Active</span>' : '<span class="tag muted">Operational</span>'}
         </div>
         ${bld.active_title ? `
-          <div style="background:rgba(255,255,255,0.05);padding:8px;border-radius:4px;margin-bottom:8px">
+          <div style="background:rgba(255,255,255,0.05);padding:8px;border-radius:4px;margin-bottom:8px;border-left:3px solid var(--gold)">
             <div class="tiny muted">CURRENT PRODUCTION</div>
-            <b style="color:#fff">${bld.active_title}</b>
+            <b style="color:#fff;font-size:13px">${bld.active_title}</b>
             <div class="tiny muted" style="margin-top:4px">Phase: ${bld.active_phase} · Progress: ${Math.round((bld.progress || 0) * 100)}%</div>
           </div>
-        ` : '<p class="tiny muted">No active movie currently scheduled on this soundstage.</p>'}
-        ${directingHtml}
-        <div class="row" style="gap:8px;margin-top:12px">
+        ` : ''}
+        <div style="display:flex;flex-direction:column;gap:6px;margin:10px 0">
+          ${actionsHtml}
+        </div>
+        <div class="row" style="gap:8px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px">
           <button id="btnUpgradeLotBuilding" class="btn btn-primary btn-sm" style="flex:1" ${bld.tier >= 5 ? 'disabled' : ''}>Upgrade Tier</button>
           <button id="btnDemolishLotBuilding" class="btn btn-ghost btn-sm" style="color:var(--red)">Demolish</button>
         </div>
@@ -752,6 +1015,114 @@
 
     const btnAdvDir = document.getElementById("btnAdvanceDirecting");
     if (btnAdvDir) btnAdvDir.onclick = () => advanceDirectingStep();
+
+    const btnRush = document.getElementById("btnRushShoot");
+    if (btnRush) {
+      btnRush.onclick = () => {
+        addFloatingText("RUSHED SHOOT! +25%", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
+        if (typeof beep === "function") beep("gold");
+      };
+    }
+
+    const btnGreen = document.getElementById("btnGreenlightStage");
+    if (btnGreen && typeof window.switchTab === "function") {
+      btnGreen.onclick = () => {
+        if (typeof window.developModal === "function") window.developModal();
+        else window.switchTab("develop");
+      };
+    }
+
+    const btnRent = document.getElementById("btnRentStage");
+    if (btnRent) {
+      btnRent.onclick = () => {
+        addFloatingText("+$1.5M SUBLEASE", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
+        if (G && G.studio) G.studio.cash = (G.studio.cash || 0) + 1.5;
+        if (typeof beep === "function") beep("cash");
+      };
+    }
+
+    const btnComm = document.getElementById("btnCommissionScript");
+    if (btnComm && typeof window.buyScriptModal === "function") {
+      btnComm.onclick = () => window.buyScriptModal();
+    }
+
+    const btnPolish = document.getElementById("btnPolishRoom");
+    if (btnPolish) {
+      btnPolish.onclick = () => {
+        addFloatingText("+4 SCRIPT QUALITY", bld.grid_x + 1, bld.grid_y + 1, "#38bdf8");
+        if (typeof beep === "function") beep("gold");
+      };
+    }
+
+    const btnBox = document.getElementById("btnViewBoxOffice");
+    if (btnBox && typeof window.boxOfficeModal === "function") {
+      btnBox.onclick = () => window.boxOfficeModal();
+    }
+
+    const btnPrem = document.getElementById("btnPremiereBlitz");
+    if (btnPrem) {
+      btnPrem.onclick = () => {
+        addFloatingText("+RED CARPET BLITZ", bld.grid_x + 1, bld.grid_y + 1, "#f5c518");
+        if (typeof beep === "function") beep("gold");
+      };
+    }
+
+    const btnTest = document.getElementById("btnTestScreen");
+    if (btnTest) {
+      btnTest.onclick = () => {
+        addFloatingText("+TEST SCORE 88%", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
+        if (typeof beep === "function") beep("gold");
+      };
+    }
+
+    const btnScore = document.getElementById("btnScoreMaster");
+    if (btnScore) {
+      btnScore.onclick = () => {
+        addFloatingText("+DOLBY ATMOS MASTER", bld.grid_x + 1, bld.grid_y + 1, "#f5c518");
+        if (typeof beep === "function") beep("gold");
+      };
+    }
+
+    const btnFin = document.getElementById("btnExecFinance");
+    if (btnFin && typeof window.financeOverviewSheet === "function") {
+      btnFin.onclick = () => window.financeOverviewSheet();
+    }
+
+    const btnBonds = document.getElementById("btnExecBonds");
+    if (btnBonds) {
+      btnBonds.onclick = () => {
+        addFloatingText("+$20M BOND ISSUED", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
+        if (G && G.studio) G.studio.cash = (G.studio.cash || 0) + 20;
+        if (typeof beep === "function") beep("cash");
+      };
+    }
+
+    const btnScout = document.getElementById("btnGateScout");
+    if (btnScout && typeof window.talentModal === "function") {
+      btnScout.onclick = () => window.talentModal();
+    }
+
+    const btnAgency = document.getElementById("btnGateAgency");
+    if (btnAgency && typeof window.switchTab === "function") {
+      btnAgency.onclick = () => {
+        if (typeof window.talentModal === "function") window.talentModal();
+        else window.switchTab("develop");
+      };
+    }
+
+    const btnMerch = document.getElementById("btnBacklotMerch");
+    if (btnMerch && typeof window.switchTab === "function") {
+      btnMerch.onclick = () => window.switchTab("empire");
+    }
+
+    const btnBackRent = document.getElementById("btnBacklotRent");
+    if (btnBackRent) {
+      btnBackRent.onclick = () => {
+        addFloatingText("+$2.0M BACKLOT RENT", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
+        if (G && G.studio) G.studio.cash = (G.studio.cash || 0) + 2;
+        if (typeof beep === "function") beep("cash");
+      };
+    }
 
     document.getElementById("btnUpgradeLotBuilding").onclick = () => {
       const newTier = engine.upgrade_building(bld.id);
@@ -783,8 +1154,8 @@
     ];
 
     root.innerHTML = `
-      <div class="palette-bar">
-        <span class="tiny muted" style="font-weight:bold;margin-right:8px">BUILD PALETTE:</span>
+      <div class="palette-bar itch-wood-panel">
+        <span class="tiny muted" style="font-weight:bold;margin-right:8px;color:var(--gold)">BUILD FACILITY:</span>
         ${items.map(item => `
           <button class="btn btn-sm ${(_buildModeType === item.id) ? 'btn-primary' : 'btn-alt'}" data-btype="${item.id}">
             + ${item.name} <span class="tiny muted">(${item.cost})</span>
@@ -810,6 +1181,28 @@
     }
   }
 
+  function updateLotHud() {
+    const G = typeof window !== "undefined" ? window.G : null;
+    if (!G) return;
+    const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
+    const lot = engine ? JSON.parse(engine.get_lot_state_json()) : { buildings: [] };
+
+    const elName = document.getElementById("lotHudStudioName");
+    if (elName) elName.textContent = G.studio ? G.studio.name : "Studio Lot";
+
+    const elCash = document.getElementById("lotHudCash");
+    if (elCash && typeof window.fmtM === "function") elCash.textContent = window.fmtM(G.studio ? G.studio.cash : 0);
+
+    const elDate = document.getElementById("lotHudDate");
+    if (elDate && typeof window.dateLabel === "function") elDate.textContent = window.dateLabel(G.week);
+
+    const elStages = document.getElementById("lotHudStages");
+    if (elStages) {
+      const activeStages = (lot.buildings || []).filter(b => b.filming_active).length;
+      elStages.textContent = activeStages + " Filming";
+    }
+  }
+
   // Public Interface mounted to window
   const StudioLot2D = {
     mount(containerId) {
@@ -819,15 +1212,53 @@
       preloadAllAssets();
 
       container.innerHTML = `
-        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;min-height:500px;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
-          <div id="lotPaletteRoot" style="position:absolute;top:12px;left:12px;z-index:10"></div>
+        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;min-height:540px;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+          <!-- Top In-Canvas 2D HUD -->
+          <div style="position:absolute;top:12px;left:12px;right:12px;z-index:10;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none">
+            <div class="itch-lot-hud" style="pointer-events:auto">
+              <div class="itch-hud-stat">
+                <span class="lbl">Studio Lot</span>
+                <span id="lotHudStudioName" class="val" style="color:#fff">Box Office Studio</span>
+              </div>
+              <div class="itch-hud-stat">
+                <span class="lbl">War Chest</span>
+                <span id="lotHudCash" class="val" style="color:#10b981">$100.0M</span>
+              </div>
+              <div class="itch-hud-stat">
+                <span class="lbl">Calendar</span>
+                <span id="lotHudDate" class="val" style="color:var(--gold)">Y1 W1</span>
+              </div>
+              <div class="itch-hud-stat">
+                <span class="lbl">Active Shoots</span>
+                <span id="lotHudStages" class="val" style="color:#38bdf8">0 Filming</span>
+              </div>
+            </div>
+
+            <!-- In-Canvas Action Bar -->
+            <div class="itch-action-bar" style="pointer-events:auto">
+              <button id="btnLotNextWeek" class="itch-btn-blue">Next Week (+1W)</button>
+              <button id="btnLotFastWeek" class="itch-btn-blue">Fast (+4W)</button>
+              <button id="btnLotDevelop" class="itch-btn-gold">+ Greenlight</button>
+              <button id="btnLotTalent" class="btn btn-alt btn-sm">Talent</button>
+              <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Marquee</button>
+            </div>
+          </div>
+
+          <!-- Build Palette Top Left -->
+          <div id="lotPaletteRoot" style="position:absolute;top:76px;left:12px;z-index:10"></div>
+
+          <!-- Camera Controls Bottom Left -->
           <div class="lot-controls" style="position:absolute;bottom:16px;left:16px;z-index:10;display:flex;gap:6px">
             <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In">+</button>
             <button id="btnZoomOut" class="btn btn-alt btn-sm" title="Zoom Out">-</button>
             <button id="btnResetView" class="btn btn-alt btn-sm">Center Lot</button>
             <button id="btnFocusShoot" class="btn btn-primary btn-sm">Locate Set</button>
+            <button id="btnTogglePalette" class="btn btn-alt btn-sm">Facilities Palette</button>
           </div>
-          <div id="lotInspectorRoot" style="position:absolute;top:12px;right:12px;z-index:10;max-width:280px;display:none"></div>
+
+          <!-- Inspector Drawer Top Right -->
+          <div id="lotInspectorRoot" style="position:absolute;top:76px;right:12px;z-index:10;max-width:320px;display:none"></div>
+
           <canvas id="studioLotCanvas" style="display:block;width:100%;height:100%;cursor:grab"></canvas>
         </div>
       `;
@@ -845,6 +1276,7 @@
 
       setupEvents();
       renderPalette();
+      updateLotHud();
 
       document.getElementById("btnZoomIn").onclick = () => { camera.zoom = Math.min(2.5, camera.zoom * 1.2); };
       document.getElementById("btnZoomOut").onclick = () => { camera.zoom = Math.max(0.5, camera.zoom / 1.2); };
@@ -867,6 +1299,69 @@
           renderInspector();
         }
       };
+
+      const palRoot = document.getElementById("lotPaletteRoot");
+      document.getElementById("btnTogglePalette").onclick = () => {
+        if (palRoot) {
+          palRoot.style.display = (palRoot.style.display === "none") ? "block" : "none";
+        }
+      };
+
+      // Wire in-canvas 2D game loops
+      const btnNext = document.getElementById("btnLotNextWeek");
+      if (btnNext) {
+        btnNext.onclick = () => {
+          if (typeof window.doWeek === "function") {
+            window.doWeek(1);
+            updateLotHud();
+            // Spawn floating text on cinema and soundstage
+            const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
+            if (engine) {
+              const lot = JSON.parse(engine.get_lot_state_json());
+              const cinema = (lot.buildings || []).find(b => b.b_type === "cinema_theater");
+              if (cinema) addFloatingText("+WEEKEND BOX OFFICE", cinema.grid_x + 1, cinema.grid_y + 1, "#10b981");
+              const active = (lot.buildings || []).find(b => b.filming_active);
+              if (active) addFloatingText("+SHOOT PROGRESS", active.grid_x + 1, active.grid_y + 1, "#f5c518");
+            }
+            if (_selectedBuildingId) renderInspector();
+          }
+        };
+      }
+
+      const btnFast = document.getElementById("btnLotFastWeek");
+      if (btnFast) {
+        btnFast.onclick = () => {
+          if (typeof window.doWeek === "function") {
+            window.doWeek(4);
+            updateLotHud();
+            if (_selectedBuildingId) renderInspector();
+          }
+        };
+      }
+
+      const btnDev = document.getElementById("btnLotDevelop");
+      if (btnDev) {
+        btnDev.onclick = () => {
+          if (typeof window.developModal === "function") window.developModal();
+          else if (typeof window.switchTab === "function") window.switchTab("develop");
+        };
+      }
+
+      const btnTal = document.getElementById("btnLotTalent");
+      if (btnTal) {
+        btnTal.onclick = () => {
+          if (typeof window.talentModal === "function") window.talentModal();
+          else if (typeof window.switchTab === "function") window.switchTab("develop");
+        };
+      }
+
+      const btnBox = document.getElementById("btnLotBoxOffice");
+      if (btnBox) {
+        btnBox.onclick = () => {
+          if (typeof window.boxOfficeModal === "function") window.boxOfficeModal();
+          else if (typeof window.switchTab === "function") window.switchTab("boxoffice");
+        };
+      }
 
       if (!_animId) {
         _lastTime = performance.now();

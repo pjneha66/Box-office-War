@@ -559,16 +559,27 @@ window.addEventListener("DOMContentLoaded", ()=>{
   const al=$("#archList");
   if(al){
     al.innerHTML="";
+    const archAvatars = {
+      auteur: "assets/itch-avatars/Avatars_01.png",
+      producer: "assets/itch-avatars/Avatars_06.png",
+      mogul: "assets/itch-avatars/Avatars_16.png"
+    };
     DATA.ARCHETYPES.forEach(a=>{
       const cleanName = (a.name||"").replace(/^[^a-zA-Z0-9]+/, "");
+      const avatarSrc = archAvatars[a.id] || "assets/itch-avatars/Avatars_01.png";
       const d=document.createElement("div"); d.className="arch"+(a.id===archSel?" sel":"");
-      d.innerHTML="<div class='arch-header'><h4>"+cleanName+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
-        "<div class='a-sub'>"+a.sub+"</div>"+
-        "<div class='a-stats'>"+
+      d.innerHTML="<div style='display:flex;gap:12px;align-items:center'>"+
+        "<img src='"+avatarSrc+"' alt='"+cleanName+"' class='arch-avatar' style='width:52px;height:52px;border-radius:8px;border:2px solid var(--gold);background:#131b26;image-rendering:pixelated;object-fit:cover;flex-shrink:0'>"+
+        "<div style='flex:1'>"+
+          "<div class='arch-header'><h4>"+cleanName+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
+          "<div class='a-sub'>"+a.sub+"</div>"+
+        "</div>"+
+      "</div>"+
+      "<div class='a-stats' style='margin-top:8px'>"+
         "<span class='tag gold'>War Chest: "+fmtM(a.cash)+"</span>"+
         "<span class='tag blue'>Rep: "+a.rep+"</span>"+
         "<span class='tag'>Overhead: $"+a.overhead+"M/wk</span>"+
-        "</div>";
+      "</div>";
       d.onclick=()=>{ archSel=a.id; $$(".arch").forEach(x=>x.classList.remove("sel")); d.classList.add("sel"); beep("click"); };
       al.appendChild(d);
     });
@@ -688,17 +699,25 @@ function enterApp(fresh){
   app.style.display="flex";
   try{ if(motionOK()){ app.style.animation="viewIn .45s cubic-bezier(.2,.85,.3,1)"; } }catch(e){}
   if(fresh){
-    let consented=false;
-    try{ consented = !!localStorage.getItem("bow_privacy_ok"); }catch(e){}
-    // COPPA age gate check
-    let coppaConsented = false;
-    try{ coppaConsented = !!localStorage.getItem("bow_coppa_ok"); }catch(e){}
-    if(!coppaConsented){
-      setTimeout(()=>{ coppaModal(); }, 400);
-    } else if(consented){
-      setTimeout(()=>{ helpModal(); }, 400);
+    const isMobileApp = typeof window !== "undefined" && (
+      window.cordova || window.Capacitor ||
+      (navigator && navigator.userAgent && (navigator.userAgent.includes("Android") || navigator.userAgent.includes("wv")))
+    );
+    if(isMobileApp){
+      try{
+        localStorage.setItem("bow_privacy_ok","1");
+        localStorage.setItem("bow_coppa_ok","1");
+      }catch(e){}
     } else {
-      setTimeout(()=>{ privacyModal(true); }, 400);
+      let coppaConsented = false;
+      try{ coppaConsented = !!localStorage.getItem("bow_coppa_ok"); }catch(e){}
+      let consented = false;
+      try{ consented = !!localStorage.getItem("bow_privacy_ok"); }catch(e){}
+      if(!coppaConsented){
+        setTimeout(()=>{ coppaModal(); }, 400);
+      } else if(!consented){
+        setTimeout(()=>{ privacyModal(true); }, 400);
+      }
     }
   }
   switchTab("studiolot");
