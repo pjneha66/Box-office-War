@@ -363,8 +363,8 @@
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof fanConventionModal==='function')fanConventionModal();">Comic-Con Hall H</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof awardsCampaignModal==='function')awardsCampaignModal();">FYC Awards Push</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof openSocialControlModal==='function')openSocialControlModal();else if(typeof fanConventionModal==='function')fanConventionModal();">Social &amp; CineTok Blitz</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof fanConventionModal==='function')fanConventionModal();">Comic-Con Hall H</button>
           <button class="kairo-btn-action" onclick="if(typeof crisisPrModal==='function')crisisPrModal();">Crisis PR War Room</button>
         </div>
       </div>
@@ -462,7 +462,7 @@
 
         <div class="kairo-dept-actions">
           <button class="kairo-btn-action gold" onclick="if(typeof buySportsRightsModal==='function')buySportsRightsModal();">Live Sports Rights</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof syndicationModal==='function')syndicationModal();">Syndication Deals</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof openStadiumManagementModal==='function')openStadiumManagementModal();else if(typeof syndicationModal==='function')syndicationModal();">Stadium &amp; Arena Hub</button>
           <button class="kairo-btn-action" onclick="if(typeof tvUpfrontsModal==='function')tvUpfrontsModal();">Ad Upfronts</button>
         </div>
       </div>
@@ -608,7 +608,7 @@
 
         <div class="kairo-dept-actions">
           <button class="kairo-btn-action gold" onclick="if(typeof openGddModal==='function')openGddModal();">Greenlight GDD Game</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof consoleDevKitModal==='function')consoleDevKitModal();">Hardware Licenses</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof openEngineBuilderModal==='function')openEngineBuilderModal();else if(typeof consoleDevKitModal==='function')consoleDevKitModal();">Engine &amp; Hardware</button>
           <button class="kairo-btn-action" onclick="if(typeof talentSabbaticalModal==='function')talentSabbaticalModal();">Send on Sabbatical</button>
         </div>
       </div>

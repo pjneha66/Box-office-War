@@ -5544,6 +5544,8 @@ function advanceWeek(){
   if(typeof tickLabel==="function") tickLabel();             // v14: music label weekly income
   if(typeof tickGameStudio==="function") tickGameStudio();   // v16: game dev burns weekly, ships at gold master
   if(typeof tickGameSales==="function") tickGameSales();     // v16: released games' sales tail
+  if(typeof GameStudioGdd !== "undefined" && typeof GameStudioGdd.tickGddEngine === "function") GameStudioGdd.tickGddEngine();
+  if(typeof SportsStadiumDeals !== "undefined" && typeof SportsStadiumDeals.tickStadiumEngine === "function") SportsStadiumDeals.tickStadiumEngine();
   if(typeof tickFanMail==="function") tickFanMail();         // v15: the audience writes back
   if(typeof HollywoodCrises !== "undefined" && typeof HollywoodCrises.processWeeklyCrises === "function") HollywoodCrises.processWeeklyCrises();
   for(const p of [...G.projects]){
@@ -7008,11 +7010,11 @@ function timelineFactor(p, weekAbs){
 function studioXpLevel(){
   const rep = G.studio ? G.studio.rep : 30;
   const lvls = DATA.STUDIO_XP_LEVELS || [
-    {id:"indie", name:"Indie Boutique", minRep:0, maxRep:30, badge:"🌱 Indie"},
-    {id:"growing", name:"Growing Label", minRep:30, maxRep:55, badge:"🌿 Growing"},
-    {id:"major", name:"Major Studio", minRep:55, maxRep:75, badge:"🏛 Major"},
-    {id:"global", name:"Global Conglom", minRep:75, maxRep:90, badge:"🌍 Global"},
-    {id:"empire", name:"Media Empire", minRep:90, maxRep:100, badge:"👑 Empire"}
+    {id:"indie", name:"Indie Boutique", minRep:0, maxRep:30, badge:"Indie"},
+    {id:"growing", name:"Growing Label", minRep:30, maxRep:55, badge:"Growing"},
+    {id:"major", name:"Major Studio", minRep:55, maxRep:75, badge:"Major"},
+    {id:"global", name:"Global Conglom", minRep:75, maxRep:90, badge:"Global"},
+    {id:"empire", name:"Media Empire", minRep:90, maxRep:100, badge:"Empire"}
   ];
   return lvls.find(l => rep >= l.minRep && rep <= l.maxRep) || lvls[lvls.length-1];
 }

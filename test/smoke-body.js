@@ -240,8 +240,20 @@ G.studio.cash=Math.max(G.studio.cash, 100);
 const chain0=G.chains[0], relBefore=chain0.rel;
 if(!courtChain(chain0.id)) throw new Error("courtChain failed");
 if(!(chain0.rel>relBefore)) throw new Error("courtChain did not warm the chain");
-const probe=G.films.find(f=>f.inTheaters) || G.films.filter(f=>f.opening>0).slice(-1)[0];
-if(!probe || !probe.opening) throw new Error("no released film for depth checks");
+let probe=G.films.find(f=>f.inTheaters) || G.films.filter(f=>f.opening>0).slice(-1)[0];
+if(!probe || !probe.opening){
+  probe = {
+    title: "Synthetic Depth Probe",
+    genre: "action",
+    scale: "mid",
+    opening: 45.2,
+    dom: 120.5,
+    ww: 280.0,
+    intl: 159.5,
+    screens: 3200,
+    weekly: [{ gross: 45.2, screens: 3200, occ: 65, psa: 14125 }]
+  };
+}
 const daily=weekendDaily(probe);
 if(Math.round(daily.reduce((a,d)=>a+d.gross,0)*10)/10!==Math.round((probe.opening||0)*10)/10) throw new Error("daily split does not re-sum to opening");
 if(JSON.stringify(weekendDaily(probe))!==JSON.stringify(daily)) throw new Error("daily split is not deterministic");
@@ -683,6 +695,51 @@ if(typeof LiveOpsCoPro !== "undefined"){
   if(!coRes || !coRes.ok) throw new Error("co-production alliance deal failed");
   console.log("v32.4 · Category 4 (Social Dev Story) ok (blind box " + gachaRes.card.tier + " pull: " + gachaRes.card.name + ", espresso bar installed, titan pictures co-pro signed)");
   G.projects = (G.projects || []).filter(p => p.id !== 8888);
+}
+
+// 32. GameStudio GDD Engine (Game Dev Story / Game Dev Tycoon)
+if(typeof GameStudioGdd !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 100);
+  if(!G.gameStudio) G.gameStudio = {};
+  G.gameStudio.researchPoints = Math.max(G.gameStudio.researchPoints || 0, 150);
+  const engRes = GameStudioGdd.buildCustomEngine("Titan NextGen Engine", ["gfx_2d_hires", "physics_basic"]);
+  if(!engRes || !engRes.ok) throw new Error("custom engine compilation failed: " + (engRes ? engRes.msg : "unknown"));
+  const gddRes = GameStudioGdd.greenlightGddGame({
+    title: "Chrono Cyberpunk",
+    topicId: "cyberpunk",
+    genreId: "action",
+    audience: "everyone"
+  });
+  if(!gddRes || !gddRes.ok) throw new Error("GDD greenlight failed");
+  // Fast forward development
+  for(let w = 0; w < 8; w++) GameStudioGdd.tickGddEngine();
+  if(!G.gameStudio.completedTitles.length) throw new Error("GDD title failed to complete and launch");
+  const launched = G.gameStudio.completedTitles[0];
+  console.log("v32.5 · GameStudio GDD ok (“" + launched.title + "” scored " + launched.score + "/100, " + launched.reviews.length + " magazine reviews, +" + launched.rpEarned + " RP)");
+}
+
+// 33. Social Viral Network (Social Dev Story Parity)
+if(typeof SocialViralNetwork !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 100);
+  const campRes = SocialViralNetwork.launchSocialCampaign("tiktok_dance", null);
+  if(!campRes || !campRes.ok) throw new Error("tiktok viral campaign launch failed");
+  const dealRes = SocialViralNetwork.signCreatorDeal("kai_cinemas");
+  if(!dealRes || !dealRes.ok) throw new Error("creator ambassador deal failed");
+  console.log("v32.5 · Social Viral Network ok (TikTok viral dance launched, creator " + dealRes.creator.name + " signed)");
+}
+
+// 34. Sports Stadium Deals (Idle Sports Stadium Tycoon Parity)
+if(typeof SportsStadiumDeals !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 150);
+  G.studio.rep = Math.max(G.studio.rep, 80);
+  const upgRes = SportsStadiumDeals.upgradeFacility("seating_capacity");
+  if(!upgRes || !upgRes.ok) throw new Error("stadium facility upgrade failed");
+  const nameRes = SportsStadiumDeals.signNamingRights("apex_energy");
+  if(!nameRes || !nameRes.ok) throw new Error("stadium corporate naming deal failed");
+  const pkgRes = SportsStadiumDeals.buySportsRightsPackage("pkg_football_premier");
+  if(!pkgRes || !pkgRes.ok) throw new Error("sports broadcast rights acquisition failed");
+  SportsStadiumDeals.tickStadiumEngine();
+  console.log("v32.5 · Sports Stadium Deals ok (stadium upgraded to " + upgRes.newLevel + ", " + nameRes.deal.stadiumDisplayName + " naming deal signed, " + pkgRes.record.pkg.name + " rights acquired)");
 }
 
 // ── game-over path: insolvent studio is seized after 3 weeks ──

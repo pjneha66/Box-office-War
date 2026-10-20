@@ -1,4 +1,40 @@
-# Launch Readiness — Box Office War v31
+# Launch Readiness — Box Office War v32.13
+
+## v32.13 — 2D Kairosoft Simulation Suite, Box Office Sim 2 Talent Integration, GameStudio GDD Mechanics, Social Viral Network, and Sports Megadome Deals
+
+### New Systems Implemented & Verified
+- **2D Kairosoft Interactive Studio Rooms (`studio-lot-2d.js`, `kairo-theme-suite.js`)**:
+  - 6 dedicated 16-bit departments: Studio Lot Campus, Soundstage A, Writers' Bungalow, Post & VFX Suite, Cinema Marquee, and Executive Penthouse.
+  - Handcrafted pixel art scene backgrounds with animated department headers, pixel bulb borders, and CRT scanlines.
+  - Micro-animated studio personnel: Writers typing screenplays, camera operators filming scenes, post editors cutting trailers, preview theater audiences reacting, and penthouse executives signing contracts.
+  - Responsive stage switcher allowing fast navigation across all rooms with live production sync.
+- **Box Office Sim 2 Full Cast Dataset (`box-office-sim-2-cast.js`)**:
+  - Over 4,000 real-world talent records extracted from Box Office Sim 2 APK data across actors, directors, writers, and producers.
+  - 72 character species and 121 specialized talent abilities with dynamic attribute tagging.
+  - Backward-compatible integer ID casting translation layer preserving existing career saves.
+- **GameStudio GDD Engine (`gamestudio-gdd-engine.js`)**:
+  - Synthesized mechanics from Game Dev Story v2.6.9 and Game Dev Tycoon v1.6.18.
+  - Topic x Genre synergy matrix with audience target weighting (Young, Teen, Mature).
+  - Custom 2D/3D Game Engine R&D allocating technology, design, and graphics milestones.
+  - 4 simulated gaming review publications (PixelPolygon, HyperJoy, BitCollider, EdgeOfPlay) with dynamic quotes, GameCon booth marketing, and Research Points economy.
+- **Social Viral Network (`social-viral-network.js`)**:
+  - Synthesized mechanics from Social Dev Story v2.5.1.
+  - 4 digital social platforms (InstaBuzz, VidTok, ChirpNet, StreamTube) with real-time algorithm trend velocity and hashtag momentum.
+  - 6 viral marketing blitz campaigns and digital creator ambassador endorsement pacts.
+- **Sports Stadium Megadome Deals (`sports-stadium-deals.js`)**:
+  - Synthesized mechanics from Idle Sports Stadium Tycoon v1.50.1.
+  - Multi-tier stadium facilities: Seating capacity, VIP Skyboxes, Concessions Court, and Broadcast Jumbotron upgrades.
+  - Corporate naming rights sponsorship contracts with Fortune 500 brands.
+  - Exclusive live sports broadcast packages (Sunday Football, Championship Basketball, Grand Slam Tennis, Sunset Grand Prix, Apex Esports).
+- **Landscape Orientation Lock & Offline Android APK**:
+  - Android Manifest locked to sensorLandscape across all mobile and tablet form factors.
+  - 55 modular engines, sound suites, and pixel art assets bundled directly into the standalone APK.
+
+### Verification
+- Full test suite green: Smoke simulation (261 weeks), UI harness (65/65 assertions), Balance harness (6 seeds x 120 weeks), Scenario playthroughs (5/5 win conditions), Creative Sandbox audit (9/9 steps), Library vault verification, and 6 narrative career arcs.
+- Android APK compiled and assembled cleanly: `apk/dist/BoxOfficeWar-32.13.apk` (27MB) verified with bundled app-version metadata `32.13`.
+
+---
 
 ## v31 — features restored that the notes promised but the code lost, plus three real bug fixes
 

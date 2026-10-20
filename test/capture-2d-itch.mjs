@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
 
-const ARTIFACT_DIR = "/Users/poshstudio/.gemini/antigravity-ide/brain/39371e33-3126-4d61-9ca3-5b7e48beebab";
+const ARTIFACT_DIR = "/Users/poshstudio/.gemini/antigravity-ide/brain/fa20da6f-531d-4d08-8f34-3aa739efd8ed";
 const CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9225;
 
@@ -18,7 +18,7 @@ async function run() {
     "--no-first-run",
     "--no-default-browser-check",
     "--user-data-dir=/tmp/chrome-test-profile-" + Date.now(),
-    "http://localhost:8085/index.html"
+    "http://127.0.0.1:8085/index.html"
   ], { detached: true });
 
   await sleep(2500);
@@ -139,6 +139,37 @@ async function run() {
   const shotCinema = await send("Page.captureScreenshot", { format: "png" });
   fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_cinema.png"), Buffer.from(shotCinema.data, "base64"));
   console.log("Captured: kairo_screen_cinema.png");
+
+  // 2f. Switch to Executive View
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      if (typeof window.StudioLot2D !== "undefined") window.StudioLot2D.setView("executive");
+    })()`
+  });
+  await sleep(1000);
+  const shotExec = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_executive.png"), Buffer.from(shotExec.data, "base64"));
+  console.log("Captured: kairo_screen_executive.png");
+
+  // 2g. Open Box Office Sim 2 Talent Modal
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      if (typeof window.openBOS2TalentModal === "function") window.openBOS2TalentModal();
+    })()`
+  });
+  await sleep(1000);
+  const shotBOS2 = await send("Page.captureScreenshot", { format: "png" });
+  fs.writeFileSync(path.join(ARTIFACT_DIR, "kairo_screen_bos2_talent.png"), Buffer.from(shotBOS2.data, "base64"));
+  console.log("Captured: kairo_screen_bos2_talent.png");
+
+  // Close BOS2 modal
+  await send("Runtime.evaluate", {
+    expression: `(function(){
+      const m = document.getElementById("bos2TalentModal");
+      if (m) m.style.display = "none";
+    })()`
+  });
+  await sleep(500);
 
   // 3. Open Settings Modal
   await send("Runtime.evaluate", {

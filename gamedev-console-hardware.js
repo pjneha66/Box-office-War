@@ -401,4 +401,6 @@
   }
   global.GameDevHardware = GameDevHardwareAPI;
   global.openHardwareDeskModal = openHardwareDeskModal;
+  global.consoleDevKitModal = openHardwareDeskModal;
+  global.talentSabbaticalModal = openHardwareDeskModal;
 })(typeof window !== "undefined" ? window : global);

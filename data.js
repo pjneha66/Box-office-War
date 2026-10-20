@@ -387,11 +387,11 @@ DATA.GAME_PLATFORMS = [
 
 /* ── studio XP levels & progression ── */
 DATA.STUDIO_XP_LEVELS = [
-  {id:"indie",   name:"Indie Boutique", minRep:0,  maxRep:30, badge:"🌱 Indie",  color:"#6ee7b7"},
-  {id:"growing", name:"Growing Label",  minRep:30, maxRep:55, badge:"🌿 Growing",color:"#93c5fd"},
-  {id:"major",   name:"Major Studio",   minRep:55, maxRep:75, badge:"🏛 Major",  color:"#f5b942"},
-  {id:"global",  name:"Global Conglom", minRep:75, maxRep:90, badge:"🌍 Global", color:"#c084fc"},
-  {id:"empire",  name:"Media Empire",   minRep:90, maxRep:100,badge:"👑 Empire", color:"#fb7185"}
+  {id:"indie",   name:"Indie Boutique", minRep:0,  maxRep:30, badge:"Indie",  color:"#6ee7b7"},
+  {id:"growing", name:"Growing Label",  minRep:30, maxRep:55, badge:"Growing",color:"#93c5fd"},
+  {id:"major",   name:"Major Studio",   minRep:55, maxRep:75, badge:"Major",  color:"#f5b942"},
+  {id:"global",  name:"Global Conglom", minRep:75, maxRep:90, badge:"Global", color:"#c084fc"},
+  {id:"empire",  name:"Media Empire",   minRep:90, maxRep:100,badge:"Empire", color:"#fb7185"}
 ];
 
 /* ── merchandise tier visual indicators ── */

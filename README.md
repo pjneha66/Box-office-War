@@ -2,7 +2,7 @@
 
 > A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v32.3](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v32.13](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
@@ -20,44 +20,46 @@ All simulation mechanics execute client-side with zero dependencies, zero microt
 
 ---
 
-## What is New in v32.3
+## What is New in v32.13
 
-The v32.3 release introduces key simulation expansions harvested from benchmark reference projects (Box Office Inc, Box Office Sim 2, Silver Screen Story, TV Studio Story) alongside essential UI modernization and mobile runtime hardening:
+The v32.13 release delivers a major 2D visual and mechanical overhaul, synthesizing deep simulation features from benchmark reference titles (Kairosoft Game Dev Story, Social Dev Story, Idle Sports Stadium Tycoon, and Box Office Sim 2) alongside persistent 2D simulation staging and landscape orientation locking:
 
-### 1. Modernized Start Screen & Career Resume
-- **Instant Resume Hero**: Automatically detects active career saves and presents a quick-launch studio card displaying studio name, date (Year/Week), cash reserves, industry reputation, and active release counts.
-- **Visual Origin Archetypes**: Redesigned origin profiles (Indie Auteur, Rising Producer, Mogul Backing) with transparent starting parameters, weekly overhead breakdowns, and unique passive studio traits.
-- **Interactive Save Slot Deck**: Three dedicated, persistent save slots with live studio metadata, occupied vs empty lot status pills, and keyboard navigation.
-- **Segmented Difficulty Controls**: Easy, Normal, and Hard market presets with transparent rental modifiers (+12% to -12%) and optional Creative Sandbox mode.
+### 1. 2D Kairosoft Studio Rooms & Simulation Lot (`studio-lot-2d.js`, `kairo-theme-suite.js`)
+- **6 Interactive Studio Departments**: Campus Grounds, Soundstage A, Writers' Bungalow, Post & VFX Suite, Cinema Marquee, and Executive Penthouse.
+- **Dynamic 16-Bit Scene Visuals**: High-contrast, handcrafted pixel art scenes with animated department headers, pixel marquee bulbs, and CRT scanlines.
+- **Micro-Animated Department Workers**: Desk writers, boom mic operators, video editors, preview screening audiences, and penthouse studio executives animated in real time.
+- **Seamless Stage Switcher**: Live navigation header with direct department shortcuts, room stats badges, and simulation HUD.
 
-### 2. Crisis PR War Room & Media Handling (`v31-features.js`)
-- Real-time containment of talent scandals, production accidents, and press leaks.
-- Four distinct crisis management protocols: Public Apology, Counter-Spin Blitz, Legal Settlement, and Independent Press Silence.
-- Reduces weekly reputation drain and restores talent commercial viability.
+### 2. Box Office Sim 2 Cast Integration (`box-office-sim-2-cast.js`)
+- **Extracted Reference Roster**: 72 unique character species, 121 specialized talent abilities, and over 4,000 real-world actor, director, writer, and producer names extracted directly from Box Office Sim 2 APK data.
+- **Dynamic Ability Tagging**: In-depth talent quirks including Box Office Anchor, Method Legend, Franchise Magnet, Festival Darling, and Critical Shield.
+- **Backward-Compatible Talent Mapping**: Integer ID translation layer ensuring seamless integration with existing save games and casting pipelines.
 
-### 3. International Territory Licensing Desk (`territory-licensing.js`)
-- Sell pre-release distribution rights across major foreign territories (Europe, Asia-Pacific, Latin America, Middle East, Africa).
-- Secure minimum guarantees (MG upfront cash advances) combined with ongoing weekly box office royalties.
-- De-risks high-budget productions before theatrical release.
+### 3. GameStudio GDD Engine (`gamestudio-gdd-engine.js`)
+- **Game Dev Story & Tycoon Mechanics**: Complete Game Design Document (GDD) production cycle with Topic x Genre synergy matching (e.g., Cyberpunk RPG, Fantasy Strategy, Superhero Action).
+- **Target Audience Weighting**: Age-demographic balancing across Young, Teen, and Mature gaming markets.
+- **Proprietary Engine Builder**: Design custom 2D/3D game engines with custom technology and design allocations.
+- **Gaming Press Reviews & GameCon**: 4 simulated gaming review publications (PixelPolygon, HyperJoy, BitCollider, EdgeOfPlay) with dynamic quotes, GameCon booth marketing, and Research Points economy.
 
-### 4. Hollywood Agency Packaging Desk (`v31-features.js`)
-- Contract full project packages through premier Hollywood talent agencies (CAA, WME, UTA, and Boutique Indiers).
-- Bundles top-tier directors, marquee leads, and award-winning writers with packaged salary discounts (10% to 25%).
-- Unlocks agency packaging buzz bonuses for opening weekends.
+### 4. Social Viral Network (`social-viral-network.js`)
+- **Social Dev Story Mechanics**: 4 active digital platforms (InstaBuzz, VidTok, ChirpNet, StreamTube) featuring algorithmic trend velocity, hashtag momentum, and organic audience reach.
+- **Viral Marketing Campaigns**: 6 campaign tiers from Grassroots Leak and Meme Blitz to Influencer Premiere Screenings and Global Trend Takeovers.
+- **Creator Ambassador Deals**: Contract digital creators for multi-week studio endorsement pacts that amplify film buzz and OTT subscriber acquisition.
 
-### 5. 52-Week Strategic Holiday Corridors (`custom-sandbox.js`)
-- Detailed release calendar mapping 8 major industry corridors: Memorial Day Kickoff, Fourth of July Spectacle, Labor Day Counter-Programming, Halloween Horror Window, Thanksgiving Family Frame, Christmas Megablock, New Year Holiday Holdovers, and Spring Break Run.
-- Counter-programming multipliers reward distinct genre positioning away from rival tentpoles.
+### 5. Sports Stadium Megadome Deals (`sports-stadium-deals.js`)
+- **Idle Sports Tycoon Mechanics**: Expand and operate a state-of-the-art sports arena (Seating Capacity, VIP Luxury Skyboxes, Concessions Court, and Broadcast Jumbotrons).
+- **Corporate Naming Rights**: High-value annual naming rights agreements with Fortune 500 corporate partners (Apex Energy, Horizon Tech, Zenith Capital).
+- **Exclusive Live Sports Broadcast Packages**: License tier-one live sporting events (Sunday Football, Championship Basketball, Grand Slam Tennis, Sunset Grand Prix, Apex Esports) for studio streaming services.
 
-### 6. Mobile APK Version Synchronization Hardening
-- Native Capacitor App integration checks the installed binary version (`versionName 32.3`, `versionCode 36`) against the live release catalog.
-- Offline-first cache migration ensuring existing saves and settings carry forward without update prompts or version discrepancies.
+### 6. Landscape Orientation Lock & Offline Android APK
+- **Android Manifest Lock**: Native Capacitor Android configuration locked to `sensorLandscape` mode.
+- **Complete Offline Bundle**: 55 modular engines, sound suites, and pixel art assets packed directly into the APK distribution without requiring internet connectivity or external servers.
 
 ---
 
-## Simulation Architecture: 27 Modular Systems
+## Simulation Architecture: 33 Modular Systems
 
-Box Office War is structured into 27 decoupled simulation modules operating on an event-driven weekly tick loop:
+Box Office War is structured into 33 decoupled simulation modules operating on an event-driven weekly tick loop:
 
 | Module File | Simulation System | Core Mechanics |
 |---|---|---|
@@ -88,6 +90,12 @@ Box Office War is structured into 27 decoupled simulation modules operating on a
 | `dynasty-legacy.js` | Multi-Generational Legacy | Post-retirement dynasty bonuses, family trust fund generation, heirloom studios, and generational succession. |
 | `bow-shorts.js` | Short-Form Digital Media | Episodic streaming shorts, viral digital content, social platform monetization, and rising talent discovery. |
 | `talent-agency.js` | In-House Agency Operation | Establish a proprietary studio talent agency, manage client rosters, collect commission fees, and train stars. |
+| `studio-lot-2d.js` | 2D Kairosoft Studio Rooms | 6 interactive 16-bit studio departments with animated workers, live status synchronization, and responsive room switcher. |
+| `kairo-theme-suite.js` | 16-Bit Theme & Scene Art | Retro pixel art styling, department header micro-animations, CRT scanlines, and animated marquee bulb borders. |
+| `box-office-sim-2-cast.js` | BOS2 Talent & Ability Matrix | 72 species, 121 character abilities, and 4,000+ talent names extracted from Box Office Sim 2 reference data. |
+| `gamestudio-gdd-engine.js` | GameStudio GDD Engine | Topic x Genre synergy matrix, target audience weighting, custom engine builder, 4 gaming reviews, and GameCon booths. |
+| `social-viral-network.js` | Social Viral Network | 4 digital social platforms, algorithmic trend velocity, 6 viral campaigns, and creator ambassador endorsement deals. |
+| `sports-stadium-deals.js` | Sports Stadium Megadome | Stadium tier upgrades, corporate naming rights, and exclusive live sports streaming broadcast rights packages. |
 
 ---
 
@@ -95,12 +103,28 @@ Box Office War is structured into 27 decoupled simulation modules operating on a
 
 Box Office War synthesizes gameplay systems from classic business simulations into a coherent, modern framework:
 
+### Game Dev Story & Tycoon Parity
+- **GDD Formulation**: Topic x Genre synergy mechanics with target audience demographics (Everyone, Teens, Mature).
+- **Custom Game Engine R&D**: Allocate technology, design, and graphics resources to build proprietary game engines.
+- **Gaming Press Reviews & GameCon**: 4 simulated publications (PixelPolygon, HyperJoy, BitCollider, EdgeOfPlay) and annual GameCon booths.
+
+### Social Dev Story Parity
+- **Multi-Platform Social Ecosystem**: InstaBuzz, VidTok, ChirpNet, and StreamTube with real-time algorithm velocity and hashtag trends.
+- **Viral Marketing Campaigns**: 6 campaign tiers from Grassroots Leak and Meme Blitz to Global Trend Takeovers.
+- **Creator Ambassador Network**: Retain digital influencers to amplify theatrical opening buzz and streaming subscriber influx.
+
+### Idle Sports Stadium Tycoon Parity
+- **Megadome Facilities**: Upgrades to Seating Capacity, VIP Luxury Skyboxes, Concessions Court, and Broadcast Jumbotrons.
+- **Corporate Naming Rights**: Multi-year commercial sponsorship contracts with Fortune 500 conglomerates.
+- **Live Sports Streaming Packages**: License exclusive broadcasting rights for major sports leagues to drive OTT growth.
+
 ### Box Office Inc Parity
 - **Hollywood Talent Agencies**: Tiered agency representation (CAA, WME, UTA) with packaged star bundles and volume commission structures.
 - **International Pre-Sales**: Regional minimum guarantees (MG) that offset production exposure before principal photography wraps.
 - **Crisis Media Spin**: Formal PR war room protocols to navigate talent scandals without scrapping multimillion-dollar productions.
 
 ### Box Office Sim 2 Parity
+- **Extracted Cast Database**: Over 4,000 real-world actor, director, writer, and producer reference names with 72 species and 121 abilities.
 - **Box Office Clash Radar**: Direct computation of screen cannibalization between competing releases sharing identical demographic quadrants.
 - **Dynamic Decay Curves**: Realistic box office legs calculated from the spread between critical reviews and audience exit-poll word of mouth.
 - **Windowing Tradeoffs**: Explicit choice between 17-day, 45-day, and 90-day theatrical windows with exhibitor relation consequences.

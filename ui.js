@@ -133,6 +133,14 @@ const STINGS = {
       tone(ac,t+0.15+i*0.05,f,0.4,{gain:0.035,type:"triangle"});
     });
   },
+  /* Retro typewriter keystroke click */
+  type(ac,t){ noise(ac,t,0.025,{freq:3600,gain:0.04,q:2,decay:4}); },
+  /* Retro stat bubble pop */
+  pop(ac,t){ tone(ac,t,988,0.05,{gain:0.045,type:"sine",glide:1318}); },
+  /* In the zone inspiration aura */
+  zone(ac,t){ [NOTE.C5,NOTE.E5,NOTE.G5,NOTE.B5,NOTE.C6].forEach((f,i)=>tone(ac,t+i*0.04,f,0.22,{gain:0.05,type:"square"})); },
+  /* Retro 8-bit blip */
+  blip(ac,t){ tone(ac,t,880,0.04,{gain:0.04,type:"square"}); tone(ac,t+0.04,1320,0.06,{gain:0.045,type:"square"}); }
 };
 /* v5: haptics — big beats buzz the phone (navigator.vibrate), if the user left it on */
 let HAPTICS = true;
@@ -141,7 +149,7 @@ function rumble(pattern){
   if(!HAPTICS) return;
   try{ if(navigator && navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
 }
-const HAPTIC_MAP = { fanfare:[35], cash:[20], drums:[25,40,25], smash:[40,60,40], buzz:[90], gold:[20,30,20], bad:[70], clap:[15], click:[6], chime:[18], good:[18], camera:[10,20,10], projector:[15,15,15], disaster:[80,100], cheer:[30,50,30] };
+const HAPTIC_MAP = { fanfare:[35], cash:[20], drums:[25,40,25], smash:[40,60,40], buzz:[90], gold:[20,30,20], bad:[70], clap:[15], click:[6], chime:[18], good:[18], camera:[10,20,10], projector:[15,15,15], disaster:[80,100], cheer:[30,50,30], type:[5], pop:[10], zone:[30,50], blip:[8] };
 let MUTE_UNTIL = 0;
 try{ MUTE_UNTIL = +(localStorage.getItem("bow_mute_until")||0); }catch(e){}
 function beep(kind){

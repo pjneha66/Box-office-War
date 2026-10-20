@@ -47,6 +47,9 @@ const demoJs = fs.readFileSync(path.join(ROOT, "demographics-audiences.js"), "ut
 const prodCreativityJs = fs.readFileSync(path.join(ROOT, "production-creativity-suite.js"), "utf8").replace(/"use strict";/g, "");
 const plfJs = fs.readFileSync(path.join(ROOT, "exhibition-plf-concessions.js"), "utf8").replace(/"use strict";/g, "");
 const mktgBlitzJs = fs.readFileSync(path.join(ROOT, "marketing-blitz-engine.js"), "utf8").replace(/"use strict";/g, "");
+const gddEngineJs = fs.readFileSync(path.join(ROOT, "gamestudio-gdd-engine.js"), "utf8").replace(/"use strict";/g, "");
+const socialViralJs = fs.readFileSync(path.join(ROOT, "social-viral-network.js"), "utf8").replace(/"use strict";/g, "");
+const sportsStadiumJs = fs.readFileSync(path.join(ROOT, "sports-stadium-deals.js"), "utf8").replace(/"use strict";/g, "");
 const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8").replace(/"use strict";/g, "");
 
 const bundle = SHIM +
@@ -86,6 +89,9 @@ const bundle = SHIM +
   prodCreativityJs + "\n" +
   plfJs + "\n" +
   mktgBlitzJs + "\n" +
+  gddEngineJs + "\n" +
+  socialViralJs + "\n" +
+  sportsStadiumJs + "\n" +
   smokeBodyJs + "\n";
 
 fs.writeFileSync(OUT, bundle);

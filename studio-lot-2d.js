@@ -1,6 +1,6 @@
 /* ═════════════════════════════════════════════════════════════════════════
-   STUDIO-LOT-2D.JS — Authentic Kairosoft 2D Studio Simulation Engine
-   Box Office War — High-Performance 2D Canvas & Pixel Art Studio World
+   STUDIO-LOT-2D.JS — Premium Authentic Kairosoft 2D Studio Simulation
+   Box Office War — High-Performance 16:9 Widescreen Pixel Art Studio World
    Zero Emojis Policy strictly enforced.
    ═════════════════════════════════════════════════════════════════════════ */
 "use strict";
@@ -37,6 +37,7 @@
   let _buildModeType = null;
   let _floatingTexts = [];
   let _directingState = null; // { stageId, step: 0, timer: 0 }
+  let _showStatBoard = true; // Kairosoft production stat HUD toggle
 
   // Kairosoft Live Production State
   const _kairoStats = {
@@ -54,7 +55,7 @@
   // Asset Caching
   const spriteCache = {};
   const ASSET_PATHS = {
-    // Kairosoft 16-Bit Studio Scenes
+    // Kairosoft 16:9 Widescreen Studio Scenes
     kairo_campus: "assets/2d/kairo_studio_campus.png",
     kairo_soundstage: "assets/2d/kairo_soundstage.png",
     kairo_writers: "assets/2d/kairo_writers_room.png",
@@ -62,7 +63,7 @@
     kairo_cinema: "assets/2d/kairo_cinema_theater.png",
     kairo_executive: "assets/2d/kairo_executive_office.png",
 
-    // Buildings (Isometric Sprites)
+    // Buildings (Isometric Sprites for Sandbox)
     soundstage: "assets/2d/soundstage.png",
     virtual_led: "assets/2d/virtual_led.png",
     post_suite: "assets/2d/post_suite.png",
@@ -141,7 +142,7 @@
     }
   }
 
-  // Coordinate projections for campus grid overlay
+  // Coordinate projections for sandbox grid overlay
   function gridToScreen(gx, gy) {
     const sx = (gx - gy) * (TILE_W / 2) * camera.zoom + camera.x;
     const sy = (gx + gy) * (TILE_H / 2) * camera.zoom + camera.y;
@@ -151,7 +152,6 @@
   function screenToGrid(sx, sy) {
     const adjX = (sx - camera.x) / camera.zoom;
     const adjY = (sy - camera.y) / camera.zoom;
-
     const gx = (adjX / (TILE_W / 2) + adjY / (TILE_H / 2)) / 2;
     const gy = (adjY / (TILE_H / 2) - adjX / (TILE_W / 2)) / 2;
     return { x: Math.floor(gx), y: Math.floor(gy) };
@@ -182,7 +182,7 @@
     if (!engine) return;
     const stateStr = engine.get_lot_state_json();
     const lot = JSON.parse(stateStr);
-    const bld = lot.buildings.find(b => b.id === buildingId);
+    const bld = lot.buildings ? lot.buildings.find(b => b.id === buildingId) : null;
     if (!bld) return;
 
     _directingState = {
@@ -208,22 +208,24 @@
       _directingState.feedback = "Cameras rolling! Call 'ACTION!'";
       if (bld) addFloatingText("ROLLING CAMERA", bld.grid_x + 1.5, bld.grid_y + 1.5, "#3b82f6");
       _kairoStats.direction = Math.min(100, _kairoStats.direction + 5);
+      if (typeof beep === "function") beep("click");
     } else if (_directingState.step === 2) {
       _directingState.step = 3;
       _directingState.feedback = "Actors performing! Call 'CUT & PRINT IT!'";
       if (bld) addFloatingText("ACTION!", bld.grid_x + 1.5, bld.grid_y + 1.5, "#ef4444");
       _kairoStats.acting = Math.min(100, _kairoStats.acting + 7);
+      if (typeof beep === "function") beep("clap");
     } else if (_directingState.step === 3) {
-      // Reward
       if (G && G.studio) {
         G.studio.rep = Math.min(99, G.studio.rep + 0.5);
-        if (typeof log === "function") log("Director's cut approved on " + _directingState.title + ": +0.5 Studio Rep & +5 Hype.", "gold");
+        if (typeof log === "function") log("Director cut approved on " + _directingState.title + ": +0.5 Studio Rep & +5 Hype.", "gold");
       }
       if (bld) {
         addFloatingText("PRINT IT! +5 HYPE", bld.grid_x + 1.5, bld.grid_y + 1.5, "#10b981");
       }
       _kairoStats.direction = Math.min(100, _kairoStats.direction + 8);
       _kairoStats.soundVfx = Math.min(100, _kairoStats.soundVfx + 6);
+      if (typeof beep === "function") beep("good");
       _directingState = null;
     }
     renderInspector();
@@ -232,13 +234,11 @@
   // Room view switcher
   function setLotView(view) {
     _currentLotView = view;
-    // Update active state in nav bar tabs
     const tabs = document.querySelectorAll(".kairo-nav-tab");
     tabs.forEach(tab => {
       if (tab.dataset.view === view) tab.classList.add("active");
       else tab.classList.remove("active");
     });
-    // Center camera for the new view
     if (_canvas) {
       camera.x = _canvas.width / 2;
       camera.y = _canvas.height / 2;
@@ -260,8 +260,12 @@
       engine.tick(dt, currentWeek);
     }
 
-    // Update Kairosoft production points & aura
-    updateKairosoftProduction(dt);
+    // Spawn floating points periodically (Kairosoft active stat cadence)
+    _kairoStats.pointSpawnTimer += dt;
+    if (_kairoStats.pointSpawnTimer > 1.2) {
+      _kairoStats.pointSpawnTimer = 0;
+      spawnPeriodicStatPoint();
+    }
 
     // Clear Canvas
     _ctx.clearRect(0, 0, _canvas.width, _canvas.height);
@@ -290,25 +294,123 @@
     _animId = requestAnimationFrame(render);
   }
 
+  function spawnPeriodicStatPoint() {
+    let pool = [];
+    if (_currentLotView === "writers") {
+      pool = [
+        { t: "+1 SCENARIO", c: "#38bdf8" },
+        { t: "+2 SCRIPT", c: "#f5c518" },
+        { t: "[IDEA!]", c: "#ffffff" },
+        { t: "+1 DIALOGUE", c: "#34d399" }
+      ];
+      _kairoStats.scenario = Math.min(100, _kairoStats.scenario + 1);
+    } else if (_currentLotView === "soundstage") {
+      pool = [
+        { t: "+2 ACTING", c: "#ec4899" },
+        { t: "+1 DIRECTION", c: "#f5c518" },
+        { t: "+1 CAMERA", c: "#a855f7" },
+        { t: "[ACTION!]", c: "#ffffff" }
+      ];
+      _kairoStats.acting = Math.min(100, _kairoStats.acting + 1);
+    } else if (_currentLotView === "post") {
+      pool = [
+        { t: "+2 SOUND FX", c: "#a855f7" },
+        { t: "+1 COLOR GRADE", c: "#ec4899" },
+        { t: "+2 MASTER MIX", c: "#38bdf8" },
+        { t: "[SYNC!]", c: "#10b981" }
+      ];
+      _kairoStats.soundVfx = Math.min(100, _kairoStats.soundVfx + 1);
+    } else if (_currentLotView === "cinema") {
+      pool = [
+        { t: "+5 BUZZ", c: "#f5c518" },
+        { t: "[STANDING OVATION]", c: "#ffffff" },
+        { t: "[10/10 MASTERPIECE]", c: "#10b981" },
+        { t: "+3 BOX OFFICE", c: "#38bdf8" }
+      ];
+    } else if (_currentLotView === "executive") {
+      pool = [
+        { t: "+$120K ROYALTY", c: "#10b981" },
+        { t: "+1 REPUTATION", c: "#f5c518" },
+        { t: "[GREENLIT!]", c: "#38bdf8" },
+        { t: "+2 OSCAR ODDS", c: "#fb7185" }
+      ];
+    } else {
+      pool = [
+        { t: "[CAMPUS ACTIVE]", c: "#f5c518" },
+        { t: "+1 STUDIO BUZZ", c: "#38bdf8" },
+        { t: "[ROLLING CART]", c: "#10b981" }
+      ];
+    }
+    const p = pool[Math.floor(Math.random() * pool.length)];
+    const rx = _canvas.width * (0.28 + Math.random() * 0.44);
+    const ry = _canvas.height * (0.45 + Math.random() * 0.25);
+    addFloatingText(p.t, rx, ry, p.c);
+  }
+
   // ── VIEW 1: Campus Lot (Wide Hollywood Studio Campus) ──
+  // Interactive hotspots pinned to building coordinates on 1376x768 16:9 campus image
+  const CAMPUS_HOTSPOTS = [
+    { id: "soundstage",  name: "Soundstage 1",       sub: "Filming & Sets",        xPct: 0.50, yPct: 0.22, radius: 55, view: "soundstage" },
+    { id: "soundstage2", name: "Soundstage 2",       sub: "Active Shoot",          xPct: 0.67, yPct: 0.30, radius: 55, view: "soundstage" },
+    { id: "writers",     name: "Writers Bungalow",   sub: "Screenplay Lab",        xPct: 0.43, yPct: 0.49, radius: 50, view: "writers" },
+    { id: "post",        name: "Post & VFX Suite",   sub: "Editing & Audio",       xPct: 0.12, yPct: 0.44, radius: 55, view: "post" },
+    { id: "cinema",      name: "Cinema Marquee",     sub: "Box Office Premiere",   xPct: 0.16, yPct: 0.70, radius: 60, view: "cinema" },
+    { id: "executive",   name: "Studio Tower & HQ",  sub: "Executive Desk",        xPct: 0.27, yPct: 0.18, radius: 50, view: "executive" }
+  ];
+
+  // Animated Golf Carts along campus road networks
+  const _campusGolfCarts = [
+    { t: 0.15, speed: 0.045, dir: 1, path: [
+      { x: 0.39, y: 0.82 }, // Studio Gate
+      { x: 0.47, y: 0.66 }, // Main Ave
+      { x: 0.55, y: 0.48 }, // Stage Junction
+      { x: 0.64, y: 0.38 }  // Stage 1 & 2
+    ]},
+    { t: 0.65, speed: 0.035, dir: -1, path: [
+      { x: 0.18, y: 0.76 }, // Cinema plaza
+      { x: 0.31, y: 0.70 }, // South road
+      { x: 0.42, y: 0.58 }  // Writers loop
+    ]}
+  ];
+
+  // Animated staff pedestrians on campus walkways
+  const _campusStaff = [
+    { name: "Director", role: "Stanley K.", av: "avatar_01", color: "#f5c518", path: [{x:0.52, y:0.35}, {x:0.62, y:0.38}], t: 0.2, speed: 0.06, dir: 1, quote: "Stage 1 call time!" },
+    { name: "Lead Star", role: "A-List Talent", av: "avatar_06", color: "#ec4899", path: [{x:0.41, y:0.56}, {x:0.49, y:0.52}], t: 0.7, speed: 0.05, dir: -1, quote: "Costume fitting done" },
+    { name: "Cameraman", role: "Cinematographer", av: "avatar_04", color: "#38bdf8", path: [{x:0.48, y:0.68}, {x:0.54, y:0.54}], t: 0.4, speed: 0.055, dir: 1, quote: "Lenses checked" },
+    { name: "Screenwriter", role: "Head Scribe", av: "avatar_08", color: "#10b981", path: [{x:0.38, y:0.50}, {x:0.44, y:0.48}], t: 0.9, speed: 0.04, dir: -1, quote: "Coffee refill needed" }
+  ];
+
+  function getPathPoint(path, progress) {
+    const p = Math.max(0, Math.min(1, progress));
+    const totalSegments = path.length - 1;
+    const seg = Math.min(totalSegments - 1, Math.floor(p * totalSegments));
+    const localT = (p * totalSegments) - seg;
+    const p0 = path[seg];
+    const p1 = path[seg + 1];
+    return {
+      x: p0.x + (p1.x - p0.x) * localT,
+      y: p0.y + (p1.y - p0.y) * localT
+    };
+  }
+
   function renderCampusView(ctx, dt) {
     const campusAsset = spriteCache["kairo_campus"];
+    let drawX = 0, drawY = 0, drawW = _canvas.width, drawH = _canvas.height;
 
     if (campusAsset && campusAsset.loaded) {
-      // Draw 16-Bit Pixel Art Campus as the lot background
       const img = campusAsset.img;
       const scale = Math.max(_canvas.width / img.width, _canvas.height / img.height) * camera.zoom;
-      const drawW = img.width * scale;
-      const drawH = img.height * scale;
-      const drawX = (_canvas.width - drawW) / 2 + (camera.x - _canvas.width / 2);
-      const drawY = (_canvas.height - drawH) / 2 + (camera.y - _canvas.height / 3);
+      drawW = img.width * scale;
+      drawH = img.height * scale;
+      drawX = (_canvas.width - drawW) / 2 + (camera.x - _canvas.width / 2);
+      drawY = (_canvas.height - drawH) / 2 + (camera.y - _canvas.height / 2);
 
       ctx.save();
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
       ctx.restore();
     } else {
-      // Sleek studio tarmac gradient fallback
       const grad = ctx.createLinearGradient(0, 0, 0, _canvas.height);
       grad.addColorStop(0, "#0f172a");
       grad.addColorStop(1, "#1e293b");
@@ -316,88 +418,228 @@
       ctx.fillRect(0, 0, _canvas.width, _canvas.height);
     }
 
-    // Draw interactive Hotspot overlays on the campus
-    drawCampusHotspots(ctx);
+    // 1. Render Animated Golf Carts along studio roadways
+    renderCampusGolfCarts(ctx, drawX, drawY, drawW, drawH, dt);
 
-    // Overlay user-placed buildings and roaming staff agents
-    const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
-    if (engine) {
-      const stateStr = engine.get_lot_state_json();
-      const lot = JSON.parse(stateStr);
+    // 2. Render Roaming Studio Staff along walkways
+    renderCampusPedestrians(ctx, drawX, drawY, drawW, drawH, dt);
 
-      // Render buildings placed on the lot
-      for (const b of (lot.buildings || [])) {
-        drawBuilding(ctx, b);
-      }
+    // 3. Render Active Filming Live Indicator over Soundstages
+    renderCampusActiveShootGlow(ctx, drawX, drawY, drawW, drawH);
 
-      // Render animated agents walking on lot
-      for (const a of (lot.agents || [])) {
-        drawAgent(ctx, a);
-      }
+    // 4. Render Interactive Golden Hotspot Plaques
+    drawCampusHotspots(ctx, drawX, drawY, drawW, drawH);
 
-      // Hover grid highlight
-      if (_hoveredGridPos && _hoveredGridPos.x >= 0 && _hoveredGridPos.x < (lot.cols || 24) &&
-          _hoveredGridPos.y >= 0 && _hoveredGridPos.y < (lot.rows || 24)) {
-        const hScr = gridToScreen(_hoveredGridPos.x, _hoveredGridPos.y);
-        drawTileHighlight(ctx, hScr.x, hScr.y, _buildModeType ? "rgba(245, 197, 24, 0.45)" : "rgba(255, 255, 255, 0.2)");
+    // 5. Render custom user sandbox buildings ONLY if Build Mode is active
+    if (_buildModeType) {
+      const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
+      if (engine) {
+        const stateStr = engine.get_lot_state_json();
+        const lot = JSON.parse(stateStr);
+        for (const b of (lot.buildings || [])) {
+          drawBuilding(ctx, b);
+        }
+        if (_hoveredGridPos && _hoveredGridPos.x >= 0 && _hoveredGridPos.x < (lot.cols || 24)) {
+          const hScr = gridToScreen(_hoveredGridPos.x, _hoveredGridPos.y);
+          drawTileHighlight(ctx, hScr.x, hScr.y, "rgba(245, 197, 24, 0.45)");
+        }
       }
     }
 
-    // Campus Quick Stat Banner
+    // 6. Campus Quick Stat Banner
     drawCampusHud(ctx);
   }
 
-  // Interactive hotspots on the Campus Map
-  const CAMPUS_HOTSPOTS = [
-    { id: "soundstage", name: "Soundstage 1", sub: "Filming & Sets", xPct: 0.22, yPct: 0.38, radius: 65, view: "soundstage" },
-    { id: "writers", name: "Writers Bungalow", sub: "Screenplay Lab", xPct: 0.68, yPct: 0.35, radius: 55, view: "writers" },
-    { id: "post", name: "Post & VFX Suite", sub: "Editing & Audio", xPct: 0.38, yPct: 0.58, radius: 60, view: "post" },
-    { id: "cinema", name: "Cinema Marquee", sub: "Box Office Premiere", xPct: 0.82, yPct: 0.72, radius: 65, view: "cinema" },
-    { id: "executive", name: "Executive Suite", sub: "HQ & Greenlight Desk", xPct: 0.50, yPct: 0.22, radius: 60, view: "executive" }
-  ];
+  function renderCampusGolfCarts(ctx, ox, oy, ow, oh, dt) {
+    for (const cart of _campusGolfCarts) {
+      cart.t += cart.speed * cart.dir * dt;
+      if (cart.t > 1.0) { cart.t = 1.0; cart.dir = -1; }
+      else if (cart.t < 0.0) { cart.t = 0.0; cart.dir = 1; }
 
-  function drawCampusHotspots(ctx) {
-    const time = performance.now() * 0.003;
-    for (const spot of CAMPUS_HOTSPOTS) {
-      const sx = _canvas.width * spot.xPct + (camera.x - _canvas.width / 2) * 0.3;
-      const sy = _canvas.height * spot.yPct + (camera.y - _canvas.height / 3) * 0.3;
-      const isHovered = _hoveredHotspot === spot.id;
+      const pt = getPathPoint(cart.path, cart.t);
+      const cx = ox + ow * pt.x;
+      const cy = oy + oh * pt.y;
 
       ctx.save();
-      // Glowing base circle
-      const pulse = Math.sin(time + spot.xPct * 10) * 4;
-      const r = (spot.radius + (isHovered ? 8 : 0) + pulse) * camera.zoom * 0.8;
-
-      ctx.strokeStyle = isHovered ? "#f5c518" : "rgba(245, 197, 24, 0.6)";
-      ctx.lineWidth = isHovered ? 3 : 1.5;
-      ctx.setLineDash([4, 4]);
+      // Drop Shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
       ctx.beginPath();
-      ctx.arc(sx, sy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.ellipse(cx, cy + 4, 14 * camera.zoom, 6 * camera.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Label badge
-      const bw = 120;
-      const bh = 34;
-      const bx = sx - bw / 2;
-      const by = sy - r - bh - 6;
-
-      ctx.fillStyle = isHovered ? "rgba(15, 23, 42, 0.95)" : "rgba(15, 23, 42, 0.80)";
-      ctx.strokeStyle = isHovered ? "#f5c518" : "rgba(255, 255, 255, 0.2)";
+      // Yellow Kairosoft Golf Cart Body
+      const cw = 22 * camera.zoom;
+      const ch = 14 * camera.zoom;
+      ctx.fillStyle = "#facc15";
+      ctx.strokeStyle = "#854d0e";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(bx, by, bw, bh, 6);
+      ctx.roundRect(cx - cw/2, cy - ch, cw, ch, 3);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = isHovered ? "#f5c518" : "#ffffff";
+      // Roof & canopy posts
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(cx - cw/2 + 2, cy - ch - 8 * camera.zoom, cw - 4, 3 * camera.zoom);
+      ctx.strokeStyle = "#475569";
+      ctx.strokeRect(cx - cw/2 + 2, cy - ch - 8 * camera.zoom, cw - 4, 3 * camera.zoom);
+      ctx.beginPath();
+      ctx.moveTo(cx - cw/2 + 3, cy - ch);
+      ctx.lineTo(cx - cw/2 + 3, cy - ch - 6 * camera.zoom);
+      ctx.moveTo(cx + cw/2 - 3, cy - ch);
+      ctx.lineTo(cx + cw/2 - 3, cy - ch - 6 * camera.zoom);
+      ctx.stroke();
+
+      // Tiny rolling wheels
+      ctx.fillStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.arc(cx - 7 * camera.zoom, cy, 3 * camera.zoom, 0, Math.PI * 2);
+      ctx.arc(cx + 7 * camera.zoom, cy, 3 * camera.zoom, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  function renderCampusPedestrians(ctx, ox, oy, ow, oh, dt) {
+    const time = performance.now() * 0.003;
+    for (let i = 0; i < _campusStaff.length; i++) {
+      const p = _campusStaff[i];
+      p.t += p.speed * p.dir * dt;
+      if (p.t > 1.0) { p.t = 1.0; p.dir = -1; }
+      else if (p.t < 0.0) { p.t = 0.0; p.dir = 1; }
+
+      const pt = getPathPoint(p.path, p.t);
+      const px = ox + ow * pt.x;
+      const py = oy + oh * pt.y;
+      const bounce = Math.abs(Math.sin(time * 8 + i * 2)) * 3 * camera.zoom;
+
+      const cached = spriteCache[p.av];
+      ctx.save();
+
+      // Ground shadow
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.beginPath();
+      ctx.ellipse(px, py, 7 * camera.zoom, 3 * camera.zoom, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sprite
+      const sz = 26 * camera.zoom;
+      if (cached && cached.loaded) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(cached.img, px - sz/2, py - sz - bounce, sz, sz);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(px, py - 10 * camera.zoom - bounce, 6 * camera.zoom, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Role tag when hovered
+      if (_hoveredHotspot === null && camera.zoom >= 0.9) {
+        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(px - 28, py - sz - bounce - 14, 56, 12, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 8px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(p.name, px, py - sz - bounce - 5);
+      }
+      ctx.restore();
+    }
+  }
+
+  function renderCampusActiveShootGlow(ctx, ox, oy, ow, oh) {
+    const G = typeof window !== "undefined" ? window.G : null;
+    if (!G) return;
+    const inProd = (G.projects || []).filter(p => p.phase !== "ready");
+    if (!inProd.length) return;
+
+    const time = performance.now();
+    const pulse = 0.5 + Math.sin(time * 0.008) * 0.4;
+    const activeTitle = inProd[0].title || "Summer Blockbuster";
+
+    // Stage 1 coordinates
+    const sx = ox + ow * 0.50;
+    const sy = oy + oh * 0.16;
+
+    ctx.save();
+    // Glowing red "ON AIR" banner above soundstage
+    ctx.fillStyle = `rgba(239, 68, 68, ${0.85 * pulse})`;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(sx - 70, sy - 28, 140, 22, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 9px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("[FILMING] " + activeTitle.slice(0, 14), sx, sy - 14);
+    ctx.restore();
+  }
+
+  function drawCampusHotspots(ctx, ox, oy, ow, oh) {
+    const time = performance.now() * 0.003;
+    for (const spot of CAMPUS_HOTSPOTS) {
+      const sx = ox + ow * spot.xPct;
+      const sy = oy + oh * spot.yPct;
+      const isHovered = _hoveredHotspot === spot.id;
+
+      ctx.save();
+      // Subtle pulse ring on hover
+      if (isHovered) {
+        const pulse = Math.sin(time * 8) * 4;
+        ctx.strokeStyle = "rgba(245, 197, 24, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, (spot.radius + pulse) * camera.zoom * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Elegant Kairosoft Wooden Plaque Badge
+      const bw = 136;
+      const bh = 34;
+      const bx = sx - bw / 2;
+      const by = sy - (spot.radius * camera.zoom * 0.5) - bh;
+
+      // Drop shadow
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.beginPath();
+      ctx.roundRect(bx + 2, by + 2, bw, bh, 5);
+      ctx.fill();
+
+      // Plaque body
+      ctx.fillStyle = isHovered ? "rgba(26, 36, 60, 0.96)" : "rgba(15, 23, 42, 0.90)";
+      ctx.strokeStyle = isHovered ? "#ffd479" : "rgba(245, 197, 24, 0.5)";
+      ctx.lineWidth = isHovered ? 2 : 1;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, bw, bh, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      // Golden corner studs
+      ctx.fillStyle = "#ffd479";
+      ctx.fillRect(bx + 3, by + 3, 2, 2);
+      ctx.fillRect(bx + bw - 5, by + 3, 2, 2);
+      ctx.fillRect(bx + 3, by + bh - 5, 2, 2);
+      ctx.fillRect(bx + bw - 5, by + bh - 5, 2, 2);
+
+      // Title & Subtitle
+      ctx.fillStyle = isHovered ? "#ffd479" : "#ffffff";
       ctx.font = "bold 11px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(spot.name, sx, by + 14);
 
-      ctx.fillStyle = "#94a3b8";
+      ctx.fillStyle = isHovered ? "#38bdf8" : "#94a3b8";
       ctx.font = "9px system-ui, sans-serif";
-      ctx.fillText(spot.sub + " [CLICK]", sx, by + 26);
+      ctx.fillText(spot.sub + (isHovered ? " [ENTER]" : ""), sx, by + 26);
 
       ctx.restore();
     }
@@ -405,30 +647,30 @@
 
   function drawCampusHud(ctx) {
     ctx.save();
-    const hudW = 240;
-    const hudH = 54;
-    const hudX = _canvas.width - hudW - 16;
-    const hudY = 106;
+    const hudW = 230;
+    const hudH = 50;
+    const hudX = _canvas.width - hudW - 14;
+    const hudY = 96;
 
-    ctx.fillStyle = "rgba(15, 23, 42, 0.90)";
-    ctx.strokeStyle = "rgba(245, 197, 24, 0.3)";
-    ctx.lineWidth = 1;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+    ctx.strokeStyle = "rgba(245, 197, 24, 0.4)";
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(hudX, hudY, hudW, hudH, 8);
+    ctx.roundRect(hudX, hudY, hudW, hudH, 6);
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = "#94a3b8";
-    ctx.font = "bold 10px system-ui, sans-serif";
-    ctx.fillText("HOLLYWOOD LOT CAMPUS", hudX + 12, hudY + 16);
+    ctx.font = "bold 9px system-ui, sans-serif";
+    ctx.fillText("HOLLYWOOD PRODUCTION CAMPUS", hudX + 10, hudY + 16);
 
     ctx.fillStyle = "#f5c518";
     ctx.font = "bold 11px system-ui, sans-serif";
-    ctx.fillText("Click any building to enter interior", hudX + 12, hudY + 32);
+    ctx.fillText("Click any building plaque to enter", hudX + 10, hudY + 31);
 
     ctx.fillStyle = "#38bdf8";
-    ctx.font = "10px system-ui, sans-serif";
-    ctx.fillText("Or use room tabs above", hudX + 12, hudY + 46);
+    ctx.font = "9px system-ui, sans-serif";
+    ctx.fillText("Or switch rooms using tabs above", hudX + 10, hudY + 43);
 
     ctx.restore();
   }
@@ -438,46 +680,115 @@
     const asset = spriteCache["kairo_soundstage"];
     drawRoomBackdrop(ctx, asset);
 
-    // Live On-Air Blinking Red Indicator
     const time = performance.now();
+    // Live Volumetric Stage Lights pulsing on green screen
+    ctx.save();
+    const lightPulse = 0.20 + Math.sin(time * 0.003) * 0.05;
+    const coneGrad = ctx.createRadialGradient(_canvas.width * 0.52, _canvas.height * 0.20, 20, _canvas.width * 0.52, _canvas.height * 0.55, _canvas.width * 0.35);
+    coneGrad.addColorStop(0, `rgba(255, 245, 180, ${lightPulse * 1.5})`);
+    coneGrad.addColorStop(0.6, `rgba(100, 255, 120, ${lightPulse * 0.8})`);
+    coneGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = coneGrad;
+    ctx.fillRect(0, 0, _canvas.width, _canvas.height);
+    ctx.restore();
+
+    // Live On-Air Blinking Red Indicator
     const blink = (Math.sin(time * 0.008) > 0);
     ctx.save();
     ctx.fillStyle = blink ? "#ef4444" : "#7f1d1d";
     ctx.beginPath();
-    ctx.arc(36, 120, 8, 0, Math.PI * 2);
+    ctx.arc(36, 114, 7, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 11px system-ui, sans-serif";
-    ctx.fillText(blink ? "ON AIR / FILMING" : "STAGE RECORDING", 52, 124);
+    ctx.fillText(blink ? "ON AIR / FILMING" : "STAGE RECORDING", 50, 118);
     ctx.restore();
 
-    // Crew Animations & Auras
+    // Animated Camera Dolly tracking along track
+    const dollyT = 0.5 + Math.sin(time * 0.001) * 0.4;
+    const dollyX = _canvas.width * (0.32 + dollyT * 0.20);
+    const dollyY = _canvas.height * (0.72 - dollyT * 0.06);
+
+    ctx.save();
+    // Dolly glow
+    ctx.fillStyle = "rgba(56, 189, 248, 0.2)";
+    ctx.beginPath();
+    ctx.ellipse(dollyX, dollyY, 18, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Crew Animations & Speech Bubbles
     drawSoundstageCrew(ctx, dt);
+
+    // Clapperboard Snap Animation trigger
+    drawClapperSnap(ctx, time);
 
     // Kairosoft 4-Stat Live Scoreboard
     drawKairosoftScoreboard(ctx, "SOUNDSTAGE 1 — PRODUCTION SCORE");
   }
 
+  let _lastClapSnap = 0;
+  function drawClapperSnap(ctx, time) {
+    const cycle = (time % 8000);
+    if (cycle < 1200) {
+      if (time - _lastClapSnap > 7000) {
+        _lastClapSnap = time;
+        if (typeof beep === "function") beep("clap");
+        addFloatingText("+25 DIRECTION", _canvas.width * 0.54, _canvas.height * 0.65, "#f5c518");
+      }
+      const p = cycle / 1200;
+      const angle = (p < 0.3) ? (0.3 - p) * 1.5 : 0;
+
+      ctx.save();
+      const cx = _canvas.width * 0.54;
+      const cy = _canvas.height * 0.68;
+      ctx.translate(cx, cy);
+
+      // Slate base
+      ctx.fillStyle = "#1e293b";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(-22, 0, 44, 30);
+      ctx.strokeRect(-22, 0, 44, 30);
+
+      ctx.fillStyle = "#f5c518";
+      ctx.font = "bold 8px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("TAKE 3", 0, 18);
+
+      // Slate stick
+      ctx.save();
+      ctx.rotate(-angle);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(-22, -8, 44, 8);
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(-15, -8, 6, 8);
+      ctx.fillRect(-3, -8, 6, 8);
+      ctx.fillRect(9, -8, 6, 8);
+      ctx.restore();
+
+      ctx.restore();
+    }
+  }
+
   function drawSoundstageCrew(ctx, dt) {
     const time = performance.now() * 0.003;
     const crew = [
-      { role: "Director", x: _canvas.width * 0.28, y: _canvas.height * 0.65, color: "#f5c518", quote: "Action!" },
-      { role: "Camera Operator", x: _canvas.width * 0.42, y: _canvas.height * 0.70, color: "#38bdf8", quote: "Rolling track..." },
-      { role: "Lead Star", x: _canvas.width * 0.58, y: _canvas.height * 0.60, color: "#ec4899", quote: "Delivering monologue!" },
-      { role: "Boom Operator", x: _canvas.width * 0.70, y: _canvas.height * 0.55, color: "#10b981", quote: "Audio levels clean" }
+      { role: "Director", x: _canvas.width * 0.72, y: _canvas.height * 0.74, color: "#f5c518", quote: "Action! Great emotion!", av: "avatar_01" },
+      { role: "Camera Operator", x: _canvas.width * 0.38, y: _canvas.height * 0.76, color: "#38bdf8", quote: "Focus locked on lead", av: "avatar_04" },
+      { role: "Lead Star", x: _canvas.width * 0.54, y: _canvas.height * 0.62, color: "#ec4899", quote: "Delivering monologue!", av: "avatar_06" },
+      { role: "Boom Operator", x: _canvas.width * 0.32, y: _canvas.height * 0.54, color: "#10b981", quote: "Audio levels clean", av: "avatar_11" }
     ];
 
     for (let i = 0; i < crew.length; i++) {
       const c = crew[i];
       const bounce = Math.sin(time * 2 + i) * 3;
-      const avKey = "avatar_" + ((i % 5) + 1).toString().padStart(2, "0");
-      const cached = spriteCache[avKey];
+      const cached = spriteCache[c.av];
 
       ctx.save();
-      // Aura if In The Zone
       if (_kairoStats.inTheZoneAgent === i) {
         ctx.save();
-        ctx.strokeStyle = "rgba(245, 197, 24, 0.8)";
+        ctx.strokeStyle = "rgba(245, 197, 24, 0.85)";
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(c.x, c.y - 20, 28 + Math.sin(time * 6) * 4, 0, Math.PI * 2);
@@ -485,7 +796,6 @@
         ctx.restore();
       }
 
-      // Sprite
       if (cached && cached.loaded) {
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(cached.img, c.x - 22, c.y - 44 + bounce, 44, 44);
@@ -496,12 +806,11 @@
         ctx.fill();
       }
 
-      // Role tag
-      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
       ctx.strokeStyle = c.color;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(c.x - 35, c.y + 4, 70, 16, 4);
+      ctx.roundRect(c.x - 36, c.y + 4, 72, 16, 4);
       ctx.fill();
       ctx.stroke();
 
@@ -510,7 +819,6 @@
       ctx.textAlign = "center";
       ctx.fillText(c.role, c.x, c.y + 15);
 
-      // Speech bubble (cycle periodically)
       if (Math.sin(time + i * 2) > 0.6) {
         ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
         ctx.beginPath();
@@ -529,26 +837,63 @@
     const asset = spriteCache["kairo_writers"];
     drawRoomBackdrop(ctx, asset);
 
-    // Writers room anim
     const time = performance.now() * 0.003;
+
+    // Steam particles rising from the coffee pot (around x: 0.17, y: 0.58)
+    ctx.save();
+    const potX = _canvas.width * 0.17;
+    const potY = _canvas.height * 0.58;
+    for (let i = 0; i < 4; i++) {
+      const stY = potY - ((time * 30 + i * 15) % 40);
+      const stX = potX + Math.sin(time * 3 + i) * 4;
+      const alpha = 1.0 - (((time * 30 + i * 15) % 40) / 40);
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * alpha})`;
+      ctx.beginPath();
+      ctx.arc(stX, stY, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Writers room anim
     const writers = [
-      { name: "Head Screenwriter", x: _canvas.width * 0.35, y: _canvas.height * 0.62, quote: "Act III Plot Twist ready!" },
-      { name: "Dialogue Polish", x: _canvas.width * 0.62, y: _canvas.height * 0.65, quote: "Punching up one-liners..." }
+      { name: "Head Screenwriter", x: _canvas.width * 0.40, y: _canvas.height * 0.62, av: "avatar_08", quote: "Act III Plot Twist ready!" },
+      { name: "Dialogue Polish", x: _canvas.width * 0.60, y: _canvas.height * 0.72, av: "avatar_12", quote: "Punching up one-liners..." }
     ];
 
     for (let i = 0; i < writers.length; i++) {
       const w = writers[i];
       const bounce = Math.sin(time * 3 + i) * 2;
-      const avKey = "avatar_" + ((i + 6)).toString().padStart(2, "0");
-      const cached = spriteCache[avKey];
+      const cached = spriteCache[w.av];
 
       ctx.save();
+      // Random "In The Zone" Flame Aura
+      if (Math.sin(time * 0.4 + i * 3) > 0.8) {
+        ctx.save();
+        const auraGrad = ctx.createRadialGradient(w.x, w.y - 20, 10, w.x, w.y - 20, 40);
+        auraGrad.addColorStop(0, "rgba(245, 197, 24, 0.9)");
+        auraGrad.addColorStop(0.5, "rgba(239, 68, 68, 0.6)");
+        auraGrad.addColorStop(1, "rgba(239, 68, 68, 0)");
+        ctx.fillStyle = auraGrad;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y - 20, 38 + Math.sin(time * 12) * 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Typewriter paper curl & typing motion
+      const typeStrike = Math.abs(Math.sin(time * 14 + i * 3)) * 3;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(w.x - 6, w.y - 12 - typeStrike, 12, 10);
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(w.x - 4, w.y - 10 - typeStrike, 8, 1);
+      ctx.fillRect(w.x - 4, w.y - 8 - typeStrike, 6, 1);
+
       if (cached && cached.loaded) {
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(cached.img, w.x - 22, w.y - 44 + bounce, 44, 44);
       }
 
-      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
       ctx.strokeStyle = "#f5c518";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -561,9 +906,20 @@
       ctx.textAlign = "center";
       ctx.fillText(w.name, w.x, w.y + 15);
 
-      // Dialogue
-      if (Math.sin(time * 1.5 + i) > 0.4) {
-        ctx.fillStyle = "#fff";
+      if (Math.sin(time * 0.8 + i * 4) > 0.82) {
+        ctx.fillStyle = "#f5c518";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(w.x - 24, w.y - 75, 48, 16, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("[IDEA!]", w.x, w.y - 64);
+      } else if (Math.sin(time * 1.5 + i) > 0.5) {
+        ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.roundRect(w.x - 60, w.y - 68, 120, 20, 4);
         ctx.fill();
@@ -582,27 +938,41 @@
     const asset = spriteCache["kairo_post"];
     drawRoomBackdrop(ctx, asset);
 
-    // Dynamic VU meter audio visualizer
+    // Dynamic 16-band LED VU meter audio visualizer on mixer desk
     const time = performance.now() * 0.006;
     ctx.save();
-    const meterX = _canvas.width * 0.45;
-    const meterY = _canvas.height * 0.40;
-    const barCount = 12;
+    const meterX = _canvas.width * 0.66;
+    const meterY = _canvas.height * 0.45;
+    const barCount = 14;
     for (let i = 0; i < barCount; i++) {
-      const h = Math.abs(Math.sin(time + i * 0.5)) * 35;
-      const grad = ctx.createLinearGradient(0, meterY, 0, meterY - 35);
+      const h = Math.abs(Math.sin(time * 1.4 + i * 0.4)) * 32;
+      const grad = ctx.createLinearGradient(0, meterY, 0, meterY - 32);
       grad.addColorStop(0, "#10b981");
       grad.addColorStop(0.7, "#f5c518");
       grad.addColorStop(1, "#ef4444");
       ctx.fillStyle = grad;
-      ctx.fillRect(meterX + i * 8, meterY - h, 6, h);
+      ctx.fillRect(meterX + i * 6, meterY - h, 4, h);
     }
+    ctx.restore();
+
+    // Timeline Playhead cursor sweep on editing monitor
+    ctx.save();
+    const monX = _canvas.width * 0.28;
+    const monY = _canvas.height * 0.38;
+    const monW = 120;
+    const playheadX = monX + ((time * 25) % monW);
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(playheadX, monY);
+    ctx.lineTo(playheadX, monY + 60);
+    ctx.stroke();
     ctx.restore();
 
     // Animated Post & Broadcast Artists
     const artists = [
-      { role: "Audio Mixer", x: _canvas.width * 0.32, y: _canvas.height * 0.65, av: "avatar_04", color: "#38bdf8", quote: "Dialogue normalization 100%" },
-      { role: "VFX Colorist", x: _canvas.width * 0.65, y: _canvas.height * 0.62, av: "avatar_07", color: "#ec4899", quote: "Master color grade locked" }
+      { role: "Audio Mixer", x: _canvas.width * 0.28, y: _canvas.height * 0.70, av: "avatar_04", color: "#38bdf8", quote: "Dialogue normalization 100%" },
+      { role: "VFX Colorist", x: _canvas.width * 0.44, y: _canvas.height * 0.62, av: "avatar_07", color: "#ec4899", quote: "Master color grade locked" }
     ];
     for (let i = 0; i < artists.length; i++) {
       const art = artists[i];
@@ -620,10 +990,12 @@
       ctx.roundRect(art.x - 45, art.y + 4, 90, 16, 4);
       ctx.fill();
       ctx.stroke();
+
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 9px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(art.role, art.x, art.y + 15);
+
       if (Math.sin(time * 0.3 + i * 2) > 0.4) {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
@@ -640,28 +1012,56 @@
   }
 
   // ── VIEW 5: Cinema Theater (Box Office Premiere) ──
+  // STRICTLY ZERO EMOJIS — Retro pixel reaction symbols & gold stars
   function renderCinemaView(ctx, dt) {
     const asset = spriteCache["kairo_cinema"];
     drawRoomBackdrop(ctx, asset);
 
-    // Screen dynamic flicker lighting
-    const time = performance.now() * 0.004;
-    const flicker = 0.15 + Math.sin(time * 8) * 0.05;
+    const time = performance.now();
+
+    // Golden Projection Beam from upper booth onto silver screen
     ctx.save();
-    ctx.fillStyle = `rgba(255, 240, 200, ${flicker})`;
-    ctx.fillRect(0, 0, _canvas.width, _canvas.height);
+    const beamPulse = 0.20 + Math.sin(time * 0.005) * 0.06;
+    const beamGrad = ctx.createLinearGradient(_canvas.width * 0.34, _canvas.height * 0.12, _canvas.width * 0.82, _canvas.height * 0.24);
+    beamGrad.addColorStop(0, `rgba(255, 245, 180, ${beamPulse * 1.6})`);
+    beamGrad.addColorStop(1, "rgba(255, 255, 255, 0.02)");
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(_canvas.width * 0.34, _canvas.height * 0.12);
+    ctx.lineTo(_canvas.width * 0.72, _canvas.height * 0.06);
+    ctx.lineTo(_canvas.width * 0.94, _canvas.height * 0.45);
+    ctx.lineTo(_canvas.width * 0.36, _canvas.height * 0.16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Popcorn kernels popping inside illuminated glass cart (x: 0.15, y: 0.52)
+    ctx.save();
+    const popX = _canvas.width * 0.15;
+    const popY = _canvas.height * 0.52;
+    for (let k = 0; k < 6; k++) {
+      const popT = ((time * 0.008 + k * 1.2) % 3);
+      if (popT < 1.0) {
+        const kx = popX + Math.sin(k * 2) * 12;
+        const ky = popY - popT * 18 + (popT * popT) * 18;
+        ctx.fillStyle = "#fef08a";
+        ctx.fillRect(kx, ky, 3, 3);
+      }
+    }
+    ctx.restore();
 
     // Critic scorecards banner
     const cardW = 280;
     const cardH = 68;
     const cardX = 20;
-    const cardY = 106;
+    const cardY = 96;
 
+    ctx.save();
     ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
     ctx.strokeStyle = "var(--gold)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, cardH, 8);
+    ctx.roundRect(cardX, cardY, cardW, cardH, 6);
     ctx.fill();
     ctx.stroke();
 
@@ -672,7 +1072,7 @@
     const scores = [9, 8, 10, 9];
     const critics = ["NYT", "Var", "THR", "Ebert"];
     for (let i = 0; i < 4; i++) {
-      const px = cardX + 16 + i * 64;
+      const px = cardX + 14 + i * 64;
       const py = cardY + 28;
       ctx.fillStyle = "#1e293b";
       ctx.fillRect(px, py, 54, 30);
@@ -684,25 +1084,25 @@
       ctx.fillText(critics[i], px + 4, py + 11);
 
       ctx.fillStyle = "#f5c518";
-      ctx.font = "bold 14px system-ui, sans-serif";
-      ctx.fillText(scores[i] + "/10", px + 8, py + 26);
+      ctx.font = "bold 13px system-ui, sans-serif";
+      ctx.fillText(scores[i] + "/10", px + 8, py + 25);
     }
     ctx.restore();
 
-    // Animated Audience Moviegoers
+    // Animated Audience Reactions (ZERO EMOJIS — pure retro tags)
     const audience = [
-      { role: "Opening Night Fan", x: _canvas.width * 0.35, y: _canvas.height * 0.70, av: "avatar_09", quote: "Opening weekend sold out!" },
-      { role: "Film Buff", x: _canvas.width * 0.52, y: _canvas.height * 0.72, av: "avatar_14", quote: "Standing ovation!" },
-      { role: "Concession Lead", x: _canvas.width * 0.68, y: _canvas.height * 0.68, av: "avatar_18", quote: "Popcorn line out the door" }
+      { role: "Opening Night Fan", x: _canvas.width * 0.38, y: _canvas.height * 0.72, av: "avatar_09", tag: "[10/10 MASTERPIECE]" },
+      { role: "Film Buff", x: _canvas.width * 0.52, y: _canvas.height * 0.74, av: "avatar_14", tag: "[STANDING OVATION]" },
+      { role: "Concession Lead", x: _canvas.width * 0.68, y: _canvas.height * 0.70, av: "avatar_18", tag: "[POPCORN SOLD OUT]" }
     ];
     for (let i = 0; i < audience.length; i++) {
       const aud = audience[i];
-      const bounce = Math.sin(time * 2 + i) * 2;
+      const bounce = Math.sin(time * 0.004 + i) * 2;
       const cached = spriteCache[aud.av];
       ctx.save();
       if (cached && cached.loaded) {
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(cached.img, aud.x - 22, aud.y - 44 + bounce, 44, 44);
+        ctx.drawImage(cached.img, aud.x - 20, aud.y - 40 + bounce, 40, 40);
       }
       ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
       ctx.strokeStyle = "#f5c518";
@@ -711,18 +1111,20 @@
       ctx.roundRect(aud.x - 45, aud.y + 4, 90, 16, 4);
       ctx.fill();
       ctx.stroke();
+
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 9px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(aud.role, aud.x, aud.y + 15);
-      if (Math.sin(time * 1.5 + i * 2) > 0.5) {
+
+      if (Math.sin(time * 0.003 + i * 2) > 0.4) {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
-        ctx.roundRect(aud.x - 65, aud.y - 68, 130, 20, 4);
+        ctx.roundRect(aud.x - 65, aud.y - 62, 130, 18, 4);
         ctx.fill();
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 9px system-ui, sans-serif";
-        ctx.fillText(aud.quote, aud.x, aud.y - 55);
+        ctx.fillText(aud.tag, aud.x, aud.y - 50);
       }
       ctx.restore();
     }
@@ -735,30 +1137,40 @@
     const asset = spriteCache["kairo_executive"];
     drawRoomBackdrop(ctx, asset);
 
-    const time = performance.now() * 0.003;
+    const time = performance.now();
     const G = typeof window !== "undefined" ? window.G : null;
     const stCash = (G && G.studio) ? "$" + (Math.round((G.studio.cash||0)*10)/10).toFixed(1) + "M" : "$0M";
+    const stRep = (G && G.studio) ? Math.round(G.studio.rep||1) : 1;
+
+    // Oscar Statuettes sparkling glints in display case (around x: 0.10, y: 0.50)
+    ctx.save();
+    for (let s = 0; s < 3; s++) {
+      const glintTime = (time * 0.004 + s * 1.5) % 4;
+      if (glintTime < 0.6) {
+        const gx = _canvas.width * 0.10 + (s % 2) * 16;
+        const gy = _canvas.height * 0.46 + Math.floor(s / 2) * 24;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(gx - 3, gy, 7, 1);
+        ctx.fillRect(gx, gy - 3, 1, 7);
+      }
+    }
+    ctx.restore();
 
     // Animated Executive Staff
     const execs = [
-      { role: "Studio Boss", x: _canvas.width * 0.36, y: _canvas.height * 0.65, av: "avatar_01", color: "#f5c518", quote: "Greenlight the slate!" },
-      { role: "CFO Treasurer", x: _canvas.width * 0.58, y: _canvas.height * 0.68, av: "avatar_03", color: "#10b981", quote: "War Chest: " + stCash }
+      { role: "Studio Boss", x: _canvas.width * 0.58, y: _canvas.height * 0.58, av: "avatar_01", color: "#f5c518", quote: "Greenlight approved!" },
+      { role: "CFO Treasurer", x: _canvas.width * 0.34, y: _canvas.height * 0.74, av: "avatar_03", color: "#10b981", quote: "War Chest: " + stCash }
     ];
 
     for (let i = 0; i < execs.length; i++) {
       const ex = execs[i];
-      const bounce = Math.sin(time * 2.5 + i) * 2;
+      const bounce = Math.sin(time * 0.003 + i) * 2;
       const cached = spriteCache[ex.av];
 
       ctx.save();
       if (cached && cached.loaded) {
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(cached.img, ex.x - 24, ex.y - 48 + bounce, 48, 48);
-      } else {
-        ctx.fillStyle = ex.color;
-        ctx.beginPath();
-        ctx.arc(ex.x, ex.y - 20 + bounce, 16, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.drawImage(cached.img, ex.x - 22, ex.y - 44 + bounce, 44, 44);
       }
 
       ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
@@ -774,14 +1186,14 @@
       ctx.textAlign = "center";
       ctx.fillText(ex.role, ex.x, ex.y + 15);
 
-      if (Math.sin(time * 1.8 + i) > 0.4) {
+      if (Math.sin(time * 0.002 + i) > 0.4) {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
-        ctx.roundRect(ex.x - 65, ex.y - 70, 130, 20, 4);
+        ctx.roundRect(ex.x - 65, ex.y - 68, 130, 20, 4);
         ctx.fill();
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 9px system-ui, sans-serif";
-        ctx.fillText(ex.quote, ex.x, ex.y - 57);
+        ctx.fillText(ex.quote, ex.x, ex.y - 55);
       }
       ctx.restore();
     }
@@ -813,155 +1225,149 @@
 
   // ── Kairosoft Live 4-Stat Scoreboard ──
   function drawKairosoftScoreboard(ctx, title) {
-    ctx.save();
-    const boxW = 250;
-    const boxH = 142;
-    const boxX = _canvas.width - boxW - 16;
-    const boxY = 106;
+    if (_currentLotView === "campus") return;
+    
+    const curScore = Math.round((_kairoStats.scenario + _kairoStats.direction + _kairoStats.acting + _kairoStats.soundVfx) / 4);
 
-    // Outer frame with wood / gold trim
-    ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
-    ctx.strokeStyle = "rgba(245, 197, 24, 0.5)";
-    ctx.lineWidth = 2;
+    if (!_showStatBoard) {
+      // Draw compact minimized pill
+      ctx.save();
+      const pillW = 126;
+      const pillH = 22;
+      const pillX = _canvas.width - pillW - 14;
+      const pillY = 54;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
+      ctx.strokeStyle = "rgba(245, 197, 24, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY, pillW, pillH, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#f5c518";
+      ctx.font = "bold 9px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("SCORE: " + curScore + "/100", pillX + pillW / 2, pillY + 15);
+      ctx.restore();
+      return;
+    }
+
+    ctx.save();
+    const boxW = 224;
+    const boxH = 124;
+    const boxX = _canvas.width - boxW - 14;
+    const boxY = 52; // Completely clear below the single top bar
+
+    ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+    ctx.strokeStyle = "rgba(245, 197, 24, 0.55)";
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+    ctx.roundRect(boxX, boxY, boxW, boxH, 6);
     ctx.fill();
     ctx.stroke();
 
-    // Title
     ctx.fillStyle = "var(--gold)";
-    ctx.font = "bold 10px system-ui, sans-serif";
-    ctx.fillText(title, boxX + 12, boxY + 16);
+    ctx.font = "bold 9px system-ui, sans-serif";
+    ctx.fillText(title, boxX + 10, boxY + 15);
 
     const stats = [
-      { label: "Scenario", val: Math.round(_kairoStats.scenario), color: "#38bdf8", max: 100 },
-      { label: "Direction", val: Math.round(_kairoStats.direction), color: "#f5c518", max: 100 },
-      { label: "Acting", val: Math.round(_kairoStats.acting), color: "#ec4899", max: 100 },
-      { label: "Sound / VFX", val: Math.round(_kairoStats.soundVfx), color: "#a855f7", max: 100 }
+      { name: "Scenario", val: _kairoStats.scenario, color: "#38bdf8" },
+      { name: "Direction", val: _kairoStats.direction, color: "#f5c518" },
+      { name: "Acting", val: _kairoStats.acting, color: "#ec4899" },
+      { name: "Sound / VFX", val: _kairoStats.soundVfx, color: "#a855f7" }
     ];
 
-    let startY = boxY + 26;
-    for (const st of stats) {
-      startY += 20;
+    for (let i = 0; i < stats.length; i++) {
+      const s = stats[i];
+      const sy = boxY + 28 + i * 19;
+
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 9px system-ui, sans-serif";
-      ctx.fillText(st.label, boxX + 12, startY + 8);
+      ctx.fillText(s.name, boxX + 10, sy);
 
-      // Meter bar background
-      const barX = boxX + 85;
-      const barW = 120;
-      const barH = 9;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.fillRect(barX, startY, barW, barH);
+      // Bar track
+      const barX = boxX + 74;
+      const barW = 90;
+      const barH = 6;
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(barX, sy - 6, barW, barH);
 
-      // Meter fill
-      const fillW = Math.min(barW, (st.val / st.max) * barW);
-      ctx.fillStyle = st.color;
-      ctx.fillRect(barX, startY, fillW, barH);
+      // Bar fill
+      ctx.fillStyle = s.color;
+      ctx.fillRect(barX, sy - 6, barW * (s.val / 100), barH);
 
-      // Number text
+      // Val text
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 10px monospace";
+      ctx.font = "bold 9px system-ui, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText(String(st.val), boxX + boxW - 12, startY + 8);
+      ctx.fillText(s.val.toString(), boxX + boxW - 10, sy);
       ctx.textAlign = "left";
     }
 
-    // Overall Quality Tier
-    const avg = Math.round((_kairoStats.scenario + _kairoStats.direction + _kairoStats.acting + _kairoStats.soundVfx) / 4);
-    const grade = avg >= 90 ? "S-TIER MASTERPIECE" : avg >= 75 ? "A-TIER HIT" : avg >= 60 ? "B-TIER SOLID" : "INDIE EXPERIMENTAL";
-
-    ctx.fillStyle = "rgba(245, 197, 24, 0.15)";
-    ctx.fillRect(boxX + 10, boxY + boxH - 24, boxW - 20, 18);
-    ctx.fillStyle = "var(--gold)";
-    ctx.font = "bold 10px system-ui, sans-serif";
-    ctx.fillText("SCORE: " + avg + "/100 — " + grade, boxX + 14, boxY + boxH - 11);
+    // Target quality badge
+    ctx.fillStyle = "#f5c518";
+    ctx.font = "bold 8.5px system-ui, sans-serif";
+    ctx.fillText("SCORE: " + curScore + "/100 — " + (curScore >= 75 ? "BLOCKBUSTER QUALITY" : "INDIE EXPERIMENTAL"), boxX + 10, boxY + boxH - 9);
 
     ctx.restore();
   }
 
-  // Live simulation point generation
-  function updateKairosoftProduction(dt) {
-    _kairoStats.pointSpawnTimer += dt;
-    _kairoStats.zoneTimer -= dt;
-
-    if (_kairoStats.zoneTimer <= 0) {
-      // Chance of triggering In The Zone aura
-      if (Math.random() < 0.25) {
-        _kairoStats.inTheZoneAgent = Math.floor(Math.random() * 4);
-        _kairoStats.zoneTimer = 8.0;
-        addFloatingText("IN THE ZONE! 2X POINTS", _canvas.width * 0.5, _canvas.height * 0.5, "#f5c518");
-      } else {
-        _kairoStats.inTheZoneAgent = null;
-        _kairoStats.zoneTimer = 5.0;
-      }
-    }
-
-    if (_kairoStats.pointSpawnTimer >= 2.5) {
-      _kairoStats.pointSpawnTimer = 0;
-      const boost = (_kairoStats.inTheZoneAgent !== null) ? 2 : 1;
-
-      if (_currentLotView === "soundstage") {
-        _kairoStats.direction = Math.min(99, _kairoStats.direction + 1 * boost);
-        _kairoStats.acting = Math.min(99, _kairoStats.acting + 1 * boost);
-        addFloatingText("+DIRECTION (+" + (3 * boost) + ")", _canvas.width * 0.35, _canvas.height * 0.6, "#f5c518");
-        addFloatingText("+ACTING (+" + (4 * boost) + ")", _canvas.width * 0.55, _canvas.height * 0.6, "#ec4899");
-      } else if (_currentLotView === "writers") {
-        _kairoStats.scenario = Math.min(99, _kairoStats.scenario + 2 * boost);
-        addFloatingText("+SCENARIO (+" + (5 * boost) + ")", _canvas.width * 0.45, _canvas.height * 0.58, "#38bdf8");
-      } else if (_currentLotView === "post") {
-        _kairoStats.soundVfx = Math.min(99, _kairoStats.soundVfx + 2 * boost);
-        addFloatingText("+SOUND & VFX (+" + (4 * boost) + ")", _canvas.width * 0.50, _canvas.height * 0.55, "#a855f7");
-      }
-    }
-  }
-
-  // Floating text particles
+  // Floating text particles (Kairosoft glowing pixel badges)
   function renderFloatingTexts(ctx, dt) {
     for (let i = _floatingTexts.length - 1; i >= 0; i--) {
       const ft = _floatingTexts[i];
-      ft.life -= dt * 0.8;
       ft.y += ft.vy * dt;
+      ft.life -= dt * 0.85;
+
       if (ft.life <= 0) {
         _floatingTexts.splice(i, 1);
         continue;
       }
+
       ctx.save();
-      ctx.globalAlpha = Math.max(0, ft.life);
-      ctx.font = "bold 13px system-ui, sans-serif";
+      ctx.globalAlpha = Math.max(0, Math.min(1, ft.life));
+      ctx.font = "bold 10px monospace, system-ui, sans-serif";
+      const tw = ctx.measureText(ft.text).width;
+      const pad = 6;
+      const bw = tw + pad * 2;
+      const bh = 18;
+
+      // Draw pixel badge
+      ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
+      ctx.strokeStyle = ft.color;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(ft.x - bw / 2, ft.y - bh / 2, bw, bh, 4);
+      ctx.fill();
+      ctx.stroke();
+
       ctx.fillStyle = ft.color;
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 3;
-      ctx.strokeText(ft.text, ft.x, ft.y);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillText(ft.text, ft.x, ft.y);
       ctx.restore();
     }
   }
 
+  // Room view watermark
   function drawViewWatermark(ctx) {
     ctx.save();
-    ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
-    ctx.font = "bold 10px system-ui, sans-serif";
-    const label = _currentLotView.toUpperCase() + " INTERIOR";
-    ctx.fillText(label, 16, _canvas.height - 16);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.font = "bold 9px monospace";
+    ctx.fillText(_currentLotView.toUpperCase() + " INTERIOR", 14, _canvas.height - 12);
     ctx.restore();
   }
 
-  function drawTileHighlight(ctx, sx, sy, fillStyle) {
-    const w = TILE_W * camera.zoom;
-    const h = TILE_H * camera.zoom;
+  // Sandbox tile / building helpers
+  function drawTileHighlight(ctx, sx, sy, color) {
     ctx.save();
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(sx, sy - h / 2);
-    ctx.lineTo(sx + w / 2, sy);
-    ctx.lineTo(sx, sy + h / 2);
-    ctx.lineTo(sx - w / 2, sy);
+    ctx.moveTo(sx, sy - TILE_H * camera.zoom / 2);
+    ctx.lineTo(sx + TILE_W * camera.zoom / 2, sy);
+    ctx.lineTo(sx, sy + TILE_H * camera.zoom / 2);
+    ctx.lineTo(sx - TILE_W * camera.zoom / 2, sy);
     ctx.closePath();
-    ctx.fillStyle = fillStyle;
     ctx.fill();
-    ctx.strokeStyle = "#f5c518";
-    ctx.lineWidth = 2;
-    ctx.stroke();
     ctx.restore();
   }
 
@@ -975,7 +1381,6 @@
     const cached = spriteCache[spriteKey];
 
     ctx.save();
-
     if (cached && cached.loaded) {
       const img = cached.img;
       const drawW = img.width * camera.zoom * 0.85;
@@ -988,40 +1393,10 @@
         ctx.shadowBlur = 15;
       }
       ctx.drawImage(img, drawX, drawY, drawW, drawH);
-    } else {
-      const w = TILE_W * camera.zoom * b.span_w * 0.6;
-      const h = TILE_H * camera.zoom * b.span_h * 0.8;
-      const bHeight = 45 * camera.zoom;
-
-      ctx.fillStyle = b.filming_active ? "#1e293b" : "#334155";
-      ctx.strokeStyle = isSelected ? "#f5c518" : "#475569";
-      ctx.lineWidth = isSelected ? 3 : 1;
-
-      ctx.beginPath();
-      ctx.moveTo(scr.x, scr.y - h / 2 - bHeight);
-      ctx.lineTo(scr.x + w / 2, scr.y - bHeight);
-      ctx.lineTo(scr.x, scr.y + h / 2 - bHeight);
-      ctx.lineTo(scr.x - w / 2, scr.y - bHeight);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    if (b.filming_active) {
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      const coneGrad = ctx.createRadialGradient(scr.x, scr.y - 40 * camera.zoom, 5, scr.x, scr.y, 60 * camera.zoom);
-      coneGrad.addColorStop(0, "rgba(255, 230, 100, 0.8)");
-      coneGrad.addColorStop(1, "rgba(255, 230, 100, 0)");
-      ctx.fillStyle = coneGrad;
-      ctx.beginPath();
-      ctx.arc(scr.x, scr.y, 50 * camera.zoom, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
     }
 
     // Name badge
-    const label = (b.name || "Soundstage") + (b.tier > 1 ? " #" + b.tier : "");
+    const label = (b.name || "Stage") + (b.tier > 1 ? " #" + b.tier : "");
     ctx.font = "bold " + Math.max(9, Math.round(11 * camera.zoom)) + "px system-ui, sans-serif";
     const tw = ctx.measureText(label).width;
     const badgeW = tw + 12;
@@ -1039,86 +1414,6 @@
     ctx.textBaseline = "middle";
     ctx.fillText(label, scr.x, badgeY + badgeH / 2);
     ctx.textAlign = "left";
-
-    ctx.restore();
-  }
-
-  function getAgentAvatarKey(a) {
-    const rawId = typeof a.id === "number" ? a.id : (a.id ? a.id.toString().charCodeAt(0) : 1);
-    const num = (Math.abs(rawId) % 25) + 1;
-    return "avatar_" + num.toString().padStart(2, "0");
-  }
-
-  function getAgentRoleInfo(a) {
-    if (a.kind_str === "director") return { role: "Director", color: "#f5c518", ring: "#f5c518", badge: "DIR" };
-    if (a.kind_str === "star_actor") return { role: "A-List Talent", color: "#38bdf8", ring: "#38bdf8", badge: "STAR" };
-    if (a.kind_str === "cameraman") return { role: "Cinematographer", color: "#10b981", ring: "#10b981", badge: "CREW" };
-    if (a.kind_str === "audience") return { role: "Moviegoer", color: "#f43f5e", ring: "#f43f5e", badge: "FAN" };
-    if (a.kind_str === "extra") return { role: "Supporting Cast", color: "#a855f7", ring: "#a855f7", badge: "CAST" };
-    return { role: "Studio Crew", color: "#94a3b8", ring: "#94a3b8", badge: "CREW" };
-  }
-
-  function drawAgent(ctx, a) {
-    const scr = gridToScreen(a.x, a.y);
-    const avKey = getAgentAvatarKey(a);
-    const cached = spriteCache[avKey] || spriteCache["male_idle"] || spriteCache["director"];
-    const roleInfo = getAgentRoleInfo(a);
-
-    ctx.save();
-    // Ground Shadow
-    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-    ctx.beginPath();
-    ctx.ellipse(scr.x, scr.y, 10 * camera.zoom, 5 * camera.zoom, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Role Base Ring
-    ctx.strokeStyle = roleInfo.ring;
-    ctx.lineWidth = 2 * camera.zoom;
-    ctx.beginPath();
-    ctx.ellipse(scr.x, scr.y, 8 * camera.zoom, 4 * camera.zoom, 0, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Sprite
-    const charH = 38 * camera.zoom;
-    const charW = 38 * camera.zoom;
-    const bounce = a.state_str === "walking"
-      ? Math.abs(Math.sin((a.anim_timer || 0) * 12)) * 3 * camera.zoom
-      : Math.sin(performance.now() * 0.004 + (a.id || 0)) * 1 * camera.zoom;
-
-    if (cached && cached.loaded) {
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(cached.img, scr.x - charW / 2, scr.y - charH - bounce, charW, charH);
-    } else {
-      ctx.fillStyle = roleInfo.color;
-      ctx.beginPath();
-      ctx.arc(scr.x, scr.y - 14 * camera.zoom - bounce, 8 * camera.zoom, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Nameplate
-    if (camera.zoom >= 0.85 || _selectedAgentId === a.id) {
-      const label = a.name || roleInfo.role;
-      ctx.font = "bold " + Math.max(9, Math.round(10 * camera.zoom)) + "px system-ui, sans-serif";
-      const tw = ctx.measureText(label).width;
-      const th = 14 * camera.zoom;
-      const tx = scr.x - tw / 2 - 4;
-      const ty = scr.y - charH - bounce - 14 * camera.zoom;
-
-      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
-      ctx.strokeStyle = roleInfo.ring;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(tx, ty, tw + 8, th, 4);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, scr.x, ty + th / 2);
-      ctx.textAlign = "left";
-    }
-
     ctx.restore();
   }
 
@@ -1151,13 +1446,23 @@
         // Check if mouse hovers over any campus hotspot
         if (_currentLotView === "campus") {
           let foundHotspot = null;
-          for (const spot of CAMPUS_HOTSPOTS) {
-            const sx = _canvas.width * spot.xPct + (camera.x - _canvas.width / 2) * 0.3;
-            const sy = _canvas.height * spot.yPct + (camera.y - _canvas.height / 3) * 0.3;
-            const dist = Math.hypot(sx - mouseX, sy - mouseY);
-            if (dist <= spot.radius * camera.zoom) {
-              foundHotspot = spot.id;
-              break;
+          const campusAsset = spriteCache["kairo_campus"];
+          if (campusAsset && campusAsset.loaded) {
+            const img = campusAsset.img;
+            const scale = Math.max(_canvas.width / img.width, _canvas.height / img.height) * camera.zoom;
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const drawX = (_canvas.width - drawW) / 2 + (camera.x - _canvas.width / 2);
+            const drawY = (_canvas.height - drawH) / 2 + (camera.y - _canvas.height / 2);
+
+            for (const spot of CAMPUS_HOTSPOTS) {
+              const sx = drawX + drawW * spot.xPct;
+              const sy = drawY + drawH * spot.yPct;
+              const dist = Math.hypot(sx - mouseX, sy - mouseY);
+              if (dist <= spot.radius * camera.zoom) {
+                foundHotspot = spot.id;
+                break;
+              }
             }
           }
           _hoveredHotspot = foundHotspot;
@@ -1173,7 +1478,7 @@
     _canvas.addEventListener("wheel", e => {
       e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-      camera.zoom = Math.max(0.5, Math.min(2.5, camera.zoom * zoomFactor));
+      camera.zoom = Math.max(0.6, Math.min(2.5, camera.zoom * zoomFactor));
     }, { passive: false });
 
     _canvas.addEventListener("click", e => {
@@ -1183,73 +1488,30 @@
 
       // In Campus view: check click on hotspots to enter room interior
       if (_currentLotView === "campus") {
-        for (const spot of CAMPUS_HOTSPOTS) {
-          const sx = _canvas.width * spot.xPct + (camera.x - _canvas.width / 2) * 0.3;
-          const sy = _canvas.height * spot.yPct + (camera.y - _canvas.height / 3) * 0.3;
-          const dist = Math.hypot(sx - mouseX, sy - mouseY);
-          if (dist <= spot.radius * camera.zoom) {
-            setLotView(spot.view);
-            if (typeof beep === "function") beep("click");
-            return;
+        const campusAsset = spriteCache["kairo_campus"];
+        if (campusAsset && campusAsset.loaded) {
+          const img = campusAsset.img;
+          const scale = Math.max(_canvas.width / img.width, _canvas.height / img.height) * camera.zoom;
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          const drawX = (_canvas.width - drawW) / 2 + (camera.x - _canvas.width / 2);
+          const drawY = (_canvas.height - drawH) / 2 + (camera.y - _canvas.height / 2);
+
+          for (const spot of CAMPUS_HOTSPOTS) {
+            const sx = drawX + drawW * spot.xPct;
+            const sy = drawY + drawH * spot.yPct;
+            const dist = Math.hypot(sx - mouseX, sy - mouseY);
+            if (dist <= spot.radius * camera.zoom) {
+              setLotView(spot.view);
+              playViewSting(spot.view);
+              return;
+            }
           }
         }
       }
-
-      const gPos = screenToGrid(mouseX, mouseY);
-      const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
-      if (!engine) return;
-
-      if (_buildModeType) {
-        try {
-          const res = engine.place_building(_buildModeType, gPos.x, gPos.y);
-          if (res) {
-            addFloatingText("CONSTRUCTED", gPos.x + 1, gPos.y + 1, "#10b981");
-            _buildModeType = null;
-            renderPalette();
-          }
-        } catch (err) {
-          console.warn("Placement error:", err);
-        }
-        return;
-      }
-
-      const stateStr = engine.get_lot_state_json();
-      const lot = JSON.parse(stateStr);
-
-      // Check agent click
-      let clickedAgent = null;
-      for (const a of (lot.agents || [])) {
-        const scr = gridToScreen(a.x, a.y);
-        const dist = Math.hypot(scr.x - mouseX, (scr.y - 18 * camera.zoom) - mouseY);
-        if (dist <= 24 * camera.zoom) {
-          clickedAgent = a;
-          break;
-        }
-      }
-
-      if (clickedAgent) {
-        _selectedAgentId = clickedAgent.id;
-        _selectedBuildingId = null;
-        renderAgentInspector(clickedAgent);
-        return;
-      }
-
-      // Check building click
-      let clickedBld = null;
-      for (const b of (lot.buildings || [])) {
-        if (gPos.x >= b.grid_x && gPos.x < b.grid_x + b.span_w &&
-            gPos.y >= b.grid_y && gPos.y < b.grid_y + b.span_h) {
-          clickedBld = b;
-          break;
-        }
-      }
-
-      _selectedBuildingId = clickedBld ? clickedBld.id : null;
-      _selectedAgentId = null;
-      renderInspector();
     });
 
-    // Touch events for mobile
+    // Touch events for mobile landscape gaming
     let touchDist = 0;
     _canvas.addEventListener("touchstart", e => {
       if (e.touches.length === 1) {
@@ -1262,7 +1524,7 @@
           e.touches[0].clientY - e.touches[1].clientY
         );
       }
-    });
+    }, { passive: true });
 
     _canvas.addEventListener("touchmove", e => {
       if (e.touches.length === 1 && camera.isDragging) {
@@ -1278,378 +1540,149 @@
           e.touches[0].clientY - e.touches[1].clientY
         );
         if (touchDist > 0) {
-          const factor = newDist / touchDist;
-          camera.zoom = Math.max(0.5, Math.min(2.5, camera.zoom * factor));
+          const ratio = newDist / touchDist;
+          camera.zoom = Math.max(0.6, Math.min(2.5, camera.zoom * ratio));
         }
         touchDist = newDist;
       }
-    });
+    }, { passive: true });
 
     _canvas.addEventListener("touchend", () => {
       camera.isDragging = false;
       touchDist = 0;
     });
+
+    // Keyboard shortcuts (1-6 for views, +/- for zoom)
+    window.addEventListener("keydown", e => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key === "1") { setLotView("campus"); playViewSting("campus"); }
+      else if (e.key === "2") { setLotView("soundstage"); playViewSting("soundstage"); }
+      else if (e.key === "3") { setLotView("writers"); playViewSting("writers"); }
+      else if (e.key === "4") { setLotView("post"); playViewSting("post"); }
+      else if (e.key === "5") { setLotView("cinema"); playViewSting("cinema"); }
+      else if (e.key === "6") { setLotView("executive"); playViewSting("executive"); }
+      else if (e.key === "+" || e.key === "=") { camera.zoom = Math.min(2.5, camera.zoom * 1.15); }
+      else if (e.key === "-") { camera.zoom = Math.max(0.6, camera.zoom * 0.85); }
+      else if (e.key === "0") {
+        camera.x = _canvas.width / 2;
+        camera.y = _canvas.height / 2;
+        camera.zoom = 1.0;
+      }
+    });
+  }
+
+  function playViewSting(view) {
+    if (typeof beep !== "function") return;
+    if (view === "soundstage") beep("clap");
+    else if (view === "writers") beep("type");
+    else if (view === "post") beep("good");
+    else if (view === "cinema") beep("fanfare");
+    else if (view === "executive") beep("cash");
+    else beep("gold");
   }
 
   function resizeCanvas() {
     if (!_canvas) return;
     const parent = _canvas.parentElement;
-    if (parent) {
-      const stage = document.getElementById("studiolotGlobalStage");
-      const isCompact = stage && stage.classList.contains("lot-compact");
-      const targetH = isCompact ? (window.innerWidth < 768 ? 300 : 380) : Math.max(500, window.innerHeight - 150);
-      _canvas.width = parent.clientWidth || window.innerWidth;
-      _canvas.height = parent.clientHeight || targetH;
-    }
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    _canvas.width = rect.width || window.innerWidth;
+    _canvas.height = rect.height || 560;
   }
 
-  // Agent Inspector Dossier
-  function renderAgentInspector(agent) {
-    const root = document.getElementById("lotInspectorRoot");
-    if (!root) return;
-    if (!agent) {
-      root.innerHTML = "";
-      root.style.display = "none";
-      return;
+  function updateLotHud() {
+    const G = typeof window !== "undefined" ? window.G : null;
+    if (!G) return;
+    const elName = document.getElementById("lotHudStudioName");
+    const elCash = document.getElementById("lotHudCash");
+    const elDate = document.getElementById("lotHudDate");
+    const elStages = document.getElementById("lotHudStages");
+
+    if (elName && G.studio) elName.textContent = G.studio.name || "Box Office Studio";
+    if (elCash && G.studio) {
+      elCash.textContent = "$" + (Math.round((G.studio.cash||0)*10)/10).toFixed(1) + "M";
     }
-
-    root.style.display = "block";
-    const avKey = getAgentAvatarKey(agent);
-    const roleInfo = getAgentRoleInfo(agent);
-    const imgSrc = ASSET_PATHS[avKey] || "assets/itch-avatars/Avatars_01.png";
-
-    root.innerHTML = `
-      <div class="lot-card itch-wood-panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="tag gold" style="font-size:10px">${roleInfo.badge} DOSSIER</span>
-          <button id="btnCloseInspector" class="btn btn-ghost btn-sm" style="padding:2px 8px">✕</button>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;margin:10px 0">
-          <div class="itch-avatar-frame">
-            <img src="${imgSrc}" alt="${agent.name || roleInfo.role}" style="width:64px;height:64px;image-rendering:pixelated;object-fit:cover;border-radius:6px;display:block">
-          </div>
-          <div>
-            <b style="font-size:14px;color:#fff">${agent.name || roleInfo.role}</b>
-            <div style="font-size:12px;color:${roleInfo.color};font-weight:600">${roleInfo.role}</div>
-            <div class="tiny muted" style="margin-top:2px">Status: ${agent.state_str || "Active on Lot"}</div>
-          </div>
-        </div>
-
-        <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.08)">
-          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
-            <span class="muted">Morale / Energy</span>
-            <span style="color:#10b981;font-weight:bold">95%</span>
-          </div>
-          <div class="itch-bar-container" style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden">
-            <div style="width:95%;height:100%;background:#10b981"></div>
-          </div>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${agent.kind_str === "director" ? `
-            <button id="btnAgentDirect" class="btn btn-primary btn-sm">Assign to Next Production</button>
-            <button id="btnAgentPitch" class="btn btn-alt btn-sm">Hear Director Pitch</button>
-          ` : agent.kind_str === "star_actor" ? `
-            <button id="btnAgentCast" class="btn btn-primary btn-sm">Attach Star to Slate</button>
-            <button id="btnAgentPress" class="btn btn-alt btn-sm">Launch Press Interview (+Buzz)</button>
-          ` : `
-            <button id="btnAgentSnack" class="btn btn-primary btn-sm">Send to Craft Services (+Energy)</button>
-            <button id="btnAgentGuide" class="btn btn-alt btn-sm">Assign Lot Duty</button>
-          `}
-          <button id="btnAgentFocus" class="btn btn-ghost btn-sm">Follow Character</button>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("btnCloseInspector").onclick = () => {
-      _selectedAgentId = null;
-      renderAgentInspector(null);
-    };
-
-    const btnAgentFocus = document.getElementById("btnAgentFocus");
-    if (btnAgentFocus) {
-      btnAgentFocus.onclick = () => {
-        const scr = gridToScreen(agent.x, agent.y);
-        camera.x += (_canvas.width / 2 - scr.x);
-        camera.y += (_canvas.height / 2 - scr.y);
-        addFloatingText("FOLLOWING", agent.x, agent.y, "#f5c518");
-      };
+    if (elDate) {
+      const yr = (typeof window.yearOf === "function") ? window.yearOf(G.week) : 1;
+      const woy = (typeof window.woyOf === "function") ? window.woyOf(G.week) : 1;
+      elDate.textContent = "Y" + yr + " W" + woy;
     }
-
-    const btnSnack = document.getElementById("btnAgentSnack");
-    if (btnSnack) {
-      btnSnack.onclick = () => {
-        addFloatingText("+MORALE BOOST", agent.x, agent.y, "#10b981");
-        if (typeof beep === "function") beep("gold");
-      };
-    }
-
-    const btnDirect = document.getElementById("btnAgentDirect");
-    if (btnDirect && typeof window.switchTab === "function") {
-      btnDirect.onclick = () => {
-        if (typeof window.developModal === "function") window.developModal();
-        else window.switchTab("develop");
-      };
-    }
-
-    const btnCast = document.getElementById("btnAgentCast");
-    if (btnCast && typeof window.switchTab === "function") {
-      btnCast.onclick = () => {
-        if (typeof window.talentModal === "function") window.talentModal();
-        else window.switchTab("develop");
-      };
-    }
-
-    const btnPress = document.getElementById("btnAgentPress");
-    if (btnPress) {
-      btnPress.onclick = () => {
-        addFloatingText("+12 HYPEX", agent.x, agent.y, "#38bdf8");
-        if (typeof beep === "function") beep("cash");
-      };
-    }
-
-    const btnPitch = document.getElementById("btnAgentPitch");
-    if (btnPitch && typeof window.buyScriptModal === "function") {
-      btnPitch.onclick = () => window.buyScriptModal();
-    }
-  }
-
-  // Building Inspector
-  function renderInspector() {
-    const root = document.getElementById("lotInspectorRoot");
-    if (!root) return;
-    if (!_selectedBuildingId) {
-      root.innerHTML = "";
-      root.style.display = "none";
-      return;
-    }
-
-    const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
-    if (!engine) return;
-    const stateStr = engine.get_lot_state_json();
-    const lot = JSON.parse(stateStr);
-    const bld = (lot.buildings || []).find(b => b.id === _selectedBuildingId);
-    if (!bld) {
-      root.innerHTML = "";
-      root.style.display = "none";
-      return;
-    }
-
-    root.style.display = "block";
-    const btype = bld.b_type || bld.type_str;
-
-    let actionsHtml = "";
-    if (btype === "soundstage" || btype === "virtual_led") {
-      if (bld.filming_active) {
-        if (_directingState && _directingState.stageId === bld.id) {
-          const btnLabel = _directingState.step === 1 ? "Call 'Roll Camera!'" :
-                           _directingState.step === 2 ? "Call 'Action!'" : "Call 'Cut & Print It!'";
-          actionsHtml = `
-            <div class="directing-box" style="margin-top:10px;padding:10px;background:rgba(245,197,24,0.12);border:1px solid var(--gold);border-radius:6px">
-              <div style="font-weight:bold;color:var(--gold);font-size:12px">ACTIVE SHOOT DIRECTING</div>
-              <p style="font-size:12px;margin:6px 0">${_directingState.feedback}</p>
-              <button id="btnAdvanceDirecting" class="btn btn-primary btn-sm" style="width:100%">${btnLabel}</button>
-            </div>
-          `;
-        } else {
-          actionsHtml = `
-            <button id="btnStartDirecting" class="btn btn-primary btn-sm" style="width:100%">Direct Scene (Minigame)</button>
-            <button id="btnRushShoot" class="btn btn-alt btn-sm" style="width:100%">Rush Shoot (+Speed, -$2M)</button>
-          `;
-        }
-      } else {
-        actionsHtml = `
-          <button id="btnGreenlightStage" class="btn btn-primary btn-sm" style="width:100%">Greenlight Film on this Stage</button>
-          <button id="btnRentStage" class="btn btn-alt btn-sm" style="width:100%">Sublease to Commercial (+$1.5M)</button>
-        `;
-      }
-    } else if (btype === "writers_bungalow") {
-      actionsHtml = `
-        <button id="btnCommissionScript" class="btn btn-primary btn-sm" style="width:100%">Commission Custom Screenplay</button>
-      `;
-    } else if (btype === "cinema_theater") {
-      actionsHtml = `
-        <button id="btnHostPremiere" class="btn btn-primary btn-sm" style="width:100%">Host Red Carpet Premiere</button>
-      `;
-    } else if (btype === "post_suite") {
-      actionsHtml = `
-        <button id="btnMasterAudio" class="btn btn-primary btn-sm" style="width:100%">Master Atmos Audio Track</button>
-      `;
-    } else if (btype === "backlot") {
-      actionsHtml = `
-        <button id="btnBacklotRent" class="btn btn-primary btn-sm" style="width:100%">Rent Set to TV Series (+$2.0M)</button>
-      `;
-    }
-
-    root.innerHTML = `
-      <div class="lot-card itch-wood-panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="tag gold" style="font-size:10px">FACILITY DOSSIER</span>
-          <button id="btnCloseInspector" class="btn btn-ghost btn-sm" style="padding:2px 8px">✕</button>
-        </div>
-        <div style="margin:8px 0">
-          <b style="font-size:15px;color:#fff">${bld.name}</b>
-          <div style="font-size:12px;color:var(--gold);font-weight:600">Tier ${bld.tier} Upgrade Level</div>
-          <div class="tiny muted">Footprint: ${bld.span_w}x${bld.span_h} • Grid: (${bld.grid_x}, ${bld.grid_y})</div>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:6px;margin:10px 0">
-          ${actionsHtml}
-        </div>
-
-        <div style="display:flex;gap:6px;margin-top:10px;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px">
-          <button id="btnUpgradeLotBuilding" class="btn btn-alt btn-sm" style="flex:1">Upgrade Tier ($15M)</button>
-          <button id="btnDemolishLotBuilding" class="btn btn-ghost btn-sm" style="color:var(--red)">Demolish</button>
-        </div>
-      </div>
-    `;
-
-    document.getElementById("btnCloseInspector").onclick = () => {
-      _selectedBuildingId = null;
-      renderInspector();
-    };
-
-    const btnStartDir = document.getElementById("btnStartDirecting");
-    if (btnStartDir) {
-      btnStartDir.onclick = () => startDirectingScene(bld.id);
-    }
-
-    const btnAdvDir = document.getElementById("btnAdvanceDirecting");
-    if (btnAdvDir) {
-      btnAdvDir.onclick = () => advanceDirectingStep();
-    }
-
-    const btnUpgrade = document.getElementById("btnUpgradeLotBuilding");
-    if (btnUpgrade) {
-      btnUpgrade.onclick = () => {
-        const newTier = engine.upgrade_building(bld.id);
-        if (newTier) {
-          addFloatingText("UPGRADED TO TIER " + newTier, bld.grid_x + 1, bld.grid_y + 1, "#f5c518");
-          renderInspector();
-        }
-      };
-    }
-
-    const btnDemolish = document.getElementById("btnDemolishLotBuilding");
-    if (btnDemolish) {
-      btnDemolish.onclick = () => {
-        if (confirm("Demolish " + bld.name + "?")) {
-          engine.demolish_building(bld.id);
-          _selectedBuildingId = null;
-          renderInspector();
-        }
-      };
-    }
-
-    const btnGreenStage = document.getElementById("btnGreenlightStage");
-    if (btnGreenStage && typeof window.developModal === "function") {
-      btnGreenStage.onclick = () => window.developModal();
-    }
-
-    const btnRentStage = document.getElementById("btnRentStage");
-    if (btnRentStage) {
-      btnRentStage.onclick = () => {
-        addFloatingText("+$1.5M COMMERCIAL RENT", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
-        const G = typeof window !== "undefined" ? window.G : null;
-        if (G && G.studio) G.studio.cash = (G.studio.cash || 0) + 1.5;
-        if (typeof beep === "function") beep("cash");
-      };
-    }
-
-    const btnCommission = document.getElementById("btnCommissionScript");
-    if (btnCommission && typeof window.buyScriptModal === "function") {
-      btnCommission.onclick = () => window.buyScriptModal();
-    }
-
-    const btnPremiere = document.getElementById("btnHostPremiere");
-    if (btnPremiere) {
-      btnPremiere.onclick = () => {
-        addFloatingText("+RED CARPET PREMIERE BUZZ", bld.grid_x + 1, bld.grid_y + 1, "#f5c518");
-        if (typeof beep === "function") beep("gold");
-      };
-    }
-
-    const btnAudio = document.getElementById("btnMasterAudio");
-    if (btnAudio) {
-      btnAudio.onclick = () => {
-        addFloatingText("+DOLBY ATMOS MASTERED", bld.grid_x + 1, bld.grid_y + 1, "#38bdf8");
-        if (typeof beep === "function") beep("cash");
-      };
-    }
-
-    const btnBackRent = document.getElementById("btnBacklotRent");
-    if (btnBackRent) {
-      btnBackRent.onclick = () => {
-        addFloatingText("+$2.0M BACKLOT RENT", bld.grid_x + 1, bld.grid_y + 1, "#10b981");
-        const G = typeof window !== "undefined" ? window.G : null;
-        if (G && G.studio) G.studio.cash = (G.studio.cash || 0) + 2;
-        if (typeof beep === "function") beep("cash");
-      };
+    if (elStages) {
+      const activeShoots = (G.projects || []).filter(p => p.phase !== "ready").length;
+      elStages.textContent = activeShoots + " Filming";
     }
   }
 
   function renderPalette() {
     const root = document.getElementById("lotPaletteRoot");
     if (!root) return;
-    const items = [
-      { id: "soundstage", name: "Soundstage", cost: "$25M" },
-      { id: "virtual_led", name: "LED Volume", cost: "$35M" },
-      { id: "post_suite", name: "Post Suite", cost: "$18M" },
-      { id: "writers_bungalow", name: "Writers Room", cost: "$12M" },
-      { id: "cinema_theater", name: "Cinema Marquee", cost: "$30M" },
-      { id: "backlot", name: "Backlot & Props", cost: "$20M" }
+    const types = [
+      { id: "soundstage", name: "Stage 2", cost: 15 },
+      { id: "virtual_led", name: "LED Volume", cost: 25 },
+      { id: "post_suite", name: "Atmos Suite", cost: 8 },
+      { id: "writers_bungalow", name: "Writer Pod", cost: 5 }
     ];
 
-    root.innerHTML = `
-      <div class="palette-bar itch-wood-panel" style="padding:10px 14px;border-radius:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="tiny muted" style="font-weight:bold;color:var(--gold)">BUILD FACILITY:</span>
-          ${items.map(item => `
-            <button class="btn btn-sm ${(_buildModeType === item.id) ? 'btn-primary' : 'btn-alt'}" data-btype="${item.id}">
-              + ${item.name} <span class="tiny muted">(${item.cost})</span>
-            </button>
-          `).join("")}
-          ${_buildModeType ? '<button id="btnCancelBuild" class="btn btn-ghost btn-sm" style="color:var(--red)">Cancel</button>' : ''}
-        </div>
-      </div>
-    `;
+    let h = `<div class="palette-bar" style="display:flex;gap:6px;background:rgba(15,23,42,0.95);border:1px solid var(--gold);padding:8px;border-radius:8px">`;
+    h += `<span style="font-size:11px;font-weight:700;color:var(--gold);margin-right:4px">EXPAND CAMPUS:</span>`;
+    for (const t of types) {
+      const active = _buildModeType === t.id ? "style='border-color:#10b981;background:#064e3b'" : "";
+      h += `<button class="btn btn-sm btn-alt" data-btype="${t.id}" ${active}>+ ${t.name} ($${t.cost}M)</button>`;
+    }
+    h += `<button id="btnClosePalette" class="btn btn-sm btn-ghost">Done</button>`;
+    h += `</div>`;
+    root.innerHTML = h;
 
-    root.querySelectorAll("[data-btype]").forEach(btn => {
-      btn.onclick = () => {
+    root.querySelectorAll("button[data-btype]").forEach(btn => {
+      btn.addEventListener("click", () => {
         _buildModeType = btn.dataset.btype;
         renderPalette();
-      };
+        if (typeof beep === "function") beep("click");
+      });
     });
 
-    const btnCancel = document.getElementById("btnCancelBuild");
-    if (btnCancel) {
-      btnCancel.onclick = () => {
+    const btnClose = document.getElementById("btnClosePalette");
+    if (btnClose) {
+      btnClose.addEventListener("click", () => {
         _buildModeType = null;
-        renderPalette();
-      };
+        root.style.display = "none";
+      });
     }
   }
 
-  function updateLotHud() {
-    const G = typeof window !== "undefined" ? window.G : null;
-    if (!G) return;
-    const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
-    const lot = engine ? JSON.parse(engine.get_lot_state_json()) : { buildings: [] };
-
-    const elName = document.getElementById("lotHudStudioName");
-    if (elName) elName.textContent = G.studio ? G.studio.name : "Studio Lot";
-
-    const elCash = document.getElementById("lotHudCash");
-    if (elCash && typeof window.fmtM === "function") elCash.textContent = window.fmtM(G.studio ? G.studio.cash : 0);
-
-    const elDate = document.getElementById("lotHudDate");
-    if (elDate && typeof window.dateLabel === "function") elDate.textContent = window.dateLabel(G.week);
-
-    const elStages = document.getElementById("lotHudStages");
-    if (elStages) {
-      const activeStages = (lot.buildings || []).filter(b => b.filming_active).length;
-      elStages.textContent = activeStages + " Filming";
+  function renderInspector() {
+    const root = document.getElementById("lotInspectorRoot");
+    if (!root) return;
+    if (!_selectedBuildingId && !_directingState) {
+      root.style.display = "none";
+      return;
     }
+    root.style.display = "block";
+    if (_directingState) {
+      root.innerHTML = `
+        <div style="background:rgba(15,23,42,0.96);border:2px solid #ef4444;border-radius:8px;padding:12px;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,0.6)">
+          <div style="font-size:12px;font-weight:700;color:#ef4444;margin-bottom:4px">[ACTIVE PRODUCTION SHOOT]</div>
+          <div style="font-size:14px;font-weight:bold;margin-bottom:8px">${_directingState.title}</div>
+          <p style="font-size:11px;color:#94a3b8;margin-bottom:10px">${_directingState.feedback}</p>
+          <button id="btnAdvanceShot" class="btn btn-primary" style="width:100%">CALL: ${_directingState.step === 1 ? "ROLL CAMERA" : _directingState.step === 2 ? "ACTION!" : "CUT & PRINT IT!"}</button>
+        </div>
+      `;
+      const btn = document.getElementById("btnAdvanceShot");
+      if (btn) btn.onclick = () => advanceDirectingStep();
+      return;
+    }
+
+    root.innerHTML = `
+      <div style="background:rgba(15,23,42,0.96);border:1px solid var(--gold);border-radius:8px;padding:12px;color:#fff">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px">FACILITY SELECTED</div>
+        <button id="btnDirectScene" class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px">Start Directing Take</button>
+        <button id="btnCloseInspector" class="btn btn-ghost btn-sm" style="width:100%">Close</button>
+      </div>
+    `;
+    const btnD = document.getElementById("btnDirectScene");
+    if (btnD) btnD.onclick = () => startDirectingScene(_selectedBuildingId);
+    const btnC = document.getElementById("btnCloseInspector");
+    if (btnC) btnC.onclick = () => { _selectedBuildingId = null; renderInspector(); };
   }
 
   // Public Interface mounted to window
@@ -1668,73 +1701,69 @@
       }
 
       container.innerHTML = `
-        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)">
+        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.12)">
           
-          <!-- Top Kairosoft Control Console -->
-          <div style="position:absolute;top:8px;left:10px;right:10px;z-index:20;display:flex;flex-direction:column;gap:6px;pointer-events:none">
-            <!-- Row 1: Studio Info Left, Primary Production Buttons Right -->
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none">
-              <div class="kairo-hud-stats" style="pointer-events:auto;display:flex;align-items:center;gap:12px;background:rgba(15,23,42,0.92);padding:5px 12px;border-radius:6px;border:1px solid rgba(245,197,24,0.3)">
-                <div class="itch-hud-stat">
-                  <span class="lbl">Studio Lot</span>
-                  <span id="lotHudStudioName" class="val" style="color:#fff">Box Office Studio</span>
-                </div>
-                <div class="itch-hud-stat">
-                  <span class="lbl">War Chest</span>
-                  <span id="lotHudCash" class="val" style="color:#10b981">$100.0M</span>
-                </div>
-                <div class="itch-hud-stat">
-                  <span class="lbl">Calendar</span>
-                  <span id="lotHudDate" class="val" style="color:var(--gold)">Y1 W1</span>
-                </div>
-                <div class="itch-hud-stat">
-                  <span class="lbl">Active Shoots</span>
-                  <span id="lotHudStages" class="val" style="color:#38bdf8">0 Filming</span>
-                </div>
-              </div>
-
-              <div style="pointer-events:auto;display:flex;align-items:center;gap:6px">
-                <button id="btnLotNextWeek" class="itch-btn-blue">Next Week (+1W)</button>
-                <button id="btnLotFastWeek" class="itch-btn-blue">Fast (+4W)</button>
-                <button id="btnLotDevelop" class="itch-btn-gold">+ Greenlight</button>
-                <button id="btnTogglePalette" class="btn btn-alt btn-sm">Build Facility</button>
-              </div>
+          <!-- Top Kairosoft Control Console (Clean Single Row) -->
+          <div class="kairo-top-bar" style="position:absolute;top:8px;left:10px;right:10px;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none">
+            <!-- Room Switcher Tabs Left -->
+            <div class="kairo-room-nav" style="pointer-events:auto;display:flex;gap:4px;background:rgba(15,23,42,0.94);padding:4px 8px;border-radius:6px;border:1px solid rgba(245,197,24,0.4);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+              <button class="kairo-nav-tab active" data-view="campus">Campus Lot</button>
+              <button class="kairo-nav-tab" data-view="soundstage">Soundstage</button>
+              <button class="kairo-nav-tab" data-view="writers">Writers Room</button>
+              <button class="kairo-nav-tab" data-view="post">Post &amp; VFX</button>
+              <button class="kairo-nav-tab" data-view="cinema">Cinema Theater</button>
+              <button class="kairo-nav-tab" data-view="executive">Executive Suite</button>
             </div>
 
-            <!-- Row 2: Room Switcher Tabs Left, Shortcuts Right -->
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none">
-              <div class="kairo-room-nav" style="pointer-events:auto;display:flex;gap:4px;background:rgba(15,23,42,0.92);padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.12)">
-                <button class="kairo-nav-tab active" data-view="campus">Campus Lot</button>
-                <button class="kairo-nav-tab" data-view="soundstage">Soundstage</button>
-                <button class="kairo-nav-tab" data-view="writers">Writers Room</button>
-                <button class="kairo-nav-tab" data-view="post">Post &amp; VFX</button>
-                <button class="kairo-nav-tab" data-view="cinema">Cinema Theater</button>
-                <button class="kairo-nav-tab" data-view="executive">Executive Suite</button>
+            <!-- Studio Telemetry + Stats Toggle + Fullscreen Right -->
+            <div style="pointer-events:auto;display:flex;align-items:center;gap:8px">
+              <div class="kairo-hud-stats" style="display:flex;align-items:center;gap:12px;background:rgba(15,23,42,0.94);padding:5px 14px;border-radius:6px;border:1px solid rgba(245,197,24,0.35);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+                <div class="itch-hud-stat">
+                  <span class="lbl" style="font-size:9px;color:#94a3b8;font-weight:700">WAR CHEST</span>
+                  <span id="lotHudCash" class="val" style="color:#10b981;font-weight:700;font-size:12px">$100.0M</span>
+                </div>
+                <div class="itch-hud-stat">
+                  <span class="lbl" style="font-size:9px;color:#94a3b8;font-weight:700">CALENDAR</span>
+                  <span id="lotHudDate" class="val" style="color:var(--gold);font-weight:700;font-size:12px">Y1 W1</span>
+                </div>
+                <div class="itch-hud-stat">
+                  <span class="lbl" style="font-size:9px;color:#94a3b8;font-weight:700">ACTIVE SHOOTS</span>
+                  <span id="lotHudStages" class="val" style="color:#38bdf8;font-weight:700;font-size:12px">0 Filming</span>
+                </div>
               </div>
-
-              <div style="pointer-events:auto;display:flex;align-items:center;gap:4px;background:rgba(15,23,42,0.85);padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.1)">
-                <button id="btnLotFullscreen" class="btn btn-alt btn-sm" style="color:var(--gold);border-color:var(--gold);font-weight:bold" title="Toggle Fullscreen 2D Lot">Lot ⛶</button>
-                <button id="btnLotSlate" class="btn btn-alt btn-sm">Slate</button>
-                <button id="btnLotTalent" class="btn btn-alt btn-sm">Talent</button>
-                <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Box Office</button>
-                <button id="btnLotFinance" class="btn btn-alt btn-sm">Finance</button>
-              </div>
+              <button id="btnToggleStats" class="btn btn-alt btn-sm" style="font-weight:bold;height:32px;color:var(--gold);border-color:var(--gold)" title="Toggle Production Stats HUD">Stats HUD</button>
+              <button id="btnLotFullscreen" class="btn btn-alt btn-sm" style="color:var(--gold);border-color:var(--gold);font-weight:bold;height:32px" title="Toggle Fullscreen 2D Lot">Lot Full</button>
             </div>
           </div>
 
-          <!-- Collapsible Facilities Build Palette Top Left (Default Hidden) -->
-          <div id="lotPaletteRoot" style="position:absolute;top:104px;left:12px;z-index:25;display:none"></div>
+          <!-- Collapsible Facilities Build Palette Top Left -->
+          <div id="lotPaletteRoot" style="position:absolute;top:54px;left:12px;z-index:25;display:none"></div>
 
-          <!-- Camera Controls Bottom Left -->
-          <div class="lot-controls" style="position:absolute;bottom:14px;left:14px;z-index:20;display:flex;gap:6px">
-            <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In">+</button>
-            <button id="btnZoomOut" class="btn btn-alt btn-sm" title="Zoom Out">-</button>
-            <button id="btnResetView" class="btn btn-alt btn-sm">Center Lot</button>
-            <button id="btnFocusShoot" class="btn btn-primary btn-sm">Locate Set</button>
+          <!-- Bottom Kairosoft Command Deck -->
+          <div class="kairo-bottom-deck" style="position:absolute;bottom:10px;left:10px;right:10px;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none;flex-wrap:wrap">
+            <!-- Left: Camera Controls & Build -->
+            <div class="lot-controls" style="pointer-events:auto;display:flex;gap:4px;background:rgba(15,23,42,0.92);padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+              <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In">+</button>
+              <button id="btnZoomOut" class="btn btn-alt btn-sm" title="Zoom Out">-</button>
+              <button id="btnResetView" class="btn btn-alt btn-sm">Center Lot</button>
+              <button id="btnFocusShoot" class="btn btn-primary btn-sm">Locate Set</button>
+              <button id="btnTogglePalette" class="btn btn-alt btn-sm">Build Facility</button>
+            </div>
+
+            <!-- Right: Studio Management & Production Actions -->
+            <div style="pointer-events:auto;display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.94);padding:4px 10px;border-radius:6px;border:1px solid rgba(245,197,24,0.4);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+              <button id="btnLotSlate" class="btn btn-alt btn-sm">Slate</button>
+              <button id="btnLotTalent" class="btn btn-alt btn-sm" style="color:#6ee7b7;font-weight:bold" title="Open Box Office Sim 2 Talent Market & Animal Actors">BOS2 Talent</button>
+              <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Box Office</button>
+              <button id="btnLotFinance" class="btn btn-alt btn-sm">Finance</button>
+              <button id="btnLotDevelop" class="itch-btn-gold" style="cursor:pointer;margin-left:4px">+ Greenlight</button>
+              <button id="btnLotFastWeek" class="itch-btn-blue" style="cursor:pointer">Fast (+4W)</button>
+              <button id="btnLotNextWeek" class="itch-btn-blue" style="cursor:pointer;font-weight:bold">Next Week (+1W)</button>
+            </div>
           </div>
 
           <!-- Inspector Drawer Top Right -->
-          <div id="lotInspectorRoot" style="position:absolute;top:70px;right:14px;z-index:25;max-width:320px;display:none"></div>
+          <div id="lotInspectorRoot" style="position:absolute;top:54px;right:14px;z-index:25;max-width:320px;display:none"></div>
 
           <!-- The Full 2D Game Canvas -->
           <canvas id="studioLotCanvas" style="display:block;width:100%;height:100%;cursor:grab"></canvas>
@@ -1758,97 +1787,22 @@
 
       setupEvents();
       renderPalette();
-      updateLotHud();
 
-      // Hook Room Navigation Tabs
-      document.querySelectorAll(".kairo-nav-tab").forEach(tab => {
-        tab.onclick = () => {
-          const view = tab.dataset.view;
-          if (view) {
-            setLotView(view);
-            if (typeof beep === "function") beep("click");
-            if (typeof window.switchTab === "function") {
-              const tabForView = {
-                campus: "studio",
-                soundstage: "productions",
-                writers: "develop",
-                post: "ott",
-                cinema: "boxoffice",
-                executive: "dashboard"
-              };
-              const mappedTab = tabForView[view];
-              if (mappedTab && window.TAB !== mappedTab && window.TAB !== "studiolot") {
-                window.switchTab(mappedTab);
-              }
-            }
-          }
-        };
-      });
-
-      const btnFs = document.getElementById("btnLotFullscreen");
-      if (btnFs) {
-        btnFs.onclick = () => {
-          if (typeof window.switchTab === "function") {
-            if (window.TAB === "studiolot") {
-              window.switchTab("dashboard");
-            } else {
-              window.switchTab("studiolot");
-            }
-          }
-        };
-      }
-
-      const btnZIn = document.getElementById("btnZoomIn");
-      if (btnZIn) btnZIn.onclick = () => { camera.zoom = Math.min(2.5, camera.zoom * 1.2); };
-      const btnZOut = document.getElementById("btnZoomOut");
-      if (btnZOut) btnZOut.onclick = () => { camera.zoom = Math.max(0.5, camera.zoom / 1.2); };
-      const btnRst = document.getElementById("btnResetView");
-      if (btnRst) {
-        btnRst.onclick = () => {
-          if (_canvas) {
-            camera.x = _canvas.width / 2;
-            camera.y = _canvas.height / 2;
-            camera.zoom = 1.0;
-          }
-        };
-      }
-      const btnFocus = document.getElementById("btnFocusShoot");
-      if (btnFocus) {
-        btnFocus.onclick = () => {
-          setLotView("soundstage");
-        };
-      }
-
-      const palRoot = document.getElementById("lotPaletteRoot");
-      const btnPal = document.getElementById("btnTogglePalette");
-      if (btnPal && palRoot) {
-        btnPal.onclick = () => {
-          palRoot.style.display = (palRoot.style.display === "none") ? "block" : "none";
-        };
-      }
-
-      // Wire in-canvas 2D game loops
+      // Hook control buttons
       const btnNext = document.getElementById("btnLotNextWeek");
       if (btnNext) {
         btnNext.onclick = () => {
-          if (typeof window.doWeek === "function") {
-            window.doWeek(1);
-            updateLotHud();
-            if (_canvas) addFloatingText("+WEEKLY PROGRESS", _canvas.width * 0.5, _canvas.height * 0.5, "#10b981");
-            if (_selectedBuildingId) renderInspector();
-          }
+          if (typeof window.advanceWeek === "function") window.advanceWeek();
+          else if (typeof window.nextWeek === "function") window.nextWeek();
+          updateLotHud();
         };
       }
 
       const btnFast = document.getElementById("btnLotFastWeek");
       if (btnFast) {
         btnFast.onclick = () => {
-          if (typeof window.doWeek === "function") {
-            window.doWeek(4);
-            updateLotHud();
-            if (_canvas) addFloatingText("+4 WEEKS ELAPSED", _canvas.width * 0.5, _canvas.height * 0.5, "#38bdf8");
-            if (_selectedBuildingId) renderInspector();
-          }
+          if (typeof window.fastWeek === "function") window.fastWeek();
+          updateLotHud();
         };
       }
 
@@ -1856,41 +1810,94 @@
       if (btnDev) {
         btnDev.onclick = () => {
           if (typeof window.developModal === "function") window.developModal();
-          else if (typeof window.switchTab === "function") window.switchTab("develop");
         };
       }
 
-      const btnTal = document.getElementById("btnLotTalent");
-      if (btnTal) {
-        btnTal.onclick = () => {
-          if (typeof window.talentModal === "function") window.talentModal();
-          else if (typeof window.switchTab === "function") window.switchTab("develop");
+      const btnTogglePal = document.getElementById("btnTogglePalette");
+      if (btnTogglePal) {
+        btnTogglePal.onclick = () => {
+          const root = document.getElementById("lotPaletteRoot");
+          if (root) {
+            root.style.display = root.style.display === "none" ? "block" : "none";
+            if (root.style.display === "block") renderPalette();
+          }
+        };
+      }
+
+      const btnZoomIn = document.getElementById("btnZoomIn");
+      if (btnZoomIn) btnZoomIn.onclick = () => { camera.zoom = Math.min(2.5, camera.zoom * 1.2); };
+
+      const btnZoomOut = document.getElementById("btnZoomOut");
+      if (btnZoomOut) btnZoomOut.onclick = () => { camera.zoom = Math.max(0.6, camera.zoom * 0.8); };
+
+      const btnReset = document.getElementById("btnResetView");
+      if (btnReset) {
+        btnReset.onclick = () => {
+          camera.x = _canvas.width / 2;
+          camera.y = _canvas.height / 2;
+          camera.zoom = 1.0;
+        };
+      }
+
+      const btnFocus = document.getElementById("btnFocusShoot");
+      if (btnFocus) {
+        btnFocus.onclick = () => {
+          setLotView("soundstage");
+          playViewSting("soundstage");
+        };
+      }
+
+      const btnStats = document.getElementById("btnToggleStats");
+      if (btnStats) {
+        btnStats.onclick = () => {
+          _showStatBoard = !_showStatBoard;
+          btnStats.style.borderColor = _showStatBoard ? "var(--gold)" : "rgba(255,255,255,0.2)";
+          btnStats.style.color = _showStatBoard ? "var(--gold)" : "#94a3b8";
+        };
+      }
+
+      const btnFull = document.getElementById("btnLotFullscreen");
+      if (btnFull) {
+        btnFull.onclick = () => {
+          const stage = document.getElementById("studiolotGlobalStage");
+          if (stage) {
+            stage.classList.toggle("lot-full");
+            resizeCanvas();
+          }
         };
       }
 
       const btnSlate = document.getElementById("btnLotSlate");
-      if (btnSlate) {
-        btnSlate.onclick = () => {
-          if (typeof window.switchTab === "function") window.switchTab("productions");
+      if (btnSlate) btnSlate.onclick = () => { if (typeof window.switchTab === "function") window.switchTab("productions"); };
+
+      const btnTalent = document.getElementById("btnLotTalent");
+      if (btnTalent) {
+        btnTalent.onclick = () => {
+          if (typeof window.openBOS2TalentModal === "function") {
+            window.openBOS2TalentModal();
+          } else if (typeof window.talentModal === "function") {
+            window.talentModal();
+          }
         };
       }
 
-      const btnBox = document.getElementById("btnLotBoxOffice");
-      if (btnBox) {
-        btnBox.onclick = () => {
-          if (typeof window.boxOfficeModal === "function") window.boxOfficeModal();
-          else if (typeof window.switchTab === "function") window.switchTab("boxoffice");
-        };
-      }
+      const btnBO = document.getElementById("btnLotBoxOffice");
+      if (btnBO) btnBO.onclick = () => { if (typeof window.switchTab === "function") window.switchTab("boxoffice"); };
 
       const btnFin = document.getElementById("btnLotFinance");
-      if (btnFin) {
-        btnFin.onclick = () => {
-          if (typeof window.financeOverviewSheet === "function") window.financeOverviewSheet();
-          else if (typeof window.switchTab === "function") window.switchTab("finance");
-        };
-      }
+      if (btnFin) btnFin.onclick = () => { if (typeof window.switchTab === "function") window.switchTab("finance"); };
 
+      // Room nav tabs
+      const roomTabs = container.querySelectorAll(".kairo-nav-tab");
+      roomTabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+          const view = tab.dataset.view;
+          setLotView(view);
+          playViewSting(view);
+        });
+      });
+
+      // Start RAF loop
       if (!_animId) {
         _lastTime = performance.now();
         _animId = requestAnimationFrame(render);
@@ -1904,11 +1911,10 @@
       }
       _canvas = null;
       _ctx = null;
-      window.removeEventListener("resize", resizeCanvas);
     },
 
-    setView(v) {
-      setLotView(v);
+    setView(viewName) {
+      setLotView(viewName);
     },
 
     getView() {
@@ -1919,8 +1925,16 @@
       resizeCanvas();
     },
 
-    updateHud() {
-      updateLotHud();
+    focusBuilding(bId) {
+      _selectedBuildingId = bId;
+      setLotView("soundstage");
+      playViewSting("soundstage");
+      renderInspector();
+    },
+
+    focusActiveShoot() {
+      setLotView("soundstage");
+      playViewSting("soundstage");
     }
   };
 
