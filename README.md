@@ -2,7 +2,20 @@
 
 > A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v32.13](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v33.0](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+
+---
+
+## Screenshots
+
+| | |
+|---|---|
+| ![2D Studio Lot at night](screenshots/showcase-lot-night-web.jpg) | ![Executive dashboard](screenshots/showcase-dashboard-web.jpg) |
+| **2D Studio Lot — night lighting** | **Executive dashboard** |
+| ![Box office charts](screenshots/showcase-boxoffice-web.jpg) | ![Development pipeline](screenshots/showcase-develop-web.jpg) |
+| **Box office charts** | **Development pipeline** |
+| ![Studio lot by day](screenshots/showcase-lot-day-web.jpg) | ![Studio operations](screenshots/showcase-studio-web.jpg) |
+| **Studio lot by day** | **Studio operations** |
 
 ---
 
@@ -17,6 +30,41 @@ Box Office War is an offline-capable Hollywood studio management simulation buil
 - Defend corporate standing against hostile board directives, corporate debt covenants, talent scandals, and rival studio espionage.
 
 All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
+
+---
+
+## What is New in v33.0
+
+The v33.0 release is a full-app visual overhaul. Every screen is rebuilt on one locked design system ("Arcade Hollywood"), the studio lot became a living 24-hour world, and a motion engine animates every tab, sub-tab and chart.
+
+### 1. Full-App Restyle (`bow-restyle.css`, 1,450 lines)
+- **One locked visual system** applied to all 14 tabs, the start screen, modals, toasts, forms and the broadcast UI: 3px slate borders with a lit top edge, heavy dark bottom edge, and hard offset shadows with zero blur — the 16-bit tell.
+- **Marquee chrome**: gold bulb strips on the topbar and section headers, gold corner studs on every panel, engraved card headers, filmstrip tab rail with a lit active frame.
+- **Arcade scoreboard tiles** for KPI readouts, gold-framed modals with an overshoot pop-in, recessed inset inputs, chunky 3D buttons that press 3px down.
+- **Safe-area insets** for notches and home bars, gold focus rings, pixel scrollbars, and full `prefers-reduced-motion` support.
+
+### 2. Living Studio Lot (`lot-life.js`)
+- **24-hour light cycle** — dawn, midday, golden hour, dusk and night, each with its own colour grade, plus per-room warm light pools (marquee bulbs, windows, street lamps, monitor glow) that switch on after dark.
+- **Per-week weather** derived from the game week and season: clear, rain, storm with lightning, snow, and autumn leaves.
+- **Ambient life**: drifting dust motes, birds crossing the sky, fireflies at night, camera flashes on the red carpet, volumetric light shafts, film grain and a cinematic vignette.
+- **Location card** and an iris wipe on every room change.
+
+### 3. Animated Cast (`studio-lot-2d.js`)
+- **Real walk cycles** — bob, lean and squash driven off a single phase, so bodies weight-shift instead of sliding.
+- **Pause-and-turn** at path ends with idle breathing, eased facing, and depth sorting so nearer walkers overlap correctly.
+- **Footstep dust**, role pips, and one speaker at a time for chatter.
+- **21 cast members** (up from 12) with distinct roles, speeds and routes.
+- **Golf carts** with visibly spinning wheels and spokes, a driver that bobs with the suspension, tyre dust, and a headlight cone that switches on at night.
+
+### 4. Motion Engine (`bow-motion.js`)
+- **Staggered entrance** on every panel in every tab and sub-tab, with ledger rows cascading in.
+- **Count-up** on every numeric readout, keyed off a stable label so a freshly re-rendered DOM still ticks from the previous value, with a **green pulse on rise and red on fall**.
+- **Charts animate**: box office bars grow from zero and cascade, weekly-gross and forecast bars rise, stock sparklines and donuts draw themselves in via stroke-dashoffset.
+- **Game-feel layer** (`lot-feel.js`): trauma-based screen shake (`trauma²` sampled from layered sines so it decays smoothly instead of buzzing), squash-and-stretch pops, and tiered feedback hooked into the game's own `toast` / `confetti` / `advanceWeek` events — by decoration, never by modification.
+
+### 5. Build & Repo Fixes
+- **`apk/build-www.js` was silently shipping a stale UI**: its hardcoded file list was missing `ui-v33.css` entirely, plus every new presentation layer. Any new root-level `.css`/`.js` must be added to that list or the APK will not change. All five layers now ship.
+- **Git repair**: 17,259 macOS AppleDouble `._*` sidecars had accumulated untracked, and two were being read as pack indexes, which corrupted the repository ("non-monotonic index"). They are now backed up, removed from `.git`, and ignored. `core.fileMode` was disabled to stop 602 permission-only diffs.
 
 ---
 

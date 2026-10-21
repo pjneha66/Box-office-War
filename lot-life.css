@@ -1,0 +1,643 @@
+/* ═════════════════════════════════════════════════════════════════════════
+   LOT-LIFE.CSS — 2D Game Chrome for Box Office War
+   ---------------------------------------------------------------------------
+   Additive presentation layer, loaded last. No markup changes, no game logic.
+
+   Art direction (per `create-game-assets`: preserve the existing direction):
+   the studio dioramas and the department banner are chunky 16-bit Kairosoft
+   panels — 3px slate borders, a lit top edge, a heavy dark bottom edge and a
+   hard offset drop shadow with no blur. This sheet extends that one visual
+   system across the rest of the UI so panels, buttons, tabs and tiles read as
+   a single kit instead of a mix of game chrome and SaaS gradients.
+
+   Sections
+     1. Stage overlay canvas, location card, iris wipe
+     2. Film-frame stage chrome
+     3. Cinematic sticky scene banner
+     4. Panel kit (cards, stat tiles, headers)
+     5. Control kit (buttons, chips, tabs, pills)
+     6. Ledger rows and meters
+     7. Game-feel keyframes (pop / number / flash)
+     8. Motion, responsive, reduced-motion guards
+   ═════════════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* locked pixel palette — sampled from the studio dioramas */
+  --ll-ink:#05070b;
+  --ll-edge:#080b12;
+  --ll-line:#2e3e62;
+  --ll-line-hi:#4a6396;
+  --ll-panel-hi:#1a2333;
+  --ll-panel-lo:#0e1420;
+
+  --bow-topbar-h:104px;
+  --life-light:.85;
+  --life-tint:rgba(245,185,66,.05);
+}
+
+/* ═══════════════ 1. STAGE OVERLAY / CARD / WIPE ═══════════════ */
+
+.lot-life-canvas{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  display:block;
+}
+
+.lot-scene-card{
+  position:absolute;
+  left:14px;
+  bottom:74px;
+  z-index:26;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 11px 6px 7px;
+  border-radius:8px;
+  background:linear-gradient(180deg, #1b2436, #0b1018);
+  border:2px solid var(--ll-line);
+  border-top-color:var(--ll-line-hi);
+  border-bottom:4px solid var(--ll-edge);
+  box-shadow:0 5px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.10), 0 12px 26px -12px #000;
+  pointer-events:none;
+  max-width:min(62%, 520px);
+  animation:llCardIn .5s cubic-bezier(.2,.9,.3,1) both;
+}
+.ll-card-icon{
+  width:30px; height:30px;
+  flex:0 0 30px;
+  border-radius:4px;
+  background-color:rgba(255,255,255,.05);
+  background-size:cover;
+  background-position:center;
+  image-rendering:pixelated;
+  box-shadow:0 0 0 2px var(--ll-line), 0 3px 8px rgba(0,0,0,.7);
+}
+.ll-card-body{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
+.ll-card-title{
+  font:800 12px/1.15 var(--font-display, "Outfit", system-ui, sans-serif);
+  letter-spacing:.10em;
+  color:#ffe6ad;
+  text-shadow:0 1px 0 rgba(0,0,0,.9);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+/* live-set indicator: the studio never fully sleeps */
+.ll-card-title::before{
+  content:"";
+  display:inline-block;
+  width:6px; height:6px;
+  margin-right:7px;
+  border-radius:50%;
+  background:#ff4d4d;
+  box-shadow:0 0 9px rgba(255,77,77,.9);
+  vertical-align:1px;
+  animation:llRec 2.6s ease-in-out infinite;
+}
+@keyframes llRec{ 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
+
+.ll-card-sub{
+  font:600 9.5px/1.3 var(--font-mono, monospace);
+  letter-spacing:.09em;
+  color:rgba(200,214,236,.60);
+  font-style:normal;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.ll-card-meta{ display:flex; gap:5px; margin-left:6px; }
+.ll-chip{
+  font:700 9px/1 var(--font-mono, monospace);
+  letter-spacing:.08em;
+  padding:4px 6px;
+  border-radius:3px;
+  background:#0b1018;
+  border:1px solid var(--ll-line);
+  color:#c9d6ea;
+  font-style:normal;
+  white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+}
+.ll-chip-day{ color:#ffd479; border-color:#6b5420; background:#1a1508; }
+.ll-chip-wx{ color:#8fd3ff; border-color:#1d4a63; background:#08161d; }
+
+.lot-wipe{
+  position:absolute;
+  inset:0;
+  z-index:60;
+  background:radial-gradient(circle at 50% 50%, #0a0f18 0%, #04060a 70%);
+  pointer-events:none;
+  opacity:0;
+  clip-path:circle(0% at 50% 50%);
+  will-change:clip-path;
+}
+.lot-wipe-run{ animation:llIris .46s cubic-bezier(.5,0,.2,1) both; }
+
+@keyframes llIris{
+  0%   { opacity:1; clip-path:circle(0% at 50% 50%); }
+  42%  { opacity:1; clip-path:circle(78% at 50% 50%); }
+  58%  { opacity:1; clip-path:circle(78% at 50% 50%); }
+  100% { opacity:0; clip-path:circle(0% at 50% 50%); }
+}
+@keyframes llCardIn{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ═══════════════ 2. FILM-FRAME STAGE CHROME ═══════════════ */
+
+#studiolotGlobalStage{
+  background:var(--ll-ink);
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.95), 0 0 0 2px var(--ll-line);
+  will-change:transform;
+}
+#studiolotGlobalStage::before,
+#studiolotGlobalStage::after{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  height:13px;
+  z-index:20;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 11px 6.5px, #04060a 0 3.1px, rgba(4,6,10,0) 3.5px) repeat-x 0 0/22px 13px,
+    linear-gradient(180deg, #0c1119, #06090f);
+  box-shadow:inset 0 0 0 1px rgba(245,185,66,.10);
+}
+#studiolotGlobalStage::before{ top:0; }
+#studiolotGlobalStage::after{ bottom:0; }
+#studiolotGlobalStage .lot-life-canvas{ box-shadow:inset 0 0 90px rgba(0,0,0,.55); }
+
+/* ═══════════════ 3. CINEMATIC SCENE BANNER ═══════════════ */
+
+@media (min-width:900px){
+  .studiolot-global-stage.lot-backdrop{
+    position:sticky !important;
+    top:var(--bow-topbar-h) !important;
+    display:block !important;
+    height:clamp(196px, 26vh, 300px) !important;
+    min-height:0 !important;
+    margin:0 auto 16px !important;
+    z-index:6;
+    border-radius:0 0 14px 14px !important;
+    box-shadow:0 8px 0 var(--ll-ink), 0 26px 52px -18px rgba(0,0,0,.95), 0 0 0 2px var(--ll-line) !important;
+    animation:llBannerIn .55s cubic-bezier(.2,.9,.3,1) backwards;
+  }
+  .studiolot-global-stage.lot-backdrop::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0; height:13px;
+    z-index:20;
+    pointer-events:none;
+    background:
+      radial-gradient(circle at 11px 6.5px, #04060a 0 3.1px, rgba(4,6,10,0) 3.5px) repeat-x 0 0/22px 13px,
+      linear-gradient(180deg, #0c1119, #06090f);
+  }
+  .studiolot-global-stage.lot-backdrop .studiolot-viewport{
+    min-height:0 !important;
+    height:100% !important;
+  }
+  .studiolot-global-stage.lot-backdrop .kairo-hud-stats,
+  .studiolot-global-stage.lot-backdrop #btnLotFullscreen,
+  .studiolot-global-stage.lot-backdrop #btnToggleStats{ display:none !important; }
+  .studiolot-global-stage.lot-backdrop .lot-controls{ display:none !important; }
+  .studiolot-global-stage.lot-backdrop .kairo-top-bar{
+    background:linear-gradient(180deg, rgba(5,7,11,.82), rgba(5,7,11,0));
+    border-bottom:0;
+  }
+  .studiolot-global-stage.lot-backdrop .kairo-bottom-deck{
+    transform:none;
+    opacity:1;
+    justify-content:flex-end;
+  }
+  .studiolot-global-stage.lot-backdrop .lot-scene-card{ bottom:56px; }
+  .lot-banner-fade{
+    position:absolute;
+    left:0; right:0; bottom:0; height:54px;
+    z-index:19;
+    pointer-events:none;
+    background:linear-gradient(180deg, rgba(5,7,11,0) 0%, rgba(5,7,11,.45) 55%, rgba(5,7,11,.92) 100%);
+  }
+}
+
+@keyframes llBannerIn{
+  from{ opacity:0; transform:translateY(-14px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* ═══════════════ 4. PANEL KIT ═══════════════ */
+/* One bevel recipe reused everywhere: 3px slate wall, lit top edge, heavy
+   dark bottom edge, hard offset shadow. Matches .kairo-dept-banner. */
+
+.card{
+  position:relative;
+  background:linear-gradient(180deg, var(--ll-panel-hi) 0%, var(--ll-panel-lo) 88%);
+  border:3px solid var(--ll-line);
+  border-top-color:var(--ll-line-hi);
+  border-bottom:5px solid var(--ll-edge);
+  border-radius:10px;
+  box-shadow:
+    0 6px 0 var(--ll-ink),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 16px 32px -20px rgba(0,0,0,.95);
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+/* four gold corner studs, pixel-aligned */
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:6px;
+  pointer-events:none;
+  background:
+    linear-gradient(var(--gold), var(--gold)) 5px 5px / 3px 3px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) calc(100% - 8px) 5px / 3px 3px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) 5px calc(100% - 8px) / 3px 3px no-repeat,
+    linear-gradient(var(--gold), var(--gold)) calc(100% - 8px) calc(100% - 8px) / 3px 3px no-repeat;
+  opacity:.55;
+  transition:opacity .18s ease;
+}
+.card:hover::before{ opacity:.95; }
+.card:hover{ border-color:var(--ll-line-hi); }
+
+/* card titles become engraved panel headers */
+.card > b:first-child{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-family:var(--font-display, "Outfit", sans-serif);
+  font-size:12.5px;
+  font-weight:800;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:#ffe1a0;
+  text-shadow:0 1px 0 rgba(0,0,0,.9);
+  padding-bottom:9px;
+  margin-bottom:11px;
+  border-bottom:2px solid rgba(74,99,150,.35);
+}
+.card > b:first-child::before{
+  content:"";
+  width:8px; height:8px;
+  flex:0 0 8px;
+  background:var(--gold);
+  box-shadow:0 0 0 2px #6b5420, 0 0 10px rgba(245,185,66,.55);
+}
+
+.section-title{
+  font-family:var(--font-display, "Outfit", sans-serif);
+  font-weight:800;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:#ffe1a0;
+  text-shadow:0 1px 0 rgba(0,0,0,.85);
+  position:relative;
+  padding-left:2px;
+}
+.section-title::before{
+  content:"";
+  position:absolute;
+  left:0; right:0; top:-9px;
+  height:4px;
+  border-radius:2px;
+  background-image:radial-gradient(circle, rgba(245,185,66,.95) 0 1.4px, rgba(245,185,66,0) 1.8px);
+  background-size:11px 4px;
+  background-repeat:repeat-x;
+  opacity:.55;
+  animation:llBulbs 3.2s linear infinite;
+}
+@keyframes llBulbs{ to{ background-position:22px 0; } }
+
+/* stat tiles: a lit readout sunk into the wall */
+.stat{
+  position:relative;
+  background:linear-gradient(180deg, #202b3f 0%, #0d121b 90%);
+  border:2px solid var(--ll-line);
+  border-top-color:var(--ll-line-hi);
+  border-bottom:4px solid var(--ll-edge);
+  border-radius:8px;
+  box-shadow:0 4px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.09);
+  transition:transform .16s cubic-bezier(.2,.9,.3,1), border-color .16s ease;
+}
+.stat::before{
+  content:"";
+  position:absolute;
+  top:0; left:0; right:0;
+  height:2px;
+  background:linear-gradient(90deg, var(--gold), rgba(245,185,66,.06));
+  opacity:.85;
+}
+.stat:hover{
+  transform:translateY(-3px);
+  border-color:var(--ll-line-hi);
+}
+.stat .s-v{
+  font-family:var(--font-display, "Outfit", sans-serif);
+  font-size:21px;
+  line-height:1.2;
+  letter-spacing:-.015em;
+  text-shadow:0 2px 0 rgba(0,0,0,.75);
+}
+.stat .s-l{
+  font-family:var(--font-mono, monospace);
+  font-size:10px;
+  letter-spacing:.16em;
+  opacity:.66;
+  margin-top:5px;
+}
+
+/* ═══════════════ 5. CONTROL KIT ═══════════════ */
+
+.btn{
+  position:relative;
+  border-radius:8px;
+  border:2px solid var(--ll-line);
+  border-bottom:4px solid var(--ll-edge);
+  box-shadow:0 3px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.14);
+  transition:transform .1s ease, box-shadow .1s ease, filter .16s ease;
+}
+.btn:hover{ filter:brightness(1.09); }
+.btn:active{
+  transform:translateY(3px);
+  box-shadow:0 0 0 var(--ll-ink), inset 0 2px 3px rgba(0,0,0,.45);
+  border-bottom-width:2px;
+}
+.btn-primary{
+  background:linear-gradient(180deg, #ffd479 0%, #f5c518 46%, #d99a24 100%);
+  border-color:#8a5f11;
+  border-top-color:#ffe6a6;
+  border-bottom-color:#6b4508;
+  color:#231703;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+.btn-alt{
+  background:linear-gradient(180deg, #2b3950 0%, #16202f 100%);
+  border-top-color:#4a6396;
+  color:#dbe6f7;
+}
+
+.chip{
+  border-radius:6px;
+  background:linear-gradient(180deg, #1e2a3d, #0b1018);
+  border:2px solid var(--ll-line);
+  border-bottom:3px solid var(--ll-edge);
+  box-shadow:0 2px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.09);
+  font-family:var(--font-mono, monospace);
+  letter-spacing:.04em;
+  transition:border-color .16s ease, transform .16s ease;
+}
+.chip:hover{ border-color:var(--ll-line-hi); transform:translateY(-1px); }
+.chip b{ font-family:var(--font-display, "Outfit", sans-serif); }
+
+/* tabs: a game tab strip with a lit active frame */
+.tabs{
+  position:relative;
+  border-bottom:3px solid var(--ll-line);
+  box-shadow:0 3px 0 var(--ll-ink);
+}
+.tab{
+  position:relative;
+  border-radius:6px 6px 0 0;
+  transition:color .16s ease, background .16s ease, transform .16s ease;
+}
+.tab::after{
+  content:"";
+  position:absolute;
+  left:6px; right:6px; bottom:-3px;
+  height:3px;
+  background:var(--gold);
+  transform:scaleX(0);
+  transform-origin:center;
+  transition:transform .2s cubic-bezier(.2,.9,.3,1);
+}
+.tab:hover{ transform:translateY(-1px); }
+.tab.active::after{ transform:scaleX(1); }
+.tab.active{
+  color:#ffe1a0;
+  background:linear-gradient(180deg, rgba(245,185,66,.16), rgba(245,185,66,0));
+}
+
+/* section pills */
+.subnav-pill{
+  border-radius:7px;
+  border:2px solid var(--ll-line);
+  border-bottom:4px solid var(--ll-edge);
+  background:linear-gradient(180deg, #202b3f, #0d121b);
+  box-shadow:0 3px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.09);
+  transition:transform .1s ease, box-shadow .1s ease, border-color .16s ease, color .16s ease;
+}
+.subnav-pill:hover{ transform:translateY(-1px); border-color:var(--ll-line-hi); }
+.subnav-pill.active{
+  background:linear-gradient(180deg, #ffd479, #e0a52c);
+  border-color:#8a5f11;
+  border-bottom-color:#6b4508;
+  color:#231703;
+  text-shadow:0 1px 0 rgba(255,255,255,.3);
+}
+.subnav-pill:active{ transform:translateY(3px); box-shadow:0 0 0 var(--ll-ink); border-bottom-width:2px; }
+
+/* topbar: a cinema marquee bar */
+.topbar{
+  background:linear-gradient(180deg, rgba(9,12,19,.98), rgba(5,7,11,.96)) !important;
+  border-bottom:3px solid var(--ll-line) !important;
+  box-shadow:0 3px 0 var(--ll-ink), 0 12px 30px -16px rgba(0,0,0,.95);
+}
+.topbar::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:-3px;
+  height:1px;
+  background:linear-gradient(90deg, rgba(245,185,66,0), rgba(245,185,66,.55), rgba(245,185,66,0));
+  pointer-events:none;
+}
+
+/* department banner keeps its projector sheen */
+.kairo-dept-banner{ position:relative; overflow:hidden; }
+.kairo-dept-banner::after{
+  content:"";
+  position:absolute;
+  top:-60%; left:-40%;
+  width:34%; height:220%;
+  background:linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.08), rgba(255,255,255,0));
+  transform:rotate(14deg);
+  animation:llSweep 7s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes llSweep{
+  0%, 62%{ left:-40%; }
+  92%, 100%{ left:130%; }
+}
+
+/* ═══════════════ 6. LEDGER ROWS / METERS / TAGS ═══════════════ */
+
+.row{
+  transition:background .16s ease, box-shadow .16s ease;
+  border-radius:6px;
+}
+.row:hover{
+  background:linear-gradient(90deg, rgba(245,185,66,.10), rgba(245,185,66,0) 65%);
+  box-shadow:inset 3px 0 0 rgba(245,185,66,.8);
+}
+
+.tr-track{
+  border-radius:4px;
+  overflow:hidden;
+  background:#070a10;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.8);
+  border:1px solid rgba(74,99,150,.25);
+}
+.tr-fill{
+  position:relative;
+  border-radius:3px;
+  box-shadow:0 0 12px -2px rgba(245,185,66,.45);
+}
+.tr-fill::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(100deg, rgba(255,255,255,0) 35%, rgba(255,255,255,.38) 50%, rgba(255,255,255,0) 65%);
+  transform:translateX(-120%);
+  animation:llSheen 3.6s ease-in-out infinite;
+}
+@keyframes llSheen{ 0%,55%{ transform:translateX(-120%); } 85%,100%{ transform:translateX(120%); } }
+
+.tag{
+  border-radius:4px;
+  border:1px solid rgba(74,99,150,.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 2px 0 rgba(0,0,0,.55);
+  letter-spacing:.06em;
+  font-weight:700;
+}
+
+.talent-card, .idea-card, .bid-card{
+  border-radius:8px;
+  box-shadow:0 4px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.08);
+  transition:transform .16s cubic-bezier(.2,.9,.3,1), box-shadow .16s ease, border-color .16s ease;
+}
+.talent-card:hover, .idea-card:hover, .bid-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 7px 0 var(--ll-ink), inset 0 1px 0 rgba(255,255,255,.10);
+  border-color:var(--ll-line-hi);
+}
+.t-avatar, .itch-avatar{
+  image-rendering:pixelated;
+  box-shadow:0 0 0 2px var(--ll-line), 0 3px 8px -2px rgba(0,0,0,.95);
+}
+
+/* ── modal entrance: veil fades, panel pops in with overshoot ── */
+.modal-veil{ animation:llVeil .18s ease-out both; }
+.modal, .modal-box{ animation:llModalPop .34s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes llVeil{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes llModalPop{
+  0%  { opacity:0; transform:translateY(14px) scale(.94); }
+  60% { opacity:1; transform:translateY(-2px) scale(1.012); }
+  100%{ opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* ── meters fill from zero on every render, so bars "grow" not snap ── */
+.bar > i, .tr-fill, .cb-fill, .pl-fill, .fr-fill{
+  transform-origin:left center;
+  animation:llGrow .55s cubic-bezier(.2,.9,.3,1) both;
+}
+@keyframes llGrow{ from{ transform:scaleX(0.001); } to{ transform:scaleX(1); } }
+
+/* ═══════════════ 7. GAME-FEEL KEYFRAMES ═══════════════ */
+/* squash & stretch with overshoot — the "pop" */
+.ll-pop{
+  animation:llPop .38s cubic-bezier(.34,1.56,.64,1);
+  transform-origin:center;
+}
+@keyframes llPop{
+  0%  { transform:scale(calc(1 + .10 * var(--ll-pop,1)), calc(1 - .08 * var(--ll-pop,1))); }
+  45% { transform:scale(calc(1 - .03 * var(--ll-pop,1)), calc(1 + .03 * var(--ll-pop,1))); }
+  75% { transform:scale(1.015, .99); }
+  100%{ transform:scale(1, 1); }
+}
+
+/* number pop: rises, brightens, settles */
+.ll-num{
+  display:inline-block;
+  animation:llNum .5s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes llNum{
+  0%  { transform:translateY(0) scale(1); filter:brightness(1); }
+  22% { transform:translateY(-5px) scale(1.14); filter:brightness(1.7); }
+  60% { transform:translateY(-2px) scale(1.02); filter:brightness(1.15); }
+  100%{ transform:translateY(0) scale(1); filter:brightness(1); }
+}
+
+/* flash overlay — the impact channel that stands in for a hit-stop */
+.ll-flash{
+  position:fixed;
+  inset:0;
+  z-index:9000;
+  pointer-events:none;
+  opacity:0;
+  mix-blend-mode:screen;
+}
+
+/* ═══════════════ 8. MOTION / RESPONSIVE GUARDS ═══════════════ */
+
+/* Entrance staging is owned by bow-motion.js (.bow-stagger) so that sub-tab
+   switches re-stage too; this sheet no longer competes for the animation. */
+
+/* the world behind the panels breathes with the time of day */
+#app{
+  background-color:#07090e;
+  background-image:
+    radial-gradient(90% 55% at 50% 0%, var(--life-tint), rgba(0,0,0,0) 62%),
+    radial-gradient(70% 50% at 50% 100%, var(--life-tint), rgba(0,0,0,0) 70%);
+}
+
+/* safe-area insets (game-ui-ux): keep chrome clear of notches / home bars */
+.topbar{
+  padding-top:env(safe-area-inset-top);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
+.lot-scene-card{ bottom:calc(74px + env(safe-area-inset-bottom)); }
+#toasts{ top:calc(12px + env(safe-area-inset-top)); right:calc(12px + env(safe-area-inset-right)); }
+
+@media (max-width:899px){
+  .studiolot-global-stage.lot-backdrop{
+    position:relative !important;
+    height:clamp(150px, 22vh, 220px) !important;
+    min-height:0 !important;
+    margin:0 auto 10px !important;
+    border-radius:0 0 10px 10px !important;
+  }
+  .studiolot-global-stage.lot-backdrop .studiolot-viewport{
+    min-height:0 !important;
+    height:100% !important;
+  }
+  .studiolot-global-stage.lot-backdrop .kairo-bottom-deck,
+  .studiolot-global-stage.lot-backdrop .kairo-hud-stats{ display:none !important; }
+
+  .lot-scene-card{
+    left:8px;
+    bottom:88px;
+    top:auto;
+    max-width:76%;
+    padding:5px 8px 5px 6px;
+  }
+  .studiolot-global-stage.lot-backdrop .lot-scene-card{ bottom:12px; }
+  .ll-card-icon{ width:24px; height:24px; flex-basis:24px; }
+  .ll-card-title{ font-size:10.5px; }
+  .ll-card-sub{ font-size:8.5px; }
+  .ll-chip{ font-size:8px; padding:3px 5px; }
+  .ll-card-meta .ll-chip-wx{ display:none; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .lot-wipe-run{ animation:none; opacity:0; }
+  #view.view-enter > *{ animation:none; }
+  .section-title::before{ animation:none; }
+  .tr-fill::after{ animation:none; opacity:0; }
+  .studiolot-global-stage.lot-backdrop{ animation:none; }
+  .lot-scene-card{ animation:none; }
+  .ll-card-title::before{ animation:none; }
+  .ll-pop, .ll-num{ animation:none; }
+  .kairo-dept-banner::after{ animation:none; opacity:0; }
+}

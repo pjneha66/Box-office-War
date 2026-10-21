@@ -153,6 +153,71 @@
     }
   };
 
+  // UNLOCK ALL CAST: Unlocks all 72 animal species, all 5-star human stars, and clears all locks
+  BOS2.unlockAllCast = function(){
+    if (typeof G === "undefined" || !G || !Array.isArray(G.talent)) return;
+
+    G.allCastUnlocked = true;
+
+    // 1. Ensure ALL 72 animal species from Box Office Sim 2 are in G.talent
+    const existingSpecies = new Set(G.talent.filter(t => t.isAnimal).map(t => t.species));
+    BOS2.animals.forEach(sp => {
+      if (!existingSpecies.has(sp.n)) {
+        const animal = BOS2.generateAnimalActor(sp.id);
+        animal.power = 5;
+        animal.skill = Math.max(88, animal.skill);
+        animal.fee = Math.round(animal.fee * 0.5 * 10) / 10;
+        animal.bookedUntil = 0;
+        animal.retired = false;
+        animal.scandal = 0;
+        animal.unlocked = true;
+        G.talent.push(animal);
+        existingSpecies.add(sp.n);
+      }
+    });
+
+    // 2. Add 5-star superstars for all production roles
+    const kinds = ["actor", "director", "writer", "producer"];
+    kinds.forEach(k => {
+      const existing = G.talent.filter(t => t.kind === k && !t.isAnimal && t.power >= 5).length;
+      const target = 16;
+      for (let i = existing; i < target; i++) {
+        const star = BOS2.generateHumanStar(k === "producer" ? "producer" : k);
+        star.kind = k;
+        star.power = 5;
+        star.skill = Math.floor(Math.random() * 8) + 92;
+        star.fee = Math.round(star.fee * 0.6 * 10) / 10;
+        star.bookedUntil = 0;
+        star.retired = false;
+        star.scandal = 0;
+        star.unlocked = true;
+        G.talent.push(star);
+      }
+    });
+
+    // 3. Clear all locks, retirements, scandals across entire roster
+    G.talent.forEach(t => {
+      t.bookedUntil = 0;
+      t.retired = false;
+      t.scandal = 0;
+      t.unlocked = true;
+      if (t.isAnimal || t.power >= 4) {
+        t.power = 5;
+        t.skill = Math.max(85, t.skill || 75);
+      }
+    });
+
+    if (typeof window !== "undefined" && typeof window.showToast === "function") {
+      window.showToast("ALL CAST UNLOCKED: 72 Animal Stars & All Superstars available!");
+    }
+    if (typeof window !== "undefined" && typeof window.render === "function") {
+      window.render();
+    }
+  };
+
+  window.BOS2 = BOS2;
+  window.unlockAllCast = BOS2.unlockAllCast;
+
   // Interactive Box Office Sim 2 Talent Market Modal
   let _marketRoster = [];
 

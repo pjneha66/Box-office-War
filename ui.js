@@ -253,7 +253,18 @@ const $$ = s=>[...document.querySelectorAll(s)];
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function stars(n){ let s=""; for(let i=1;i<=5;i++) s+= i<=n? "★":"<span class='off'>★</span>"; return "<span class='stars'>"+s+"</span>"; }
 function meter(v, max, cls){ return "<div class='bar'><i style='width:"+clamp(v/max*100,2,100)+"%"+(cls?";background:"+cls:"")+"'></i></div>"; }
-function gTag(genre){ const g=DATA.GENRES[genre]; return "<span class='tag blue'>"+g.emoji+" "+g.name+"</span>"; }
+function genreIconHtml(genre, extraClass = ""){
+  const g = DATA.genreOf(genre);
+  if(g && g.icon){
+    return `<img class="genre-icon-img ${extraClass}" src="${g.icon}" alt="${g.name||''}">`;
+  }
+  return "";
+}
+function gTag(genre){
+  const g = DATA.genreOf(genre);
+  const icon = genreIconHtml(genre);
+  return "<span class='tag blue genre-badge-icon'>"+(icon?icon+" ":"")+(g?g.name:genre)+"</span>";
+}
 function scoreBadge(q){
   if(q>=80) return "<span class='tag green'>"+q+" · Acclaimed</span>";
   if(q>=60) return "<span class='tag gold'>"+q+" · Solid</span>";
@@ -727,9 +738,16 @@ function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   if(t==="develop") DEVELOP_SUB = "scripts";
   const stage = document.getElementById("studiolotGlobalStage");
+  const viewEl = document.getElementById("view");
   if(stage){
-    stage.className = "studiolot-global-stage " + (t === "studiolot" ? "lot-full" : "lot-compact");
     stage.style.display = "block";
+    if (t === "studiolot") {
+      stage.className = "studiolot-global-stage lot-full";
+      if(viewEl) viewEl.classList.add("view-hidden-lot");
+    } else {
+      stage.className = "studiolot-global-stage lot-backdrop";
+      if(viewEl) viewEl.classList.remove("view-hidden-lot");
+    }
   }
   const roomMap = {
     studiolot: "campus",
@@ -1323,14 +1341,14 @@ function viewStudio(){
     GameDevHardware.getAverageStaffStamina() : 85;
 
   let h = "<div class='subnav-pills'>"+
-    "<button class='subnav-pill "+(STUDIO_SUB==="lot"?"active":"")+"' data-studiosub='lot'>Studio Lot &amp; Stages</button>"+
-    "<button class='subnav-pill "+(STUDIO_SUB==="csuite"?"active":"")+"' data-studiosub='csuite'>C-Suite Board</button>"+
-    "<button class='subnav-pill "+(STUDIO_SUB==="board"?"active":"")+"' data-studiosub='board'>Board &amp; Directives</button>"+
-    "<button class='subnav-pill "+(STUDIO_SUB==="operations"?"active":"")+"' data-studiosub='operations'>Operations &amp; Crew Care</button>"+
-    "<button class='subnav-pill "+(STUDIO_SUB==="crisis"?"active":"")+"' data-studiosub='crisis'>PR Crisis &amp; Scandals</button>"+
-    "<button class='subnav-pill "+(STUDIO_SUB==="heritage"?"active":"")+"' data-studiosub='heritage'>Dynasty &amp; Heritage</button>"+
-    "<button class='subnav-pill' id='btnAch'>Achievements</button>"+
-    "<button class='subnav-pill' id='btnOpenCustomSandbox'>Sandbox Creator</button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="lot"?"active":"")+"' data-studiosub='lot'><img class='subtab-pixel-icon' src='assets/2d/studio_gate.png' alt='' /><span>Studio Lot &amp; Stages</span></button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="csuite"?"active":"")+"' data-studiosub='csuite'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_11.png' alt='' /><span>C-Suite Board</span></button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="board"?"active":"")+"' data-studiosub='board'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_04.png' alt='' /><span>Board &amp; Directives</span></button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="operations"?"active":"")+"' data-studiosub='operations'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_05.png' alt='' /><span>Operations</span></button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="crisis"?"active":"")+"' data-studiosub='crisis'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_10.png' alt='' /><span>PR Crisis</span></button>"+
+    "<button class='subnav-pill "+(STUDIO_SUB==="heritage"?"active":"")+"' data-studiosub='heritage'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_12.png' alt='' /><span>Dynasty &amp; Heritage</span></button>"+
+    "<button class='subnav-pill' id='btnAch'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>Achievements</span></button>"+
+    "<button class='subnav-pill' id='btnOpenCustomSandbox'><img class='subtab-pixel-icon' src='assets/pixel-characters/char-robot.png' alt='' /><span>Sandbox Creator</span></button>"+
   "</div>";
 
   // Studio Infrastructure Telemetry Bar (distinct from Home financial dashboard)
@@ -1827,6 +1845,110 @@ let OTT_SUB = "home";          // v28.9 §15: streamer sub-tab state
 let LIBRARY_SUB = "films";
 let GAMES_SUB = "dev";
 
+/* ═══════════ Central Pixel Art Icons for Subtabs ═══════════ */
+const SUBTAB_PIXEL_ICONS = {
+  // dashboard
+  "dashboard:overview": "assets/itch-ui/icons/Icon_08.png",
+  "dashboard:actions": "assets/bos2-icons/general/film-clapper.png",
+  "dashboard:slate": "assets/bos2-icons/general/icons8-movie-ticket-100.png",
+  "dashboard:macro": "assets/itch-ui/icons/Icon_01.png",
+  // studio
+  "studio:lot": "assets/2d/studio_gate.png",
+  "studio:csuite": "assets/itch-ui/icons/Icon_11.png",
+  "studio:board": "assets/itch-ui/icons/Icon_04.png",
+  "studio:operations": "assets/itch-ui/icons/Icon_05.png",
+  "studio:crisis": "assets/itch-ui/icons/Icon_10.png",
+  "studio:heritage": "assets/itch-ui/icons/Icon_12.png",
+  "studio:achievements": "assets/itch-ui/icons/Icon_09.png",
+  "studio:sandbox": "assets/pixel-characters/char-robot.png",
+  // develop
+  "develop:scripts": "assets/bos2-icons/general/writer.png",
+  "develop:demographics": "assets/bos2-icons/general/icons8-audience-100.png",
+  "develop:creativity": "assets/2d/char_cameraman.png",
+  "develop:ip": "assets/bos2-icons/logos/icons8-diamond-100.png",
+  "develop:talent": "assets/bos2-icons/general/group.png",
+  "develop:combos": "assets/itch-ui/icons/Icon_03.png",
+  "develop:tax": "assets/bos2-icons/general/icons8-map-marker-90.png",
+  "develop:packaging": "assets/bos2-icons/general/film-clapper.png",
+  "develop:contracts": "assets/itch-ui/icons/Icon_04.png",
+  "develop:agency": "assets/2d/char_star_actor.png",
+  "develop:radar": "assets/itch-ui/icons/Icon_06.png",
+  // productions
+  "productions:all": "assets/bos2-icons/general/film-clapper.png",
+  "productions:pre": "assets/itch-ui/icons/Icon_04.png",
+  "productions:shoot": "assets/2d/char_director.png",
+  "productions:post": "assets/2d/post_suite.png",
+  "productions:ready": "assets/bos2-icons/general/icons8-movie-ticket-100.png",
+  "productions:dated": "assets/bos2-icons/general/icons8-new-ticket-100.png",
+  // boxoffice
+  "boxoffice:chart": "assets/bos2-icons/general/icons8-ticket-100.png",
+  "boxoffice:chains": "assets/2d/cinema_theater.png",
+  "boxoffice:territories": "assets/bos2-icons/logos/icons8-biometric-passport-100.png",
+  "boxoffice:awards": "assets/itch-ui/icons/Icon_12.png",
+  "boxoffice:clash": "assets/itch-ui/icons/Icon_06.png",
+  // fans
+  "fans:all": "assets/pixel-characters/char-female-cheer.png",
+  "fans:mail": "assets/itch-ui/icons/Icon_04.png",
+  "fans:trending": "assets/bos2-icons/general/beat.png",
+  "fans:viral": "assets/bos2-icons/logos/icons8-starburst-shape-100.png",
+  // ott
+  "ott:home": "assets/2d/virtual_led.png",
+  "ott:originals": "assets/bos2-icons/logos/icons8-queen-crown-100.png",
+  "ott:deals": "assets/itch-ui/icons/Icon_07.png",
+  "ott:sports": "assets/bos2-icons/general/icons8-running-100.png",
+  "ott:market": "assets/bos2-icons/logos/icons8-prism-96.png",
+  // live
+  "live:linear": "assets/2d/backlot.png",
+  "live:stream": "assets/2d/char_cameraman.png",
+  "live:events": "assets/bos2-icons/general/icons8-red-carpet-100.png",
+  "live:studio": "assets/2d/soundstage.png",
+  // library
+  "library:films": "assets/bos2-icons/general/film-clapper.png",
+  "library:series": "assets/2d/virtual_led.png",
+  "library:physical": "assets/itch-ui/icons/Icon_02.png",
+  "library:vault": "assets/itch-ui/icons/Icon_08.png",
+  // empire
+  "empire:franchises": "assets/bos2-icons/logos/icons8-queen-crown-100.png",
+  "empire:music": "assets/bos2-icons/genres/icons8-musical-100.png",
+  "empire:games": "assets/pixel-characters/char-robot.png",
+  "empire:comics": "assets/bos2-icons/general/icons8-art-64.png",
+  // games
+  "games:dev": "assets/pixel-characters/char-robot.png",
+  "games:released": "assets/itch-ui/icons/Icon_09.png",
+  "games:hardware": "assets/bos2-icons/logos/icons8-edge-level-96.png",
+  "games:greenlight": "assets/bos2-icons/general/film-clapper.png",
+  // finance
+  "finance:pnl": "assets/itch-ui/icons/Icon_01.png",
+  "finance:bonds": "assets/itch-ui/icons/Icon_04.png",
+  "finance:dynasty": "assets/bos2-icons/logos/icons8-queen-crown-100.png",
+  "finance:ipo": "assets/bos2-icons/general/film-clapper.png",
+  "finance:ma": "assets/itch-ui/icons/Icon_08.png",
+  // lot
+  "lot:campus": "assets/2d/studio_gate.png",
+  "lot:stage": "assets/2d/soundstage.png",
+  "lot:writers": "assets/2d/writers_bungalow.png",
+  "lot:post": "assets/2d/post_suite.png",
+  "lot:cinema": "assets/2d/cinema_theater.png",
+  "lot:executive": "assets/2d/executive.png",
+  // cast
+  "cast:all": "assets/bos2-icons/general/group.png",
+  "cast:stars": "assets/itch-ui/icons/Icon_09.png",
+  "cast:animals": "assets/bos2-icons/general/icons8-cat-footprint-100.png",
+  "cast:unlock": "assets/itch-ui/icons/Icon_07.png",
+  // wizard
+  "wizard:writer": "assets/bos2-icons/general/writer.png",
+  "wizard:director": "assets/2d/char_director.png",
+  "wizard:actor": "assets/bos2-icons/general/group.png",
+  "wizard:producer": "assets/bos2-icons/general/film-clapper.png",
+  "wizard:stars": "assets/itch-ui/icons/Icon_09.png",
+  "wizard:animals": "assets/bos2-icons/general/icons8-cat-footprint-100.png",
+  "wizard:unlock": "assets/itch-ui/icons/Icon_07.png"
+};
+
+function getSubTabPixelIcon(tab, key){
+  return SUBTAB_PIXEL_ICONS[tab + ":" + key] || SUBTAB_PIXEL_ICONS[key] || "";
+}
+
 /* ═══════════ Mobile sub-tab strip renderer ═══════════ */
 /* Renders the horizontal sub-tab bar (#subTabs) based on the active tab.
    Called from bindView() so it stays in sync with TAB and sub-tab state. */
@@ -1840,28 +1962,30 @@ function renderSubTabs(){
   const attr = TAB_SUB_ATTR[TAB] || "data-sub";
   const ghost = TAB_SUB_GHOST[TAB] ? "btn-ghost" : "btn-alt";
   const activeKey = (TAB_SUB_ACTIVE[TAB] ? TAB_SUB_ACTIVE[TAB]() : (TAB_SUB_DEFAULT[TAB] || meta[0][0]));
-  bar.innerHTML = meta.map(([key, label]) =>
-    "<button class='btn btn-sm "+(key===activeKey ? "btn-primary" : ghost)+"' "+attr+"='"+key+"'>"+label+"</button>"
-  ).join("");
+  bar.innerHTML = meta.map(([key, label]) => {
+    const ico = getSubTabPixelIcon(TAB, key);
+    const icoHtml = ico ? "<img class='subtab-pixel-icon' src='"+ico+"' alt='' />" : "";
+    return "<button class='btn btn-sm subtab-btn "+(key===activeKey ? "btn-primary active" : ghost)+"' "+attr+"='"+key+"'>"+icoHtml+"<span>"+label+"</span></button>";
+  }).join("");
   bar.style.display = "flex";
 }
 function viewDevelop(){
   if(!DEVELOP_SUB) DEVELOP_SUB="scripts";
   const DEV_TABS=[
-    ["scripts","Scripts"],
-    ["demographics","Demographics &amp; Dial Tests"],
-    ["creativity","Lenses &amp; Remake Vault"],
-    ["ip","IP Market"],
-    ["talent","Talent Business"],
-    ["combos","Combos Codex"],
-    ["tax","Tax Rebates &amp; Co-Pro"]
+    ["scripts","Scripts","assets/bos2-icons/general/writer.png"],
+    ["demographics","Demographics &amp; Dial Tests","assets/bos2-icons/general/icons8-audience-100.png"],
+    ["creativity","Lenses &amp; Remake Vault","assets/2d/char_cameraman.png"],
+    ["ip","IP Market","assets/bos2-icons/logos/icons8-diamond-100.png"],
+    ["talent","Talent Business","assets/bos2-icons/general/group.png"],
+    ["combos","Combos Codex","assets/itch-ui/icons/Icon_03.png"],
+    ["tax","Tax Rebates &amp; Co-Pro","assets/bos2-icons/general/icons8-map-marker-90.png"]
   ];
   let h="<div class='subnav-pills'>"+
-    DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'>"+x[1]+"</button>").join("")+
-    "<button class='subnav-pill' id='btnOpenAgencyPackaging'>Agency Packaging (CAA/WME)</button>"+
-    "<button class='subnav-pill' id='btnOpenContracts'>Multi-Pic Contracts</button>"+
-    "<button class='subnav-pill' id='btnOpenTalentAgency'>Talent Agency</button>"+
-    "<button class='subnav-pill' id='btnClashAnalytics'>Clash Radar</button>"+
+    DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'><img class='subtab-pixel-icon' src='"+x[2]+"' alt='' /><span>"+x[1]+"</span></button>").join("")+
+    "<button class='subnav-pill' id='btnOpenAgencyPackaging'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Agency Packaging</span></button>"+
+    "<button class='subnav-pill' id='btnOpenContracts'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_04.png' alt='' /><span>Multi-Pic Contracts</span></button>"+
+    "<button class='subnav-pill' id='btnOpenTalentAgency'><img class='subtab-pixel-icon' src='assets/2d/char_star_actor.png' alt='' /><span>Talent Agency</span></button>"+
+    "<button class='subnav-pill' id='btnClashAnalytics'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_06.png' alt='' /><span>Clash Radar</span></button>"+
   "</div>";
   if(DEVELOP_SUB==="demographics"){
     let dH = h;
@@ -1993,6 +2117,13 @@ function viewDevelop(){
   }catch(e){}
   // writers, producers, directors, cast (v4 + main)
   try{
+    h+="<div class='spread' style='align-items:center;margin:16px 0 8px;flex-wrap:wrap;gap:8px'>"+
+       "<div class='section-title' style='margin:0'>TALENT ROSTER &amp; MARKET</div>"+
+       "<div style='display:flex;gap:6px;flex-wrap:wrap'>"+
+         "<button class='btn btn-xs' style='background:#f5c518;color:#0f172a;font-weight:bold' onclick='if(typeof unlockAllCast===\"function\"){unlockAllCast();render();}'>UNLOCK ALL CAST ("+(G.talent||[]).length+")</button>"+
+         (typeof openBOS2TalentModal === "function" ? "<button class='btn btn-xs btn-alt' onclick='openBOS2TalentModal()'>Animal Actors &amp; Market</button>" : "")+
+       "</div>"+
+     "</div>";
     const freeA=(typeof freeTalent==="function"? freeTalent("actor") : G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil)).sort((a,b)=>b.power-a.power||b.skill-a.skill);
     const freeD=(typeof freeTalent==="function"? freeTalent("director") : G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil)).sort((a,b)=>b.power-a.power||b.skill-a.skill);
     const freeW=(typeof freeTalent==="function"? freeTalent("writer") : []).sort((a,b)=>b.skill-a.skill||b.power-a.power);
@@ -2378,13 +2509,28 @@ function pitchModal(){
 }
 
 /* ── greenlight wizard (film & sequel) ── */
-function startWizard(idea){
-  WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], cameo:null, sub:2,
+function startWizard(idea, targetSub){
+  WZ={mode:"film", idea, writer:null, director:null, producer:null, cast:[], cameo:null, sub:targetSub||2,
       budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false, deals:{},
       rating:"PG-13", location:"la", scriptPolish:false, premium:false,
       aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
   wizardModal();
 }
+window.setWizardFilter = function(filterKind, step){
+  if(WZ){
+    if(step===2) WZ._wFilter = filterKind;
+    else if(step===3) WZ._dFilter = filterKind;
+    else if(step===4) WZ._cFilter = filterKind;
+    else if(step===5) WZ._pFilter = filterKind;
+    wizardModal();
+  }
+};
+window.setWizardStep = function(step){
+  if(WZ){
+    WZ.sub = step;
+    wizardModal();
+  }
+};
 function startSequel(film){
   const idea={ id:nid(), genre:film.genre, scale:film.scale, title:"(sequel)", blurb:"The saga continues…",
     script:clamp((film.quality?film.quality.overall:65)+5,55,95), hot:true, sequelOf:film };
@@ -2470,7 +2616,7 @@ function wizardModal(){
   const step = WZ.sub;
   const gname = DATA.GENRES[WZ.idea.genre].name;
   const flowActive={2:"Script",3:"Cast",4:"Cast",5:"Production",6:"Production"}[step]||"Concept";
-  let h="<h3>🎬 Greenlight: “"+esc(WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title)+"”</h3>"+
+  let h="<h3>Greenlight: “"+esc(WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title)+"”</h3>"+
     filmFlowStrip(flowActive)+
     "<div class='wiz-step'>"+
       "<span class='done'>1 · Script</span>"+
@@ -2491,8 +2637,14 @@ function wizardModal(){
     }
     if(!ws.length && !WZ.aiScript) h+="<div class='card muted small'>Every writer in town is booked. You can shoot the spec as-is.</div>";
     if(!WZ.aiScript){
-      h+="<div class='pick-list'>";
-      ws.slice(0,10).forEach(function(w){ h+=crewCard(w,{genre:WZ.idea.genre, sel:!!(WZ.writer&&WZ.writer.id===w.id), attr:"data-writer='"+w.id+"'"}); });
+      h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
+        "<button class='btn btn-xs subtab-btn "+(WZ._wFilter==='all'||!WZ._wFilter?'btn-primary':'btn-alt')+"' onclick='WZ._wFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/writer.png' alt='' /><span>All Writers ("+ws.length+")</span></button>"+
+        "<button class='btn btn-xs subtab-btn "+(WZ._wFilter==='top'?'btn-primary':'btn-alt')+"' onclick='WZ._wFilter=\"top\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>Elite (Skill 85+)</span></button>"+
+        "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
+      "</div>";
+      const filtWs = (WZ._wFilter==='top') ? ws.filter(w=>w.skill>=85) : ws;
+      h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
+      filtWs.forEach(function(w){ h+=crewCard(w,{genre:WZ.idea.genre, sel:!!(WZ.writer&&WZ.writer.id===w.id), attr:"data-writer='"+w.id+"'"}); });
       h+="</div>";
     }
     if(WZ.writer) h+=decisionCard([["Cost","+"+fmtM(actorFee(WZ.writer))+" fee"],["Script",base+" → "+Math.round(clamp(base+writerBonus(WZ.writer,WZ.idea.genre),20,99))],["Quality impact","Page ≈30% of quality"],["Box office","Via quality → legs + opening buzz"]]);
@@ -2504,13 +2656,19 @@ function wizardModal(){
     const dirs=freeTalent("director").sort((a,b)=>(b.power*20+b.skill)-(a.power*20+a.skill));
     h+="<p class='small muted'>A director shapes ~25% of quality. Genre fit adds a bonus. Bigger names also lift buzz.</p>";
     if(WZ.director) h+=decisionCard([["Cost","+"+fmtM(actorFee(WZ.director))+" fee"],["Quality impact","Skill "+WZ.director.skill+(WZ.director.genreFit===WZ.idea.genre?" · genre fit ×1.1":"")],["Critics","Fit directors review better"],["Box office","Via quality + buzz"]]);
-    h+="<div class='pick-list'>";
-    dirs.slice(0,10).forEach(function(d){ h+=crewCard(d,{genre:WZ.idea.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-dir='"+d.id+"'"}); });
+    h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
+      "<button class='btn btn-xs subtab-btn "+(WZ._dFilter==='all'||!WZ._dFilter?'btn-primary':'btn-alt')+"' onclick='WZ._dFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/2d/char_director.png' alt='' /><span>All Directors ("+dirs.length+")</span></button>"+
+      "<button class='btn btn-xs subtab-btn "+(WZ._dFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._dFilter=\"stars\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>5-Star Auteurs</span></button>"+
+      "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
+    "</div>";
+    const filtDirs = (WZ._dFilter==='stars') ? dirs.filter(d=>d.power>=5) : dirs;
+    h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
+    filtDirs.forEach(function(d){ h+=crewCard(d,{genre:WZ.idea.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-dir='"+d.id+"'"}); });
     h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='wzBackWriter'>← Writer</button>"+
        (WZ.director? "<button class='btn btn-primary' id='wzNext'>To Cast →</button>":"")+"</div>";
   }else if(step===4){
     const acts=freeTalent("actor").sort((a,b)=>(b.power*20+b.skill)-(a.power*20+a.skill));
-    h+="<p class='small muted'>Pick 1–3 leads. Star power (★) drives opening weekend; skill drives reviews. Scandal-hit stars come cheap — and cost you at the box office.</p>";
+    h+="<p class='small muted'>Pick 1–3 leads. Star power drives opening weekend; skill drives reviews. Scandal-hit stars come cheap — and cost you at the box office.</p>";
     { const sp=(WZ.cast||[]).reduce((s,c)=>s+c.power,0);
       if(WZ.aiCast) h+=decisionCard([["Cost","$0 fees"],["Audience impact","−"+DATA.AI.audPenalty+" score"],["Box office","No star power · hype ×0.97"],["Risk","Guild heat + backlash"]]);
       else if(sp>0) h+=decisionCard([["Star power",sp+"★ → opening ×"+starOpenMult(sp)],["Cost","+"+fmtM(WZ.cast.reduce((s,c)=>s+actorFee(c),0))+" fees"],["Critics / audience","Skill avg "+Math.round(WZ.cast.reduce((s,c)=>s+c.skill,0)/WZ.cast.length)],["Risk",WZ.cast.some(c=>c.scandal>0)?"Scandal cast −opening":"Clean"]]); }
@@ -2519,14 +2677,22 @@ function wizardModal(){
         "<div class='tiny muted'>Zero fees upfront, but: audience score −"+DATA.AI.audPenalty+", no star opening power, no press tour, the guilds take note. The money you save buys P&A.</div></div>";
     }
     if(!WZ.aiCast){
-      h+="<div class='pick-list'>";
-      acts.slice(0,12).forEach(function(a){ h+=crewCard(a,{sel:WZ.cast.some(c=>c.id===a.id), attr:"data-cast='"+a.id+"'"}); });
+      h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
+        "<button class='btn btn-xs subtab-btn "+(WZ._cFilter==='all'||!WZ._cFilter?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/group.png' alt='' /><span>All ("+acts.length+")</span></button>"+
+        "<button class='btn btn-xs subtab-btn "+(WZ._cFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"stars\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>5-Star Superstars ("+acts.filter(a=>a.power>=5).length+")</span></button>"+
+        "<button class='btn btn-xs subtab-btn "+(WZ._cFilter==='animals'?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"animals\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-cat-footprint-100.png' alt='' /><span>Animal Stars ("+acts.filter(a=>a.isAnimal).length+")</span></button>"+
+        "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
+      "</div>";
+      const filtActs = (WZ._cFilter==='stars') ? acts.filter(a=>a.power>=5) :
+                       (WZ._cFilter==='animals') ? acts.filter(a=>a.isAnimal) : acts;
+      h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
+      filtActs.forEach(function(a){ h+=crewCard(a,{sel:WZ.cast.some(c=>c.id===a.id), attr:"data-cast='"+a.id+"'"}); });
       h+="</div>";
       /* v14: agent packages (§29) — stars with 4★+ will trade fee for backend */
       const dealStars=(WZ.cast||[]).filter(c=>(c.power||0)>=4);
       if(dealStars.length){
         WZ.deals=WZ.deals||{};
-        h+="<div class='small muted' style='margin:10px 0 6px'>🤝 Agent packages <span class='tiny'>(4★+ stars will trade fee for a cut — tap to negotiate)</span></div><div class='plan-pick'>";
+        h+="<div class='small muted' style='margin:10px 0 6px'>Agent packages <span class='tiny'>(4★+ stars will trade fee for a cut — tap to negotiate)</span></div><div class='plan-pick'>";
         dealStars.forEach(c=>{
           const on=WZ.deals[c.id]==="backend";
           h+="<div class='plan-opt"+(on?" sel":"")+"' data-deal='"+c.id+"'><div class='spread'><h5>"+esc(c.name)+"</h5><span class='tag "+(on?"gold":"")+"'>"+(on?"fee −30% · +2% backend":"flat fee "+fmtM(actorFee(c)))+"</span></div>"+
@@ -2537,9 +2703,9 @@ function wizardModal(){
     }
     /* v28.15: cameo — one superstar in a single scene, 30% of their fee, +6% opening buzz */
     if(!WZ.aiCast){
-      h+="<div class='small muted' style='margin:10px 0 6px'>🌟 Cameo <span class='tiny'>(one scene, one superstar — 30% of their fee, +6% opening buzz)</span></div>"+
+      h+="<div class='small muted' style='margin:10px 0 6px'>Cameo <span class='tiny'>(one scene, one superstar — 30% of their fee, +6% opening buzz)</span></div>"+
         "<div class='plan-pick'>"+
-        (WZ.cameo? "<div class='plan-opt sel' data-cameoclear><h5>🌟 "+esc(WZ.cameo.name)+" · "+fmtM(Math.round(actorFee(WZ.cameo)*0.3*10)/10)+"</h5><div class='p-sub'>Tap to remove the cameo.</div></div>"
+        (WZ.cameo? "<div class='plan-opt sel' data-cameoclear><h5>"+esc(WZ.cameo.name)+" · "+fmtM(Math.round(actorFee(WZ.cameo)*0.3*10)/10)+"</h5><div class='p-sub'>Tap to remove the cameo.</div></div>"
                  : "<div class='plan-opt' id='wzCameo'><h5>＋ Cast a cameo…</h5><div class='p-sub'>Pick a superstar for a single scene.</div></div>")+
         "</div>";
     }
@@ -2550,8 +2716,14 @@ function wizardModal(){
     if(WZ.producer) h+=decisionCard([["Cost","+"+fmtM(actorFee(WZ.producer))+" fee"],["Overrun risk","~"+overrunRisk(WZ.producer.skill)+"%/wk, smaller hits"],["Quality impact",(WZ.producer.skill>=80?"+schedule shave, +value":"+"+clamp(Math.round((WZ.producer.skill-55)/6),-3,7)+" production value")],["Risk","None — protection"]]);
     else h+=decisionCard([["Cost","$0"],["Overrun risk","~"+overrunRisk(45)+"%/wk, full-size hits"],["Quality impact","No producer value"],["Risk","Every overrun lands on you"]]);
     if(!prods.length) h+="<div class='card muted small'>No producers free this week — you'll be running the floor yourself.</div>";
-    h+="<div class='pick-list'>";
-    prods.slice(0,10).forEach(function(p){ h+=crewCard(p,{sel:!!(WZ.producer&&WZ.producer.id===p.id), attr:"data-prod='"+p.id+"'"}); });
+    h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
+      "<button class='btn btn-xs subtab-btn "+(WZ._pFilter==='all'||!WZ._pFilter?'btn-primary':'btn-alt')+"' onclick='WZ._pFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>All Producers ("+prods.length+")</span></button>"+
+      "<button class='btn btn-xs subtab-btn "+(WZ._pFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._pFilter=\"stars\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>Veterans (Skill 75+)</span></button>"+
+      "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
+    "</div>";
+    const filtProds = (WZ._pFilter==='stars') ? prods.filter(p=>p.skill>=75||p.power>=4) : prods;
+    h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
+    filtProds.forEach(function(p){ h+=crewCard(p,{sel:!!(WZ.producer&&WZ.producer.id===p.id), attr:"data-prod='"+p.id+"'"}); });
     h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='wzBackCast'>← Cast</button><button class='btn btn-primary' id='wzNext'>To Budget →</button></div>";
   }else{
     const crew=[WZ.writer,WZ.director,WZ.producer].filter(Boolean);
@@ -2904,8 +3076,9 @@ function filmPitchModal(){
     });
     h+="</div></div>";
     h+="<div class='card'><div class='slider-row'><span class='small muted'>Budget</span><input type='range' id='fpBudget' min='"+DATA.SCALES[WZ.scale].bMin+"' max='"+Math.round(DATA.SCALES[WZ.scale].bMax*1.4)+"' step='"+(DATA.SCALES[WZ.scale].bMin>=100?5:2)+"' value='"+Math.round(neededBudget(WZ.genre,WZ.scale))+"'><span class='slider-val' id='fpBudgetV'>"+fmtM(Math.round(neededBudget(WZ.genre,WZ.scale)))+"</span></div></div>";
-    h+="<div class='small muted' style='margin:10px 0 8px'>Attach a director — mandatory</div><div class='pick-list'>";
-    freeTalent("director").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(d){
+    h+="<div class='spread' style='margin:10px 0 8px;align-items:center'><div class='small muted'>Attach a director — mandatory ("+freeTalent("director").length+" available)</div><button class='btn btn-xs btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();filmPitchModal();'>[UNLOCK ALL CAST]</button></div>";
+    h+="<div class='pick-list' style='max-height:280px;overflow-y:auto'>";
+    freeTalent("director").sort((a,b)=>b.skill-a.skill).forEach(function(d){
       h+=crewCard(d,{genre:WZ.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-fpd='"+d.id+"'"});
     });
     h+="</div>";
@@ -2952,8 +3125,9 @@ function filmPitchModal(){
       });
       h+="</div></div>";
     }
-    h+="<div class='small muted' style='margin:10px 0 8px'>Hire a writer — sharpens the script</div><div class='pick-list'>";
-    freeTalent("writer").sort((a,b)=>b.skill-a.skill).slice(0,8).forEach(function(w){
+    h+="<div class='spread' style='margin:10px 0 8px;align-items:center'><div class='small muted'>Hire a writer — sharpens the script ("+freeTalent("writer").length+" available)</div><button class='btn btn-xs btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();filmPitchModal();'>[UNLOCK ALL CAST]</button></div>";
+    h+="<div class='pick-list' style='max-height:280px;overflow-y:auto'>";
+    freeTalent("writer").sort((a,b)=>b.skill-a.skill).forEach(function(w){
       h+=crewCard(w,{genre:WZ.genre, sel:!!(WZ.writer&&WZ.writer.id===w.id), attr:"data-fpw='"+w.id+"'"});
     });
     h+="</div>";
@@ -3001,13 +3175,22 @@ function filmPitchModal(){
     h+="<div class='card' style='margin-top:10px'><label class='field-label' for='fpTitle'>🎬 Film name</label>"+
       "<input id='fpTitle' type='text' maxlength='60' placeholder='Leave blank — the studio will name it' value='"+esc(WZ.title||"")+"' style='width:100%;background:#0b0f18;border:1px solid var(--line2);color:var(--text);border-radius:11px;padding:10px 12px;font-size:15px;outline:none'></div>";
     h+="<div class='small muted' style='margin:10px 0'>Round out the team — producer and cast</div>";
-    h+="<div class='pick-list'>";
-    freeTalent("producer").sort((a,b)=>b.skill-a.skill).slice(0,6).forEach(function(p){
+    h+="<div class='pick-list' style='max-height:220px;overflow-y:auto'>";
+    freeTalent("producer").sort((a,b)=>b.skill-a.skill).forEach(function(p){
       h+=crewCard(p,{genre:WZ.genre, sel:!!(WZ.producer&&WZ.producer.id===p.id), attr:"data-fpp='"+p.id+"'"});
     });
     h+="</div>";
-    h+="<div class='small muted' style='margin:10px 0 8px'>Cast ("+WZ.cast.length+"/8) — stars multiply the opening</div><div class='pick-list'>";
-    freeTalent("actor").sort((a,b)=>(b.power*30+b.skill)-(a.power*30+a.skill)).slice(0,10).forEach(function(a){
+    const allActs = freeTalent("actor").sort((a,b)=>(b.power*30+b.skill)-(a.power*30+a.skill));
+    h+="<div class='spread' style='margin:12px 0 6px;align-items:center'><div class='small muted'>Cast ("+WZ.cast.length+"/8) — stars multiply the opening</div><button class='btn btn-xs btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();filmPitchModal();'>[UNLOCK ALL CAST]</button></div>";
+    h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap'>"+
+      "<button class='btn btn-xs "+(WZ._cFilter==='all'||!WZ._cFilter?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"all\";filmPitchModal()'>All ("+allActs.length+")</button>"+
+      "<button class='btn btn-xs "+(WZ._cFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"stars\";filmPitchModal()'>5★ Superstars ("+allActs.filter(a=>a.power>=5).length+")</button>"+
+      "<button class='btn btn-xs "+(WZ._cFilter==='animals'?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"animals\";filmPitchModal()'>Animal Stars ("+allActs.filter(a=>a.isAnimal).length+")</button>"+
+    "</div>";
+    const filtActs = (WZ._cFilter==='stars') ? allActs.filter(a=>a.power>=5) :
+                     (WZ._cFilter==='animals') ? allActs.filter(a=>a.isAnimal) : allActs;
+    h+="<div class='pick-list' style='max-height:280px;overflow-y:auto'>";
+    filtActs.forEach(function(a){
       h+=crewCard(a,{genre:WZ.genre, sel:WZ.cast.some(c=>c.id===a.id), attr:"data-fpc='"+a.id+"'"});
     });
     h+="</div>";
@@ -3477,24 +3660,26 @@ function backlotScene(){
 
 function viewProductions(){
   let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🎬 Active Slate</button>"+
-    "<button class='subnav-pill' onclick='calendarModal()'>🗓 Release Calendar</button>"+
-    "<button class='subnav-pill' onclick='if(typeof openLocationScoutingModal===\"function\")openLocationScoutingModal()'>🗺 Location Scouting</button>"+
-    "<button class='subnav-pill' onclick='if(typeof openInsuranceModal===\"function\")openInsuranceModal()'>🛡 Completion Insurance</button>"+
-    "<button class='subnav-pill' onclick='if(typeof openTestScreeningModal===\"function\")openTestScreeningModal()'>🧪 Test Screenings</button>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Active Slate</span></button>"+
+    "<button class='subnav-pill' onclick='calendarModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-new-ticket-100.png' alt='' /><span>Release Calendar</span></button>"+
+    "<button class='subnav-pill' onclick='if(typeof openLocationScoutingModal===\"function\")openLocationScoutingModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-map-marker-90.png' alt='' /><span>Location Scouting</span></button>"+
+    "<button class='subnav-pill' onclick='if(typeof openInsuranceModal===\"function\")openInsuranceModal()'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_05.png' alt='' /><span>Completion Insurance</span></button>"+
+    "<button class='subnav-pill' onclick='if(typeof openTestScreeningModal===\"function\")openTestScreeningModal()'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_03.png' alt='' /><span>Test Screenings</span></button>"+
   "</div>";
   const ready=readyProjects(), allProd=inProdProjects();
   h+=filmFlowStrip("Production")+"<div class='tiny muted' style='margin:-4px 0 8px'>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release → Box office → Streaming. Cards below show stage + next action.</div>";
-  h+="<div class='row' style='margin-bottom:8px'><button class='btn btn-alt' onclick='calendarModal()'>📅 Release calendar — move dates, dodge rivals</button></div>";
+  h+="<div class='row' style='margin-bottom:8px'><button class='btn btn-alt' onclick='calendarModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-new-ticket-100.png' alt='' /><span>Release calendar — move dates, dodge rivals</span></button></div>";
   
   // Pipeline Gantt
   h+=pipelineGantt(allProd);
 
   // Active Project Filter Chips
   h+="<div class='row' style='margin-bottom:10px;flex-wrap:wrap;gap:4px'>"+
-    [["all","All Projects"],["pre","Pre-production"],["shoot","Shooting"],["post","Post-production"],["ready","Ready"],["dated","Dated"]].map(([k,label])=>
-      "<button class='btn btn-sm "+(PROD_FILTER===k?"btn-primary":"btn-ghost")+"' data-filter-prod='"+k+"'>"+label+"</button>"
-    ).join("")+
+    [["all","All Projects"],["pre","Pre-production"],["shoot","Shooting"],["post","Post-production"],["ready","Ready"],["dated","Dated"]].map(([k,label])=>{
+      const ico = getSubTabPixelIcon("productions", k);
+      const icoHtml = ico ? "<img class='subtab-pixel-icon' src='"+ico+"' alt='' />" : "";
+      return "<button class='btn btn-sm subtab-btn "+(PROD_FILTER===k?"btn-primary active":"btn-ghost")+"' data-filter-prod='"+k+"'>"+icoHtml+"<span>"+label+"</span></button>";
+    }).join("")+
   "</div>";
 
   const prod = allProd.filter(p => {
@@ -4334,14 +4519,14 @@ function boxOfficeVaultBrowser(){
 function viewBoxOffice(){
   if(typeof BOXOFFICE_SUB === "undefined") BOXOFFICE_SUB = "chart";
   let h = "<div class='subnav-pills'>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chart"?"active":"")+"' data-bosub='chart'>Theatrical Runs</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chains"?"active":"")+"' data-bosub='chains'>Mega-Chains</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="plf"?"active":"")+"' data-bosub='plf'>PLF &amp; Concessions</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="blitz"?"active":"")+"' data-bosub='blitz'>Marketing Blitz</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="territories"?"active":"")+"' data-bosub='territories'>Territory Deals</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="awards"?"active":"")+"' data-bosub='awards'>Awards Circuit</button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="clash"?"active":"")+"' data-bosub='clash'>Clash Radar</button>"+
-    "<button class='subnav-pill' onclick='switchTab(\"library\")'>Film Library</button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chart"?"active":"")+"' data-bosub='chart'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-ticket-100.png' alt='' /><span>Theatrical Runs</span></button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chains"?"active":"")+"' data-bosub='chains'><img class='subtab-pixel-icon' src='assets/2d/cinema_theater.png' alt='' /><span>Mega-Chains</span></button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="plf"?"active":"")+"' data-bosub='plf'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-movie-ticket-100.png' alt='' /><span>PLF &amp; Concessions</span></button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="blitz"?"active":"")+"' data-bosub='blitz'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/beat.png' alt='' /><span>Marketing Blitz</span></button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="territories"?"active":"")+"' data-bosub='territories'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-biometric-passport-100.png' alt='' /><span>Territory Deals</span></button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="awards"?"active":"")+"' data-bosub='awards'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_12.png' alt='' /><span>Awards Circuit</span></button>"+
+    "<button class='subnav-pill "+(BOXOFFICE_SUB==="clash"?"active":"")+"' data-bosub='clash'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_06.png' alt='' /><span>Clash Radar</span></button>"+
+    "<button class='subnav-pill' onclick='switchTab(\"library\")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Film Library</span></button>"+
   "</div>";
 
   if(BOXOFFICE_SUB === "chains"){
@@ -4562,9 +4747,13 @@ function viewOTT(){
   try{ h+=streamMarketBoard(); }catch(e){}
   /* ── v28.9 §15: streamer sub-tabs (Home/Originals/Deals/Sports/Market) ── */
   if(!OTT_SUB) OTT_SUB="home";
-  const OTT_TABS=[["home","🏠 Home"],["originals","🎬 Originals"],["deals","📄 Deals"],["sports","🏆 Sports"],["market","🌍 Market"]];
-  h+="<div class='row' style='gap:4px;flex-wrap:wrap;margin:4px 0 10px'>"+
-    OTT_TABS.map(x=>"<button class='btn btn-sm "+(OTT_SUB===x[0]?"btn-primary":"btn-alt")+"' data-ottsub='"+x[0]+"'>"+x[1]+"</button>").join("")+"</div>";
+  const OTT_TABS=[["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]];
+  h+="<div class='subnav-pills'>"+
+    OTT_TABS.map(x=>{
+      const ic = getSubTabPixelIcon("ott", x[0]);
+      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
+      return `<button class='subnav-pill ${OTT_SUB===x[0]?"active":""}' data-ottsub='${x[0]}'>${img}<span>${x[1]}</span></button>`;
+    }).join("")+"</div>";
   if(OTT_SUB==="deals"){
   h+="<div class='section-title'>Deal offers ("+G.offers.length+")</div>";
   if(!G.offers.length) h+="<div class='card muted small'>No offers on the table. Hits and finished runs attract bidders — especially during streaming wars.</div>";
@@ -4706,11 +4895,11 @@ function viewFinance(){
   const dRepLabel = (dRep >= 0 ? "+" : "") + dRep.toFixed(1);
 
   let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>📊 P&L Ledger</button>"+
-    "<button class='subnav-pill' id='btnOpenBonds'>📑 Corporate Bond Market</button>"+
-    "<button class='subnav-pill' id='btnOpenDynasty'>👑 Dynasty & Trust</button>"+
-    "<button class='subnav-pill' onclick='ipoModal()'>🔔 Public Offering</button>"+
-    "<button class='subnav-pill' onclick='maModal()'>🏢 M&A Vault</button>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_01.png' alt='' /><span>P&amp;L Ledger</span></button>"+
+    "<button class='subnav-pill' id='btnOpenBonds'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_04.png' alt='' /><span>Corporate Bond Market</span></button>"+
+    "<button class='subnav-pill' id='btnOpenDynasty'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-queen-crown-100.png' alt='' /><span>Dynasty &amp; Trust</span></button>"+
+    "<button class='subnav-pill' onclick='ipoModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Public Offering</span></button>"+
+    "<button class='subnav-pill' onclick='maModal()'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_08.png' alt='' /><span>M&amp;A Vault</span></button>"+
   "</div><div class='stat-hero'>"+
     statCard(fmtM(st.cash),"Cash ("+dCashLabel+" lw)","var(--gold2)")+
     statCard("+"+fmtM(ft.R),"Revenue (trail)")+
@@ -5631,11 +5820,18 @@ function testScreenModal(pid){
 /* ═══════════ VIEW: library (v23) — released films & series vault ═══════════ */
 function viewLibrary(){
   if(typeof LIBRARY_SUB === "undefined") LIBRARY_SUB = "films";
+  const libTabs = [
+    ["films", "Released Films"],
+    ["series", "Television Series"],
+    ["physical", "Physical 4K Media &amp; Box Sets"],
+    ["vault", "Restoration Vault"]
+  ];
   let h = "<div class='subnav-pills'>"+
-    "<button class='subnav-pill "+(LIBRARY_SUB==="films"?"active":"")+"' data-libsub='films'>Released Films</button>"+
-    "<button class='subnav-pill "+(LIBRARY_SUB==="series"?"active":"")+"' data-libsub='series'>Television Series</button>"+
-    "<button class='subnav-pill "+(LIBRARY_SUB==="physical"?"active":"")+"' data-libsub='physical'>Physical 4K Media &amp; Box Sets</button>"+
-    "<button class='subnav-pill "+(LIBRARY_SUB==="vault"?"active":"")+"' data-libsub='vault'>Restoration Vault</button>"+
+    libTabs.map(([key, label]) => {
+      const ic = getSubTabPixelIcon("library", key);
+      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
+      return `<button class='subnav-pill ${LIBRARY_SUB===key?"active":""}' data-libsub='${key}'>${img}<span>${label}</span></button>`;
+    }).join("")+
   "</div>";
 
   if(LIBRARY_SUB === "physical"){
@@ -5854,11 +6050,18 @@ function sharedUniverseDashboard(){
 let GAMES={src:null, dev:"partner", platform:"console"};
 function viewGames(){
   if(typeof GAMES_SUB === "undefined") GAMES_SUB = "dev";
+  const gameTabs = [
+    ["dev", "In Development"],
+    ["released", "Released Games"],
+    ["hardware", "Hardware Platforms"],
+    ["greenlight", "Greenlight Adaptation"]
+  ];
   let h = "<div class='subnav-pills'>"+
-    "<button class='subnav-pill "+(GAMES_SUB==="dev"?"active":"")+"' data-gamestab='dev'>In Development</button>"+
-    "<button class='subnav-pill "+(GAMES_SUB==="released"?"active":"")+"' data-gamestab='released'>Released Games</button>"+
-    "<button class='subnav-pill "+(GAMES_SUB==="hardware"?"active":"")+"' data-gamestab='hardware'>Hardware Platforms</button>"+
-    "<button class='subnav-pill "+(GAMES_SUB==="greenlight"?"active":"")+"' data-gamestab='greenlight'>Greenlight Adaptation</button>"+
+    gameTabs.map(([key, label]) => {
+      const ic = getSubTabPixelIcon("games", key);
+      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
+      return `<button class='subnav-pill ${GAMES_SUB===key?"active":""}' data-gamestab='${key}'>${img}<span>${label}</span></button>`;
+    }).join("")+
   "</div>";
 
   if(GAMES_SUB === "hardware"){
@@ -5960,11 +6163,11 @@ function viewGames(){
 /* ═══════════ EMPIRE view ═══════════ */
 function viewEmpire(){
   let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'>🏰 Franchises</button>"+
-    "<button class='subnav-pill' id='btnOpenUniverses'>🌌 Cinematic Universes</button>"+
-    "<button class='subnav-pill' id='btnOpenMerch'>🧸 Merch & Licensing</button>"+
-    "<button class='subnav-pill' id='btnOpenFanClub'>🎪 Fan Conventions</button>"+
-    "<button class='subnav-pill' onclick='switchTab(\"games\")'>🎮 Game Studio</button>"+
+    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-queen-crown-100.png' alt='' /><span>Franchises</span></button>"+
+    "<button class='subnav-pill' id='btnOpenUniverses'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-starburst-shape-100.png' alt='' /><span>Cinematic Universes</span></button>"+
+    "<button class='subnav-pill' id='btnOpenMerch'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_02.png' alt='' /><span>Merch &amp; Licensing</span></button>"+
+    "<button class='subnav-pill' id='btnOpenFanClub'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-red-carpet-100.png' alt='' /><span>Fan Conventions</span></button>"+
+    "<button class='subnav-pill' onclick='switchTab(\"games\")'><img class='subtab-pixel-icon' src='assets/pixel-characters/char-robot.png' alt='' /><span>Game Studio</span></button>"+
   "</div>";
   const weekly=G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0);
   const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
@@ -6895,9 +7098,15 @@ function settingsModal(){
       "<button class='btn btn-sm btn-alt' id='btnAboutChangelog'>📜 Changelog</button>"+
       "<button class='btn btn-sm btn-ghost' id='btnResetSettings'>⚠️ Reset Settings</button>"+
     "</div></div>";
+  /* Cast & Talent Unlocks */
+  h+="<div class='card'><div class='spread'><b>Cast &amp; Talent Unlocks</b>"+
+    "<button class='btn btn-sm btn-primary' id='btnUnlockAllCastSettings' style='background:#f5c518;color:#0f172a;font-weight:bold'>Unlock All Cast</button></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Unlocks all 72 animal star species (Box Office Sim 2) and all 5-star superstar actors, directors, writers, and producers. Clears all booking locks.</div></div>";
   h+="<div class='modal-actions'><button class='btn btn-ghost' id='btnToMenu'>"+t("set.menu")+"</button>"+
     "<button class='btn btn-primary' onclick='closeModal()'>"+t("btn.close")+"</button></div>";
   const v=openModal(h);
+  const btnUac=v.querySelector("#btnUnlockAllCastSettings");
+  if(btnUac) btnUac.onclick=()=>{ if(typeof unlockAllCast==="function") unlockAllCast(); beep("gold"); closeModal(); if(typeof render==="function") render(); };
   v.querySelector("#langEn").onclick=()=>{ setLang("en"); beep("click"); closeModal(); settingsModal(); render(); };
   v.querySelector("#langHi").onclick=()=>{ setLang("hi"); beep("click"); closeModal(); settingsModal(); render(); };
   const curFont=()=>parseFloat(localStorage.getItem("bow_font")||"15px");
@@ -7324,11 +7533,18 @@ function viewDashboard(){
   const frHeat = topFr ? Math.round((topFr.decay||0)*100) : null;
   const awardCount = (G.festWins||[]).filter(w=>w.year===yr).length + ((G.stats&&G.stats.awards)||[]).filter(a=>a.year===yr).length;
 
+  const dashTabs = [
+    ["overview", "Executive Overview"],
+    ["actions", "Quick Launch"],
+    ["slate", "Production Slate"],
+    ["macro", "Macro Economy"]
+  ];
   let h = "<div class='subnav-pills'>"+
-    "<button class='subnav-pill "+(DASHBOARD_SUB==="overview"?"active":"")+"' data-dashsub='overview'>Executive Overview</button>"+
-    "<button class='subnav-pill "+(DASHBOARD_SUB==="actions"?"active":"")+"' data-dashsub='actions'>Quick Launch</button>"+
-    "<button class='subnav-pill "+(DASHBOARD_SUB==="slate"?"active":"")+"' data-dashsub='slate'>Production Slate</button>"+
-    "<button class='subnav-pill "+(DASHBOARD_SUB==="macro"?"active":"")+"' data-dashsub='macro'>Macro Economy</button>"+
+    dashTabs.map(([key, label]) => {
+      const ic = getSubTabPixelIcon("dashboard", key);
+      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
+      return `<button class='subnav-pill ${DASHBOARD_SUB===key?"active":""}' data-dashsub='${key}'>${img}<span>${label}</span></button>`;
+    }).join("")+
   "</div>";
 
   // Executive Telemetry Hero
@@ -8186,8 +8402,12 @@ function viewLive(){
     ["events", "Live Events & Festivals"],
     ["studio", "On-Air Host Studio"]
   ];
-  h += "<div class='row' style='gap:6px;flex-wrap:wrap;margin-bottom:14px'>"+
-    subs.map(s => "<button class='btn btn-sm " + (activeSub === s[0] ? "btn-primary" : "btn-alt") + "' data-livesub='" + s[0] + "'>" + s[1] + "</button>").join("")+
+  h += "<div class='subnav-pills'>"+
+    subs.map(s => {
+      const ic = getSubTabPixelIcon("live", s[0]);
+      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
+      return `<button class='subnav-pill ${activeSub === s[0] ? "active" : ""}' data-livesub='${s[0]}'>${img}<span>${s[1]}</span></button>`;
+    }).join("")+
     "</div>";
 
   if(activeSub === "linear") h += viewLiveLinear();

@@ -152,83 +152,206 @@ h1,h2,h3,h4,h5,h6,
 .stat .s-v { font-size: 22px; font-weight: 800; }
 .stat .s-l { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; }
 
-/* 6. Itch.io 2D Pixel Buttons */
+/* 6. Retro Hollywood Studio Tactile Pixel Buttons & Subtab Styling */
 .btn {
-  font-family: var(--font-display) !important;
+  font-family: var(--font-display, inherit) !important;
   font-weight: 700 !important;
-  letter-spacing: .01em;
+  letter-spacing: .02em;
   border-radius: 8px !important;
-  padding: 8px 16px !important;
-  border: none !important;
-  background-image: url("assets/itch-ui/buttons/SmallBlueSquareButton_Regular.png") !important;
-  background-size: 100% 100% !important;
-  background-repeat: no-repeat !important;
+  padding: 8px 15px !important;
+  background-image: none !important;
   background-color: transparent !important;
-  color: #ffffff !important;
-  text-shadow: 0 1px 2px rgba(0,0,0,.8) !important;
-  box-shadow: 0 3px 10px rgba(0,0,0,.4) !important;
-  transition: transform .1s, filter .18s;
+  background: linear-gradient(180deg, #222f46 0%, #151d2c 50%, #0e1420 100%) !important;
+  border: 1px solid #3d4f70 !important;
+  border-bottom: 3px solid #070b12 !important;
+  color: #e2e8f0 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.85) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 3px 8px rgba(0,0,0,.45) !important;
+  cursor: pointer;
+  transition: transform .06s ease-out, filter .15s, background .15s;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
 }
 .btn:hover {
-  filter: brightness(1.12);
-  box-shadow: 0 5px 16px rgba(0,0,0,.5);
+  background: linear-gradient(180deg, #2a3a57 0%, #1c273a 50%, #121a28 100%) !important;
+  border-color: #526c99 !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 4px 12px rgba(0,0,0,.55) !important;
 }
 .btn:active {
-  background-image: url("assets/itch-ui/buttons/SmallBlueSquareButton_Pressed.png") !important;
-  transform: translateY(2px) scale(.98) !important;
+  transform: translateY(2px) !important;
+  border-bottom: 1px solid #070b12 !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.6) !important;
 }
-.btn-primary, #btnWeek, #btnStart, #btnResumeHero, #fabWeek, #fpGo, #btnPitchFilm {
-  background-image: url("assets/itch-ui/buttons/BigBlueButton_Regular.png") !important;
-  background-size: 100% 100% !important;
-  background-repeat: no-repeat !important;
-  background-color: transparent !important;
-  border: none !important;
-  color: #ffffff !important;
+
+/* Primary Hollywood Golden Ticket Button */
+.btn-primary, #btnWeek, #btnStart, #btnResumeHero, #fabWeek, #fpGo, #btnPitchFilm, #btnUnlockAllCastSettings {
+  background-image: none !important;
+  background: linear-gradient(180deg, #ffe082 0%, #f5a623 50%, #d47e06 100%) !important;
+  border: 1px solid #ffe89e !important;
+  border-bottom: 3px solid #804702 !important;
+  color: #1a1002 !important;
   font-weight: 800 !important;
-  text-shadow: 0 2px 4px rgba(0,0,0,.85) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,.55), 0 0 12px rgba(56,189,248,.25) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 3px 12px rgba(245,166,35,.35) !important;
 }
-.btn-primary:hover, #btnWeek:hover, #btnStart:hover, #btnResumeHero:hover, #fabWeek:hover, #fpGo:hover, #btnPitchFilm:hover {
-  filter: brightness(1.15) !important;
-  box-shadow: 0 6px 22px rgba(0,0,0,.65), 0 0 18px rgba(56,189,248,.35) !important;
+.btn-primary:hover, #btnWeek:hover, #btnStart:hover, #btnResumeHero:hover, #fabWeek:hover, #fpGo:hover, #btnPitchFilm:hover, #btnUnlockAllCastSettings:hover {
+  background: linear-gradient(180deg, #ffecb3 0%, #ffb732 50%, #e08b10 100%) !important;
+  border-color: #fff2c4 !important;
+  color: #100a01 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 4px 16px rgba(245,166,35,.5) !important;
 }
-.btn-primary:active, #btnWeek:active, #btnStart:active, #btnResumeHero:active, #fabWeek:active, #fpGo:active, #btnPitchFilm:active {
-  background-image: url("assets/itch-ui/buttons/BigBlueButton_Pressed.png") !important;
-  transform: translateY(2px) scale(.98) !important;
+.btn-primary:active, #btnWeek:active, #btnStart:active, #btnResumeHero:active, #fabWeek:active, #fpGo:active, #btnPitchFilm:active, #btnUnlockAllCastSettings:active {
+  transform: translateY(2px) !important;
+  border-bottom: 1px solid #804702 !important;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.35) !important;
 }
+
+/* Alt / Secondary Button */
 .btn-alt {
-  background-image: url("assets/itch-ui/buttons/SmallBlueSquareButton_Regular.png") !important;
-  background-size: 100% 100% !important;
-  border: none !important;
+  background-image: none !important;
+  background: linear-gradient(180deg, #1e283b 0%, #121927 100%) !important;
+  border: 1px solid #334360 !important;
+  border-bottom: 3px solid #060a12 !important;
+  color: #cbd5e1 !important;
+}
+.btn-alt:hover {
+  background: linear-gradient(180deg, #25334c 0%, #182234 100%) !important;
+  border-color: #4a618a !important;
   color: #ffffff !important;
 }
 .btn-alt:active {
-  background-image: url("assets/itch-ui/buttons/SmallBlueSquareButton_Pressed.png") !important;
-  transform: translateY(2px) scale(.98) !important;
+  transform: translateY(2px) !important;
+  border-bottom: 1px solid #060a12 !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.5) !important;
 }
+
+/* Danger / Cancel Button */
 .btn-danger {
-  background-image: url("assets/itch-ui/buttons/BigRedButton_Regular.png") !important;
-  background-size: 100% 100% !important;
-  border: none !important;
+  background-image: none !important;
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 50%, #991b1b 100%) !important;
+  border: 1px solid #fca5a5 !important;
+  border-bottom: 3px solid #5c0f18 !important;
   color: #ffffff !important;
-  text-shadow: 0 2px 4px rgba(0,0,0,.8) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.8) !important;
 }
 .btn-danger:active {
-  background-image: url("assets/itch-ui/buttons/BigRedButton_Pressed.png") !important;
-  transform: translateY(2px) scale(.98) !important;
+  transform: translateY(2px) !important;
+  border-bottom: 1px solid #5c0f18 !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.6) !important;
 }
+
+/* Round / Icon Buttons */
 .btn-icon, #btnSound, #btnSettings, #btnHelp, #btnAuto, #btnBell {
-  background-image: url("assets/itch-ui/buttons/SmallBlueRoundButton_Regular.png") !important;
-  background-size: contain !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  border: none !important;
-  color: #ffffff !important;
+  background-image: none !important;
+  background: linear-gradient(180deg, #222f46 0%, #121927 100%) !important;
+  border: 1px solid #3d4f70 !important;
+  border-bottom: 3px solid #080c14 !important;
+  color: #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
   text-shadow: 0 1px 2px rgba(0,0,0,.8) !important;
 }
 .btn-icon:active, #btnSound:active, #btnSettings:active, #btnHelp:active, #btnAuto:active, #btnBell:active {
-  background-image: url("assets/itch-ui/buttons/SmallBlueRoundButton_Pressed.png") !important;
   transform: translateY(2px) !important;
+  border-bottom: 1px solid #080c14 !important;
+}
+
+/* Pixel Art Subtab Styling */
+.subtab-pixel-icon {
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  vertical-align: middle;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.subtab-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+.kairo-nav-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: linear-gradient(180deg, #1e293b 0%, #111827 100%) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #334155 !important;
+  border-bottom: 3px solid #090e17 !important;
+  border-radius: 6px !important;
+  padding: 5px 12px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+  white-space: nowrap !important;
+}
+.kairo-nav-tab:hover {
+  color: #fff !important;
+  border-color: #f5a623 !important;
+  background: linear-gradient(180deg, #283548 0%, #172033 100%) !important;
+  transform: translateY(-1px) !important;
+}
+.kairo-nav-tab.active {
+  background: linear-gradient(180deg, #ffe082 0%, #f5a623 50%, #d47e06 100%) !important;
+  color: #1a0f00 !important;
+  border-color: #fbbf24 !important;
+  border-bottom: 3px solid #78350f !important;
+  box-shadow: 0 2px 8px rgba(245, 166, 35, 0.35) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
+}
+.kairo-nav-tab:active {
+  transform: translateY(2px) !important;
+  border-bottom-width: 1px !important;
+}
+.subnav-pills {
+  display: flex !important;
+  gap: 6px !important;
+  overflow-x: auto !important;
+  padding: 4px 2px 8px !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+.subnav-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: linear-gradient(180deg, #1c2638 0%, #0f1622 100%) !important;
+  border: 1px solid #30415d !important;
+  border-bottom: 3px solid #070c14 !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #cbd5e1 !important;
+  cursor: pointer !important;
+  transition: transform .06s ease-out, background .15s, border-color .15s !important;
+  white-space: nowrap !important;
+}
+.subnav-pill:hover {
+  background: linear-gradient(180deg, #24324a 0%, #151e2e 100%) !important;
+  border-color: #48618a !important;
+  color: #ffffff !important;
+}
+.subnav-pill.active {
+  background: linear-gradient(180deg, #ffe082 0%, #f5a623 50%, #d47e06 100%) !important;
+  border: 1px solid #ffe89e !important;
+  border-bottom: 3px solid #804702 !important;
+  color: #1a1002 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.4) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 3px 10px rgba(245,166,35,.3) !important;
+}
+.subnav-pill:active {
+  transform: translateY(2px) !important;
+  border-bottom-width: 1px !important;
 }
 
 /* 7. News Feed */
@@ -553,4 +676,219 @@ h1,h2,h3,h4,h5,h6,
     font-size: 12px;
   }
 }
+@media (orientation: landscape) and (max-height: 600px) {
+  .fab-lot {
+    bottom: 24px;
+    right: 14px;
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+/* 33. Kairosoft 2D Studio Lot HUD & Responsive Controls */
+.studiolot-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #070a10;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.kairo-top-bar {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  z-index: 25;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.kairo-room-nav {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(10, 15, 26, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 197, 24, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+  max-width: 65%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.kairo-room-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.kairo-nav-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.kairo-nav-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.kairo-nav-tab.active {
+  color: #1a1204;
+  background: linear-gradient(135deg, #fde047 0%, #eab308 100%);
+  border-color: #fef08a;
+  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.45);
+  font-weight: 800;
+}
+
+.kairo-top-right {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kairo-hud-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 15, 26, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 197, 24, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+}
+
+.kairo-bottom-deck {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  right: 10px;
+  z-index: 25;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.lot-controls, .lot-action-dock {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(10, 15, 26, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+}
+
+.lot-action-dock {
+  border-color: rgba(245, 197, 24, 0.4);
+}
+
+/* Landscape / Small Screen Adaptations for 2D lot */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  .kairo-top-bar {
+    top: 4px;
+    left: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+  .kairo-room-nav {
+    padding: 2px 4px;
+    gap: 2px;
+    max-width: 58%;
+  }
+  .kairo-nav-tab {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .kairo-hud-stats {
+    padding: 2px 8px;
+    gap: 6px;
+  }
+  .kairo-hud-stats .itch-hud-stat .lbl {
+    display: none;
+  }
+  .kairo-hud-stats .itch-hud-stat .val {
+    font-size: 11px;
+  }
+  #btnToggleStats, #btnLotFullscreen {
+    height: 26px !important;
+    padding: 2px 8px !important;
+    font-size: 10.5px !important;
+  }
+  .kairo-bottom-deck {
+    bottom: 4px;
+    left: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+  .lot-controls, .lot-action-dock {
+    padding: 3px 6px;
+    gap: 3px;
+  }
+  .lot-controls .btn, .lot-action-dock .btn, .lot-action-dock button {
+    padding: 3px 7px !important;
+    font-size: 10.5px !important;
+    min-height: 24px !important;
+  }
+  #btnLotSlate, #btnLotTalent, #btnLotBoxOffice, #btnLotFinance {
+    display: none;
+  }
+}
+
+/* 34. Box Office Sim 2 Genre & Festival Icons Styling */
+.genre-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.genre-icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.genre-icon-lg {
+  width: 24px;
+  height: 24px;
+}
+.fest-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+}
+.loc-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
 

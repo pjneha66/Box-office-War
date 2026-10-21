@@ -3259,29 +3259,223 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
   transform: translateY(1px);
 }
 
-/* ═══════════ Mobile Landscape & Kairosoft Widescreen UI ═══════════ */
-@media screen and (orientation: landscape) and (max-height: 560px) {
-  .studiolot-global-stage.lot-full {
-    height: calc(100vh - 46px);
-    min-height: 270px;
-    margin: 0 auto;
-    border-radius: 4px;
+/* ═══════════ Mobile Landscape — Game Dev Tycoon & Kairosoft Studio Stage ═══════════ */
+.studiolot-global-stage.lot-backdrop {
+  display: none;
+}
+
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  body {
+    overflow: hidden !important;
   }
-  .app-header {
-    padding: 2px 8px;
+  #app {
+    height: 100vh !important;
+    overflow: hidden !important;
+    position: relative !important;
   }
-  .topbar {
-    min-height: 36px;
-    gap: 4px;
+
+  /* Fixed Topbar HUD + Tab Bar (56px total) */
+  header.topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 80 !important;
+    height: auto !important;
+    min-height: 56px !important;
+    padding: 0 !important;
+    background: rgba(8, 12, 22, 0.96) !important;
+    border-bottom: 1.5px solid rgba(245, 197, 24, 0.4) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
+  .topbar-row {
+    height: 30px !important;
+    min-height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+  .brand {
+    font-size: 12px !important;
+    max-width: 120px !important;
+  }
+  .chip {
+    font-size: 10px !important;
+    padding: 1px 6px !important;
+    min-height: 20px !important;
+  }
+  .topbar-actions {
+    gap: 3px !important;
+  }
+  .topbar-actions .btn {
+    padding: 2px 6px !important;
+    min-height: 22px !important;
+    font-size: 10.5px !important;
+  }
+  #btnWeek {
+    min-height: 22px !important;
+    font-size: 10.5px !important;
+    padding: 2px 8px !important;
+  }
+  #btnFast {
+    min-height: 22px !important;
+    padding: 2px 6px !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Sleek Horizontal Tab Bar */
   .tabs {
-    display: none;
+    position: relative !important;
+    display: flex !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 2px 8px !important;
+    gap: 3px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    background: rgba(6, 9, 16, 0.98) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
   }
-  .bottomnav {
-    display: none;
+  .tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+  .tab {
+    padding: 2px 9px !important;
+    font-size: 11px !important;
+    min-height: 22px !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    font-weight: 700 !important;
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+  }
+  .tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .tab.active {
+    color: #0b0f19 !important;
+    background: linear-gradient(135deg, #fde047 0%, #eab308 100%) !important;
+    border-color: #fef08a !important;
+    box-shadow: 0 2px 8px rgba(234, 179, 8, 0.45);
+    font-weight: 800 !important;
+  }
+
+  .bottomnav,
+  .subtabs,
+  .fab-lot {
+    display: none !important;
+  }
+
+  /* 2D Stage — Continuous Living Backdrop in Landscape */
+  .studiolot-global-stage.lot-full,
+  .studiolot-global-stage.lot-backdrop {
+    position: fixed !important;
+    top: 58px !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: calc(100vh - 58px) !important;
+    z-index: 10 !important;
+    display: block !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .studiolot-global-stage.lot-compact,
+  .studiolot-global-stage.lot-collapsed {
+    display: none !important;
   }
   .studiolot-viewport {
-    min-height: 260px;
+    height: 100% !important;
+    min-height: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  /* Management Tab Windows — Floating Over the 2D Studio Stage */
+  .view {
+    position: fixed !important;
+    top: 64px !important;
+    bottom: 8px !important;
+    right: 10px !important;
+    width: min(650px, 60vw) !important;
+    z-index: 40 !important;
+    display: block !important;
+    background: rgba(9, 13, 22, 0.96) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1.5px solid rgba(245, 197, 24, 0.45) !important;
+    border-radius: 12px !important;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.9) !important;
+    overflow-y: auto !important;
+    padding: 10px 14px 28px !important;
+    max-width: none !important;
+  }
+  .view.view-hidden-lot {
+    display: none !important;
+  }
+
+  @media (max-width: 740px) {
+    .view {
+      width: calc(100vw - 20px) !important;
+      left: 10px !important;
+      right: 10px !important;
+    }
+  }
+
+  /* Compact Density inside Department Panels */
+  .kairo-dept-banner {
+    padding: 6px 10px !important;
+    margin-bottom: 8px !important;
+    border-width: 1.5px !important;
+    gap: 8px !important;
+  }
+  .kairo-dept-vignette {
+    display: none !important;
+  }
+  .kairo-dept-title {
+    font-size: 13px !important;
+  }
+  .kairo-stats-strip {
+    gap: 6px !important;
+  }
+  .kairo-stat-chip {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+  }
+  .kairo-dept-actions {
+    gap: 4px !important;
+  }
+  .kairo-btn-action {
+    padding: 3px 8px !important;
+    font-size: 10.5px !important;
+    min-height: 24px !important;
+  }
+  .card {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+  }
+  .modal-box, .modal-inner, .modal {
+    max-height: 94vh !important;
+    overflow-y: auto !important;
+    z-index: 1000 !important;
   }
 }
 

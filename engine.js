@@ -688,7 +688,22 @@ function spawnDirectorHot(){ G.talent.push(genDirector(true)); }
 function spawnWriterHot(){ if(G) G.talent.push(genWriter(true)); }
 function talentById(id){ return G.talent.find(t=>t.id===id); }
 function talentByKind(kind){ return G.talent.filter(t=>t.kind===kind); }
-function freeTalent(kind){ return G.talent.filter(t=>t.kind===kind && !t.bookedUntil && !(t.retired)); }
+function freeTalent(kind){ return G.talent.filter(t=>t.kind===kind && (G.allCastUnlocked || (!t.bookedUntil && !(t.retired)))); }
+function unlockAllCast(){
+  if(!G || !Array.isArray(G.talent)) return;
+  G.allCastUnlocked = true;
+  if(typeof window !== "undefined" && window.BOS2 && typeof window.BOS2.unlockAllCast === "function"){
+    window.BOS2.unlockAllCast();
+  } else {
+    G.talent.forEach(t => {
+      t.bookedUntil = 0;
+      t.retired = false;
+      t.scandal = 0;
+      t.unlocked = true;
+      if(t.power < 5) t.power = 5;
+    });
+  }
+}
 
 /* ── v28: Per-region star power (v28 follow-up) ── */
 function effectivePower(t, region){

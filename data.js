@@ -36,22 +36,22 @@ const DATA = {};
    budgetBias: cost multiplier for same scale
 */
 DATA.GENRES = {
-  action:   {name:"Action",      emoji:"💥", mass:1.25, legsAdj:-0.10, intlShare:0.63, china:0.20, critic:-4, aud:+4,  otta:1.05, awards:0.5, budgetBias:1.15, merch:1.10},
-  scifi:    {name:"Sci-Fi",      emoji:"🚀", mass:1.20, legsAdj:-0.05, intlShare:0.60, china:0.20, critic:+0, aud:+3,  otta:1.15, awards:0.7, budgetBias:1.20, merch:1.20},
-  fantasy:  {name:"Fantasy",     emoji:"🐉", mass:1.12, legsAdj:+0.05, intlShare:0.58, china:0.14, critic:+1, aud:+2,  otta:1.10, awards:0.8, budgetBias:1.20, merch:1.35},
-  animation:{name:"Animation",   emoji:"🎨", mass:1.20, legsAdj:+0.45, intlShare:0.60, china:0.15, critic:+4, aud:+5,  otta:1.25, awards:0.8, budgetBias:1.10, merch:1.50},
-  comedy:   {name:"Comedy",      emoji:"😂", mass:1.05, legsAdj:+0.00, intlShare:0.33, china:0.02, critic:-5, aud:+3,  otta:1.00, awards:0.3, budgetBias:0.85, merch:0.70},
-  horror:   {name:"Horror",      emoji:"👻", mass:0.92, legsAdj:-0.35, intlShare:0.48, china:0.00, critic:-8, aud:+0,  otta:1.30, awards:0.1, budgetBias:0.60, openBoost:1.45, merch:0.50},
-  thriller: {name:"Thriller",    emoji:"🔪", mass:0.90, legsAdj:+0.05, intlShare:0.42, china:0.04, critic:+2, aud:+1,  otta:1.15, awards:0.6, budgetBias:0.85, merch:0.50},
-  drama:    {name:"Drama",       emoji:"🎭", mass:0.70, legsAdj:+0.25, intlShare:0.42, china:0.03, critic:+7, aud:-3,  otta:1.05, awards:1.6, budgetBias:0.75, merch:0.25},
-  romance:  {name:"Romance",     emoji:"💘", mass:0.80, legsAdj:+0.15, intlShare:0.35, china:0.02, critic:+2, aud:+2,  otta:1.10, awards:0.7, budgetBias:0.70, merch:0.40},
-  musical:  {name:"Musical",     emoji:"🎵", mass:0.95, legsAdj:+0.30, intlShare:0.40, china:0.02, critic:+4, aud:+2,  otta:1.00, awards:1.3, budgetBias:0.90, merch:0.80},
+  action:   {name:"Action",      icon:"assets/bos2-icons/genres/icons8-action-100.png", emoji:"", mass:1.25, legsAdj:-0.10, intlShare:0.63, china:0.20, critic:-4, aud:+4,  otta:1.05, awards:0.5, budgetBias:1.15, merch:1.10},
+  scifi:    {name:"Sci-Fi",      icon:"assets/bos2-icons/genres/icons8-sci-fi-100.png", emoji:"", mass:1.20, legsAdj:-0.05, intlShare:0.60, china:0.20, critic:+0, aud:+3,  otta:1.15, awards:0.7, budgetBias:1.20, merch:1.20},
+  fantasy:  {name:"Fantasy",     icon:"assets/bos2-icons/genres/icons8-fantasy-100.png", emoji:"", mass:1.12, legsAdj:+0.05, intlShare:0.58, china:0.14, critic:+1, aud:+2,  otta:1.10, awards:0.8, budgetBias:1.20, merch:1.35},
+  animation:{name:"Animation",   icon:"assets/bos2-icons/genres/icons8-adventures-100.png", emoji:"", mass:1.20, legsAdj:+0.45, intlShare:0.60, china:0.15, critic:+4, aud:+5,  otta:1.25, awards:0.8, budgetBias:1.10, merch:1.50},
+  comedy:   {name:"Comedy",      icon:"assets/bos2-icons/genres/icons8-comedy-100.png", emoji:"", mass:1.05, legsAdj:+0.00, intlShare:0.33, china:0.02, critic:-5, aud:+3,  otta:1.00, awards:0.3, budgetBias:0.85, merch:0.70},
+  horror:   {name:"Horror",      icon:"assets/bos2-icons/genres/icons8-horror-100.png", emoji:"", mass:0.92, legsAdj:-0.35, intlShare:0.48, china:0.00, critic:-8, aud:+0,  otta:1.30, awards:0.1, budgetBias:0.60, openBoost:1.45, merch:0.50},
+  thriller: {name:"Thriller",    icon:"assets/bos2-icons/genres/icons8-thriller-100.png", emoji:"", mass:0.90, legsAdj:+0.05, intlShare:0.42, china:0.04, critic:+2, aud:+1,  otta:1.15, awards:0.6, budgetBias:0.85, merch:0.50},
+  drama:    {name:"Drama",       icon:"assets/bos2-icons/genres/icons8-drama-100.png", emoji:"", mass:0.70, legsAdj:+0.25, intlShare:0.42, china:0.03, critic:+7, aud:-3,  otta:1.05, awards:1.6, budgetBias:0.75, merch:0.25},
+  romance:  {name:"Romance",     icon:"assets/bos2-icons/genres/icons8-romance-100.png", emoji:"", mass:0.80, legsAdj:+0.15, intlShare:0.35, china:0.02, critic:+2, aud:+2,  otta:1.10, awards:0.7, budgetBias:0.70, merch:0.40},
+  musical:  {name:"Musical",     icon:"assets/bos2-icons/genres/icons8-musical-100.png", emoji:"", mass:0.95, legsAdj:+0.30, intlShare:0.40, china:0.02, critic:+4, aud:+2,  otta:1.00, awards:1.3, budgetBias:0.90, merch:0.80},
   /* ── v4 genres ── */
-  western:  {name:"Western",     emoji:"🤠", mass:0.82, legsAdj:+0.12, intlShare:0.34, china:0.02, critic:+3, aud:+1,  otta:1.00, awards:1.1, budgetBias:0.90, merch:0.45},
-  war:      {name:"War",         emoji:"🎖", mass:0.95, legsAdj:+0.14, intlShare:0.50, china:0.07, critic:+4, aud:+3,  otta:1.05, awards:1.35,budgetBias:1.10, merch:0.35},
-  sports:   {name:"Sports",      emoji:"🏟", mass:0.90, legsAdj:+0.22, intlShare:0.28, china:0.02, critic:+2, aud:+6,  otta:1.10, awards:0.9, budgetBias:0.80, merch:0.60},
-  concert:  {name:"Concert Film",emoji:"🎤", mass:1.00, legsAdj:-0.45, intlShare:0.45, china:0.01, critic:+1, aud:+7,  otta:1.35, awards:0.2, budgetBias:0.35, openBoost:1.40, merch:0.95},
-  truecrime:{name:"True Crime",  emoji:"🔎", mass:0.78, legsAdj:+0.06, intlShare:0.32, china:0.00, critic:+2, aud:+2,  otta:1.45, awards:0.7, budgetBias:0.60, merch:0.20},
+  western:  {name:"Western",     icon:"assets/bos2-icons/genres/icons8-western-100.png", emoji:"", mass:0.82, legsAdj:+0.12, intlShare:0.34, china:0.02, critic:+3, aud:+1,  otta:1.00, awards:1.1, budgetBias:0.90, merch:0.45},
+  war:      {name:"War",         icon:"assets/bos2-icons/genres/icons8-combat-100.png", emoji:"", mass:0.95, legsAdj:+0.14, intlShare:0.50, china:0.07, critic:+4, aud:+3,  otta:1.05, awards:1.35,budgetBias:1.10, merch:0.35},
+  sports:   {name:"Sports",      icon:"assets/bos2-icons/genres/icons8-sport-100.png", emoji:"", mass:0.90, legsAdj:+0.22, intlShare:0.28, china:0.02, critic:+2, aud:+6,  otta:1.10, awards:0.9, budgetBias:0.80, merch:0.60},
+  concert:  {name:"Concert Film",icon:"assets/bos2-icons/genres/icons8-theatre-mask-100.png", emoji:"", mass:1.00, legsAdj:-0.45, intlShare:0.45, china:0.01, critic:+1, aud:+7,  otta:1.35, awards:0.2, budgetBias:0.35, openBoost:1.40, merch:0.95},
+  truecrime:{name:"True Crime",  icon:"assets/bos2-icons/genres/icons8-detective-100.png", emoji:"", mass:0.78, legsAdj:+0.06, intlShare:0.32, china:0.00, critic:+2, aud:+2,  otta:1.45, awards:0.7, budgetBias:0.60, merch:0.20},
 };
 
 /* ── v28: chart palette ──
@@ -68,10 +68,18 @@ DATA.genreColor = (id)=> DATA.GENRE_COLORS[id] || "#7b88a8";
 
 /* ── Series-only genres (v2: cheap, renewal-friendly) ── */
 DATA.SGENRES = {
-  reality:      {name:"Reality",      emoji:"🎤", ott:1.05, awards:0.1, perEpMax:5,  renewBonus:8},
-  documentary:  {name:"Documentary",  emoji:"🎥", ott:1.00, awards:0.4, perEpMax:6,  renewBonus:6},
+  reality:      {name:"Reality",      icon:"assets/bos2-icons/genres/icons8-theatre-mask-100.png", ott:1.05, awards:0.1, perEpMax:5,  renewBonus:8},
+  documentary:  {name:"Documentary",  icon:"assets/bos2-icons/genres/icons8-documentary-100.png", ott:1.00, awards:0.4, perEpMax:6,  renewBonus:6},
 };
-DATA.genreOf = (id)=> DATA.GENRES[id] || DATA.SGENRES[id] || {name:id, emoji:"🎞"};
+DATA.genreOf = (id)=> DATA.GENRES[id] || DATA.SGENRES[id] || {name:id, icon:""};
+
+DATA.genreIconTag = (id, extraClass = "") => {
+  const g = DATA.genreOf(id);
+  if (g && g.icon) {
+    return `<img class="genre-icon-img ${extraClass}" src="${g.icon}" alt="${g.name || ''}" loading="lazy">`;
+  }
+  return "";
+};
 
 /* ── Production scales ── */
 DATA.SCALES = {

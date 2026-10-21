@@ -34,6 +34,7 @@
   let _selectedAgentId = null;
   let _hoveredGridPos = null;
   let _hoveredHotspot = null;
+  let _pointerScreen = { x: -9999, y: -9999 };
   let _buildModeType = null;
   let _floatingTexts = [];
   let _directingState = null; // { stageId, step: 0, timer: 0 }
@@ -89,6 +90,16 @@
     male_walk0: "assets/2d/char_male_walk0.png",
     male_walk1: "assets/2d/char_male_walk1.png",
     female_walk0: "assets/2d/char_female_walk0.png",
+
+    // Kairosoft & Tycoon Reference Pixel Characters
+    char_robot: "assets/pixel-characters/char-robot.png",
+    char_zombie: "assets/pixel-characters/char-zombie.png",
+    char_male_1: "assets/pixel-characters/char-male-1.png",
+    char_male_2: "assets/pixel-characters/char-male-2.png",
+    char_male_cheer: "assets/pixel-characters/char-male-cheer.png",
+    char_female_1: "assets/pixel-characters/char-female-1.png",
+    char_female_2: "assets/pixel-characters/char-female-2.png",
+    char_female_cheer: "assets/pixel-characters/char-female-cheer.png",
 
     // 25 Itch Pixel Avatars
     avatar_01: "assets/itch-avatars/Avatars_01.png",
@@ -358,27 +369,84 @@
     { id: "executive",   name: "Studio Tower & HQ",  sub: "Executive Desk",        xPct: 0.27, yPct: 0.18, radius: 50, view: "executive" }
   ];
 
+  // ── Ambient footstep dust particles (purely decorative) ──
+  const _campusDust = [];
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  function spawnDust(x, y, zoom, tint) {
+    if (_campusDust.length > 60) return;
+    _campusDust.push({
+      x: x, y: y,
+      vx: (Math.random() - 0.5) * 14 * zoom,
+      vy: -6 * zoom - Math.random() * 8 * zoom,
+      r: (1.4 + Math.random() * 2.2) * zoom,
+      life: 1,
+      tint: tint || "rgba(210,200,175,"
+    });
+  }
+
+  function renderCampusDust(ctx, dt) {
+    for (let i = _campusDust.length - 1; i >= 0; i--) {
+      const d = _campusDust[i];
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vy += 6 * dt;            // settle
+      d.r += 6 * dt;             // expand
+      d.life -= dt * 1.5;
+      if (d.life <= 0) { _campusDust.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, d.life) * 0.5;
+      ctx.fillStyle = d.tint + (Math.max(0, d.life) * 0.5).toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // Animated Golf Carts along campus road networks
   const _campusGolfCarts = [
-    { t: 0.15, speed: 0.045, dir: 1, path: [
+    { t: 0.15, speed: 0.045, dir: 1, hue: "#facc15", driver: "char_male_2", path: [
       { x: 0.39, y: 0.82 }, // Studio Gate
       { x: 0.47, y: 0.66 }, // Main Ave
       { x: 0.55, y: 0.48 }, // Stage Junction
       { x: 0.64, y: 0.38 }  // Stage 1 & 2
     ]},
-    { t: 0.65, speed: 0.035, dir: -1, path: [
+    { t: 0.65, speed: 0.035, dir: -1, hue: "#7dd3fc", driver: "char_female_1", path: [
       { x: 0.18, y: 0.76 }, // Cinema plaza
       { x: 0.31, y: 0.70 }, // South road
       { x: 0.42, y: 0.58 }  // Writers loop
     ]}
   ];
 
-  // Animated staff pedestrians on campus walkways
+  // Animated staff pedestrians on campus walkways.
+  // speed is normalized path units/sec; phase drives the walk cycle,
+  // wait is the pause taken when the walker reaches either end of its path.
   const _campusStaff = [
-    { name: "Director", role: "Stanley K.", av: "avatar_01", color: "#f5c518", path: [{x:0.52, y:0.35}, {x:0.62, y:0.38}], t: 0.2, speed: 0.06, dir: 1, quote: "Stage 1 call time!" },
-    { name: "Lead Star", role: "A-List Talent", av: "avatar_06", color: "#ec4899", path: [{x:0.41, y:0.56}, {x:0.49, y:0.52}], t: 0.7, speed: 0.05, dir: -1, quote: "Costume fitting done" },
-    { name: "Cameraman", role: "Cinematographer", av: "avatar_04", color: "#38bdf8", path: [{x:0.48, y:0.68}, {x:0.54, y:0.54}], t: 0.4, speed: 0.055, dir: 1, quote: "Lenses checked" },
-    { name: "Screenwriter", role: "Head Scribe", av: "avatar_08", color: "#10b981", path: [{x:0.38, y:0.50}, {x:0.44, y:0.48}], t: 0.9, speed: 0.04, dir: -1, quote: "Coffee refill needed" }
+    { name: "Director", role: "Stanley K.", av: "char_director", color: "#f5c518", path: [{x:0.52, y:0.35}, {x:0.62, y:0.38}], t: 0.2, speed: 0.06, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Stage 1 call time!" },
+    { name: "Lead Star", role: "Guy Wesley", av: "char_male_1", color: "#ec4899", path: [{x:0.41, y:0.56}, {x:0.49, y:0.52}], t: 0.7, speed: 0.05, dir: -1, wait: 1.2, phase: 0, idle: 0, flip: -1, quote: "Reviewing script notes" },
+    { name: "Starlet", role: "Sofia Kennedy", av: "char_female_1", color: "#a855f7", path: [{x:0.36, y:0.68}, {x:0.44, y:0.64}], t: 0.3, speed: 0.05, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Costume fitting done" },
+    { name: "Kairo Mascot", role: "Kairobot", av: "char_robot", color: "#38bdf8", path: [{x:0.25, y:0.75}, {x:0.35, y:0.72}], t: 0.5, speed: 0.065, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "[KAIRO DEV!]" },
+    { name: "Method Zombie", role: "Boris Z.", av: "char_zombie", color: "#10b981", path: [{x:0.75, y:0.42}, {x:0.85, y:0.40}], t: 0.8, speed: 0.04, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "[METHOD ACTING!]" },
+    { name: "Cameraman", role: "Cinematographer", av: "char_cameraman", color: "#38bdf8", path: [{x:0.48, y:0.68}, {x:0.54, y:0.54}], t: 0.4, speed: 0.055, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Anamorphic lenses set" },
+    { name: "Screenwriter", role: "Quentin S.", av: "char_male_2", color: "#10b981", path: [{x:0.38, y:0.50}, {x:0.44, y:0.48}], t: 0.9, speed: 0.04, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "Act III climax finished" },
+    { name: "Stunt Lead", role: "Action Jack", av: "char_male_cheer", color: "#f97316", path: [{x:0.60, y:0.55}, {x:0.68, y:0.52}], t: 0.1, speed: 0.07, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Stunt rig certified!" },
+    { name: "Stunt Double", role: "Elena Jump", av: "char_female_cheer", color: "#ec4899", path: [{x:0.55, y:0.45}, {x:0.63, y:0.48}], t: 0.6, speed: 0.06, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "High fall ready!" },
+    { name: "Boom Op", role: "Audio Ava", av: "female_walk0", color: "#06b6d4", path: [{x:0.46, y:0.38}, {x:0.53, y:0.42}], t: 0.4, speed: 0.05, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Mic levels balanced" },
+    { name: "Studio Chief", role: "David O.", av: "avatar_03", color: "#eab308", path: [{x:0.65, y:0.30}, {x:0.72, y:0.32}], t: 0.5, speed: 0.045, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "Box office looking huge" },
+    { name: "Animal Actor", role: "Barnaby Bear", av: "avatar_19", color: "#854d0e", path: [{x:0.70, y:0.52}, {x:0.78, y:0.55}], t: 0.2, speed: 0.035, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Growl cue practiced" },
+
+    /* ── added cast: more bodies, more roles, more life ── */
+    { name: "Runner", role: "PA Casey", av: "male_walk0", color: "#38bdf8", path: [{x:0.30, y:0.60}, {x:0.44, y:0.44}, {x:0.58, y:0.40}], t: 0.15, speed: 0.10, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Coffee run for Stage 2!" },
+    { name: "Publicist", role: "Mara V.", av: "char_female_2", color: "#f472b6", path: [{x:0.14, y:0.62}, {x:0.24, y:0.66}], t: 0.55, speed: 0.055, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "No comment, please" },
+    { name: "Security", role: "Guard Ray", av: "char_male_1", color: "#60a5fa", path: [{x:0.345, y:0.80}, {x:0.425, y:0.79}], t: 0.35, speed: 0.03, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Lot pass, please" },
+    { name: "VFX Artist", role: "Nina R.", av: "char_female_1", color: "#a78bfa", path: [{x:0.10, y:0.50}, {x:0.20, y:0.53}], t: 0.75, speed: 0.05, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "Rendering the final shot" },
+    { name: "Costumer", role: "Ivy L.", av: "char_female_2", color: "#fbbf24", path: [{x:0.40, y:0.60}, {x:0.50, y:0.63}], t: 0.45, speed: 0.05, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Fitting at 4pm" },
+    { name: "Gaffer", role: "Lou T.", av: "char_male_cheer", color: "#fb923c", path: [{x:0.56, y:0.30}, {x:0.66, y:0.26}], t: 0.6, speed: 0.05, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Striking the rig" },
+    { name: "Composer", role: "Hans E.", av: "char_male_2", color: "#34d399", path: [{x:0.20, y:0.42}, {x:0.30, y:0.40}], t: 0.25, speed: 0.04, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "The score needs strings" },
+    { name: "Intern", role: "Timmy", av: "char_male_1", color: "#22d3ee", path: [{x:0.62, y:0.62}, {x:0.72, y:0.58}, {x:0.80, y:0.55}], t: 0.05, speed: 0.085, dir: 1, wait: 0, phase: 0, idle: 0, flip: 1, quote: "Which stage again?!" },
+    { name: "Crafty", role: "Snack Cart", av: "avatar_19", color: "#f59e0b", path: [{x:0.33, y:0.72}, {x:0.47, y:0.70}], t: 0.9, speed: 0.03, dir: -1, wait: 0, phase: 0, idle: 0, flip: -1, quote: "Popcorn? $12" }
   ];
 
   function getPathPoint(path, progress) {
@@ -424,6 +492,9 @@
     // 2. Render Roaming Studio Staff along walkways
     renderCampusPedestrians(ctx, drawX, drawY, drawW, drawH, dt);
 
+    // 3. Ambient footstep dust kicked up by the cast
+    renderCampusDust(ctx, dt);
+
     // 3. Render Active Filming Live Indicator over Soundstages
     renderCampusActiveShootGlow(ctx, drawX, drawY, drawW, drawH);
 
@@ -451,6 +522,14 @@
   }
 
   function renderCampusGolfCarts(ctx, ox, oy, ow, oh, dt) {
+    /* nightness drives the headlight cone; LotLife owns the clock */
+    var nightness = 0;
+    try {
+      if (global.LotLife && typeof global.LotLife.mood === "function") {
+        nightness = Math.max(0, Math.min(1, 1 - global.LotLife.mood().light));
+      }
+    } catch (e) { nightness = 0; }
+
     for (const cart of _campusGolfCarts) {
       cart.t += cart.speed * cart.dir * dt;
       if (cart.t > 1.0) { cart.t = 1.0; cart.dir = -1; }
@@ -460,41 +539,107 @@
       const cx = ox + ow * pt.x;
       const cy = oy + oh * pt.y;
 
+      /* wheels roll with distance travelled; body bobs on the suspension */
+      cart.wheel = (cart.wheel || 0) + cart.speed * cart.dir * dt * 26;
+      const bob = Math.abs(Math.sin(cart.wheel * 1.5)) * 1.1 * camera.zoom;
+      const cyB = cy - bob;
+      const cw = 24 * camera.zoom;
+      const ch = 15 * camera.zoom;
+
+      /* tyre dust trailing the rear wheel */
+      if (Math.random() < 0.25) {
+        spawnDust(cx - cart.dir * cw * 0.5, cy + 1 * camera.zoom, camera.zoom, "rgba(190,182,160,");
+      }
+
       ctx.save();
-      // Drop Shadow
-      ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+
+      /* ground shadow shrinks as the body lifts */
+      ctx.fillStyle = "rgba(0,0,0,0.32)";
       ctx.beginPath();
-      ctx.ellipse(cx, cy + 4, 14 * camera.zoom, 6 * camera.zoom, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy + 4, (14 - bob * 0.6) * camera.zoom, (6 - bob * 0.3) * camera.zoom, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Yellow Kairosoft Golf Cart Body
-      const cw = 22 * camera.zoom;
-      const ch = 14 * camera.zoom;
-      ctx.fillStyle = "#facc15";
-      ctx.strokeStyle = "#854d0e";
+      /* headlight cone after dark */
+      if (nightness > 0.25) {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.22 * nightness;
+        ctx.fillStyle = "#ffe9b0";
+        ctx.beginPath();
+        ctx.moveTo(cx + cart.dir * cw * 0.5, cyB - ch * 0.45);
+        ctx.lineTo(cx + cart.dir * (cw * 0.5 + 46 * camera.zoom), cyB - ch * 0.95);
+        ctx.lineTo(cx + cart.dir * (cw * 0.5 + 46 * camera.zoom), cyB + ch * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      /* body */
+      ctx.fillStyle = cart.hue;
+      ctx.strokeStyle = "#7c4a03";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(cx - cw/2, cy - ch, cw, ch, 3);
+      ctx.roundRect(cx - cw / 2, cyB - ch, cw, ch, 3);
       ctx.fill();
       ctx.stroke();
 
-      // Roof & canopy posts
+      /* side stripe so the body reads as a vehicle, not a block */
+      ctx.fillStyle = "rgba(0,0,0,0.16)";
+      ctx.fillRect(cx - cw / 2 + 2, cyB - ch * 0.45, cw - 4, 2 * camera.zoom);
+
+      /* roof canopy */
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(cx - cw/2 + 2, cy - ch - 8 * camera.zoom, cw - 4, 3 * camera.zoom);
+      ctx.fillRect(cx - cw / 2 + 2, cyB - ch - 8 * camera.zoom, cw - 4, 3 * camera.zoom);
       ctx.strokeStyle = "#475569";
-      ctx.strokeRect(cx - cw/2 + 2, cy - ch - 8 * camera.zoom, cw - 4, 3 * camera.zoom);
+      ctx.strokeRect(cx - cw / 2 + 2, cyB - ch - 8 * camera.zoom, cw - 4, 3 * camera.zoom);
       ctx.beginPath();
-      ctx.moveTo(cx - cw/2 + 3, cy - ch);
-      ctx.lineTo(cx - cw/2 + 3, cy - ch - 6 * camera.zoom);
-      ctx.moveTo(cx + cw/2 - 3, cy - ch);
-      ctx.lineTo(cx + cw/2 - 3, cy - ch - 6 * camera.zoom);
+      ctx.moveTo(cx - cw / 2 + 3, cyB - ch);
+      ctx.lineTo(cx - cw / 2 + 3, cyB - ch - 6 * camera.zoom);
+      ctx.moveTo(cx + cw / 2 - 3, cyB - ch);
+      ctx.lineTo(cx + cw / 2 - 3, cyB - ch - 6 * camera.zoom);
       ctx.stroke();
 
-      // Tiny rolling wheels
-      ctx.fillStyle = "#1e293b";
+      /* driver: a sprite that bobs with the suspension */
+      const drv = spriteCache[cart.driver];
+      const dsz = 15 * camera.zoom;
+      if (drv && drv.loaded) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.save();
+        ctx.translate(cx - cart.dir * cw * 0.16, cyB - ch - dsz * 0.42 - bob * 0.4);
+        if (cart.dir < 0) ctx.scale(-1, 1);
+        ctx.drawImage(drv.img, -dsz / 2, -dsz / 2, dsz, dsz);
+        ctx.restore();
+      }
+
+      /* wheels: hub + two spokes that visibly rotate */
+      const wr = 3.4 * camera.zoom;
+      for (const side of [-1, 1]) {
+        const wx = cx + side * 7.4 * camera.zoom;
+        const wy = cy + 0.5 * camera.zoom;
+        ctx.fillStyle = "#1e293b";
+        ctx.beginPath();
+        ctx.arc(wx, wy, wr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(226,232,240,.75)";
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        for (let s = 0; s < 2; s++) {
+          const a = cart.wheel + s * Math.PI / 2;
+          ctx.moveTo(wx - Math.cos(a) * wr * 0.72, wy - Math.sin(a) * wr * 0.72);
+          ctx.lineTo(wx + Math.cos(a) * wr * 0.72, wy + Math.sin(a) * wr * 0.72);
+        }
+        ctx.stroke();
+        /* hub cap */
+        ctx.fillStyle = "#cbd5e1";
+        ctx.beginPath();
+        ctx.arc(wx, wy, wr * 0.28, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      /* headlamp bulb */
+      ctx.fillStyle = nightness > 0.25 ? "#fff3c4" : "#e2e8f0";
       ctx.beginPath();
-      ctx.arc(cx - 7 * camera.zoom, cy, 3 * camera.zoom, 0, Math.PI * 2);
-      ctx.arc(cx + 7 * camera.zoom, cy, 3 * camera.zoom, 0, Math.PI * 2);
+      ctx.arc(cx + cart.dir * (cw / 2 - 1), cyB - ch * 0.45, 1.6 * camera.zoom, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
@@ -502,53 +647,173 @@
   }
 
   function renderCampusPedestrians(ctx, ox, oy, ow, oh, dt) {
-    const time = performance.now() * 0.003;
+    /* Depth-sort so nearer walkers overlap the ones behind them. */
+    const order = [];
     for (let i = 0; i < _campusStaff.length; i++) {
       const p = _campusStaff[i];
-      p.t += p.speed * p.dir * dt;
-      if (p.t > 1.0) { p.t = 1.0; p.dir = -1; }
-      else if (p.t < 0.0) { p.t = 0.0; p.dir = 1; }
+
+      /* ── walk state machine: walk → pause at the end of the path → turn ── */
+      if (p.wait > 0) {
+        p.wait -= dt;
+        p.idle += dt;
+        if (p.wait <= 0) p.dir = -p.dir;      // turn around once the pause ends
+      } else {
+        const before = p.t;
+        p.t += p.speed * p.dir * dt;
+        if (p.t >= 1.0) { p.t = 1.0; p.wait = 0.7 + Math.random() * 2.4; }
+        else if (p.t <= 0.0) { p.t = 0.0; p.wait = 0.7 + Math.random() * 2.4; }
+        /* cycle speed scales with how fast the body is actually moving */
+        p.phase += dt * (7 + p.speed * 110);
+        /* a footfall lands each time the cycle crosses the ground plane */
+        if (before !== p.t && Math.sin(p.phase) < 0 && Math.sin(p.phase - dt * (7 + p.speed * 110)) >= 0) {
+          const pp = getPathPoint(p.path, p.t);
+          spawnDust(ox + ow * pp.x, oy + oh * pp.y, camera.zoom, "rgba(205,196,172,");
+        }
+      }
+      p.flip += (p.dir - p.flip) * Math.min(1, dt * 9);   // eased turn, not a snap
 
       const pt = getPathPoint(p.path, p.t);
-      const px = ox + ow * pt.x;
-      const py = oy + oh * pt.y;
-      const bounce = Math.abs(Math.sin(time * 8 + i * 2)) * 3 * camera.zoom;
+      order.push({ p: p, i: i, px: ox + ow * pt.x, py: oy + oh * pt.y });
+    }
+    order.sort((a, b) => a.py - b.py);
+
+    for (const o of order) {
+      const p = o.p, i = o.i, px = o.px, py = o.py;
+      const moving = p.wait <= 0;
+      const z = camera.zoom;
+
+      /* ── the walk cycle: bob, lean and squash driven off one phase ── */
+      const s = Math.sin(p.phase);
+      const bob = moving
+        ? Math.abs(s) * 3.4 * z
+        : Math.sin(p.idle * 1.7) * 0.7 * z;                       // idle breathing
+      const lean = moving ? s * 0.055 : Math.sin(p.idle * 0.9) * 0.012;
+      const sq = moving ? 1 + Math.sin(p.phase * 2) * 0.035 : 1 + Math.sin(p.idle * 1.7) * 0.012;
 
       const cached = spriteCache[p.av];
+      const sz = 28 * z;
+      const top = py - sz * 0.5 - bob;
+
       ctx.save();
 
-      // Ground shadow
-      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      /* ground shadow tightens as the body rises */
+      const lift = clamp(bob / (3.4 * z), 0, 1);
+      ctx.fillStyle = "rgba(0,0,0," + (0.30 - lift * 0.10).toFixed(3) + ")";
       ctx.beginPath();
-      ctx.ellipse(px, py, 7 * camera.zoom, 3 * camera.zoom, 0, 0, Math.PI * 2);
+      ctx.ellipse(px, py, (7 - lift * 1.6) * z, (3 - lift * 0.7) * z, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Sprite
-      const sz = 26 * camera.zoom;
-      if (cached && cached.loaded) {
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(cached.img, px - sz/2, py - sz - bounce, sz, sz);
-      } else {
-        ctx.fillStyle = p.color;
+      /* contact patch: a faint dark ellipse under the feet while moving */
+      if (moving) {
+        ctx.fillStyle = "rgba(0,0,0,0.10)";
         ctx.beginPath();
-        ctx.arc(px, py - 10 * camera.zoom - bounce, 6 * camera.zoom, 0, Math.PI * 2);
+        ctx.ellipse(px, py - 0.5 * z, 9 * z, 2.6 * z, 0, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Role tag when hovered
-      if (_hoveredHotspot === null && camera.zoom >= 0.9) {
-        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
-        ctx.strokeStyle = p.color;
+      /* sprite with eased facing, lean and squash */
+      if (cached && cached.loaded) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.save();
+        ctx.translate(px, top);
+        ctx.rotate(lean * (p.flip < 0 ? -1 : 1));
+        ctx.scale(p.flip < 0 ? -1 : 1, 1);
+        ctx.scale(1 / sq, sq);
+        ctx.drawImage(cached.img, -sz / 2, -sz / 2, sz, sz);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(px, top - 4 * z, 6 * z, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      /* a little hat/role pip so roles read at a glance */
+      if (z >= 0.9) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.9;
+        ctx.fillRect(px - 1.4 * z, top - sz * 0.52 - 2 * z, 2.8 * z, 2.2 * z);
+        ctx.globalAlpha = 1;
+      }
+
+      // ── Label discipline ────────────────────────────────────────────
+      // A dozen permanent name pills turned the lot into noise. Now only
+      // the character under the cursor speaks, plus one rotating "focus"
+      // character every ~5 s, so the campus reads as a working set.
+      const focusIdx = Math.floor(performance.now() / 5200) % _campusStaff.length;
+      const isFocus = i === focusIdx;
+      const nearCursor = Math.hypot(px - _pointerScreen.x, py - _pointerScreen.y) < 118;
+
+      if (_hoveredHotspot === null && (nearCursor || isFocus)) {
+        const label = nearCursor ? p.role : p.name;
+        ctx.font = "700 9px ui-monospace, SFMono-Regular, monospace";
+        const tw = ctx.measureText(label).width;
+        const bw = tw + 12;
+        const bh = 14;
+        const by = top - bh - 6;
+
+        // leader line pins the tag to its sprite
+        ctx.strokeStyle = nearCursor ? "rgba(245,197,24,0.9)" : "rgba(245,197,24,0.30)";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.roundRect(px - 28, py - sz - bounce - 14, 56, 12, 3);
+        ctx.moveTo(px, by + bh);
+        ctx.lineTo(px, top + sz * 0.45);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(8,12,20,0.92)";
+        ctx.strokeStyle = nearCursor ? p.color : "rgba(245,197,24,0.45)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(px - bw / 2, by, bw, bh, 2);
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 8px system-ui, sans-serif";
+        ctx.fillStyle = nearCursor ? "#ffffff" : "#ffe6ad";
         ctx.textAlign = "center";
-        ctx.fillText(p.name, px, py - sz - bounce - 5);
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, px, by + bh / 2 + 0.5);
+        ctx.textBaseline = "alphabetic";
+      }
+
+      // One speaker at a time — chatter should feel like a film set,
+      // not a chatroom. Only the focus character ever talks, and only when
+      // it is standing still, so the line lands while the player can read it.
+      if (isFocus && !moving && p.idle > 0.35 && Math.sin(p.idle * 2.2) > 0.55) {
+        const line = p.quote;
+        ctx.font = "700 9px ui-monospace, SFMono-Regular, monospace";
+        const qw = ctx.measureText(line).width + 14;
+        const qh = 16;
+        const qy = top - qh - 24;
+        /* bubble pops in with a slight overshoot as the line starts */
+        const grow = Math.min(1, (p.idle - 0.35) * 4);
+        const gs = 0.82 + grow * 0.18;
+
+        ctx.fillStyle = "rgba(255,255,255,0.96)";
+        ctx.strokeStyle = "rgba(8,12,20,0.85)";
+        ctx.lineWidth = 1;
+        ctx.save();
+        ctx.translate(px, qy + qh);
+        ctx.scale(gs, gs);
+        ctx.translate(-px, -(qy + qh));
+        ctx.beginPath();
+        ctx.roundRect(px - qw / 2, qy, qw, qh, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(px - 4, qy + qh);
+        ctx.lineTo(px + 4, qy + qh);
+        ctx.lineTo(px, qy + qh + 5);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255,255,255,0.96)";
+        ctx.fill();
+
+        ctx.fillStyle = "#0f172a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(line, px, qy + qh / 2 + 0.5);
+        ctx.textBaseline = "alphabetic";
+        ctx.restore();
       }
       ctx.restore();
     }
@@ -774,10 +1039,13 @@
   function drawSoundstageCrew(ctx, dt) {
     const time = performance.now() * 0.003;
     const crew = [
-      { role: "Director", x: _canvas.width * 0.72, y: _canvas.height * 0.74, color: "#f5c518", quote: "Action! Great emotion!", av: "avatar_01" },
-      { role: "Camera Operator", x: _canvas.width * 0.38, y: _canvas.height * 0.76, color: "#38bdf8", quote: "Focus locked on lead", av: "avatar_04" },
-      { role: "Lead Star", x: _canvas.width * 0.54, y: _canvas.height * 0.62, color: "#ec4899", quote: "Delivering monologue!", av: "avatar_06" },
-      { role: "Boom Operator", x: _canvas.width * 0.32, y: _canvas.height * 0.54, color: "#10b981", quote: "Audio levels clean", av: "avatar_11" }
+      { role: "Director", x: _canvas.width * 0.74, y: _canvas.height * 0.74, color: "#f5c518", quote: "Action! Great emotion!", av: "char_director" },
+      { role: "Camera Operator", x: _canvas.width * 0.38, y: _canvas.height * 0.76, color: "#38bdf8", quote: "Focus locked on lead", av: "char_cameraman" },
+      { role: "Lead Star", x: _canvas.width * 0.54, y: _canvas.height * 0.62, color: "#ec4899", quote: "Delivering monologue!", av: "char_male_1" },
+      { role: "Starlet", x: _canvas.width * 0.63, y: _canvas.height * 0.64, color: "#a855f7", quote: "Dramatic reaction shot!", av: "char_female_1" },
+      { role: "Boom Operator", x: _canvas.width * 0.32, y: _canvas.height * 0.54, color: "#10b981", quote: "Audio levels clean", av: "avatar_11" },
+      { role: "Studio Mascot", x: _canvas.width * 0.84, y: _canvas.height * 0.68, color: "#38bdf8", quote: "[KAIROBOT ON SET]", av: "char_robot" },
+      { role: "Stunt Double", x: _canvas.width * 0.18, y: _canvas.height * 0.72, color: "#f97316", quote: "Action sequence ready!", av: "char_male_cheer" }
     ];
 
     for (let i = 0; i < crew.length; i++) {
@@ -856,8 +1124,9 @@
 
     // Writers room anim
     const writers = [
-      { name: "Head Screenwriter", x: _canvas.width * 0.40, y: _canvas.height * 0.62, av: "avatar_08", quote: "Act III Plot Twist ready!" },
-      { name: "Dialogue Polish", x: _canvas.width * 0.60, y: _canvas.height * 0.72, av: "avatar_12", quote: "Punching up one-liners..." }
+      { name: "Head Screenwriter", x: _canvas.width * 0.36, y: _canvas.height * 0.62, av: "char_male_2", quote: "Act III Plot Twist ready!" },
+      { name: "Dialogue Polish", x: _canvas.width * 0.54, y: _canvas.height * 0.72, av: "char_female_2", quote: "Punching up one-liners..." },
+      { name: "Story AI Consultant", x: _canvas.width * 0.70, y: _canvas.height * 0.64, av: "char_robot", quote: "Pacing formula verified!" }
     ];
 
     for (let i = 0; i < writers.length; i++) {
@@ -971,8 +1240,9 @@
 
     // Animated Post & Broadcast Artists
     const artists = [
-      { role: "Audio Mixer", x: _canvas.width * 0.28, y: _canvas.height * 0.70, av: "avatar_04", color: "#38bdf8", quote: "Dialogue normalization 100%" },
-      { role: "VFX Colorist", x: _canvas.width * 0.44, y: _canvas.height * 0.62, av: "avatar_07", color: "#ec4899", quote: "Master color grade locked" }
+      { role: "Audio Mixer", x: _canvas.width * 0.28, y: _canvas.height * 0.70, av: "char_male_2", color: "#38bdf8", quote: "Dialogue normalization 100%" },
+      { role: "VFX Colorist", x: _canvas.width * 0.44, y: _canvas.height * 0.62, av: "char_female_1", color: "#ec4899", quote: "Master color grade locked" },
+      { role: "Lead Editor", x: _canvas.width * 0.62, y: _canvas.height * 0.68, av: "female_walk0", color: "#10b981", quote: "Director's cut assembled!" }
     ];
     for (let i = 0; i < artists.length; i++) {
       const art = artists[i];
@@ -1087,28 +1357,45 @@
       ctx.font = "bold 13px system-ui, sans-serif";
       ctx.fillText(scores[i] + "/10", px + 8, py + 25);
     }
+    // Flashing Paparazzi camera strobes
+    ctx.save();
+    for (let f = 0; f < 3; f++) {
+      const flashT = (time * 0.007 + f * 1.7) % 2.5;
+      if (flashT < 0.12) {
+        const fx = _canvas.width * (0.28 + f * 0.18);
+        const fy = _canvas.height * (0.64 + Math.sin(f * 3) * 0.08);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.beginPath();
+        ctx.arc(fx, fy, 18 + f * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     ctx.restore();
 
-    // Animated Audience Reactions (ZERO EMOJIS — pure retro tags)
-    const audience = [
-      { role: "Opening Night Fan", x: _canvas.width * 0.38, y: _canvas.height * 0.72, av: "avatar_09", tag: "[10/10 MASTERPIECE]" },
-      { role: "Film Buff", x: _canvas.width * 0.52, y: _canvas.height * 0.74, av: "avatar_14", tag: "[STANDING OVATION]" },
-      { role: "Concession Lead", x: _canvas.width * 0.68, y: _canvas.height * 0.70, av: "avatar_18", tag: "[POPCORN SOLD OUT]" }
+    // Animated Red Carpet & Audience Crew (ZERO EMOJIS — reference game pixel characters)
+    const redCarpetCrew = [
+      { role: "Paparazzi Press", x: _canvas.width * 0.22, y: _canvas.height * 0.74, av: "char_cameraman", tag: "[FLASH! FLASH!]" },
+      { role: "Red Carpet Star", x: _canvas.width * 0.38, y: _canvas.height * 0.68, av: "char_star_actor", tag: "[PREMIERE STAR]" },
+      { role: "Cheering Fan", x: _canvas.width * 0.50, y: _canvas.height * 0.72, av: "char_female_cheer", tag: "[AUTOGRAPH PLEASE!]" },
+      { role: "Opening Buff", x: _canvas.width * 0.62, y: _canvas.height * 0.74, av: "char_male_cheer", tag: "[10/10 MASTERPIECE]" },
+      { role: "Studio Mascot", x: _canvas.width * 0.74, y: _canvas.height * 0.70, av: "char_robot", tag: "[BOX OFFICE #1]" },
+      { role: "VIP Cameo", x: _canvas.width * 0.85, y: _canvas.height * 0.72, av: "char_zombie", tag: "[METHOD ACTING]" }
     ];
-    for (let i = 0; i < audience.length; i++) {
-      const aud = audience[i];
-      const bounce = Math.sin(time * 0.004 + i) * 2;
+
+    for (let i = 0; i < redCarpetCrew.length; i++) {
+      const aud = redCarpetCrew[i];
+      const bounce = Math.sin(time * 0.005 + i * 1.3) * 3;
       const cached = spriteCache[aud.av];
       ctx.save();
       if (cached && cached.loaded) {
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(cached.img, aud.x - 20, aud.y - 40 + bounce, 40, 40);
+        ctx.drawImage(cached.img, aud.x - 22, aud.y - 44 + bounce, 44, 44);
       }
       ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
       ctx.strokeStyle = "#f5c518";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(aud.x - 45, aud.y + 4, 90, 16, 4);
+      ctx.roundRect(aud.x - 48, aud.y + 4, 96, 16, 4);
       ctx.fill();
       ctx.stroke();
 
@@ -1120,16 +1407,17 @@
       if (Math.sin(time * 0.003 + i * 2) > 0.4) {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
-        ctx.roundRect(aud.x - 65, aud.y - 62, 130, 18, 4);
+        ctx.roundRect(aud.x - 65, aud.y - 64, 130, 18, 4);
         ctx.fill();
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 9px system-ui, sans-serif";
-        ctx.fillText(aud.tag, aud.x, aud.y - 50);
+        ctx.textAlign = "center";
+        ctx.fillText(aud.tag, aud.x, aud.y - 52);
       }
       ctx.restore();
     }
 
-    drawKairosoftScoreboard(ctx, "CINEMA MARQUEE — BOX OFFICE AUDIENCE");
+    drawKairosoftScoreboard(ctx, "CINEMA MARQUEE — RED CARPET PREMIERE");
   }
 
   // ── VIEW 6: Executive Office (HQ & War Chest) ──
@@ -1156,10 +1444,12 @@
     }
     ctx.restore();
 
-    // Animated Executive Staff
+    // Animated Executive Staff (Reference game pixel characters)
     const execs = [
-      { role: "Studio Boss", x: _canvas.width * 0.58, y: _canvas.height * 0.58, av: "avatar_01", color: "#f5c518", quote: "Greenlight approved!" },
-      { role: "CFO Treasurer", x: _canvas.width * 0.34, y: _canvas.height * 0.74, av: "avatar_03", color: "#10b981", quote: "War Chest: " + stCash }
+      { role: "Studio Boss", x: _canvas.width * 0.60, y: _canvas.height * 0.58, av: "char_male_1", color: "#f5c518", quote: "Greenlight approved!" },
+      { role: "CFO Treasurer", x: _canvas.width * 0.36, y: _canvas.height * 0.72, av: "char_female_2", color: "#10b981", quote: "War Chest: " + stCash },
+      { role: "VP Marketing", x: _canvas.width * 0.50, y: _canvas.height * 0.74, av: "char_female_cheer", color: "#ec4899", quote: "Global campaign live!" },
+      { role: "AI Strategist", x: _canvas.width * 0.76, y: _canvas.height * 0.70, av: "char_robot", color: "#38bdf8", quote: "ROI Model: +48%" }
     ];
 
     for (let i = 0; i < execs.length; i++) {
@@ -1193,12 +1483,13 @@
         ctx.fill();
         ctx.fillStyle = "#0f172a";
         ctx.font = "bold 9px system-ui, sans-serif";
+        ctx.textAlign = "center";
         ctx.fillText(ex.quote, ex.x, ex.y - 55);
       }
       ctx.restore();
     }
 
-    drawKairosoftScoreboard(ctx, "EXECUTIVE SUITE — STUDIO OVERVIEW");
+    drawKairosoftScoreboard(ctx, "EXECUTIVE SUITE — STUDIO HQ & FINANCES");
   }
 
   function drawRoomBackdrop(ctx, asset) {
@@ -1226,6 +1517,9 @@
   // ── Kairosoft Live 4-Stat Scoreboard ──
   function drawKairosoftScoreboard(ctx, title) {
     if (_currentLotView === "campus") return;
+    // In the short cinematic banner the room is cropped; a floating score
+    // panel there just reads as clutter. Keep it for the full-height lot.
+    if (_canvas.height < 420) return;
     
     const curScore = Math.round((_kairoStats.scenario + _kairoStats.direction + _kairoStats.acting + _kairoStats.soundVfx) / 4);
 
@@ -1432,6 +1726,8 @@
       const rect = _canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
+      _pointerScreen.x = mouseX;
+      _pointerScreen.y = mouseY;
 
       if (camera.isDragging) {
         const dx = e.clientX - camera.dragStartX;
@@ -1569,6 +1865,16 @@
         camera.zoom = 1.0;
       }
     });
+
+    window.addEventListener("orientationchange", () => {
+      setTimeout(() => {
+        resizeCanvas();
+        if (_canvas) {
+          camera.x = _canvas.width / 2;
+          camera.y = _canvas.height / 2;
+        }
+      }, 150);
+    });
   }
 
   function playViewSting(view) {
@@ -1586,8 +1892,16 @@
     const parent = _canvas.parentElement;
     if (!parent) return;
     const rect = parent.getBoundingClientRect();
-    _canvas.width = rect.width || window.innerWidth;
-    _canvas.height = rect.height || 560;
+    const w = Math.round(rect.width) || window.innerWidth;
+    let h = Math.round(rect.height);
+    if (!h || h < 100) {
+      h = window.innerHeight < 600 ? Math.max(220, window.innerHeight - 76) : 560;
+    }
+    _canvas.width = w;
+    _canvas.height = h;
+    if (_ctx) {
+      _ctx.imageSmoothingEnabled = false;
+    }
   }
 
   function updateLotHud() {
@@ -1701,69 +2015,69 @@
       }
 
       container.innerHTML = `
-        <div class="studiolot-viewport" style="position:relative;width:100%;height:100%;background:#0c1017;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.12)">
+        <div class="studiolot-viewport">
           
           <!-- Top Kairosoft Control Console (Clean Single Row) -->
-          <div class="kairo-top-bar" style="position:absolute;top:8px;left:10px;right:10px;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none">
+          <div class="kairo-top-bar">
             <!-- Room Switcher Tabs Left -->
-            <div class="kairo-room-nav" style="pointer-events:auto;display:flex;gap:4px;background:rgba(15,23,42,0.94);padding:4px 8px;border-radius:6px;border:1px solid rgba(245,197,24,0.4);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
-              <button class="kairo-nav-tab active" data-view="campus">Campus Lot</button>
-              <button class="kairo-nav-tab" data-view="soundstage">Soundstage</button>
-              <button class="kairo-nav-tab" data-view="writers">Writers Room</button>
-              <button class="kairo-nav-tab" data-view="post">Post &amp; VFX</button>
-              <button class="kairo-nav-tab" data-view="cinema">Cinema Theater</button>
-              <button class="kairo-nav-tab" data-view="executive">Executive Suite</button>
+            <div class="kairo-room-nav">
+              <button class="kairo-nav-tab active" data-view="campus"><img class="subtab-pixel-icon" src="assets/2d/studio_gate.png" alt="" /><span>Campus</span></button>
+              <button class="kairo-nav-tab" data-view="soundstage"><img class="subtab-pixel-icon" src="assets/2d/soundstage.png" alt="" /><span>Stage</span></button>
+              <button class="kairo-nav-tab" data-view="writers"><img class="subtab-pixel-icon" src="assets/2d/writers_bungalow.png" alt="" /><span>Writers</span></button>
+              <button class="kairo-nav-tab" data-view="post"><img class="subtab-pixel-icon" src="assets/2d/post_suite.png" alt="" /><span>Post &amp; VFX</span></button>
+              <button class="kairo-nav-tab" data-view="cinema"><img class="subtab-pixel-icon" src="assets/2d/cinema_theater.png" alt="" /><span>Cinema</span></button>
+              <button class="kairo-nav-tab" data-view="executive"><img class="subtab-pixel-icon" src="assets/2d/executive.png" alt="" /><span>Executive</span></button>
             </div>
 
             <!-- Studio Telemetry + Stats Toggle + Fullscreen Right -->
-            <div style="pointer-events:auto;display:flex;align-items:center;gap:8px">
-              <div class="kairo-hud-stats" style="display:flex;align-items:center;gap:12px;background:rgba(15,23,42,0.94);padding:5px 14px;border-radius:6px;border:1px solid rgba(245,197,24,0.35);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+            <div class="kairo-top-right">
+              <div class="kairo-hud-stats">
                 <div class="itch-hud-stat">
-                  <span class="lbl" style="font-size:9px;color:#94a3b8;font-weight:700">WAR CHEST</span>
-                  <span id="lotHudCash" class="val" style="color:#10b981;font-weight:700;font-size:12px">$100.0M</span>
+                  <span class="lbl">WAR CHEST</span>
+                  <span id="lotHudCash" class="val" style="color:#10b981;font-weight:700">$100.0M</span>
                 </div>
                 <div class="itch-hud-stat">
-                  <span class="lbl" style="font-size:9px;color:#94a3b8;font-weight:700">CALENDAR</span>
-                  <span id="lotHudDate" class="val" style="color:var(--gold);font-weight:700;font-size:12px">Y1 W1</span>
+                  <span class="lbl">CALENDAR</span>
+                  <span id="lotHudDate" class="val" style="color:var(--gold);font-weight:700">Y1 W1</span>
                 </div>
                 <div class="itch-hud-stat">
-                  <span class="lbl" style="font-size:9px;color:#94a3b8;font-weight:700">ACTIVE SHOOTS</span>
-                  <span id="lotHudStages" class="val" style="color:#38bdf8;font-weight:700;font-size:12px">0 Filming</span>
+                  <span class="lbl">ACTIVE</span>
+                  <span id="lotHudStages" class="val" style="color:#38bdf8;font-weight:700">0 Filming</span>
                 </div>
               </div>
-              <button id="btnToggleStats" class="btn btn-alt btn-sm" style="font-weight:bold;height:32px;color:var(--gold);border-color:var(--gold)" title="Toggle Production Stats HUD">Stats HUD</button>
-              <button id="btnLotFullscreen" class="btn btn-alt btn-sm" style="color:var(--gold);border-color:var(--gold);font-weight:bold;height:32px" title="Toggle Fullscreen 2D Lot">Lot Full</button>
+              <button id="btnToggleStats" class="btn btn-alt btn-sm" title="Toggle Production Stats HUD">Stats HUD</button>
+              <button id="btnLotFullscreen" class="btn btn-alt btn-sm" title="Toggle Fullscreen 2D Lot">Lot Full</button>
             </div>
           </div>
 
           <!-- Collapsible Facilities Build Palette Top Left -->
-          <div id="lotPaletteRoot" style="position:absolute;top:54px;left:12px;z-index:25;display:none"></div>
+          <div id="lotPaletteRoot" style="position:absolute;top:50px;left:12px;z-index:30;display:none"></div>
 
           <!-- Bottom Kairosoft Command Deck -->
-          <div class="kairo-bottom-deck" style="position:absolute;bottom:10px;left:10px;right:10px;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none;flex-wrap:wrap">
+          <div class="kairo-bottom-deck">
             <!-- Left: Camera Controls & Build -->
-            <div class="lot-controls" style="pointer-events:auto;display:flex;gap:4px;background:rgba(15,23,42,0.92);padding:4px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+            <div class="lot-controls">
               <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In">+</button>
               <button id="btnZoomOut" class="btn btn-alt btn-sm" title="Zoom Out">-</button>
-              <button id="btnResetView" class="btn btn-alt btn-sm">Center Lot</button>
+              <button id="btnResetView" class="btn btn-alt btn-sm">Center</button>
               <button id="btnFocusShoot" class="btn btn-primary btn-sm">Locate Set</button>
               <button id="btnTogglePalette" class="btn btn-alt btn-sm">Build Facility</button>
             </div>
 
             <!-- Right: Studio Management & Production Actions -->
-            <div style="pointer-events:auto;display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.94);padding:4px 10px;border-radius:6px;border:1px solid rgba(245,197,24,0.4);box-shadow:0 4px 14px rgba(0,0,0,0.6)">
+            <div class="lot-action-dock">
               <button id="btnLotSlate" class="btn btn-alt btn-sm">Slate</button>
               <button id="btnLotTalent" class="btn btn-alt btn-sm" style="color:#6ee7b7;font-weight:bold" title="Open Box Office Sim 2 Talent Market & Animal Actors">BOS2 Talent</button>
               <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Box Office</button>
               <button id="btnLotFinance" class="btn btn-alt btn-sm">Finance</button>
-              <button id="btnLotDevelop" class="itch-btn-gold" style="cursor:pointer;margin-left:4px">+ Greenlight</button>
+              <button id="btnLotDevelop" class="itch-btn-gold" style="cursor:pointer;margin-left:2px">+ Greenlight</button>
               <button id="btnLotFastWeek" class="itch-btn-blue" style="cursor:pointer">Fast (+4W)</button>
               <button id="btnLotNextWeek" class="itch-btn-blue" style="cursor:pointer;font-weight:bold">Next Week (+1W)</button>
             </div>
           </div>
 
           <!-- Inspector Drawer Top Right -->
-          <div id="lotInspectorRoot" style="position:absolute;top:54px;right:14px;z-index:25;max-width:320px;display:none"></div>
+          <div id="lotInspectorRoot" style="position:absolute;top:50px;right:14px;z-index:30;max-width:320px;display:none"></div>
 
           <!-- The Full 2D Game Canvas -->
           <canvas id="studioLotCanvas" style="display:block;width:100%;height:100%;cursor:grab"></canvas>

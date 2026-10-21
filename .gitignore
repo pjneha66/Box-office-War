@@ -22,3 +22,20 @@ target/
 *.summary.md
 mac-local-*.png
 game_screenshot.png
+
+# ── macOS AppleDouble sidecars (._*) ──
+# 17k+ of these were floating untracked and two were read as pack indexes,
+# which corrupted the repo ("non-monotonic index"). Never commit them.
+._*
+.*/._*
+**/._*
+
+# ── local AI tool scratch dirs ──
+.dsh/
+.zcode/
+.opencode/
+.agents/
+.workbuddy-ai/
+
+# ── BOS2 icon source dump (only the 35 referenced files are tracked) ──
+assets/bos2-icons/
