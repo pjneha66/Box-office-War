@@ -160,6 +160,58 @@ click($('#btnClashAnalytics'));
 assert(!$('#modalRoot .modal'),'clash radar should not invent a project');
 assert($('#toasts').textContent.toLowerCase().includes('clash'),'clash radar must explain why it cannot analyse');
 
+/* ── 12. Cast directory: the whole roster, animal stars included ────── */
+w.eval("DEVELOP_SUB='talent';G.castPins={film:null,series:null};render();");
+assert($('.cast-desk'),'talent desk must offer a cast directory');
+assert.equal($('.cast-desk [data-cast-unpin]'),null,'no stale pins for a fresh studio');
+w.eval('unlockAllCast();render();');
+const rosterSize=w.eval('G.talent.length');
+assert(rosterSize>=100,'the unlock must produce a deep roster (got '+rosterSize+')');
+assert(w.eval('G.talent.filter(t=>t.isAnimal).length')>=72,'every animal species must be in the pool');
+/* 1,000+ performers must open quickly and stay searchable. */
+w.eval(`for(let i=0;i<900;i++) G.talent.push({id:900000+i,kind:'actor',name:'Extra Performer '+i,power:2+(i%4),skill:50+(i%45),fee:4,heat:1,genreFit:null,age:25,scandal:0,pics:0});`);
+const bigTotal=w.eval('G.talent.length');
+assert(bigTotal>=1000,'the directory must handle 1,000+ performers (got '+bigTotal+')');
+click($('#btnOpenCastDirectory'));
+const dir=$('#modalRoot .modal');
+assert(dir,'cast directory must open');
+assert(dir.classList.contains('command-develop-modal'),'cast directory must use the Develop dialog skin');
+assert.equal($$('.cast-row').length,60,'the directory pages its rows instead of painting the whole roster');
+assert($('#castDirCount').textContent.includes(bigTotal.toLocaleString()),'the directory must report the full roster size');
+/* search */
+const search=$('#castDirSearch');
+search.value='aardvark';
+search.dispatchEvent(new w.Event('input',{bubbles:true}));
+assert.equal($$('.cast-row').length,1,'searching a species must narrow the directory');
+assert($('.cast-row-id small').textContent.includes('Animal actor'),'animal rows must be labelled');
+/* availability filter */
+w.eval("CAST_DIR.q='';CAST_DIR.filter='animal';castDirSync(document.querySelector('#modalRoot .modal'));");
+assert.equal(w.eval('CAST_DIR.limit=200;castDirSync(document.querySelector(\'#modalRoot .modal\'));document.querySelectorAll(\'.cast-row\').length'),72,'the animal filter must list all 72 species once paged out');
+/* pin + auto-attach */
+w.eval("CASTA=G.talent.find(t=>t.isAnimal);pinCast(CASTA.id,'film');");
+assert.equal(w.eval('G.castPins.film'),w.eval('G.talent.find(t=>t.isAnimal).id'),'pinning must persist on the save state');
+w.eval("closeModal();startFilmPitchWizard();");
+assert(w.eval('WZ.cast.some(c=>c.isAnimal)'),'a pinned animal star must board the next film pitch');
+w.eval("closeModal();WZ=null;");
+/* series wizard carries the same cast flow */
+w.eval("pinCast(G.talent.filter(t=>t.isAnimal)[1].id,'series');startSeriesWizard();");
+assert(w.eval('WZ.cast.some(c=>c.isAnimal)'),'a pinned animal star must board the next series pitch');
+w.eval("WZ.showrunner=freeTalent('director')[0];WZ.szStep=2;seriesModal();");
+assert($$('[data-szcast]').length>0,'the series wizard must offer a cast step');
+assert.equal($$('.cast-pick.sel').length,1,'the pinned lead must already be selected');
+const pick=$$('[data-szcast]').find(b=>!b.classList.contains('sel'));
+click(pick);
+assert.equal($$('.cast-pick.sel').length,2,'a second lead can be added to a season');
+w.eval("const t=document.querySelector('#szToPlat');t.click();G.streamer=G.streamer||{name:'Own',color:'#333',logo:'O'};WZ.platform='own';seriesModal();document.querySelector('#szPitch').click();");
+const series=w.eval('(G.series||[]).slice(-1)[0]');
+assert(series&&series.cast&&series.cast.length===2,'the series must be greenlit with both leads (got '+(series&&series.cast&&series.cast.length)+')');
+assert.equal(w.eval('G.castPins.series'),null,'a used pin is consumed so it does not repeat');
+/* the legacy market modal is retired in favour of the directory */
+w.eval("closeModal();openBOS2TalentModal();");
+assert($('#castDirList'),'the legacy animal market must forward to the cast directory');
+assert.equal($('#bos2TalentModal'),null,'the old navy/gold market modal must be gone');
+w.eval("closeModal();G.castPins={film:null,series:null};G.talent=G.talent.filter(t=>!String(t.name).startsWith('Extra Performer'));");
+
 /* ── 11. Console cleanliness ───────────────────────────────────────── */
 assert.deepEqual(errors.filter(e=>!/Not implemented: navigation/.test(e)),[],'unexpected console errors');
 console.log('PASS develop deck: seven sections, live metrics, filters, rights, crew, lens, combos, partner desks and command dialogs');

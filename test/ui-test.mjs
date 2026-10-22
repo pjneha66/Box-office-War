@@ -406,6 +406,12 @@ step("series pitch wizard", ()=>{
   if(!$$("[data-g]").length) throw new Error("genre chips missing");
   const sr=$$("[data-sr]")[0]; if(!sr) throw new Error("no showrunner");
   click(sr);
+  // step 1 → cast step → platform step
+  const toCast=$("#szToCast"); if(!toCast) throw new Error("cast step button missing");
+  click(toCast);
+  if(!$$("[data-szcast]").length) throw new Error("series cast list missing");
+  const toPlat=$("#szToPlat"); if(!toPlat) throw new Error("platform step button missing");
+  click(toPlat);
   if(!$("#szPitch")) throw new Error("pitch button missing");
   click($("#szPitch"));
   window.eval("closeModal();");

@@ -103,6 +103,56 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
   const q1=await page.evaluate(()=>G.projects.find(p=>p.id==='visual-1').quality);
   assert(q1>q0,'fitting a lens in the browser did not raise quality');
 
+  /* ── Cast directory: 1,000+ performers, animals, pins ───────────── */
+  await page.evaluate(()=>{closeModal();DEVELOP_SUB='talent';unlockAllCast();
+    for(let i=0;i<900;i++) G.talent.push({id:900000+i,kind:'actor',name:'Extra Performer '+i,power:2+(i%4),skill:50+(i%45),fee:4,heat:1,genreFit:null,age:25,scandal:0,pics:0});
+    G.castPins={film:null,series:null};_renderImpl();});
+  const rosterTotal=await page.evaluate(()=>G.talent.length);
+  assert(rosterTotal>=1000,'roster must reach 1,000+ for the scale check');
+  const openMs=await page.evaluate(()=>{const t=performance.now();document.querySelector('#btnOpenCastDirectory').click();return Math.round(performance.now()-t);});
+  assert(openMs<1500,'opening a 1,000+ roster must stay responsive (took '+openMs+'ms)');
+  const dir=await page.evaluate(()=>{
+    const m=document.querySelector('#modalRoot .modal'), list=document.querySelector('#castDirList');
+    return {cls:m.className,rows:document.querySelectorAll('.cast-row').length,count:document.querySelector('#castDirCount').textContent,
+      scrolls:list.scrollHeight>list.clientHeight,pageOverflow:document.documentElement.scrollWidth>window.innerWidth+2,
+      img:getComputedStyle(m).backgroundImage,tagShadow:(()=>{const b=document.querySelector('.develop-badge');return b?getComputedStyle(b).boxShadow:'none'})()};
+  });
+  assert.match(dir.cls,/command-develop-modal/);
+  assert.equal(dir.img,'none','the directory must not paint a legacy gradient');
+  assert.equal(dir.rows,60,'the directory pages rows rather than painting the whole roster');
+  assert(dir.count.includes(rosterTotal.toLocaleString()),'the directory must report the full roster');
+  assert(dir.scrolls,'the directory list must scroll, not expand the page');
+  assert(!dir.pageOverflow,'the directory must not widen the page');
+
+  /* search + animal filter + pin into the film wizard */
+  await page.type('#castDirSearch','lion');
+  await new Promise(r=>setTimeout(r,150));
+  const searched=await page.evaluate(()=>({rows:document.querySelectorAll('.cast-row').length,sub:(document.querySelector('.cast-row-id small')||{}).textContent||''}));
+  assert(searched.rows>=1&&searched.rows<=6,'species search must narrow the roster (got '+searched.rows+')');
+  assert(/Animal actor/.test(searched.sub),'animal rows must say they are animal actors');
+  await page.evaluate(()=>{document.querySelector('[data-castfilter="animal"]').click();document.querySelector('#castDirSearch').value='';CAST_DIR.q='';castDirSync(document.querySelector('#modalRoot .modal'));});
+  const animalRows=await page.evaluate(()=>document.querySelectorAll('.cast-row').length);
+  assert.equal(animalRows,60,'animal filter must be a full 72-strong roster (paged to 60)');
+  await page.evaluate(()=>document.querySelector('[data-cast-pin^="film:"]').click());
+  assert(await page.evaluate(()=>!!G.castPins.film),'pinning must persist on the save state');
+  await page.evaluate(()=>{document.querySelector('#castDirDone').click();startFilmPitchWizard();});
+  assert(await page.evaluate(()=>WZ.cast.some(c=>c.isAnimal)),'a pinned animal star must board the film pitch');
+  await page.evaluate(()=>{closeModal();WZ=null;});
+
+  /* series wizard carries the same cast flow */
+  await page.evaluate(()=>{startSeriesWizard();WZ.showrunner=freeTalent('director')[0];WZ.szStep=2;seriesModal();});
+  const seriesCast=await page.evaluate(()=>({cards:document.querySelectorAll('[data-szcast]').length,animals:[...document.querySelectorAll('[data-szcast]')].filter(b=>/Animal actor/.test(b.textContent)).length}));
+  assert(seriesCast.cards>0,'series wizard must offer a cast step');
+  assert(seriesCast.animals>0,'animal stars must be castable in a series');
+  const beforePick=await page.evaluate(()=>WZ.cast.length);
+  await page.evaluate(()=>{const p=[...document.querySelectorAll('[data-szcast]')].find(b=>!b.classList.contains('sel'));p.click();});
+  const afterPick=await page.evaluate(()=>WZ.cast.length);
+  assert.equal(afterPick,beforePick+1,'clicking a cast row must add that lead to the season');
+  await page.evaluate(()=>{closeModal();WZ=null;});
+
+  /* the legacy navy/gold market is retired */
+  assert.equal(await page.evaluate(()=>!!document.getElementById('bos2TalentModal')),false,'legacy animal market markup must not exist');
+
   /* ── Responsive bounds at every size ────────────────────────────── */
   const shots=[];
   for(const [width,height,label] of [[1440,900,'desktop'],[1280,720,'laptop'],[844,390,'phone landscape'],[700,900,'tablet portrait'],[390,844,'portrait']]){
@@ -138,6 +188,6 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
   }
 
   assert.deepEqual(errors,[],'page errors while rendering Develop');
-  console.log(`PASS develop deck browser: flat computed surfaces, six command dialogs, live filters, lens fitting and no overflow at ${shots.join(', ')}`);
+  console.log(`PASS develop deck browser: flat surfaces, six command dialogs, live filters, lens fitting, a 1,000+ cast directory with animal pins feeding both wizards, and no overflow at ${shots.join(', ')}`);
  } finally { await browser.close(); }
 })().catch(e=>{console.error(e);process.exitCode=1});

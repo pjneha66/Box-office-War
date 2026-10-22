@@ -636,55 +636,6 @@ h1,h2,h3,h4,h5,h6,
   color: var(--gold-light) !important;
 }
 
-/* 32. 2D Lot Omnipresent Quick-Nav */
-.fab-lot {
-  position: fixed;
-  bottom: 84px;
-  right: 18px;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 18px;
-  background-image: url("assets/itch-ui/buttons/BigBlueButton_Regular.png") !important;
-  background-size: 100% 100% !important;
-  border: none !important;
-  color: #ffffff !important;
-  font-family: var(--font-display) !important;
-  font-weight: 900 !important;
-  font-size: 13px !important;
-  text-shadow: 0 2px 4px rgba(0,0,0,.85) !important;
-  box-shadow: 0 6px 22px rgba(0,0,0,.7), 0 0 16px rgba(56,189,248,.35) !important;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: transform .15s, filter .15s;
-}
-.fab-lot:hover {
-  filter: brightness(1.15) !important;
-  transform: translateY(-2px);
-}
-.fab-lot:active {
-  background-image: url("assets/itch-ui/buttons/BigBlueButton_Pressed.png") !important;
-  transform: translateY(2px);
-}
-@media (max-width: 760px) {
-  .fab-lot {
-    bottom: 120px;
-    right: 14px;
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-}
-@media (orientation: landscape) and (max-height: 600px) {
-  .fab-lot {
-    bottom: 24px;
-    right: 14px;
-    padding: 6px 12px;
-    font-size: 11px;
-  }
-}
-
 /* 33. Kairosoft 2D Studio Lot HUD & Responsive Controls */
 .studiolot-viewport {
   position: relative;

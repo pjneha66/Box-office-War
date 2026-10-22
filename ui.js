@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 "use strict";
 
-let TAB = "studiolot";
+let TAB = "dashboard";
 let WZ = null;          // greenlight/pitch wizard state
 let SCHEDULE = null;    // release scheduling state
 let SOUND = true;
@@ -274,8 +274,9 @@ function scoreBadge(q){
   return "<span class='tag red'>"+q+" · Panned</span>";
 }
 function toast(t,k){
+  const host=$("#toasts"); if(!host) return;
   const d=document.createElement("div"); d.className="toast "+(k||""); d.textContent=t;
-  $("#toasts").appendChild(d); setTimeout(()=>d.remove(), 5200);
+  host.appendChild(d); setTimeout(()=>d.remove(), 5200);
 }
 function flashes(list){ (list||[]).forEach(f=>toast(f.t, f.k)); }
 
@@ -781,7 +782,7 @@ function enterApp(fresh){
   }
   // Deep links open the requested management screen without changing saved careers.
   const entryView = new URLSearchParams(location.search).get("view");
-  switchTab(["dashboard", "studio"].includes(entryView) ? entryView : "studiolot");
+  switchTab(["dashboard", "studio"].includes(entryView) ? entryView : "dashboard");
   render();
   if(G.pendingEarnings) earningsModal();
   else if(G.pendingChoice) choiceModal();
@@ -834,18 +835,11 @@ function switchTab(t){
   }
   TAB=t; try{ beep("click"); }catch(e){}   // v28.9: never let audio/haptics kill the render flush
   $$(".tab,.btab").forEach(b=>{
-    const match = b.dataset.tab===t || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
+    // The live 2D lot is entered from Studio, so Studio stays lit while you are on it.
+    const match = b.dataset.tab===t || (t==="studiolot" && b.dataset.tab==="studio") || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
     b.classList.toggle("active", match);
     b.setAttribute("aria-current", match?"true":"false");   // v27 a11y
   });
-  const fabLot = document.getElementById("fabLot");
-  if(fabLot){
-    fabLot.style.display = ["studiolot", "dashboard", "studio"].includes(t) ? "none" : "block";
-    if(!fabLot._wired){
-      fabLot._wired = true;
-      fabLot.onclick = () => switchTab("studiolot");
-    }
-  }
   /* v28.9: flush the debounced render immediately on tab switch — fixes the
      race where a fast click (or the UI test) hits a not-yet-rendered view */
   if(_renderTimer){ clearTimeout(_renderTimer); _renderTimer=null; }
@@ -2205,11 +2199,211 @@ function commandDevelopTalent(){
     ${watchList}
     ${developPanel("AGENCY ROWS","The three houses",`Package two clients of the same agency in one film and they bill a packaging fee. An exclusive waives it and cuts their clients' quotes.`,agencies?`<div class="develop-agencies">${agencies}</div>`:`<div class="command-empty"><b>No agencies loaded.</b><small>The talent market did not initialise.</small></div>`)}
     ${developPanel("STUDIO-WIDE HIRES","Below-the-line crew",`Hired on a weekly retainer. Each one lifts every film you greenlight.`,crew?`<div class="develop-crew-grid">${crew}</div>`:`<div class="command-empty"><b>Crew market unavailable.</b><small>The crew system did not load.</small></div>`)}
-    ${roster("WRITERS ON THE MARKET",freeW,6)}${roster("PRODUCERS ON THE MARKET",freeP,6)}${roster("DIRECTORS ON THE MARKET",freeD,6)}${roster("CAST ON THE MARKET",freeA,9)}<div class="develop-roster-actions"><button class="develop-ghost" onclick="if(typeof openBOS2TalentModal==='function')openBOS2TalentModal();">Animal actors &amp; market</button><button class="develop-ghost" onclick="if(typeof unlockAllCast==='function'){unlockAllCast();render();}">Reveal every cast member (${(G.talent||[]).length})</button></div>
+    ${castPinsPanel()}
+    ${roster("WRITERS ON THE MARKET",freeW,6)}${roster("PRODUCERS ON THE MARKET",freeP,6)}${roster("DIRECTORS ON THE MARKET",freeD,6)}${roster("CAST ON THE MARKET",freeA.filter(t=>!t.isAnimal),9)}${roster("ANIMAL STARS ON THE MARKET",freeA.filter(t=>t.isAnimal),6)}
     ${(G.retired||[]).length?developPanel("CAREERS THAT ENDED","Recently retired","",`<div class="develop-retired">${G.retired.slice(-8).reverse().map(r=>`<div><b>${esc(r.name)}</b><span>${esc(r.kind||"")} · age ${r.age||"—"} · ${esc(dateLabel?dateLabel(r.week):"")}</span></div>`).join("")}</div>`):""}
   </section>`;
 }
 
+/* ═══════════ cast directory — every performer, 1,000+ safe ═══════════ */
+const CAST_DIR={q:"",filter:"all",limit:60};
+function castPins(){
+  if(typeof G==="undefined"||!G) return {film:null,series:null};
+  G.castPins=G.castPins||{film:null,series:null};
+  return G.castPins;
+}
+function castPinTalent(mode){
+  const pin=castPins()[mode];
+  if(pin==null) return null;
+  return (G.talent||[]).find(t=>String(t.id)===String(pin))||null;
+}
+function castRoleLabel(t){
+  if(!t) return "Talent";
+  if(t.isAnimal) return "Animal actor"+(t.species?" · "+t.species:"");
+  return {writer:"Writer",producer:"Producer",director:"Director",actor:"Actor"}[t.kind]||t.kind;
+}
+function castIsFree(t){
+  if(!t) return false;
+  if(G && G.allCastUnlocked) return true;
+  return !(t.bookedUntil>G.week) && !t.retired;
+}
+const CAST_DIR_FILTERS=[["all","Everyone"],["free","Free now"],["animal","Animal actors"],["actor","Actors"],["director","Directors"],["writer","Writers"],["producer","Producers"],["pinned","Pinned"]];
+function castDirRows(){
+  const q=(CAST_DIR.q||"").trim().toLowerCase(), f=CAST_DIR.filter;
+  const pins=castPins();
+  const rows=(G.talent||[]).filter(t=>{
+    if(!t) return false;
+    if(f==="animal"&&!t.isAnimal) return false;
+    if(f==="actor"&&(t.isAnimal||t.kind!=="actor")) return false;
+    if(f==="director"&&(t.isAnimal||t.kind!=="director")) return false;
+    if(f==="writer"&&(t.isAnimal||t.kind!=="writer")) return false;
+    if(f==="producer"&&(t.isAnimal||t.kind!=="producer")) return false;
+    if(f==="free"&&!castIsFree(t)) return false;
+    if(f==="pinned"&&String(pins.film)!==String(t.id)&&String(pins.series)!==String(t.id)) return false;
+    if(q){
+      const hay=(String(t.name||"")+" "+String(t.species||"")+" "+String(t.kind||"")+" "+(t.abilityName||"")).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  rows.sort((a,b)=>Number(castIsFree(b))-Number(castIsFree(a)) || (b.power||0)-(a.power||0) || (b.skill||0)-(a.skill||0));
+  return rows;
+}
+function castDirRow(t){
+  const pins=castPins(), free=castIsFree(t), fee=(typeof actorFee==="function")?actorFee(t):(t.fee||0);
+  const pf=String(pins.film)===String(t.id), ps=String(pins.series)===String(t.id);
+  return `<article class="cast-row${free?"":" busy"}" data-cast-id="${t.id}"><div class="cast-row-id"><b>${esc(t.name)}</b><small>${esc(castRoleLabel(t))}${t.isAnimal?" 🐾":""}${t.abilityKnown&&t.abilityName?" · "+esc(t.abilityName):""}</small></div><div class="cast-row-stats"><b>${stars(t.power||0)}</b><small>Skill ${t.skill||0} · ${fmtM(fee)}</small></div><div class="cast-row-state"><span class="develop-badge${free?" on":""}">${free?"FREE NOW":"BOOKED · FROM W"+(t.bookedUntil||G.week)}</span></div><div class="cast-row-actions"><button class="develop-ghost" data-cast-profile="${t.id}">Profile</button><button class="develop-ghost${pf?" on":""}" data-cast-pin="film:${t.id}" aria-pressed="${pf}">${pf?"Pinned · film ✓":"Pin · film"}</button><button class="develop-ghost${ps?" on":""}" data-cast-pin="series:${t.id}" aria-pressed="${ps}">${ps?"Pinned · series ✓":"Pin · series"}</button></div></article>`;
+}
+function castDirPinsMarkup(){
+  const f=castPinTalent("film"), se=castPinTalent("series");
+  const chip=(t,mode,label)=>t?`<span class="cast-pin"><small>${label}</small><b>${esc(t.name)}</b><button data-cast-unpin="${mode}" aria-label="Unpin ${esc(t.name)}">✕</button></span>`:"";
+  const a=chip(f,"film","NEXT FILM"), b=chip(se,"series","NEXT SERIES");
+  return `<div class="cast-dir-pins-row${(a||b)?"":" is-empty"}">${a||b? (a+b) : "Pin a performer and they are attached the moment you open a film or series pitch."}</div>`;
+}
+function castDirSync(v){
+  if(!v) return;
+  const rows=castDirRows(), shown=rows.slice(0,CAST_DIR.limit), list=v.querySelector("#castDirList"), count=v.querySelector("#castDirCount");
+  if(list) list.innerHTML=shown.length?shown.map(castDirRow).join(""):`<div class="command-empty"><b>No one matches this search.</b><small>Clear the box or switch back to Everyone.</small></div>`;
+  if(count) count.innerHTML=`<b>${rows.length.toLocaleString()}</b> match${rows.length===1?"":"es"} · <b>${(G.talent||[]).length.toLocaleString()}</b> in the directory · <b>${(G.talent||[]).filter(castIsFree).length.toLocaleString()}</b> free now${rows.length>shown.length?` · showing ${shown.length}`:""}`;
+  const more=v.querySelector("#castDirMore");
+  if(more){ more.textContent=`Show ${Math.min(60,rows.length-shown.length)} more`; more.style.display=rows.length>shown.length?"":"none"; }
+  const pins=v.querySelector("#castDirPins"); if(pins) pins.innerHTML=castDirPinsMarkup();
+  const chips=v.querySelectorAll("[data-castfilter]");
+  chips.forEach(b=>{ const on=b.dataset.castfilter===CAST_DIR.filter; b.classList.toggle("active",on); b.setAttribute("aria-pressed",on); });
+}
+function pinCast(id,mode,rerender){
+  const t=(G.talent||[]).find(x=>String(x.id)===String(id));
+  if(!t) return;
+  const pins=castPins();
+  if(String(pins[mode])===String(t.id)){ pins[mode]=null; toast(t.name+" unpinned."); }
+  else if(!castIsFree(t)){ toast(t.name+" is booked until week "+(t.bookedUntil||"?"),"bad"); return; }
+  else { pins[mode]=t.id; toast(t.name+" pinned for your next "+mode+(t.isAnimal?" — animal stars read on any call sheet.":"")+".","gold"); }
+  if(typeof saveGame==="function") saveGame();
+  if(typeof render==="function") render();
+  if(rerender) rerender();
+}
+function unpinCast(mode,rerender){
+  const pins=castPins(); const t=castPinTalent(mode);
+  pins[mode]=null;
+  if(t) toast(t.name+" unpinned.");
+  if(typeof saveGame==="function") saveGame();
+  if(typeof render==="function") render();
+  if(rerender) rerender();
+}
+/* A pin is attached automatically when a film or series pitch opens, so a
+   performer found in the directory is one click from the call sheet. */
+function seedPinnedCast(mode,wz){
+  if(!wz) return wz;
+  const t=castPinTalent(mode);
+  if(!t||!castIsFree(t)) return wz;
+  if(!Array.isArray(wz.cast)) wz.cast=[];
+  if(!wz.cast.some(c=>c&&c.id===t.id)) wz.cast.push(t);
+  return wz;
+}
+function clearUsedCastPin(mode,cast){
+  const pin=castPinTalent(mode);
+  if(!pin||!Array.isArray(cast)||!cast.some(c=>c&&c.id===pin.id)) return;
+  castPins()[mode]=null;
+}
+let CAST_SCOUT=null;
+function castScoutRoster(force){
+  if(!force && CAST_SCOUT && CAST_SCOUT.length) return CAST_SCOUT;
+  const B=(typeof window!=="undefined")?window.BOS2:null;
+  if(!B||typeof B.generateAnimalActor!=="function") return (CAST_SCOUT=[]);
+  const species=(B.animals||[]).map(a=>a.id);
+  const out=[];
+  for(let i=0;i<3;i++) out.push(B.generateAnimalActor(species[Math.floor(Math.random()*species.length)]));
+  for(let i=0;i<2;i++) out.push(B.generateHumanStar("actor"));
+  out.push(B.generateHumanStar("writer"));
+  const used=new Set((G.talent||[]).map(t=>String(t.id)));
+  out.forEach(t=>{ while(used.has(String(t.id))) t.id=(typeof nid==="function"?nid():Math.floor(Math.random()*900000000)); used.add(String(t.id)); });
+  CAST_SCOUT=out;
+  return out;
+}
+function signScout(id){
+  const t=(CAST_SCOUT||[]).find(x=>String(x.id)===String(id));
+  if(!t) return false;
+  if(!G.studio||G.studio.cash<4){ toast("Need $4M to sign this performer.","bad"); return false; }
+  if((G.talent||[]).some(x=>String(x.id)===String(t.id))){ toast("Already in the directory.","bad"); return false; }
+  G.talent.push(t);
+  if(typeof signContract==="function" && !signContract(t.id,"multi")){
+    G.talent=G.talent.filter(x=>x!==t);
+    toast("The deal fell through.","bad");
+    return false;
+  }
+  CAST_SCOUT=CAST_SCOUT.filter(x=>x!==t);
+  if(typeof saveGame==="function") saveGame();
+  toast(t.name+" signed to a three-picture deal.","gold");
+  return true;
+}
+function castScoutMarkup(){
+  const roster=castScoutRoster();
+  const cards=roster.map(t=>{ const free=castIsFree(t); return `<article class="cast-scout-card"><header><b>${esc(t.name)}</b><span class="develop-badge${t.isAnimal?" on":""}">${t.isAnimal?"🐾 "+esc((t.species||"animal").toUpperCase()):"ACTOR"}</span></header><p>${stars(t.power)} · skill ${t.skill} · fee ${fmtM(actorFee(t))}</p><small>${t.abilityKnown&&t.abilityName?esc(t.abilityName):"Undisclosed read"}${free?"":" · booked"}</small><button class="develop-action" data-cast-sign="${t.id}">Sign 3-picture deal · $4M</button></article>`; }).join("");
+  return `<details class="cast-scout"><summary>Scout room — sign new performers <span>${roster.length} on the wire</span></summary><p class="develop-muted">Fresh reads from the agencies. Signing moves them into your directory permanently on a three-picture deal.</p><div class="cast-scout-grid">${cards||`<div class="command-empty"><b>The wire is quiet.</b><small>Refresh to pull new reads.</small></div>`}</div><footer><button class="develop-ghost" id="castScoutRefresh">Refresh scout reports · $1.0M</button></footer></details>`;
+}
+
+function openCastDirectory(){
+  if(typeof G==="undefined"||!G||!Array.isArray(G.talent)) return;
+  if(!CAST_DIR.limit||CAST_DIR.limit<60) CAST_DIR.limit=60;
+  CAST_DIR.q="";
+  let h="<h3>Cast directory</h3>"+
+    "<p class='tiny muted'>Every performer on the books, animal stars included. Search the whole roster, read a profile, then pin someone for your next film or series — the pin is waiting on the call sheet.</p>"+
+    "<div class='cast-dir'><div class='cast-dir-tools'><input id='castDirSearch' class='cast-dir-search' type='search' placeholder='Search a name, species, or ability…' aria-label='Search the cast directory' autocomplete='off'>"+
+    "<button class='develop-ghost' id='castDirUnlock'>Reveal every cast member</button></div>"+
+    "<div class='develop-filters' role='group' aria-label='Filter the cast directory'>"+CAST_DIR_FILTERS.map(([k,label])=>`<button data-castfilter="${k}" class="${CAST_DIR.filter===k?"active":""}" aria-pressed="${CAST_DIR.filter===k}">${label} <b>${k==="all"?(G.talent||[]).length:k==="free"?(G.talent||[]).filter(castIsFree).length:k==="animal"?(G.talent||[]).filter(t=>t.isAnimal).length:""}</b></button>`).join("")+"</div>"+
+    "<div class='cast-dir-pins' id='castDirPins'></div><div class='cast-dir-count' id='castDirCount'></div>"+
+    "<div class='cast-dir-list' id='castDirList' role='list'></div>"+
+    `<div id="castScoutWrap">${castScoutMarkup()}</div></div>`+
+    "<div class='modal-actions'><button class='btn btn-ghost' id='castDirMore'>Show 60 more</button><button class='btn btn-primary' id='castDirDone'>Done</button></div>";
+  const v=openModal(h);
+  const dm=v.querySelector(".modal"); if(dm) dm.classList.add("cast-directory-modal");
+  const refresh=()=>castDirSync(v);
+  const search=v.querySelector("#castDirSearch");
+  if(search) search.oninput=()=>{ CAST_DIR.q=search.value; CAST_DIR.limit=60; refresh(); };
+  v.querySelectorAll("[data-castfilter]").forEach(b=>b.onclick=()=>{ CAST_DIR.filter=b.dataset.castfilter; CAST_DIR.limit=60; refresh(); });
+  v.querySelector("#castDirMore").onclick=()=>{ CAST_DIR.limit=(CAST_DIR.limit||60)+60; refresh(); };
+  v.querySelector("#castDirDone").onclick=()=>closeModal();
+  const unlock=v.querySelector("#castDirUnlock");
+  if(unlock) unlock.onclick=()=>{ if(typeof unlockAllCast==="function") unlockAllCast(); refresh(); if(typeof render==="function") render(); };
+  const syncScout=()=>{ const wrap=v.querySelector("#castScoutWrap"); if(wrap) wrap.innerHTML=castScoutMarkup(); };
+  v.addEventListener("click",ev=>{
+    const prof=ev.target.closest("[data-cast-profile]");
+    if(prof){ closeModal(); if(typeof talentModal==="function") talentModal(+prof.dataset.castProfile); return; }
+    const sign=ev.target.closest("[data-cast-sign]");
+    if(sign){ if(signScout(sign.dataset.castSign)){ syncScout(); refresh(); if(typeof render==="function") render(); } else beep("bad"); return; }
+    if(ev.target.closest("#castScoutRefresh")){
+      const btn=ev.target.closest("#castScoutRefresh");
+      if(!G.studio||G.studio.cash<1){ toast("Need $1.0M for fresh scout reports.","bad"); return; }
+      if(typeof spend==="function") spend("studio",1); else G.studio.cash-=1;
+      castScoutRoster(true); syncScout(); if(typeof saveGame==="function") saveGame(); toast("Scout reports refreshed.","gold");
+      return;
+    }
+    const pin=ev.target.closest("[data-cast-pin]");
+    if(pin){ const [mode,id]=pin.dataset.castPin.split(":"); pinCast(id,mode,refresh); return; }
+    const unpin=ev.target.closest("[data-cast-unpin]");
+    if(unpin){ unpinCast(unpin.dataset.castUnpin,refresh); return; }
+  });
+  refresh();
+}
+window.openCastDirectory=openCastDirectory;
+
+function castPickRow(t,opts){
+  opts=opts||{};
+  const sel=!!opts.sel, free=castIsFree(t), fee=(typeof actorFee==="function")?actorFee(t):(t.fee||0);
+  const ability=(t.abilityKnown&&t.abilityName)?(" · "+esc(t.abilityName)):"";
+  const pact=(typeof activePicturePact==="function")?activePicturePact(t):null;
+  const meta=[esc(castRoleLabel(t))+(t.isAnimal?" 🐾":""),ability.replace(/^ · /,""),pact?("Studio partner · "+pact.picturesRemaining+" pictures"):"",t.multiDeal?("multi-picture · "+t.multiDeal.left+" left"):""].filter(Boolean).join(" · ");
+  const state=sel?"ON CALL":pact?"PARTNER · "+pact.picturesRemaining+" PIC":"PICK";
+  return `<button type="button" class="cast-pick${sel?" sel":""}${free?"":" busy"}" ${opts.attr||""} aria-pressed="${sel}"><span class="cast-pick-main"><b>${esc(t.name)}</b><small>${meta}</small></span><span class="cast-pick-stats"><b>${stars(t.power||0)}</b><small>Skill ${t.skill||0} · ${fmtM(fee)}</small></span><span class="cast-pick-state">${state}</span></button>`;
+}
+function castPinsPanel(){
+  const total=(G.talent||[]).length, animals=(G.talent||[]).filter(t=>t.isAnimal).length;
+  const freeN=(G.talent||[]).filter(castIsFree).length;
+  const pins=castPins(), pf=castPinTalent("film"), ps=castPinTalent("series");
+  const pinChip=(t,mode,label)=>t?`<span class="cast-pin"><small>${label}</small><b>${esc(t.name)}</b><button data-cast-unpin="${mode}" aria-label="Unpin ${esc(t.name)}">✕</button></span>`:"";
+  const body=`<div class="cast-desk"><div class="cast-desk-stats"><div><small>ON THE BOOKS</small><b>${total.toLocaleString()}</b></div><div><small>FREE NOW</small><b>${freeN.toLocaleString()}</b></div><div><small>ANIMAL ACTORS</small><b>${animals.toLocaleString()}</b></div><div><small>PICTURE DEALS</small><b>${(G.talent||[]).filter(t=>t.multiDeal).length.toLocaleString()}</b></div></div><div class="cast-desk-pins">${pinChip(pf,"film","NEXT FILM")}${pinChip(ps,"series","NEXT SERIES")}${(!pf&&!ps)?`<span class="develop-muted">Pin a performer here and they board your next film or series automatically.</span>`:""}</div><div class="cast-desk-actions"><button class="develop-action" id="btnOpenCastDirectory" onclick="openCastDirectory()">Open the cast directory</button><button class="develop-ghost" onclick="if(typeof unlockAllCast==='function'){unlockAllCast();render();}">Reveal every cast member</button></div></div>`;
+  return developPanel("CAST DIRECTORY",`Search all ${total.toLocaleString()} performers`,`Animal stars, leads, directors, writers and producers — one roster, filterable by availability, role, or species.`,`${body}`);
+}
 /* ── 06 / Combos codex ────────────────────────────────────────────────── */
 function commandDevelopCombos(){
   const themes=DATA.THEMES||[], genres=Object.keys(DATA.GENRES||{});
@@ -2292,13 +2486,15 @@ function talentAvail(t){
 }
 function talentCard(t){
   const fee=actorFee(t);
-  const icon={writer:"✍️",producer:"🎫",director:"🎬"}[t.kind] || (t.power>=4?"🌟":"🙂");
-  const role={writer:"Writer",producer:"Producer",director:"Director",actor:"Actor"}[t.kind]||t.kind;
+  const icon=t.isAnimal? "🐾" : ({writer:"✍️",producer:"🎫",director:"🎬"}[t.kind] || (t.power>=4?"🌟":"🙂"));
+  const role=castRoleLabel(t);
   const st=talentStage(t);
   let line;
-  if(t.kind==="director")      line="Skill "+t.skill+" · fits "+DATA.GENRES[t.genreFit].name;
-  else if(t.kind==="writer")   line="Skill "+t.skill+" · specialises in "+DATA.GENRES[t.genreFit].name;
+  const fitName=(t.genreFit&&DATA.GENRES[t.genreFit])?DATA.GENRES[t.genreFit].name:null;
+  if(t.kind==="director")      line="Skill "+t.skill+(fitName?" · fits "+fitName:" · any genre");
+  else if(t.kind==="writer")   line="Skill "+t.skill+(fitName?" · specialises in "+fitName:" · any genre");
   else if(t.kind==="producer") line="Skill "+t.skill+" · "+(t.skill>=80?"schedule shaver":t.skill<58?"overrun risk":"steady hand");
+  else if(t.isAnimal)          line="Skill "+t.skill+" · "+(t.species?t.species+" performer":"animal performer");
   else                         line="Skill "+t.skill+" · acting";
   const agTag = (t.agency && DATA.agency)? " <span class='tag blue' title='"+esc(DATA.agency(t.agency).name)+"'>"+esc(DATA.agency(t.agency).name.split(" ")[0])+"</span>" : "";
   const films=talentFilms(t);
@@ -2326,7 +2522,7 @@ function talentModal(id){
   const t=(typeof talentById==="function")?talentById(+id):(G.talent||[]).find(x=>x.id===+id);
   if(!t) return;
   const fee=actorFee(t), st=talentStage(t), films=talentFilms(t);
-  const role={writer:"Writer",producer:"Producer",director:"Director",actor:"Actor"}[t.kind]||t.kind;
+  const role=castRoleLabel(t);
   let h="<h3>"+esc(t.name)+" <span class='tag'>"+role+"</span> <span class='tag "+st.cls+"'>"+st.s+"</span></h3>"+
     "<div class='tiny muted'>"+stars(t.power)+" · skill "+t.skill+" · age "+(t.age||"—")+" · "+(t.pics||0)+" pictures since Y"+(t.joinedYear||1)+"</div>"+
     "<div class='card' style='margin-top:8px'>"+
@@ -2334,6 +2530,8 @@ function talentModal(id){
     "<div class='cost-line'><span>Popularity</span><b>"+(t.heat?"heat ×"+t.heat:"cool")+"</b></div>"+
     "<div class='cost-line'><span>Reputation</span><b>"+esc(talentRep(t))+"</b></div>"+
     "<div class='cost-line'><span>Availability</span><b>"+esc(talentAvail(t))+"</b></div>"+
+    (t.isAnimal?"<div class='cost-line'><span>Species</span><b class='pos'>🐾 "+esc(t.species||"animal")+"</b></div>":"")+
+    (t.isAnimal?"<div class='cost-line'><span>Castable in</span><b>Any film or series lead</b></div>":"")+
     (t.genreFit&&DATA.GENRES[t.genreFit]?"<div class='cost-line'><span>Genre affinity</span><b>"+DATA.GENRES[t.genreFit].emoji+" "+DATA.GENRES[t.genreFit].name+"</b></div>":"")+
     (t.agency&&DATA.agency&&DATA.agency(t.agency)?"<div class='cost-line'><span>Agency</span><b>"+esc(DATA.agency(t.agency).name)+"</b></div>":"")+
     (t.kind==="actor"?"<div class='cost-line'><span>Backend</span><b>"+((t.power||0)>=4?"Asks likely on 8★+ ensembles":"Unlikely")+"</b></div>":"")+
@@ -2350,7 +2548,7 @@ function talentModal(id){
     const ab=talentAbility(t);
     h+="<div class='card' style='margin-top:8px'><b class='small'>🎭 Ability</b>";
     if(ab && t.abilityKnown){
-      h+="<div class='cost-line'><span>"+ab.emoji+" "+esc(ab.name)+" <span class='tag tiny "+(DATA.ABILITY_RARITY[ab.rarity]||{}).cls+"'>"+(DATA.ABILITY_RARITY[ab.rarity]||{}).name+"</span></span><b class='tiny'>"+esc(ab.blurb)+"</b></div>";
+      h+="<div class='cost-line'><span>"+(ab.emoji||"🎭")+" "+esc(ab.name)+" <span class='tag tiny "+(DATA.ABILITY_RARITY[ab.rarity]||{}).cls+"'>"+(DATA.ABILITY_RARITY[ab.rarity]||{}).name+"</span></span><b class='tiny'>"+esc(ab.blurb)+"</b></div>";
     }else if(ab){
       h+="<div class='tiny muted' style='margin:4px 0'>This candidate carries an <b>undisclosed ability</b>. Stage an audition read to find out — or work with them once and it will show itself.</div>"+
         "<button class='btn btn-sm btn-alt' onclick='auditionClick(event,"+t.id+")'>🎭 Audition read · "+fmtM(auditionCost(t))+"</button>";
@@ -2387,10 +2585,14 @@ function talentModal(id){
       (chems.length?"<div class='tiny muted'>Chemistry: "+chems.map(x=>{ const o=(G.talent||[]).find(y=>y.id===x.id); return esc(o?o.name:"#"+x.id)+" "+(x.v>=3?"🔥".repeat(Math.min(3,x.v)):"×"+x.v); }).join(" · ")+"</div>":"")+
       "<div class='tiny muted'>Reunited co-stars (×3+ together) open +2% buzz — logged at greenlight.</div></div>";
   }
-  h+="<div class='modal-actions'><button class='btn btn-alt' onclick='watchClick(event,"+t.id+")'>"+((G.watchlist||[]).includes(t.id)?"⭐ Remove from watchlist":"☆ Add to watchlist")+"</button>"+
+  const pinA=castPinTalent("film"), pinB=castPinTalent("series");
+  h+="<div class='modal-actions'><button class='btn "+(pinA&&pinA.id===t.id?"btn-primary":"btn-alt")+"' data-tmodal-pin='film:"+t.id+"'>"+(pinA&&pinA.id===t.id?"🎬 Pinned for next film ✓":"🎬 Pin for next film")+"</button>"+
+    "<button class='btn "+(pinB&&pinB.id===t.id?"btn-primary":"btn-alt")+"' data-tmodal-pin='series:"+t.id+"'>"+(pinB&&pinB.id===t.id?"📺 Pinned for next series ✓":"📺 Pin for next series")+"</button>"+
+    "<button class='btn btn-alt' onclick='watchClick(event,"+t.id+")'>"+((G.watchlist||[]).includes(t.id)?"⭐ Remove from watchlist":"☆ Add to watchlist")+"</button>"+
     "<button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
   const vm=openModal(h);
   vm.querySelectorAll("[data-contract]").forEach(b=>b.onclick=()=>{ if(signContract(t.id,b.dataset.contract)){ beep("gold"); flashes(G.flash); talentModal(t.id); } else beep("bad"); });
+  vm.querySelectorAll("[data-tmodal-pin]").forEach(b=>b.onclick=()=>{ const [mode,id]=b.dataset.tmodalPin.split(":"); pinCast(id,mode); beep("click"); talentModal(t.id); });
 }
 
 /* ── movie pitch battles: evaluate, revise, approve into the wizard ── */
@@ -2446,6 +2648,7 @@ function startWizard(idea, targetSub){
       budget:Math.round(neededBudget(idea.genre,idea.scale)), plan:"theatrical", presales:false, deals:{},
       rating:"PG-13", location:"la", scriptPolish:false, premium:false,
       aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
+  seedPinnedCast("film",WZ);
   wizardModal();
 }
 window.setWizardFilter = function(filterKind, step){
@@ -2470,18 +2673,20 @@ function startSequel(film){
       budget:Math.round(film.budget*1.3),
       rating:"PG-13", location:"la", scriptPolish:false, premium:false, plan:"theatrical", presales:false,
       aiCast:false, aiScript:false, coProd:"none", theme:null, festStrategy:null, festMode:"premiere"};
+  seedPinnedCast("film",WZ);
   wizardModal();
 }
 /* v4: one card renderer for every crew kind */
 function crewCard(t, opts){
   opts=opts||{};
-  const icon = {writer:"✍️", director:"🎬", producer:"🎫", actor:(t.power>=4?"🌟":"🙂")}[t.kind]||"🙂";
+  const icon = t.isAnimal? "🐾" : ({writer:"✍️", director:"🎬", producer:"🎫", actor:(t.power>=4?"🌟":"🙂")}[t.kind]||"🙂");
   const fit = opts.genre && t.genreFit===opts.genre;
   const bonus = (t.kind==="writer" && opts.genre)? writerBonus(t, opts.genre) : null;
   let line;
   if(t.kind==="writer")        line = "Skill "+t.skill+" · "+(bonus>=0?"+":"")+bonus+" script"+(fit? " · <span class='pos'>fits "+DATA.GENRES[opts.genre].name+"</span>":"");
   else if(t.kind==="producer") line = "Skill "+t.skill+" · "+(t.skill>=80?"<span class='pos'>schedule shaver</span>":t.skill<58?"<span class='neg'>overrun risk</span>":"steady hand");
   else if(t.kind==="director") line = "Skill "+t.skill+(fit? " · <span class='pos'>fits "+DATA.GENRES[opts.genre].name+"</span>":"");
+  else if(t.isAnimal)          line = "Skill "+t.skill+" · "+(t.species?esc(t.species)+" performer":"animal performer");
   else                         line = "Skill "+t.skill;
   const stg=(typeof talentStage==="function")?talentStage(t):{s:"",cls:""};
   let hint="";
@@ -2509,7 +2714,7 @@ function crewCard(t, opts){
   let acts="";
   /* v28: hidden ability — audition to reveal, or it surfaces after one film together */
   const ab=talentAbility(t);
-  if(ab && t.abilityKnown) rel+=" <span class='"+(DATA.ABILITY_RARITY[ab.rarity]||{}).cls+"' title='"+esc(ab.blurb)+"'>"+ab.emoji+" "+esc(ab.name)+"</span>";
+  if(ab && t.abilityKnown) rel+=" <span class='"+(DATA.ABILITY_RARITY[ab.rarity]||{}).cls+"' title='"+esc(ab.blurb)+"'>"+(ab.emoji||"🎭")+" "+esc(ab.name)+"</span>";
   if(ab && !t.abilityKnown && (typeof auditionCost==="function")) acts+="<button class='btn btn-xs btn-alt' onclick='auditionClick(event,"+t.id+")' title='Stage a read to reveal their hidden ability (3% of fee)'>🎭 Audition ("+fmtM(auditionCost(t))+")</button>";
   if(t.ability && !t.abilityKnown) rel+=" <span class='tag' title='Unknown ability — audition or work with them once to find out'>🎭 hidden ability</span>";
   if(typeof toggleWatch==="function") acts+="<button class='btn btn-xs btn-alt' onclick='watchClick(event,"+t.id+")' title='Pin to your watchlist'>"+((G.watchlist||[]).includes(t.id)?"⭐ watching":"☆ watch")+"</button>";
@@ -2521,7 +2726,7 @@ function crewCard(t, opts){
   return "<div class='card talent-card"+(opts.sel?" sel-card":"")+"' "+(opts.attr||"")+">"+
     "<div class='t-avatar'>"+(typeof talentAvatarSVG==="function"?talentAvatarSVG(t):icon)+"</div><div style='flex:1'>"+
     "<div class='t-name'>"+esc(t.name)+(t.trait? " <span class='tiny muted'>"+esc(t.trait)+"</span>":"")+"</div>"+
-    "<div class='row' style='margin:2px 0'><span class='tag "+stg.cls+"'>"+stg.s+"</span></div>"+
+    "<div class='row' style='margin:2px 0'><span class='tag "+stg.cls+"'>"+stg.s+"</span>"+(t.isAnimal?"<span class='tag green' title='Animal star — castable in any film or series'>🐾 "+(t.species?esc(t.species).toUpperCase():"ANIMAL")+"</span>":"")+"</div>"+
     "<div class='row' style='align-items:center;gap:6px'>"+stars(t.power)+renderSparklineSVG(pTrend, {color:'#ffd166', width:36, height:13})+"</div>"+
     "<div class='t-stats'>"+line+
       (t.age? " · <span class='muted'>age "+t.age+"</span>":"")+
@@ -2619,8 +2824,11 @@ function wizardModal(){
       "</div>";
       const filtActs = (WZ._cFilter==='stars') ? acts.filter(a=>activePicturePact(a)||a.power>=5) :
                        (WZ._cFilter==='animals') ? acts.filter(a=>a.isAnimal) : acts;
+      const shownActs=filtActs.slice(0,80);
+      h+="<div class='tiny muted' style='margin-bottom:6px'>Showing the "+shownActs.length+" strongest of "+filtActs.length+" free performers."+
+        " <button class='btn btn-xs btn-alt' onclick='if(typeof openCastDirectory===\"function\"){closeModal();openCastDirectory();}'>Search the cast directory ("+(G.talent||[]).length+")</button></div>";
       h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
-      filtActs.forEach(function(a){ h+=crewCard(a,{sel:WZ.cast.some(c=>c.id===a.id), attr:"data-cast='"+a.id+"'"}); });
+      shownActs.forEach(function(a){ h+=castPickRow(a,{sel:WZ.cast.some(c=>c.id===a.id), attr:"data-cast='"+a.id+"'"}); });
       h+="</div>";
       /* v14: agent packages (§29) — stars with 4★+ will trade fee for backend */
       const dealStars=(WZ.cast||[]).filter(c=>(c.power||0)>=4);
@@ -2920,6 +3128,7 @@ function wizardModal(){
       crossover: WZ.idea.crossover, spinoffFr: WZ.idea.spinoffFr,
       theme: WZ.theme||null,
       festStrategy: WZ.festStrategy, festMode: WZ.festMode||"premiere", universe: WZ.universe });
+    clearUsedCastPin("film",WZ.aiCast? [] : WZ.cast);
     beep("gold"); WZ=null; closeModal(); render();
   };
 }
@@ -2929,12 +3138,22 @@ function pick0(a){ return a[Math.floor(Math.random()*a.length)]; }
 /* ── series pitch wizard ── */
 function startSeriesWizard(){
   WZ={mode:"series", genre:pick(["drama","thriller","scifi","comedy","horror","romance","fantasy","action"]),
-      eps:8, perEp:6, platform:"streamflix", showrunner:null, cast:[]};
+      eps:8, perEp:6, platform:"streamflix", showrunner:null, cast:[], szStep:1};
+  seedPinnedCast("series",WZ);
   seriesModal();
 }
+function seriesCastToggle(id){
+  const t=(typeof talentById==="function")?talentById(+id):null;
+  if(!t||!WZ) return;
+  WZ.cast=WZ.cast||[];
+  const i=WZ.cast.findIndex(c=>c&&c.id===t.id);
+  if(i>=0) WZ.cast.splice(i,1);
+  else if(WZ.cast.length<4) WZ.cast.push(t);
+  else toast("A season carries four leads — remove one first.","bad");
+}
 function seriesModal(){
-  const step = !WZ.showrunner? 1 : 2;
-  let h="<h3>📺 Pitch a Series</h3>";
+  const step = Math.min(3,Math.max(1,WZ.szStep||1));
+  let h="<h3>📺 Pitch a Series</h3><div class='wiz-step'><span class='done'>1 · Format</span><span class='"+(step===2?"on":step>2?"done":"")+"'>2 · Cast</span><span class='"+(step===3?"on":"")+"'>3 · Platform</span></div>";
   if(step===1){
     h+="<div class='small muted' style='margin-bottom:8px'>Genre & format</div><div class='row' id='szGenres'>";
     Object.keys(DATA.GENRES).forEach(g=>{
@@ -2946,14 +3165,36 @@ function seriesModal(){
     freeTalent("director").concat(freeTalent("writer")).sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a)) || (b.power*20+b.skill)-(a.power*20+a.skill)).slice(0,8).forEach(function(d){
       h+=crewCard(d,{genre:WZ.genre, sel:!!(WZ.showrunner&&WZ.showrunner.id===d.id), attr:"data-sr='"+d.id+"'"});
     });
-    h+="</div>";
+    h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='szCancel'>Cancel</button><button class='btn btn-primary' id='szToCast' "+(WZ.showrunner?"":"disabled")+">"+(WZ.showrunner?"Cast the leads →":"Choose a showrunner to continue")+"</button></div>";
+  }else if(step===2){
+    const acts=freeTalent("actor").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a)) || (b.power*20+b.skill)-(a.power*20+a.skill));
+    const pinned=castPinTalent("series");
+    const filt=(WZ.szCastFilter==="stars")? acts.filter(a=>a.power>=5) : (WZ.szCastFilter==="animals")? acts.filter(a=>a.isAnimal) : acts;
+    const shown=filt.slice(0,80);
+    const cast=WZ.cast||[];
+    h+="<p class='small muted'>Cast up to four leads per season. Animal stars sit on the same call sheet and lift the same opening — pick them exactly like human leads.</p>";
+    if(pinned) h+="<div class='cast-pin'><small>PINNED FROM THE DIRECTORY</small><b>"+esc(pinned.name)+"</b></div>";
+    if(cast.length){
+      const sp=cast.reduce((a,c)=>a+(c.power||0),0);
+      h+="<div class='card' style='margin:8px 0'>"+decisionCard([["Leads",cast.map(c=>esc(c.name)).join(" · ")],["Star power",sp+"★ → opening ×"+starOpenMult(sp)],["Talent fees","+"+fmtM(cast.reduce((a,c)=>a+actorFee(c),0))],["Quality read","Skill avg "+Math.round(cast.reduce((a,c)=>a+(c.skill||0),0)/cast.length)]])+"</div>";
+    }
+    h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap'>"+
+      "<button class='btn btn-xs "+(WZ.szCastFilter==='all'||!WZ.szCastFilter?'btn-primary':'btn-alt')+"' onclick='WZ.szCastFilter=\"all\";seriesModal()'>All ("+acts.length+")</button>"+
+      "<button class='btn btn-xs "+(WZ.szCastFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ.szCastFilter=\"stars\";seriesModal()'>5-Star Superstars ("+acts.filter(a=>a.power>=5).length+")</button>"+
+      "<button class='btn btn-xs "+(WZ.szCastFilter==='animals'?'btn-primary':'btn-alt')+"' onclick='WZ.szCastFilter=\"animals\";seriesModal()'>Animal Stars ("+acts.filter(a=>a.isAnimal).length+")</button>"+
+      "<button class='btn btn-xs btn-alt' onclick='if(typeof openCastDirectory===\"function\"){closeModal();openCastDirectory();}'>Cast directory ("+(G.talent||[]).length+")</button></div>";
+    if(filt.length>shown.length) h+="<div class='tiny muted' style='margin-bottom:6px'>Showing the "+shown.length+" strongest of "+filt.length+" free performers — use the cast directory to search the whole roster.</div>";
+    h+="<div class='pick-list' style='max-height:340px;overflow-y:auto'>";
+    shown.forEach(function(a){ h+=castPickRow(a,{sel:cast.some(c=>c&&c.id===a.id), attr:"data-szcast='"+a.id+"'"}); });
+    h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='szBackFmt'>← Format</button><button class='btn btn-primary' id='szToPlat'>"+(cast.length?"Continue with "+cast.length+" lead(s) →":"Pitch without leads →")+"</button></div>";
   }else{
     const plat=WZ.platform==="own"? ownPlatformStub() : DATA.platform(WZ.platform);
     const odds=WZ.platform==="own"? 100 : Math.round(clamp(0.22+65/160+(plat.taste[WZ.genre]||1-1)*0.6+G.studio.rep/400+(WZ.perEp>=8?0.06:0)+(G.upgrades.ottrel?0.05:0),0.12,0.9)*100);
     h+="<div class='card platform-card'><div class='platform-logo' style='background:"+plat.color+"'>"+plat.logo+"</div><div><b>"+plat.name+"</b><div class='tiny muted'>"+plat.blurb+"</div></div></div>";
     h+="<div class='card'><div class='cost-line'><span>Taste for "+DATA.GENRES[WZ.genre].name+"</span><b>"+(((plat.taste[WZ.genre]||1))*100).toFixed(0)+"%</b></div>"+
       "<div class='cost-line'><span>Season order ("+WZ.eps+" × "+fmtM(WZ.perEp)+")</span><b>"+fmtM(WZ.eps*WZ.perEp)+"</b></div>"+
-      (WZ.platform==="own"? (function(){ const qEst=clamp(Math.round(0.3*65+0.25*(WZ.showrunner?WZ.showrunner.skill:56)+0.2*55+0.25*45),10,97);
+      "<div class='cost-line'><span>Cast attached</span><b>"+((WZ.cast||[]).length? (WZ.cast||[]).map(c=>esc(c.name)).join(" · ") : "No leads — 55 skill read")+"</b></div>"+
+      (WZ.platform==="own"? (function(){ const qEst=clamp(Math.round(0.3*65+0.25*(WZ.showrunner?WZ.showrunner.skill:56)+0.2*((WZ.cast||[]).length?WZ.cast.reduce((a,c)=>a+(c.skill||0),0)/WZ.cast.length:55)+0.25*45),10,97);
         return "<div class='cost-line'><span>Overnight subscribers / season (est.)</span><b class='pos'>+"+Math.round((0.5+qEst/22)*10)/10+"M</b></div>"+
         "<div class='cost-line'><span>License cheque</span><b>$0 — it earns weekly ARPU</b></div>"; })()
         : "<div class='cost-line'><span>License if greenlit (≈115% of budget)</span><b class='pos'>"+fmtM(WZ.eps*WZ.perEp*1.15)+"</b></div>")+"</div>";
@@ -2965,22 +3206,28 @@ function seriesModal(){
     });
     h+="</div><div class='card' style='margin-top:10px'><label class='field-label' for='szTitle'>📺 Series name</label>"+
       "<input id='szTitle' type='text' maxlength='60' placeholder='Leave blank — auto-titled' value='"+esc(WZ.title||"")+"' style='width:100%;background:#0b0f18;border:1px solid var(--line2);color:var(--text);border-radius:11px;padding:10px 12px;font-size:15px;outline:none'></div>";
-    h+="<div class='modal-actions'><button class='btn btn-ghost' id='szBack'>← Back</button><button class='btn btn-primary' id='szPitch'>📡 Pitch it</button></div>";
+    h+="<div class='modal-actions'><button class='btn btn-ghost' id='szBackCast'>← Cast</button><button class='btn btn-primary' id='szPitch'>📡 Pitch it</button></div>";
   }
   const v=openModal(h,{onClose:()=>{WZ=null;}});
   v.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ WZ.genre=b.dataset.g; beep("click"); seriesModal(); });
   const e1=v.querySelector("#szEps"); if(e1){ e1.oninput=()=>{ WZ.eps=+e1.value; $("#szEpsV").textContent=WZ.eps+" eps"; $("#szTotal").textContent=fmtM(WZ.eps*WZ.perEp); }; }
   const e2=v.querySelector("#szPerEp"); if(e2){ e2.oninput=()=>{ WZ.perEp=+e2.value; $("#szPerEpV").textContent=fmtM(WZ.perEp); $("#szTotal").textContent=fmtM(WZ.eps*WZ.perEp); }; }
   v.querySelectorAll("[data-sr]").forEach(el=>el.onclick=()=>{ WZ.showrunner=talentById(+el.dataset.sr); beep("click"); seriesModal(); });
+  v.querySelectorAll("[data-szcast]").forEach(el=>el.onclick=()=>{ seriesCastToggle(el.dataset.szcast); beep("click"); seriesModal(); });
   const szT=v.querySelector("#szTitle"); if(szT) szT.oninput=()=>{ WZ.title=szT.value; };
   v.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ WZ.platform=b.dataset.p; beep("click"); seriesModal(); });
-  const bk=v.querySelector("#szBack"); if(bk) bk.onclick=seriesModal;
+  const cancel=v.querySelector("#szCancel"); if(cancel) cancel.onclick=()=>{ beep("click"); WZ=null; closeModal(); };
+  const toCast=v.querySelector("#szToCast"); if(toCast) toCast.onclick=()=>{ if(!WZ.showrunner){ toast("Pick a showrunner first.","bad"); return; } WZ.szStep=2; beep("click"); seriesModal(); };
+  const backFmt=v.querySelector("#szBackFmt"); if(backFmt) backFmt.onclick=()=>{ WZ.szStep=1; beep("click"); seriesModal(); };
+  const toPlat=v.querySelector("#szToPlat"); if(toPlat) toPlat.onclick=()=>{ WZ.szStep=3; beep("click"); seriesModal(); };
+  const backCast=v.querySelector("#szBackCast"); if(backCast) backCast.onclick=()=>{ WZ.szStep=2; beep("click"); seriesModal(); };
   const pit=v.querySelector("#szPitch");
   if(pit) pit.onclick=()=>{
     const tIn=v.querySelector("#szTitle");
     const res=pitchSeries({genre:WZ.genre, eps:WZ.eps, perEp:WZ.perEp, platformId:WZ.platform,
       titleOverride:tIn? (tIn.value.trim()||null) : null,
       showrunner:WZ.showrunner, cast:WZ.cast});
+    if(res.ok) clearUsedCastPin("series",WZ.cast);
     beep(res.ok?"gold":"bad"); flashes(G.flash);
     WZ=null; closeModal(); render();
   };
@@ -2994,6 +3241,7 @@ function startFilmPitchWizard(){
       coProduction:false, coProdPartner:null,
       cameo:false,
       director:null, writer:null, producer:null, cast:[]};
+  seedPinnedCast("film",WZ);
   filmPitchModal();
 }
 function filmPitchModal(){
@@ -3123,9 +3371,11 @@ function filmPitchModal(){
     "</div>";
     const filtActs = (WZ._cFilter==='stars') ? allActs.filter(a=>a.power>=5) :
                      (WZ._cFilter==='animals') ? allActs.filter(a=>a.isAnimal) : allActs;
+    const shownActs=filtActs.slice(0,80);
+    h+="<div class='tiny muted' style='margin-bottom:6px'>Showing the "+shownActs.length+" strongest of "+filtActs.length+" free performers. <button class='btn btn-xs btn-alt' onclick='if(typeof openCastDirectory===\"function\"){closeModal();openCastDirectory();}'>Search the cast directory ("+(G.talent||[]).length+")</button></div>";
     h+="<div class='pick-list' style='max-height:280px;overflow-y:auto'>";
-    filtActs.forEach(function(a){
-      h+=crewCard(a,{genre:WZ.genre, sel:WZ.cast.some(c=>c.id===a.id), attr:"data-fpc='"+a.id+"'"});
+    shownActs.forEach(function(a){
+      h+=castPickRow(a,{sel:WZ.cast.some(c=>c.id===a.id), attr:"data-fpc='"+a.id+"'"});
     });
     h+="</div>";
     h+="<div class='card' style='margin-top:10px'><div class='small muted'>Add a cameo — 30% of actor fee, +6% opening buzz</div><div class='row' style='gap:8px'>";
@@ -3166,6 +3416,7 @@ function filmPitchModal(){
       imax:WZ.imax, premium:WZ.premium, soundtrack:WZ.soundtrack, dayAndDate:WZ.dayAndDate,
       scriptPolish:WZ.scriptPolish, director:WZ.director, writer:WZ.writer, producer:WZ.producer, cast:WZ.cast,
       coProduction:WZ.coProduction, coProdPartner:WZ.coProdPartner, cameo:WZ.cameo});
+    if(res.ok) clearUsedCastPin("film",WZ.cast);
     beep(res.ok?"gold":"bad"); flashes(G.flash);
     WZ=null; closeModal(); render();
   };
@@ -5401,6 +5652,7 @@ function bindView(){
   $$("[data-studiosub]").forEach(b=>b.onclick=()=>{ STUDIO_SUB=b.dataset.studiosub; beep("click"); render(); });
   $$("[data-devsub]").forEach(b=>b.onclick=()=>{ DEVELOP_SUB=b.dataset.devsub; beep("click"); render(); });
   $$("[data-filter-genre]").forEach(b=>b.onclick=()=>{ SCRIPT_GENRE_FILTER=b.dataset.filterGenre; beep("click"); render(); });
+  $$("[data-cast-unpin]").forEach(b=>b.onclick=()=>{ beep("click"); unpinCast(b.dataset.castUnpin); });
   $$("[data-combo-filter]").forEach(b=>b.onclick=()=>{ DEVELOP_COMBO_FILTER=b.dataset.comboFilter; beep("click"); render(); });
   $$("[data-fit-lens]").forEach(b=>b.onclick=()=>{
     const wrap=b.closest(".develop-fit"), sel=wrap?wrap.querySelector("select"):null;

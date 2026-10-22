@@ -218,148 +218,15 @@
   window.BOS2 = BOS2;
   window.unlockAllCast = BOS2.unlockAllCast;
 
-  // Interactive Box Office Sim 2 Talent Market Modal
-  let _marketRoster = [], _marketState = null;
-
-  function refreshMarketRoster() {
-    _marketRoster = [];
-    // 4 Animal Actors
-    const spKeys = ["aard", "bear", "cat", "dog", "eagl", "lion", "pand", "wolf", "arct", "chmp", "croc", "dolf"];
-    for (let i = 0; i < 4; i++) {
-      const sp = spKeys[Math.floor(Math.random() * spKeys.length)];
-      _marketRoster.push(BOS2.generateAnimalActor(sp));
-    }
-    // 4 Human Stars
-    for (let i = 0; i < 4; i++) {
-      _marketRoster.push(BOS2.generateHumanStar("actor"));
-    }
-    // 2 Directors
-    for (let i = 0; i < 2; i++) {
-      _marketRoster.push(BOS2.generateHumanStar("director"));
-    }
-    // 2 Writers
-    for (let i = 0; i < 2; i++) {
-      _marketRoster.push(BOS2.generateHumanStar("writer"));
-    }
-    // Restoring a save can reset the global nid counter; do not reuse directory IDs.
-    const reserved=new Set((window.G?.talent||[]).map(t=>String(t.id)));
-    for(const t of _marketRoster){while(reserved.has(String(t.id)))t.id=typeof nid==='function'?nid():Math.floor(Math.random()*900000000);reserved.add(String(t.id));}
-  }
-
-  BOS2.openTalentMarketModal = function() {
-    if (_marketState !== window.G || _marketRoster.length === 0){ refreshMarketRoster(); _marketState=window.G; }
-
-    let modal = document.getElementById("bos2TalentModal");
-    if (!modal) {
-      modal = document.createElement("div");
-      modal.id = "bos2TalentModal";
-      modal.className = "modal-backdrop";
-      modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box";
-      document.body.appendChild(modal);
-    }
-
-    modal.style.display = "flex";
-    renderMarketModalContent(modal, "all");
+  /* The old navy-and-gold market modal is retired: the Story Department's
+     cast directory now lists every performer (animal stars included) with
+     search, availability filters and a command-styled scout room. Keep the
+     legacy entry point so old links and bookmarks still land somewhere real. */
+  BOS2.openTalentMarketModal = function(){
+    if (typeof window.openCastDirectory === "function") { window.openCastDirectory(); return; }
   };
 
   window.openBOS2TalentModal = BOS2.openTalentMarketModal;
-
-  function renderMarketModalContent(modal, filter) {
-    const list = filter === "all" ? _marketRoster :
-                 filter === "animal" ? _marketRoster.filter(t => t.isAnimal) :
-                 _marketRoster.filter(t => t.kind === filter && !t.isAnimal);
-
-    modal.innerHTML = `
-      <div style="background:#0f172a;border:2px solid #f5c518;border-radius:12px;width:100%;max-width:880px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,0.9);overflow:hidden">
-        <!-- Header -->
-        <div style="background:#1e293b;padding:14px 20px;border-bottom:1px solid rgba(245,197,24,0.4);display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <h3 style="margin:0;color:#f5c518;font-size:16px;font-family:monospace;letter-spacing:1px">BOX OFFICE SIM 2 — TALENT MARKET &amp; ANIMAL ACTORS</h3>
-            <p style="margin:4px 0 0;color:#94a3b8;font-size:11px">Scout and sign authentic Box Office Sim 2 talent with 121 unique abilities and 72 animal species</p>
-          </div>
-          <button id="btnBos2Close" style="background:#ef4444;border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-weight:bold;font-size:12px">Close</button>
-        </div>
-
-        <!-- Filter Bar -->
-        <div style="padding:10px 20px;background:#131d31;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-          <div style="display:flex;gap:6px">
-            <button class="bos2-tab ${filter === "all" ? "active" : ""}" data-filt="all" style="padding:6px 12px;border-radius:4px;border:1px solid ${filter === "all" ? "#f5c518" : "#334155"};background:${filter === "all" ? "#f5c518" : "#1e293b"};color:${filter === "all" ? "#0f172a" : "#fff"};cursor:pointer;font-weight:bold;font-size:11px">All (${_marketRoster.length})</button>
-            <button class="bos2-tab ${filter === "animal" ? "active" : ""}" data-filt="animal" style="padding:6px 12px;border-radius:4px;border:1px solid ${filter === "animal" ? "#f5c518" : "#334155"};background:${filter === "animal" ? "#f5c518" : "#1e293b"};color:${filter === "animal" ? "#0f172a" : "#fff"};cursor:pointer;font-weight:bold;font-size:11px">Animal Actors (72 Species)</button>
-            <button class="bos2-tab ${filter === "actor" ? "active" : ""}" data-filt="actor" style="padding:6px 12px;border-radius:4px;border:1px solid ${filter === "actor" ? "#f5c518" : "#334155"};background:${filter === "actor" ? "#f5c518" : "#1e293b"};color:${filter === "actor" ? "#0f172a" : "#fff"};cursor:pointer;font-weight:bold;font-size:11px">Lead Actors</button>
-            <button class="bos2-tab ${filter === "director" ? "active" : ""}" data-filt="director" style="padding:6px 12px;border-radius:4px;border:1px solid ${filter === "director" ? "#f5c518" : "#334155"};background:${filter === "director" ? "#f5c518" : "#1e293b"};color:${filter === "director" ? "#0f172a" : "#fff"};cursor:pointer;font-weight:bold;font-size:11px">Directors</button>
-            <button class="bos2-tab ${filter === "writer" ? "active" : ""}" data-filt="writer" style="padding:6px 12px;border-radius:4px;border:1px solid ${filter === "writer" ? "#f5c518" : "#334155"};background:${filter === "writer" ? "#f5c518" : "#1e293b"};color:${filter === "writer" ? "#0f172a" : "#fff"};cursor:pointer;font-weight:bold;font-size:11px">Writers</button>
-          </div>
-          <button id="btnBos2Refresh" style="background:#3b82f6;border:none;color:#fff;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:11px;font-weight:bold">Refresh Roster ($1.0M)</button>
-        </div>
-
-        <!-- Roster Cards -->
-        <div style="flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:12px">
-          ${list.map((t, idx) => `
-            <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 10px rgba(0,0,0,0.3)">
-              <div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                  <span style="font-size:9px;font-weight:bold;padding:2px 6px;border-radius:3px;background:${t.isAnimal ? "rgba(16,185,129,0.2)" : "rgba(56,189,248,0.2)"};color:${t.isAnimal ? "#10b981" : "#38bdf8"};border:1px solid ${t.isAnimal ? "#10b981" : "#38bdf8"}">
-                    ${t.isAnimal ? "ANIMAL: " + t.species.toUpperCase() : t.kind.toUpperCase()}
-                  </span>
-                  <span style="color:#f5c518;font-weight:bold;font-size:11px">POWER: ${t.power}/5</span>
-                </div>
-                <div style="font-size:13px;font-weight:bold;color:#fff;margin-bottom:4px">${t.name}</div>
-                <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Skill: <strong style="color:#fff">${t.skill}</strong> | Fee: <strong style="color:#10b981">$${t.fee}M</strong></div>
-                ${t.abilityName ? `
-                  <div style="background:rgba(245,197,24,0.08);border-left:2px solid #f5c518;padding:4px 8px;margin-bottom:8px">
-                    <div style="font-size:10px;font-weight:bold;color:#f5c518">${t.abilityName}</div>
-                    <div style="font-size:9px;color:#cbd5e1">${t.abilityDesc || ""}</div>
-                  </div>
-                ` : ""}
-              </div>
-              <button class="btn-sign-bos2" data-idx="${_marketRoster.indexOf(t)}" style="width:100%;background:#10b981;border:none;color:#0f172a;font-weight:bold;border-radius:6px;padding:8px;cursor:pointer;font-size:11px;margin-top:6px">
-                Sign 3-picture deal ($4M signing)
-              </button>
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    `;
-
-    // Hook listeners
-    document.getElementById("btnBos2Close").onclick = () => { modal.style.display = "none"; };
-    document.getElementById("btnBos2Refresh").onclick = () => {
-      if (typeof window.G !== "undefined" && window.G && window.G.studio.cash < 1.0) {
-        alert("Need $1.0M to refresh talent market scout reports.");
-        return;
-      }
-      if (!window.G?.studio) return;
-      if(typeof spend==='function')spend('studio',1);else window.G.studio.cash-=1;
-      if(typeof saveGame==='function')saveGame();
-      refreshMarketRoster();
-      renderMarketModalContent(modal, filter);
-    };
-
-    modal.querySelectorAll(".bos2-tab").forEach(tab => {
-      tab.onclick = () => {
-        renderMarketModalContent(modal, tab.dataset.filt);
-      };
-    });
-
-    modal.querySelectorAll(".btn-sign-bos2").forEach(btn => {
-      btn.onclick = () => {
-        const idx = parseInt(btn.dataset.idx, 10);
-        const talent = _marketRoster[idx];
-        if (!talent) return;
-
-        const g=window.G;
-        if(!g?.studio||!Array.isArray(g.talent)||typeof signContract!=='function')return;
-        if(g.studio.cash<4){btn.textContent='Need $4M to sign';return;}
-        if(g.talent.some(t=>t.id===talent.id)){btn.textContent='Already in directory · refresh scout reports';return;}
-        btn.disabled=true;g.talent.push(talent);
-        if(!signContract(talent.id,'multi')){g.talent=g.talent.filter(t=>t!==talent);btn.disabled=false;return;}
-        if(window.StudioLotBridge){window.StudioLotBridge.syncWithGameState(g);window.StudioLotBridge.persist(g);}
-        if(typeof saveGame==='function')saveGame();
-        _marketRoster.splice(idx,1);renderMarketModalContent(modal,filter);
-
-      };
-    });
-  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function(){

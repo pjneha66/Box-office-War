@@ -427,6 +427,17 @@
 #modalRoot .command-develop-modal .wiz-step span.done{background:transparent!important;border-color:#4b6450!important;color:#b6dba8!important}
 #modalRoot .command-develop-modal:has(.picture-partners),#modalRoot .command-develop-modal:has(.partner-workspace),#modalRoot .command-develop-modal:has(.command-dialog),#modalRoot .command-develop-modal:has(.trophy-room),#modalRoot .command-develop-modal:has(.creative-lab){padding:0}
 #modalRoot .command-develop-modal:has(.picture-partners)>.modal-head{margin:0}
+/* The directory reuses the deck's flat controls inside the dialog shell. */
+#modalRoot .command-develop-modal .develop-action,#modalRoot .command-develop-modal .develop-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:9px 14px;border-radius:3px;font:700 11px/1.3 system-ui,sans-serif;letter-spacing:.4px;cursor:pointer;box-shadow:none!important;text-shadow:none!important;transform:none!important;background-image:none!important}
+#modalRoot .command-develop-modal .develop-action{background:#edc47c!important;border:1px solid #edc47c!important;color:#24332e!important}
+#modalRoot .command-develop-modal .develop-action:hover{background:#f3d597!important;border-color:#f3d597!important}
+#modalRoot .command-develop-modal .develop-ghost{background:transparent!important;border:1px solid #3e5551!important;color:#e8e3ca!important}
+#modalRoot .command-develop-modal .develop-ghost:hover{background:#2a443a!important;border-color:#8fa47c!important}
+#modalRoot .command-develop-modal .develop-filters{display:flex;flex-wrap:wrap;gap:6px;padding:0}
+#modalRoot .command-develop-modal .develop-filters button{min-height:34px;padding:6px 11px;border:1px solid #3e5551;border-radius:2px;background:#1b312b!important;color:#c8d3bd!important;font:600 10px/1.3 system-ui,sans-serif!important;letter-spacing:.3px;cursor:pointer;box-shadow:none!important}
+#modalRoot .command-develop-modal .develop-filters button:hover{background:#2a443a!important;border-color:#8fa47c!important}
+#modalRoot .command-develop-modal .develop-filters button.active{background:#edc47c!important;border-color:#edc47c!important;color:#24332e!important}
+#modalRoot .command-develop-modal .develop-muted{font-size:11px;color:#8fa692}
 #modalRoot .command-develop-modal .card{background:#213832!important;border:1px solid #4e6355!important;border-radius:3px!important;box-shadow:none!important;transform:none!important}
 #modalRoot .command-develop-modal .card:hover{transform:none!important;box-shadow:none!important;border-color:#83986f!important}
 #modalRoot .command-develop-modal .section-title{font:20px Georgia,serif!important;color:#edc47c!important;margin:18px 0 10px!important}
@@ -583,4 +594,108 @@
   .develop-trend i{grid-column:1/-1}
   .develop-trend-value{text-align:right}
   .develop-trend-next{grid-column:1/-1;text-align:left}
+}
+
+/* ── Cast directory: the whole roster (1,000+ performers) in one dialog ── */
+.command-develop-modal .cast-dir{display:grid;gap:12px;min-width:0}
+.command-develop-modal .cast-dir-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.command-develop-modal .cast-dir-search{width:100%;min-height:42px;padding:10px 12px;background:#122223!important;border:1px solid #3e5551!important;border-radius:3px;color:#f2edda!important;font:12px system-ui!important;outline:none}
+.command-develop-modal .cast-dir-search:focus{border-color:#edc47c!important;box-shadow:none!important}
+.command-develop-modal .cast-dir-search::placeholder{color:#8fa692}
+.command-develop-modal .cast-dir-count{font:10px ui-monospace,monospace;letter-spacing:.6px;color:#acbcb0;text-transform:uppercase}
+.command-develop-modal .cast-dir-count b{color:#f2edda;font-weight:600}
+.command-develop-modal .cast-dir-list{display:grid;gap:1px;background:#3e5551;border:1px solid #3e5551;max-height:46vh;overflow:auto;border-radius:3px}
+.command-develop-modal .cast-row{display:grid;grid-template-columns:minmax(0,1.5fr) auto auto auto;gap:4px 16px;align-items:center;background:#152b28;padding:9px 14px;min-width:0}
+.command-develop-modal .cast-row.busy{background:#132624}
+.command-develop-modal .cast-row-id{min-width:0;display:grid;gap:2px}
+.command-develop-modal .cast-row-id b{font:500 15px/1.2 Georgia,serif;color:#f2edda;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.command-develop-modal .cast-row-id small{font:9px ui-monospace,monospace;letter-spacing:.5px;color:#9fb59f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.command-develop-modal .cast-row-stats{min-width:0;display:grid;gap:2px;text-align:right}
+.command-develop-modal .cast-row-stats b{color:#edc47c;font-size:10px;letter-spacing:1px}
+.command-develop-modal .cast-row-stats small{font-size:10px;color:#acbcb0}
+.command-develop-modal .cast-row-state{justify-self:end}
+.command-develop-modal .develop-badge{font:9px ui-monospace,monospace;letter-spacing:.6px;padding:4px 7px;border:1px solid #3e5551;color:#acbcb0;border-radius:2px;white-space:nowrap}
+.command-develop-modal .develop-badge.on{border-color:#7c9a6a;color:#cbe0ac}
+.command-develop-modal .cast-row-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.command-develop-modal .cast-row-actions button{min-height:32px;padding:6px 10px;font-size:10px}
+.command-develop-modal .cast-row-actions .develop-ghost.on{border-color:#edc47c!important;color:#f7e4b8!important;background:#2a443a!important}
+.command-develop-modal .cast-dir-pins-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.command-develop-modal .cast-dir-pins-row.is-empty{font-size:10px;color:#8fa692}
+.command-develop-modal .cast-pin{display:inline-flex;align-items:center;gap:8px;border:1px solid #6f8a5f;background:#1d332c;padding:6px 8px;border-radius:2px;max-width:100%}
+.command-develop-modal .cast-pin small{font:8px ui-monospace,monospace;letter-spacing:1px;color:#edc47c}
+.command-develop-modal .cast-pin b{font:13px Georgia,serif;color:#f2edda;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.command-develop-modal .cast-pin button{border:0;background:transparent;color:#acbcb0;font-size:12px;padding:2px 4px;cursor:pointer}
+.command-develop-modal .cast-pin button:hover{color:#f2edda}
+/* scout room */
+.command-develop-modal .cast-scout{margin-top:4px;border:1px solid #3e5551;background:#122223;border-radius:3px}
+.command-develop-modal .cast-scout>summary{padding:12px 14px;font:11px system-ui;color:#f2edda;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center;list-style:none}
+.command-develop-modal .cast-scout>summary::-webkit-details-marker{display:none}
+.command-develop-modal .cast-scout>summary:before{content:'+';color:#edc47c;margin-right:8px;font-family:ui-monospace,monospace}
+.command-develop-modal .cast-scout[open]>summary:before{content:'–'}
+.command-develop-modal .cast-scout>summary span{font:9px ui-monospace,monospace;letter-spacing:1px;color:#8fa692;margin-left:auto}
+.command-develop-modal .cast-scout>p{margin:0 14px 10px;font-size:10px;color:#9fb59f}
+.command-develop-modal .cast-scout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;padding:0 14px 12px}
+.command-develop-modal .cast-scout-card{display:grid;gap:6px;background:#182f2c;border:1px solid #3e5551;padding:10px;border-radius:2px;min-width:0}
+.command-develop-modal .cast-scout-card header{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.command-develop-modal .cast-scout-card header b{font:14px Georgia,serif;color:#f2edda;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.command-develop-modal .cast-scout-card p{margin:0;font:10px system-ui;color:#acbcb0}
+.command-develop-modal .cast-scout-card small{font:9px/1.5 system-ui;color:#8fa692;min-height:26px}
+.command-develop-modal .cast-scout-card .develop-action{width:100%;justify-content:center;font-size:10px;min-height:34px}
+.command-develop-modal .cast-scout footer{padding:0 14px 14px}
+/* talent desk pin strip + desk stats */
+#app #view[data-screen="develop"] .cast-desk{display:grid;gap:12px}
+#app #view[data-screen="develop"] .cast-desk-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #3e5551;background:#122223}
+#app #view[data-screen="develop"] .cast-desk-stats>div{padding:12px 14px;border-right:1px solid #3e5551;display:grid;gap:5px}
+#app #view[data-screen="develop"] .cast-desk-stats>div:last-child{border-right:0}
+#app #view[data-screen="develop"] .cast-desk-stats small{font:9px ui-monospace,monospace;letter-spacing:1px;color:#9fb59f}
+#app #view[data-screen="develop"] .cast-desk-stats b{font:500 22px/1.1 Georgia,serif;color:#f2edda}
+#app #view[data-screen="develop"] .cast-desk-pins{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-height:24px}
+#app #view[data-screen="develop"] .cast-pin{display:inline-flex;align-items:center;gap:8px;border:1px solid #6f8a5f;background:#1d332c;padding:6px 8px;border-radius:2px;max-width:100%}
+#app #view[data-screen="develop"] .cast-pin small{font:8px ui-monospace,monospace;letter-spacing:1px;color:#edc47c}
+#app #view[data-screen="develop"] .cast-pin b{font:13px Georgia,serif;color:#f2edda;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#app #view[data-screen="develop"] .cast-pin button{border:0;background:transparent;color:#acbcb0;padding:2px 4px;cursor:pointer;font-size:12px}
+#app #view[data-screen="develop"] .cast-desk-actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:900px){
+  .command-develop-modal .cast-row{grid-template-columns:minmax(0,1fr) auto}
+  .command-develop-modal .cast-row-state{grid-column:2;grid-row:1;justify-self:end}
+  .command-develop-modal .cast-row-stats{grid-column:1/-1;text-align:left;display:flex;gap:12px}
+  .command-develop-modal .cast-row-actions{grid-column:1/-1;justify-content:flex-start}
+}
+@media(max-width:740px){
+  .command-develop-modal .cast-dir-tools{grid-template-columns:1fr}
+  .command-develop-modal .cast-row{grid-template-columns:minmax(0,1fr) auto;padding:10px 12px}
+  .command-develop-modal .cast-row-state{grid-column:2;grid-row:1;justify-self:end}
+  .command-develop-modal .cast-row-stats{grid-column:1/-1;text-align:left;grid-auto-flow:column;justify-content:start;gap:10px}
+  .command-develop-modal .cast-row-actions{justify-content:flex-start}
+  .command-develop-modal .cast-dir-list{max-height:none}
+  #app #view[data-screen="develop"] .cast-desk-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app #view[data-screen="develop"] .cast-desk-stats>div:nth-child(2){border-right:0}
+  #app #view[data-screen="develop"] .cast-desk-stats>div:nth-child(-n+2){border-bottom:1px solid #3e5551}
+}
+/* The section switcher rides along while a long section is scrolled. */
+@media(min-width:741px){
+  #app #view[data-screen="develop"] .command-develop-nav{position:sticky;top:0;z-index:7;box-shadow:0 10px 24px -18px #000}
+}
+
+/* The directory carries its own title, so the empty head band collapses to a close button. */
+#modalRoot .command-develop-modal.cast-directory-modal>.modal-head{position:absolute;right:4px;top:4px;margin:0;padding:0;background:transparent;border:0;z-index:4}
+#modalRoot .command-develop-modal.cast-directory-modal>.modal-head>div{display:none}
+#modalRoot .command-develop-modal.cast-directory-modal>.modal-head .modal-x{position:static}
+/* Cast picks: the flat call-sheet row used by both wizards. */
+#modalRoot .command-develop-modal .pick-list{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:1px;background:#3e5551;border:1px solid #3e5551;border-radius:3px;padding:0!important;max-height:340px;overflow:auto}
+#modalRoot .command-develop-modal .cast-pick{display:grid;grid-template-columns:minmax(0,1.5fr) auto auto;gap:4px 14px;align-items:center;width:100%;text-align:left;background:#152b28!important;border:0!important;border-radius:0!important;padding:10px 14px!important;min-height:52px;color:#f2edda!important;cursor:pointer;box-shadow:none!important;transform:none!important}
+#modalRoot .command-develop-modal .cast-pick:hover{background:#1d3733!important}
+#modalRoot .command-develop-modal .cast-pick.sel{background:#26423a!important;box-shadow:inset 3px 0 0 #edc47c!important}
+#modalRoot .command-develop-modal .cast-pick.busy{opacity:.62}
+#modalRoot .command-develop-modal .cast-pick-main{min-width:0;display:grid;gap:2px}
+#modalRoot .command-develop-modal .cast-pick-main b{font:500 15px/1.2 Georgia,serif;color:#f2edda;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modalRoot .command-develop-modal .cast-pick-main small{font:9px ui-monospace,monospace;letter-spacing:.4px;color:#9fb59f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modalRoot .command-develop-modal .cast-pick-stats{display:grid;gap:2px;text-align:right}
+#modalRoot .command-develop-modal .cast-pick-stats b{color:#edc47c;font-size:10px;letter-spacing:1px}
+#modalRoot .command-develop-modal .cast-pick-stats small{font-size:10px;color:#acbcb0;white-space:nowrap}
+#modalRoot .command-develop-modal .cast-pick-state{font:9px ui-monospace,monospace;letter-spacing:1px;color:#8fa692;border:1px solid #3e5551;padding:3px 6px;border-radius:2px;white-space:nowrap}
+#modalRoot .command-develop-modal .cast-pick.sel .cast-pick-state{border-color:#edc47c;color:#f7e4b8}
+@media(max-width:740px){
+  #modalRoot .command-develop-modal .cast-pick{grid-template-columns:minmax(0,1fr) auto}
+  #modalRoot .command-develop-modal .cast-pick-stats{grid-column:1/-1;text-align:left;display:flex;gap:12px}
 }
