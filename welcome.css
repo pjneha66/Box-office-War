@@ -1,0 +1,108 @@
+/* Welcome owns its palette from first paint. Saved in-game themes do not style it.
+   No asynchronous style injection, animation or global game-theme overrides. */
+#startScreen.start-screen {
+ --welcome-bg:#181b1e; --welcome-panel:#22262a; --welcome-input:#2b3035;
+ --welcome-border:#454c50; --welcome-text:#e3e5e5; --welcome-muted:#aab1b4;
+ --welcome-accent:#b9ad91;
+ --bg:var(--welcome-bg); --text:var(--welcome-text); --dim:var(--welcome-muted); --dim2:var(--welcome-muted);
+ --gold:var(--welcome-accent); --gold2:var(--welcome-accent); --blue:var(--welcome-muted); --green:var(--welcome-text);
+ background:var(--welcome-bg)!important; color:var(--welcome-text)!important;
+ background-image:none!important; color-scheme:dark; font-family:system-ui,sans-serif;
+ padding:16px; box-sizing:border-box; min-height:100dvh;
+}
+#startScreen.start-screen *,#startScreen.start-screen *::before,#startScreen.start-screen *::after {
+ animation:none!important; transition:none!important; box-shadow:none!important; text-shadow:none!important;
+ background-image:none!important; border-image:none!important;
+}
+#startScreen.start-screen::before,#startScreen.start-screen::after,
+#startScreen.start-screen .start-card::before,#startScreen.start-screen .start-card::after,
+#startScreen.start-screen .start-resume-card::before { display:none!important; }
+#startScreen.start-screen .start-inner { transform:none!important; opacity:1!important; width:100%; max-width:1300px; min-width:0; padding:0; margin:0 auto; }
+#startScreen.start-screen h1,#startScreen.start-screen h2,#startScreen.start-screen h3,#startScreen.start-screen h4,
+#startScreen.start-screen strong,#startScreen.start-screen b { color:var(--welcome-text)!important; -webkit-text-fill-color:currentColor!important; }
+#startScreen.start-screen p,#startScreen.start-screen .tiny,#startScreen.start-screen .muted,
+#startScreen.start-screen .a-sub,#startScreen.start-screen .slot-meta-row,
+#startScreen.start-screen .slot-empty-sub { color:var(--welcome-muted)!important; }
+#startScreen.start-screen button,#startScreen.start-screen input,#startScreen.start-screen select,
+#startScreen.start-screen .arch,#startScreen.start-screen .scen,#startScreen.start-screen .start-slot-card {
+ background:var(--welcome-input)!important; color:var(--welcome-text)!important;
+ border:1px solid var(--welcome-border)!important; border-radius:3px!important;
+ transform:none!important; opacity:1!important;
+}
+#startScreen.start-screen button,#startScreen.start-screen input,#startScreen.start-screen select { min-height:44px; }
+#startScreen.start-screen label,#startScreen.start-screen .field-label { color:var(--welcome-muted)!important; }
+#startScreen.start-screen .tag,#startScreen.start-screen .arch-tag,#startScreen.start-screen .slot-status-pill,
+#startScreen.start-screen .start-section-tag,#startScreen.start-screen .resume-badge {
+ color:var(--welcome-muted)!important; background:transparent!important; border-color:var(--welcome-border)!important;
+}
+#startScreen.start-screen .sel,#startScreen.start-screen .arch.sel,#startScreen.start-screen .scen.sel,
+#startScreen.start-screen .start-slot-card.sel,#startScreen.start-screen .diff-btn.sel {
+ background:#303438!important; border:1px solid var(--welcome-accent)!important; color:var(--welcome-text)!important;
+}
+#startScreen.start-screen :focus-visible { outline:2px solid var(--welcome-accent)!important; outline-offset:2px; }
+#startScreen.start-screen input[type=checkbox] { accent-color:var(--welcome-accent); min-height:20px; }
+#startScreen.start-screen svg,#startScreen.start-screen .arch img { filter:grayscale(1); }
+#startScreen.start-screen .welcome-masthead { grid-area:masthead; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:0 4px 10px; border-bottom:1px solid var(--welcome-border); }
+#startScreen.start-screen .welcome-masthead h1 { margin:3px 0 0; font:850 28px/1 system-ui; letter-spacing:-1px; }
+#startScreen.start-screen .welcome-masthead h1 span { color:var(--welcome-text); }
+#startScreen.start-screen .welcome-eyebrow,#startScreen.start-screen .welcome-offline { font:650 10px/1.4 system-ui; letter-spacing:1.5px; color:var(--welcome-muted); }
+#startScreen.start-screen .start-overview { grid-area:overview; min-width:0; min-height:0; display:flex; flex-direction:column; gap:10px; overflow:auto; }
+#startScreen.start-screen .welcome-scene { flex:1; min-height:0; position:relative; overflow:hidden; background:var(--welcome-panel); border:1px solid var(--welcome-border); }
+#startScreen.start-screen .welcome-scene-label { position:absolute; top:16px; left:20px; z-index:1; }
+#startScreen.start-screen .welcome-scene-label>span { font:700 9px system-ui; letter-spacing:2px; color:var(--welcome-muted); }
+#startScreen.start-screen .welcome-scene-label h2 { font:750 clamp(18px,2.4vw,30px)/1.15 system-ui; margin:7px 0; }
+#startScreen.start-screen .welcome-lot { width:100%; height:100%; max-height:430px; display:block; image-rendering:pixelated; padding-top:45px; box-sizing:border-box; }
+#startScreen.start-screen .welcome-scene-caption { position:absolute; bottom:12px; left:20px; right:20px; display:flex; justify-content:space-between; gap:8px; font:650 9px system-ui; color:var(--welcome-muted); letter-spacing:1px; }
+#startScreen.start-screen #resumeHero { order:1; flex-shrink:0; margin:0; padding:12px; border:1px solid var(--welcome-border)!important; border-radius:3px!important; background:var(--welcome-panel)!important; }
+#startScreen.start-screen .resume-badge { padding:0; margin-bottom:6px; font-size:9px; }
+#startScreen.start-screen .resume-header { flex-wrap:nowrap; }
+#startScreen.start-screen .resume-title { font-size:17px; overflow-wrap:anywhere; }
+#startScreen.start-screen .resume-cash { font-size:18px; color:var(--welcome-text); }
+#startScreen.start-screen .resume-meta { font-size:10px; color:var(--welcome-muted); }
+#startScreen.start-screen .resume-stats-row,#startScreen.start-screen .resume-divider { display:none; }
+#startScreen.start-screen #btnResumeHero { margin-top:10px!important; font-size:13px; min-height:44px; }
+#startScreen.start-screen #startCard { grid-area:setup; background:var(--welcome-panel)!important; border:1px solid var(--welcome-border)!important; border-radius:3px!important; color:var(--welcome-text); padding:20px; min-height:0; overflow-y:auto; scrollbar-gutter:stable; }
+#startScreen.start-screen .start-card-header { padding-bottom:12px; border-bottom:1px solid var(--welcome-border); margin-bottom:16px; }
+#startScreen.start-screen .start-section-tag { padding:0!important; border:0!important; letter-spacing:1px; font-size:9px; }
+#startScreen.start-screen .start-card-title { font:750 24px/1.2 system-ui; margin-top:6px; }
+#startScreen.start-screen .field-label { font:700 10px system-ui; letter-spacing:1px; }
+#startScreen.start-screen .arch { padding:10px; }
+#startScreen.start-screen .welcome-launch { grid-area:launch; display:flex; align-items:center; justify-content:flex-end; gap:12px; border-top:1px solid var(--welcome-border); padding:10px 0 0; }
+#startScreen.start-screen .welcome-launch .start-note { order:-1; margin:0 auto 0 0; text-align:left; max-width:320px; font-size:11px; }
+#startScreen.start-screen #btnStart,#startScreen.start-screen #btnResumeHero { background:var(--welcome-accent)!important; color:var(--welcome-bg)!important; border:1px solid var(--welcome-accent)!important; }
+#startScreen.start-screen #btnStart { margin:0!important; min-height:48px; min-width:210px; font:750 14px system-ui; }
+#startScreen.start-screen #btnStart,#startScreen.start-screen #btnContinue { width:auto!important; flex-shrink:0; }
+#startScreen.start-screen #btnContinue { margin:0; min-height:44px; }
+#startScreen.start-screen #btnContinue[style*="none"] { display:none!important; }
+@media(min-width:640px) and (orientation:landscape) {
+ #startScreen.start-screen { height:100dvh; min-height:0; padding:14px 20px; overflow:hidden; align-items:stretch; }
+ #startScreen.start-screen .welcome-shell { display:grid; grid-template-areas:'masthead masthead' 'overview setup' 'launch launch'; grid-template-columns:minmax(240px,1.1fr) minmax(310px,1fr); grid-template-rows:56px minmax(0,1fr) 64px; gap:14px 20px; height:100%; }
+}
+@media(max-height:500px) and (orientation:landscape) {
+ #startScreen.start-screen { padding:6px 12px; }
+ #startScreen.start-screen .welcome-shell { grid-template-rows:40px minmax(0,1fr) 52px; gap:8px 12px; }
+ #startScreen.start-screen .welcome-masthead { padding-bottom:5px; }
+ #startScreen.start-screen .welcome-masthead h1 { font-size:22px; }
+ #startScreen.start-screen .welcome-scene-label { top:10px; left:12px; }
+ #startScreen.start-screen .welcome-scene-label h2 { font-size:18px; }
+ #startScreen.start-screen .welcome-scene-caption { left:12px; bottom:8px; font-size:8px; }
+ #startScreen.start-screen #startCard { padding:12px; }
+ #startScreen.start-screen .start-card-title { font-size:19px; }
+ #startScreen.start-screen #resumeHero { padding:8px 10px; }
+ #startScreen.start-screen .resume-badge { display:none; }
+ #startScreen.start-screen #btnResumeHero { margin-top:6px!important; padding:5px; }
+ #startScreen.start-screen .resume-header { gap:6px; }
+ #startScreen.start-screen .resume-title { font-size:14px; }
+ #startScreen.start-screen .resume-cash { font-size:16px; }
+ #startScreen.start-screen .welcome-launch .start-note { max-width:240px; font-size:10px; }
+ #startScreen.start-screen #btnContinue { font-size:11px; padding:6px; }
+ #startScreen.start-screen #btnStart { min-width:180px; min-height:44px; font-size:12px; }
+}
+@media(orientation:portrait),(max-width:639px) {
+ #startScreen.start-screen .welcome-shell { display:flex; flex-direction:column; gap:14px; }
+ #startScreen.start-screen .welcome-scene { height:270px; flex:none; }
+ #startScreen.start-screen .welcome-launch { flex-wrap:wrap; }
+ #startScreen.start-screen .welcome-launch .start-note { flex-basis:100%; max-width:none; }
+ #startScreen.start-screen .welcome-offline { max-width:100px; text-align:right; font-size:8px; }
+ #startScreen.start-screen .welcome-masthead h1 { font-size:24px; }
+}

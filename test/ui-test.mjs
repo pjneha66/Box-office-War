@@ -770,9 +770,10 @@ step("v27 character sheet: moral axis, branches, guild, mentorship", ()=>{
   if(!guildBtn) throw new Error("guild join button missing");
   click(guildBtn);
   if(!window.eval("(G.talent.find(t=>t.id===CS.id)||{}).prototype?.guild")) throw new Error("guild join failed");
+  // Weekly story events can already form mentorships. Select a genuinely available junior.
   // mentorship: open a low-level talent and ask a senior
   click($$(".modal-x")[0]||$$("[onclick='closeModal()']").pop());
-  const junior=window.eval("G.talent.slice().sort((a,b)=>(a.prototype?.level||1)-(b.prototype?.level||1))[0].id");
+  const junior=window.eval("G.talent.filter(t=>!t.prototype?.mentor && !t.prototype?.mentee).slice().sort((a,b)=>(a.prototype?.level||1)-(b.prototype?.level||1))[0].id");
   window.eval(`(G.talent.find(t=>t.id===${junior}).prototype||{}).level=1; characterSheet(${junior}, "stats")`);
   const mentorBtn=$$("[data-cs-mentor]")[0];
   if(!mentorBtn) throw new Error("mentor ask button missing");
@@ -884,3 +885,6 @@ step("v32.6 itch.io assets expansion suite verification", ()=>{
 console.log("");
 if(errors.length){ console.log("ERRORS:"); errors.forEach(e=>console.log(" -", e)); process.exit(1); }
 console.log("UI TEST PASSED ✅");
+
+// Release lot RAFs, observers and existing presentation timers in the JSDOM window.
+dom.window.close();

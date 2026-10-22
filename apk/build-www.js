@@ -9,7 +9,7 @@ const WWW = path.join(__dirname, "www");
 
 const FILES = [
   "index.html",
-  "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css",
+  "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css",
   "data.js", "engine.js", "i18n.js", "ui.js",
   "finance-tools.js", "v31-features.js",
   "challenge-leaderboard.js", "theater-chains.js", "dynamic-soundtrack.js", "dynasty-legacy.js",
@@ -20,7 +20,7 @@ const FILES = [
   "studio-espionage.js", "merch-licensing.js", "territory-licensing.js", "custom-sandbox.js",
   "film-locations-tax.js", "studio-operations-suite.js", "gamedev-console-hardware.js", "live-ops-coproduction.js",
   "hollywood-crises-pr.js", "demographics-audiences.js", "production-creativity-suite.js", "exhibition-plf-concessions.js", "marketing-blitz-engine.js",
-  "studio-lot-engine.js", "studio-lot-2d.js", "lot-life.js", "lot-feel.js", "bow-motion.js",
+  "studio-agent-life.js", "studio-lot-engine.js", "studio-actors.js", "studio-departments.js", "studio-lot-2d.js", "lot-life.js", "lot-feel.js", "bow-motion.js",
   "box-office-sim-2-cast.js", "gamestudio-gdd-engine.js", "social-viral-network.js", "sports-stadium-deals.js", "kairo-theme-suite.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];

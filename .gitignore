@@ -39,3 +39,9 @@ game_screenshot.png
 
 # ── BOS2 icon source dump (only the 35 referenced files are tracked) ──
 assets/bos2-icons/
+
+# local QA output (test code and selected screenshots are tracked)
+test-results/
+
+# Generated browser captures; explicitly selected references may be force-added.
+/screenshots/

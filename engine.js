@@ -191,6 +191,7 @@ function saveGame(){
   try{
     if(typeof localStorage==="undefined" || !G) return;
     if(G._noSave) return;   // v14: a what-if fork never writes over the real run
+    if(typeof StudioLotBridge !== "undefined") StudioLotBridge.persist(G);
     G.v = DATA.SAVE_VERSION||4;
     const raw = JSON.stringify(G); // perf: serialize once, write twice
     localStorage.setItem(SAVE_KEY, raw);
@@ -250,6 +251,7 @@ function saveGame(){
   try{
     if(typeof localStorage==="undefined" || !G) return;
     if(G._noSave) return;   // v14: a what-if fork never writes over the real run
+    if(typeof StudioLotBridge !== "undefined") StudioLotBridge.persist(G);
     G.v = DATA.SAVE_VERSION||4;
     const raw = JSON.stringify(G); // perf: serialize once, write twice
     localStorage.setItem(SAVE_KEY, raw);
@@ -2370,7 +2372,8 @@ function tickProjects(){
   for(const p of G.projects){
     if(p.phase==="ready"||p.phase==="delivered") continue;
     if(p.strikePause>0){ p.strikePause--; if(p.strikePause===0) log("✊ Crews back on set for \""+p.title+"\"",""); continue; }
-    p.phaseWeek++;
+    const spatialWork=typeof StudioLotBridge==='undefined'||StudioLotBridge.resolveProductionWeek(p,G);
+    if(spatialWork)p.phaseWeek++;
     const L = p.phaseLen || { pre: 4, shoot: 10, post: 6 };
     // cash burn
     let burn=0;

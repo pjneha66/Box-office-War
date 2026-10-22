@@ -1,0 +1,1790 @@
+{
+  "repository": "https://github.com/ElizaWy/LPC",
+  "commit": "f07f7f5892e67c932c68f70bb04472f2c64e46bc",
+  "discoveredVia": "https://pflat.itch.io/lpc-character-generator",
+  "license": "OGA-BY 3.0",
+  "profiles": [
+    {
+      "id": 0,
+      "form": "Masculine, Thin",
+      "skin": "Honey",
+      "hair": "Short 02 - Parted",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Honey/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Denim/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Honey/Idle.png",
+          "Characters/Hair/Short 02 - Parted/Black/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Honey/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Denim/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Honey/Walk.png",
+          "Characters/Hair/Short 02 - Parted/Black/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Honey/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Denim/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Honey/Sitting.png",
+          "Characters/Hair/Short 02 - Parted/Black/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "form": "Feminine, Thin",
+      "skin": "Honey",
+      "hair": "Medium 04 - Bangs & Bun",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Honey/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Fern/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Honey/Idle.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Black/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Honey/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Fern/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Honey/Walk.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Black/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Honey/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Fern/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Honey/Sitting.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Black/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "form": "Masculine, Thin",
+      "skin": "Bronze",
+      "hair": "Short 05 - Natural",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Bronze/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Denim/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Bronze/Idle.png",
+          "Characters/Hair/Short 05 - Natural/Black/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Bronze/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Denim/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Bronze/Walk.png",
+          "Characters/Hair/Short 05 - Natural/Black/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Bronze/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Denim/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Bronze/Sitting.png",
+          "Characters/Hair/Short 05 - Natural/Black/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "form": "Feminine, Thin",
+      "skin": "Bronze",
+      "hair": "Medium 02 - Curly",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Bronze/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Fern/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Bronze/Idle.png",
+          "Characters/Hair/Medium 02 - Curly/Black/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Bronze/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Fern/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Bronze/Walk.png",
+          "Characters/Hair/Medium 02 - Curly/Black/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Bronze/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Fern/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Bronze/Sitting.png",
+          "Characters/Hair/Medium 02 - Curly/Black/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "form": "Masculine, Thin",
+      "skin": "Peach",
+      "hair": "Short 06 - Balding",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Peach/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Fern/Idle.png",
+          "Characters/Head/Head 03 - Elderly/Peach/Idle.png",
+          "Characters/Hair/Short 06 - Balding/Black/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Peach/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Fern/Walk.png",
+          "Characters/Head/Head 03 - Elderly/Peach/Walk.png",
+          "Characters/Hair/Short 06 - Balding/Black/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Peach/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Fern/Sitting.png",
+          "Characters/Head/Head 03 - Elderly/Peach/Sitting.png",
+          "Characters/Hair/Short 06 - Balding/Black/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "form": "Feminine, Thin",
+      "skin": "Peach",
+      "hair": "Medium 06 - Dreadlocks",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Peach/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Wine/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Peach/Idle.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Black/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Peach/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Wine/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Peach/Walk.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Black/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Peach/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Wine/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Peach/Sitting.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Black/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "form": "Masculine, Thin",
+      "skin": "Coffee",
+      "hair": "Short 07 - Flat Top",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Coffee/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Fern/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Coffee/Idle.png",
+          "Characters/Hair/Short 07 - Flat Top/Ash Brown/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Coffee/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Fern/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Coffee/Walk.png",
+          "Characters/Hair/Short 07 - Flat Top/Ash Brown/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Coffee/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Fern/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Coffee/Sitting.png",
+          "Characters/Hair/Short 07 - Flat Top/Ash Brown/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "form": "Feminine, Thin",
+      "skin": "Coffee",
+      "hair": "Medium 07 - Bob, Side Part",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Coffee/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Wine/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Coffee/Idle.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Ash Brown/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Coffee/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Wine/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Coffee/Walk.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Ash Brown/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Coffee/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Wine/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Coffee/Sitting.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Ash Brown/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "form": "Masculine, Thin",
+      "skin": "Ivory",
+      "hair": "Short 02 - Parted",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Ivory/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Wine/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Ivory/Idle.png",
+          "Characters/Hair/Short 02 - Parted/Ash Brown/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Ivory/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Wine/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Ivory/Walk.png",
+          "Characters/Hair/Short 02 - Parted/Ash Brown/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Ivory/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Wine/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Ivory/Sitting.png",
+          "Characters/Hair/Short 02 - Parted/Ash Brown/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "form": "Feminine, Thin",
+      "skin": "Ivory",
+      "hair": "Medium 04 - Bangs & Bun",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Ivory/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Linen/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Ivory/Idle.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Ash Brown/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Ivory/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Linen/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Ivory/Walk.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Ash Brown/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Ivory/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Linen/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Ivory/Sitting.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Ash Brown/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "form": "Masculine, Thin",
+      "skin": "Brown",
+      "hair": "Short 05 - Natural",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Brown/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Wine/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Brown/Idle.png",
+          "Characters/Hair/Short 05 - Natural/Ash Brown/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Brown/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Wine/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Brown/Walk.png",
+          "Characters/Hair/Short 05 - Natural/Ash Brown/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Brown/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Wine/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Brown/Sitting.png",
+          "Characters/Hair/Short 05 - Natural/Ash Brown/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "form": "Feminine, Thin",
+      "skin": "Brown",
+      "hair": "Medium 02 - Curly",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Brown/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Linen/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Brown/Idle.png",
+          "Characters/Hair/Medium 02 - Curly/Ash Brown/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Brown/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Linen/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Brown/Walk.png",
+          "Characters/Hair/Medium 02 - Curly/Ash Brown/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Brown/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Linen/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Brown/Sitting.png",
+          "Characters/Hair/Medium 02 - Curly/Ash Brown/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "form": "Masculine, Thin",
+      "skin": "Honey",
+      "hair": "Short 06 - Balding",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Honey/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Linen/Idle.png",
+          "Characters/Head/Head 03 - Elderly/Honey/Idle.png",
+          "Characters/Hair/Short 06 - Balding/Blonde/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Honey/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Linen/Walk.png",
+          "Characters/Head/Head 03 - Elderly/Honey/Walk.png",
+          "Characters/Hair/Short 06 - Balding/Blonde/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Honey/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Linen/Sitting.png",
+          "Characters/Head/Head 03 - Elderly/Honey/Sitting.png",
+          "Characters/Hair/Short 06 - Balding/Blonde/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "form": "Feminine, Thin",
+      "skin": "Honey",
+      "hair": "Medium 06 - Dreadlocks",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Honey/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Charcoal/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Honey/Idle.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Blonde/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Honey/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Charcoal/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Honey/Walk.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Blonde/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Honey/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Charcoal/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Honey/Sitting.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Blonde/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "form": "Masculine, Thin",
+      "skin": "Bronze",
+      "hair": "Short 07 - Flat Top",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Bronze/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Linen/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Bronze/Idle.png",
+          "Characters/Hair/Short 07 - Flat Top/Blonde/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Bronze/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Linen/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Bronze/Walk.png",
+          "Characters/Hair/Short 07 - Flat Top/Blonde/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Bronze/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Linen/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Bronze/Sitting.png",
+          "Characters/Hair/Short 07 - Flat Top/Blonde/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "form": "Feminine, Thin",
+      "skin": "Bronze",
+      "hair": "Medium 07 - Bob, Side Part",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Bronze/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Charcoal/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Bronze/Idle.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Blonde/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Bronze/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Charcoal/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Bronze/Walk.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Blonde/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Bronze/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Charcoal/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Bronze/Sitting.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Blonde/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "form": "Masculine, Thin",
+      "skin": "Peach",
+      "hair": "Short 02 - Parted",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Peach/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Charcoal/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Peach/Idle.png",
+          "Characters/Hair/Short 02 - Parted/Blonde/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Peach/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Charcoal/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Peach/Walk.png",
+          "Characters/Hair/Short 02 - Parted/Blonde/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Peach/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Charcoal/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Peach/Sitting.png",
+          "Characters/Hair/Short 02 - Parted/Blonde/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "form": "Feminine, Thin",
+      "skin": "Peach",
+      "hair": "Medium 04 - Bangs & Bun",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Peach/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Ochre/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Peach/Idle.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Blonde/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Peach/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Ochre/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Peach/Walk.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Blonde/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Peach/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Ochre/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Peach/Sitting.png",
+          "Characters/Hair/Medium 04 - Bangs & Bun/Blonde/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "form": "Masculine, Thin",
+      "skin": "Coffee",
+      "hair": "Short 05 - Natural",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Coffee/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Charcoal/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Coffee/Idle.png",
+          "Characters/Hair/Short 05 - Natural/Gray/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Coffee/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Charcoal/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Coffee/Walk.png",
+          "Characters/Hair/Short 05 - Natural/Gray/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Coffee/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Charcoal/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Coffee/Sitting.png",
+          "Characters/Hair/Short 05 - Natural/Gray/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "form": "Feminine, Thin",
+      "skin": "Coffee",
+      "hair": "Medium 02 - Curly",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Coffee/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Ochre/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Coffee/Idle.png",
+          "Characters/Hair/Medium 02 - Curly/Gray/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Coffee/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Ochre/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Coffee/Walk.png",
+          "Characters/Hair/Medium 02 - Curly/Gray/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Coffee/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Ochre/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Coffee/Sitting.png",
+          "Characters/Hair/Medium 02 - Curly/Gray/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "form": "Masculine, Thin",
+      "skin": "Ivory",
+      "hair": "Short 06 - Balding",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Ivory/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Ochre/Idle.png",
+          "Characters/Head/Head 03 - Elderly/Ivory/Idle.png",
+          "Characters/Hair/Short 06 - Balding/Gray/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Ivory/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Ochre/Walk.png",
+          "Characters/Head/Head 03 - Elderly/Ivory/Walk.png",
+          "Characters/Hair/Short 06 - Balding/Gray/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Ivory/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Ochre/Sitting.png",
+          "Characters/Head/Head 03 - Elderly/Ivory/Sitting.png",
+          "Characters/Hair/Short 06 - Balding/Gray/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "form": "Feminine, Thin",
+      "skin": "Ivory",
+      "hair": "Medium 06 - Dreadlocks",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Ivory/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Denim/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Ivory/Idle.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Gray/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Ivory/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Denim/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Ivory/Walk.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Gray/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Ivory/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Denim/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Ivory/Sitting.png",
+          "Characters/Hair/Medium 06 - Dreadlocks/Gray/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "form": "Masculine, Thin",
+      "skin": "Brown",
+      "hair": "Short 07 - Flat Top",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 02 - Masculine, Thin/Brown/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Ochre/Idle.png",
+          "Characters/Head/Head 02 - Masculine/Brown/Idle.png",
+          "Characters/Hair/Short 07 - Flat Top/Gray/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 02 - Masculine, Thin/Brown/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Ochre/Walk.png",
+          "Characters/Head/Head 02 - Masculine/Brown/Walk.png",
+          "Characters/Hair/Short 07 - Flat Top/Gray/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 02 - Masculine, Thin/Brown/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Ochre/Sitting.png",
+          "Characters/Head/Head 02 - Masculine/Brown/Sitting.png",
+          "Characters/Hair/Short 07 - Flat Top/Gray/Sitting.png"
+        ]
+      }
+    },
+    {
+      "id": 23,
+      "form": "Feminine, Thin",
+      "skin": "Brown",
+      "hair": "Medium 07 - Bob, Side Part",
+      "layers": {
+        "Idle": [
+          "Characters/Body/Body 01 - Feminine, Thin/Brown/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Denim/Idle.png",
+          "Characters/Head/Head 01 - Feminine/Brown/Idle.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Gray/Idle.png"
+        ],
+        "Walk": [
+          "Characters/Body/Body 01 - Feminine, Thin/Brown/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Denim/Walk.png",
+          "Characters/Head/Head 01 - Feminine/Brown/Walk.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Gray/Walk.png"
+        ],
+        "Sitting": [
+          "Characters/Body/Body 01 - Feminine, Thin/Brown/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png",
+          "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Denim/Sitting.png",
+          "Characters/Head/Head 01 - Feminine/Brown/Sitting.png",
+          "Characters/Hair/Medium 07 - Bob, Side Part/Gray/Sitting.png"
+        ]
+      }
+    }
+  ],
+  "files": {
+    "Characters/Body/Body 01 - Feminine, Thin/Bronze/Idle.png": {
+      "sha": "34706b67bf14b1ac39b2de49c06234f4cd6f15c9",
+      "local": "source/000.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Bronze/Sitting.png": {
+      "sha": "1ae9f68d49a228ceca0e5195690c41a66f91aa55",
+      "local": "source/001.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Bronze/Walk.png": {
+      "sha": "4f3d7a2996c85ab745425f28ee1a29380a902eb4",
+      "local": "source/002.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Brown/Idle.png": {
+      "sha": "1446af179a137719e945044b6f907a5fd2fa2c56",
+      "local": "source/003.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Brown/Sitting.png": {
+      "sha": "5262419759456bfbac8e0a99d5b8f5f034fb4462",
+      "local": "source/004.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Brown/Walk.png": {
+      "sha": "f2645fddd2690159ee9c6a58b08789752ea11d29",
+      "local": "source/005.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Coffee/Idle.png": {
+      "sha": "0b7b178620c3bfdd4206320f722a0f972ce7b55d",
+      "local": "source/006.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Coffee/Sitting.png": {
+      "sha": "162af037806e78e852ec75e1044d3740cea545e1",
+      "local": "source/007.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Coffee/Walk.png": {
+      "sha": "7bb60099e1913745af17d68ac4520559b250d762",
+      "local": "source/008.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Honey/Idle.png": {
+      "sha": "b1b05b65fb14ea86428c49b10bbc42643ee7cf4f",
+      "local": "source/009.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Honey/Sitting.png": {
+      "sha": "252ff47943ad1d30f00c4153c0fb4873f757b503",
+      "local": "source/010.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Honey/Walk.png": {
+      "sha": "0f3f3f2e4e5a5798a6b3d6a2d12e897ab0b5a41c",
+      "local": "source/011.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Ivory/Idle.png": {
+      "sha": "eae084997b68be7352d92ec51039f6b395185122",
+      "local": "source/012.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Ivory/Sitting.png": {
+      "sha": "568f673df93383ef0291282a808506fb754b1b7d",
+      "local": "source/013.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Ivory/Walk.png": {
+      "sha": "d14be65cbf9d9caa23fe553818582af2c13e40cf",
+      "local": "source/014.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Peach/Idle.png": {
+      "sha": "2ddf021289e93c44019074d70c3581a4f2cf79b4",
+      "local": "source/015.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Peach/Sitting.png": {
+      "sha": "4de275dd3091f84f494bae9de2efe548a06f35a9",
+      "local": "source/016.png"
+    },
+    "Characters/Body/Body 01 - Feminine, Thin/Peach/Walk.png": {
+      "sha": "833c168edcca29a8bc375e84f74ec12b5ff2e0fd",
+      "local": "source/017.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Bronze/Idle.png": {
+      "sha": "bac3dd9b7ba2973a8aded602c56ac3b28b19f0f5",
+      "local": "source/018.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Bronze/Sitting.png": {
+      "sha": "fb0373b9a10c2abb5e1a975c9a2beadd0d4fe533",
+      "local": "source/019.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Bronze/Walk.png": {
+      "sha": "bbc3d85b2d850259c7a0a60d65049558a7cf76bb",
+      "local": "source/020.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Brown/Idle.png": {
+      "sha": "0ea6883be950a5ceedd9d6c08e1bb9b47a7f964a",
+      "local": "source/021.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Brown/Sitting.png": {
+      "sha": "dcd00e5d3352b91ed4f605e824f2e55c27416e34",
+      "local": "source/022.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Brown/Walk.png": {
+      "sha": "5e52444f8d50934045dc5e7250440220f256ea06",
+      "local": "source/023.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Coffee/Idle.png": {
+      "sha": "b79af2f8bf03f839d56ab6c1dd19c868bb169741",
+      "local": "source/024.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Coffee/Sitting.png": {
+      "sha": "a3b65f5c342948a495583cb8c9138c6146e1aa42",
+      "local": "source/025.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Coffee/Walk.png": {
+      "sha": "5f153715e8bbd1910ddb07d24a16731f9ffd2f78",
+      "local": "source/026.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Honey/Idle.png": {
+      "sha": "ff199e6b9c86aec5eaf803058f8544fd6d857ea7",
+      "local": "source/027.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Honey/Sitting.png": {
+      "sha": "ec38ef62a8867cadd1ba2da686450feeb93e4bd4",
+      "local": "source/028.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Honey/Walk.png": {
+      "sha": "40d7b361e2bd34e2f0aff7bead7f79260b298b51",
+      "local": "source/029.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Ivory/Idle.png": {
+      "sha": "1efd347511af40ad2f062f4daec9cb2db7a00722",
+      "local": "source/030.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Ivory/Sitting.png": {
+      "sha": "f55942836f99e31895731f880fc0181cd4ea2bba",
+      "local": "source/031.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Ivory/Walk.png": {
+      "sha": "aa6cf4a8cde7ea3c954a1473e10a69ba6eb2483e",
+      "local": "source/032.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Peach/Idle.png": {
+      "sha": "0b91a252040c9fc9fface8de1a1a11785e0cc976",
+      "local": "source/033.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Peach/Sitting.png": {
+      "sha": "2b8ca7d35fd0c7d69b57964ba3bb4535695220f4",
+      "local": "source/034.png"
+    },
+    "Characters/Body/Body 02 - Masculine, Thin/Peach/Walk.png": {
+      "sha": "5b99bbf22598002f8abfdb670f880278097a698e",
+      "local": "source/035.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png": {
+      "sha": "1630021efbf029676becdd8f8a36c331974184b1",
+      "local": "source/036.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png": {
+      "sha": "09c78ded32a47f152b7f715be0031f95c8c6d0b4",
+      "local": "source/037.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png": {
+      "sha": "a1a02d4603fb21819f35080c77f472dc6d5b15c2",
+      "local": "source/038.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png": {
+      "sha": "a4ec0bfded174f43eb93c3aecc2729eea10a1704",
+      "local": "source/039.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png": {
+      "sha": "717d22e7608aef41a1140be36d786c78b16c50ce",
+      "local": "source/040.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png": {
+      "sha": "42e57bed0656dfab21fca6984279e879f5f44483",
+      "local": "source/041.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png": {
+      "sha": "522c9fbca816b320df6dfb36651e49ae95e5f3c6",
+      "local": "source/042.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png": {
+      "sha": "6d582526e8570bb932fcd0a062b5781e18439825",
+      "local": "source/043.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png": {
+      "sha": "a80b66f25092e069e8a2017974c4f95767a9f012",
+      "local": "source/044.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png": {
+      "sha": "97b075bf7aa8705c8485919d01f89a710f3c799b",
+      "local": "source/045.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png": {
+      "sha": "a409bc8ace404fed82fb61574fe1cadb3f6e8906",
+      "local": "source/046.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png": {
+      "sha": "57de910ca42f4d989347f78a00ace982ba97aa69",
+      "local": "source/047.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Charcoal/Idle.png": {
+      "sha": "245c07c5cb82460505807e718a9ee53c9b8fece0",
+      "local": "source/048.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Charcoal/Sitting.png": {
+      "sha": "a4db5389bab69600fb52f67fd3000e399d7a334d",
+      "local": "source/049.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Charcoal/Walk.png": {
+      "sha": "d48d594fb30b365f4d88646b8701efbaec36cf29",
+      "local": "source/050.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Denim/Idle.png": {
+      "sha": "325dadec3c341a1f74f079ee6be6570d7a747db2",
+      "local": "source/051.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Denim/Sitting.png": {
+      "sha": "fbae0947bd66292af70dca2a1e86e1b27588e4c7",
+      "local": "source/052.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Denim/Walk.png": {
+      "sha": "cac74bcd0351fc21160a088a5cafc119715bc351",
+      "local": "source/053.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Wine/Idle.png": {
+      "sha": "70950d09acb2b4497c48674c142bfedbeb4e44d7",
+      "local": "source/054.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Wine/Sitting.png": {
+      "sha": "1c92c397b1e461e491d4a60d381132e0b388abd6",
+      "local": "source/055.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Wine/Walk.png": {
+      "sha": "c9f0442c2c4ac02304385bc42c123dee4a5bc9dd",
+      "local": "source/056.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Fern/Idle.png": {
+      "sha": "a11a8ecca8761103c38c92d24fb6b82a86be6dbf",
+      "local": "source/057.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Fern/Sitting.png": {
+      "sha": "b8a6649b0017da3d9a7969c4f846a5d158fadf22",
+      "local": "source/058.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Fern/Walk.png": {
+      "sha": "547f40884be59f726ddbfca24293108a899487fd",
+      "local": "source/059.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Linen/Idle.png": {
+      "sha": "86b456f450d149f40ee7182812cd085b406ad34f",
+      "local": "source/060.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Linen/Sitting.png": {
+      "sha": "ee4ccf90fadba5d8defe7cdea7234752eac0ed11",
+      "local": "source/061.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Linen/Walk.png": {
+      "sha": "737f2e702fd4c0f6da49d80c9b80bbc5272c9bb8",
+      "local": "source/062.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Ochre/Idle.png": {
+      "sha": "ef886410a81405bc2a6bc32d702bf6454f10c9d8",
+      "local": "source/063.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Ochre/Sitting.png": {
+      "sha": "2679d14404c235e4d390f3c9d94cb75a3a365a4e",
+      "local": "source/064.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 04 - T-shirt/Ochre/Walk.png": {
+      "sha": "6f0cb0acc43b13f5be269999abda7e55a11e9b8a",
+      "local": "source/065.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Fern/Idle.png": {
+      "sha": "3a803baca2f0df250602ec146ac72f7341ba0414",
+      "local": "source/066.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Fern/Sitting.png": {
+      "sha": "2001c71bf04694848d1be8c6cfc1ee63901079df",
+      "local": "source/067.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Fern/Walk.png": {
+      "sha": "fcccd343e67b683801ce7dc012589d32be9b8b06",
+      "local": "source/068.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Linen/Idle.png": {
+      "sha": "50ff501dffeff4d610cc157308980a92d97b5b53",
+      "local": "source/069.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Linen/Sitting.png": {
+      "sha": "7d37d221037a16e9964b4c92104dd6a65a62a52a",
+      "local": "source/070.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Linen/Walk.png": {
+      "sha": "90a60c3570c8d8f1f360d3f67267ae9523dcfd6d",
+      "local": "source/071.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Ochre/Idle.png": {
+      "sha": "6e6980778050a87270d70371c7bd07a222852aa2",
+      "local": "source/072.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Ochre/Sitting.png": {
+      "sha": "15713bf566c8310c9ddb8873d34959559535c488",
+      "local": "source/073.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Ochre/Walk.png": {
+      "sha": "0ec778b02ad7d46c75452832b60aa0a66e7d1213",
+      "local": "source/074.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Charcoal/Idle.png": {
+      "sha": "bd08b4aec156871d696e6b292222eb3147ca1789",
+      "local": "source/075.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Charcoal/Sitting.png": {
+      "sha": "8979f5e476ef5ed0c0f10c15f787cb1c40d310c0",
+      "local": "source/076.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Charcoal/Walk.png": {
+      "sha": "51ae3be75d94496d27b739ff1ca63d774c912c75",
+      "local": "source/077.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Denim/Idle.png": {
+      "sha": "2ce1c62b1c3e1cec78e70f34a65c4ddcdf200b0e",
+      "local": "source/078.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Denim/Sitting.png": {
+      "sha": "2152ed7302fb2408bb6b53561fdaebf48a0029d9",
+      "local": "source/079.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Denim/Walk.png": {
+      "sha": "b7e2330cf1df20db2ecd2780190c27342307c95e",
+      "local": "source/080.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Wine/Idle.png": {
+      "sha": "ccbd6c741304018e81ed04ae88e6ab75601a71d2",
+      "local": "source/081.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Wine/Sitting.png": {
+      "sha": "890f8d1be1e3ad895963df25a3b1a3ecdb5b4315",
+      "local": "source/082.png"
+    },
+    "Characters/Clothing/Feminine, Thin/Torso/Shirt 09 - Polo/Wine/Walk.png": {
+      "sha": "5c92eef49d260d4c2a19205de1a2b2d2269087aa",
+      "local": "source/083.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Idle.png": {
+      "sha": "1630021efbf029676becdd8f8a36c331974184b1",
+      "local": "source/084.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Sitting.png": {
+      "sha": "09c78ded32a47f152b7f715be0031f95c8c6d0b4",
+      "local": "source/085.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Feet/Shoes 01 - Shoes/Black/Walk.png": {
+      "sha": "a1a02d4603fb21819f35080c77f472dc6d5b15c2",
+      "local": "source/086.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Idle.png": {
+      "sha": "ba01a57c79132a4db833aa294772691fc16edf96",
+      "local": "source/087.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Sitting.png": {
+      "sha": "9db0d33898af57a8aec39934427a447c23893d6d",
+      "local": "source/088.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Charcoal/Walk.png": {
+      "sha": "1febac04d081b2d404f89a511ba78ee67f6a773d",
+      "local": "source/089.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Idle.png": {
+      "sha": "6e45b92a5f2fa2e970f8c4fbbd5f394fcbef4c67",
+      "local": "source/090.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Sitting.png": {
+      "sha": "d63539435a0c0f32feca7fbf3352022ba3f4a114",
+      "local": "source/091.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Denim/Walk.png": {
+      "sha": "343d23525b69ed93785f538dc59aa3fc1cdbde7b",
+      "local": "source/092.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Idle.png": {
+      "sha": "e066a69139bfca3a04f4d70dba31e3c956a72fab",
+      "local": "source/093.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Sitting.png": {
+      "sha": "112b322a396f5d26a67205931af3ca46fdf1211a",
+      "local": "source/094.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Legs/Pants 03 - Pants/Umber/Walk.png": {
+      "sha": "8001918d9cc3c2e875ac53088374aab90c810e52",
+      "local": "source/095.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Fern/Idle.png": {
+      "sha": "d6ac444b4b11beaa7d4458a5eae29e82f3bb8297",
+      "local": "source/096.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Fern/Sitting.png": {
+      "sha": "6f3c8ad26422adf4b03ee4e2242a75007213e968",
+      "local": "source/097.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Fern/Walk.png": {
+      "sha": "204cc0ea135690b00eeff8d38ff0ceeae74ac8f8",
+      "local": "source/098.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Linen/Idle.png": {
+      "sha": "625cde3a8fad1695d9b3b8cc594311d851012811",
+      "local": "source/099.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Linen/Sitting.png": {
+      "sha": "d264917d12a87733f8c393cb0e4ae113acac0617",
+      "local": "source/100.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Linen/Walk.png": {
+      "sha": "5fe2b7d062eb95ac875264826f2e44e32fdc886f",
+      "local": "source/101.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Ochre/Idle.png": {
+      "sha": "485cc44eca568705e12fd627540220e619bc2fc4",
+      "local": "source/102.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Ochre/Sitting.png": {
+      "sha": "008995a8ed32d301ee2ef5e6ea7714bf9fdffb2c",
+      "local": "source/103.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 02 - V-neck Longsleeve Shirt/Ochre/Walk.png": {
+      "sha": "ad97250af1fd6caebd8c591d519ecfccc7e3990b",
+      "local": "source/104.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Charcoal/Idle.png": {
+      "sha": "1a2b819d371a3f4b8d877392dd954626af4edc8f",
+      "local": "source/105.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Charcoal/Sitting.png": {
+      "sha": "18610cebcfc6ff47510bc01ca562e92517ec5200",
+      "local": "source/106.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Charcoal/Walk.png": {
+      "sha": "23ffc3b9549f74e8648c717f9e5d379cf3c2f1f8",
+      "local": "source/107.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Denim/Idle.png": {
+      "sha": "06edfb8aa518d5283ca79b8bf019fa01b7031a26",
+      "local": "source/108.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Denim/Sitting.png": {
+      "sha": "3981a360ed995cf345a9441e95137806f85be942",
+      "local": "source/109.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Denim/Walk.png": {
+      "sha": "eef634c6c0c87662ba264ddd22d5106696c4ca49",
+      "local": "source/110.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Wine/Idle.png": {
+      "sha": "5a1425d4a6ee5f4acad22fff4b035121f6643059",
+      "local": "source/111.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Wine/Sitting.png": {
+      "sha": "97db81c40b3b084d550bcfb9443407814f6fd61d",
+      "local": "source/112.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 04 - T-shirt/Wine/Walk.png": {
+      "sha": "712099b9095aecd410b27a97d8c97420d2ec4368",
+      "local": "source/113.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Charcoal/Idle.png": {
+      "sha": "c11d6facac0a83ffa1c859bb255fd1b6b05a695c",
+      "local": "source/114.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Charcoal/Sitting.png": {
+      "sha": "6834f432f72ea861546f453d92e953f5c79dd4d0",
+      "local": "source/115.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Charcoal/Walk.png": {
+      "sha": "3c6c69329c9c73d29dc693e91cbb11e3cfe1f181",
+      "local": "source/116.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Denim/Idle.png": {
+      "sha": "f67283f00ad7ee518edffc6407cd6cd8ad3db412",
+      "local": "source/117.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Denim/Sitting.png": {
+      "sha": "65abd1440a6f6733104ea396fa0aa69f3b4cb8e2",
+      "local": "source/118.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Denim/Walk.png": {
+      "sha": "e77a1e970ec238625a340407f80825710daf3c72",
+      "local": "source/119.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Wine/Idle.png": {
+      "sha": "08ead147827e27db6259bca4cedf972561d9328b",
+      "local": "source/120.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Wine/Sitting.png": {
+      "sha": "36c44e45834de35e85998bb9a3dca8d5a85787d4",
+      "local": "source/121.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 07 - Buttoned Longsleeve Shirt/Wine/Walk.png": {
+      "sha": "8eb265fec6d3d7cdbe1e55225cb7f5eb544ca7e9",
+      "local": "source/122.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Fern/Idle.png": {
+      "sha": "39f2ac9ced7d53c7c7a0e0517d698647069236c9",
+      "local": "source/123.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Fern/Sitting.png": {
+      "sha": "fd077c47587a977f645c85b124cf8cee8ba8d00f",
+      "local": "source/124.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Fern/Walk.png": {
+      "sha": "f4e71be596da8f5da7c9b60effb776894095cb70",
+      "local": "source/125.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Linen/Idle.png": {
+      "sha": "8e6410a0fc694abdaa0959d0ef94fa1e3d28197c",
+      "local": "source/126.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Linen/Sitting.png": {
+      "sha": "05087f6edba9835759b36d6d8d784cdae2f66b16",
+      "local": "source/127.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Linen/Walk.png": {
+      "sha": "b7c37287ecb1f09e3ab9c1c5c647ef5c6147af23",
+      "local": "source/128.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Ochre/Idle.png": {
+      "sha": "7674ec54c8c94b8093f700db789ca91d9d767ea8",
+      "local": "source/129.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Ochre/Sitting.png": {
+      "sha": "6572097ed072ca816e09599cedc194e13acf9316",
+      "local": "source/130.png"
+    },
+    "Characters/Clothing/Masculine, Thin/Torso/Shirt 09 - Polo/Ochre/Walk.png": {
+      "sha": "2b479c297b18fac8ddedcd998bfc4ce8be5bfdba",
+      "local": "source/131.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Ash Brown/Idle.png": {
+      "sha": "cdadcd385391d36d6c81ea8c6d0e9a0ae8732cf2",
+      "local": "source/132.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Ash Brown/Sitting.png": {
+      "sha": "962f7f9f88082d59211bc09442cf2e121e13d14d",
+      "local": "source/133.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Ash Brown/Walk.png": {
+      "sha": "58d0a244cc8e5fa71749b48903a19cfdb05a371e",
+      "local": "source/134.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Black/Idle.png": {
+      "sha": "0acc9cf0a0dcdc983fc326093077b04c601d416b",
+      "local": "source/135.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Black/Sitting.png": {
+      "sha": "3d6121d8ae7a1fafcbbc1e292a714b597618cd6c",
+      "local": "source/136.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Black/Walk.png": {
+      "sha": "ebbe1aa61b306a96821a3efb59da90e8fcb3c5a2",
+      "local": "source/137.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Gray/Idle.png": {
+      "sha": "5adc7262075b5641e2f3c16344d14c35d204a062",
+      "local": "source/138.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Gray/Sitting.png": {
+      "sha": "a4691b8111bda5d7e0fe9ea60984ea8eb85ac99e",
+      "local": "source/139.png"
+    },
+    "Characters/Hair/Medium 02 - Curly/Gray/Walk.png": {
+      "sha": "31fd9186014dcba0f880d816bedfc3dc74595c2b",
+      "local": "source/140.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Ash Brown/Idle.png": {
+      "sha": "6dbc2522bcd0b5f79167b4e5c1ef4848dcd45935",
+      "local": "source/141.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Ash Brown/Sitting.png": {
+      "sha": "964bd0613dcd48f651e54ad1ecba594aa3a3c2aa",
+      "local": "source/142.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Ash Brown/Walk.png": {
+      "sha": "0fb40a2533fb3ee5d78568b109924a270a62f1c2",
+      "local": "source/143.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Black/Idle.png": {
+      "sha": "7cb967ab3219722cb7bf6fe88ee0262f515d8f4f",
+      "local": "source/144.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Black/Sitting.png": {
+      "sha": "9ca82b47a12ebda4b8d7d79c5e16166b64955b14",
+      "local": "source/145.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Black/Walk.png": {
+      "sha": "be97955e8a863d8829e4a33a0294a266487b59a5",
+      "local": "source/146.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Blonde/Idle.png": {
+      "sha": "15d62c7997baa7121c0af8fb81489aa43b98f407",
+      "local": "source/147.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Blonde/Sitting.png": {
+      "sha": "3227634b2ee17880de7806ecaa989efcec0ff98b",
+      "local": "source/148.png"
+    },
+    "Characters/Hair/Medium 04 - Bangs & Bun/Blonde/Walk.png": {
+      "sha": "f7e7ebe16cbd026619e65624593beb25b3b6d810",
+      "local": "source/149.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Black/Idle.png": {
+      "sha": "477305a14fa948c4aeb115547368d92ec19ed9d2",
+      "local": "source/150.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Black/Sitting.png": {
+      "sha": "881f5a1480a5917633f4534a478f1b2f4a70ddb6",
+      "local": "source/151.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Black/Walk.png": {
+      "sha": "926dc8085f9af536272e32878b23f8f7ea40501b",
+      "local": "source/152.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Blonde/Idle.png": {
+      "sha": "de9b85662d37a3eb6e4e3a638aa62b03e6fcde70",
+      "local": "source/153.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Blonde/Sitting.png": {
+      "sha": "5936730c59cd08c760b97c7f7c8f0822e5513a0f",
+      "local": "source/154.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Blonde/Walk.png": {
+      "sha": "ccc9fb334f4f1fff0477d5f42094dcf66cc8f282",
+      "local": "source/155.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Gray/Idle.png": {
+      "sha": "15e33e6c92b5461a770f9ea22b25a10b38d30fde",
+      "local": "source/156.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Gray/Sitting.png": {
+      "sha": "bd4641cb0d49d98581e1084c713faa883c4d51c8",
+      "local": "source/157.png"
+    },
+    "Characters/Hair/Medium 06 - Dreadlocks/Gray/Walk.png": {
+      "sha": "9792f69836a766acf4f88a12040ad60e488a2bef",
+      "local": "source/158.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Ash Brown/Idle.png": {
+      "sha": "58427e9ba60f77b4692f05e83ca2ebf3a9361118",
+      "local": "source/159.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Ash Brown/Sitting.png": {
+      "sha": "290ad75d8bdf1761730273b7e9bc1b43b31fce4a",
+      "local": "source/160.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Ash Brown/Walk.png": {
+      "sha": "13d9acd352ae4030302f4ab7f7980f912910361c",
+      "local": "source/161.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Blonde/Idle.png": {
+      "sha": "086db5844484ec9c74675b42a79bbb7fbf6969c6",
+      "local": "source/162.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Blonde/Sitting.png": {
+      "sha": "b7fcbf4fc50ccd68220094fae75cf0ca612f24e8",
+      "local": "source/163.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Blonde/Walk.png": {
+      "sha": "b2b1cb3be8bd092769a4ccfffb7847da92f906ee",
+      "local": "source/164.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Gray/Idle.png": {
+      "sha": "77c1edfd3b360612cc5c04ca6055a2e1cbf6ab18",
+      "local": "source/165.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Gray/Sitting.png": {
+      "sha": "6b09bb6ddd7708269b5fc993feef4f8b36a405b6",
+      "local": "source/166.png"
+    },
+    "Characters/Hair/Medium 07 - Bob, Side Part/Gray/Walk.png": {
+      "sha": "80194634c0f16f11b1b76a991bfb095f94a2b109",
+      "local": "source/167.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Ash Brown/Idle.png": {
+      "sha": "0a16e60f7cf624bbc59eb8fed7e39b081667cd75",
+      "local": "source/168.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Ash Brown/Sitting.png": {
+      "sha": "83d43cab9ee924fdb9fc01b2800891e47bac78a3",
+      "local": "source/169.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Ash Brown/Walk.png": {
+      "sha": "f33c36922ffc765ed08733ce22e18a489afd2a25",
+      "local": "source/170.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Black/Idle.png": {
+      "sha": "c7edb2857bb88e23c1040555295d3db9e9bed2ff",
+      "local": "source/171.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Black/Sitting.png": {
+      "sha": "c329f85cc336c116d1b7ee76853b15626a5ff659",
+      "local": "source/172.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Black/Walk.png": {
+      "sha": "892ae546dc24513239347bd68cce0ecdb1e8438c",
+      "local": "source/173.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Blonde/Idle.png": {
+      "sha": "272e80d67dd17284c1b2ab2c86801f5a27d5de5f",
+      "local": "source/174.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Blonde/Sitting.png": {
+      "sha": "301ee72889a2a12d64072dca5c331d623b3789c8",
+      "local": "source/175.png"
+    },
+    "Characters/Hair/Short 02 - Parted/Blonde/Walk.png": {
+      "sha": "cda50cbc60dbe6442f3dc79d543e9ddc10d77c69",
+      "local": "source/176.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Ash Brown/Idle.png": {
+      "sha": "a08d7d9c2945abac97e7b7af6fb277b03eb5fe6a",
+      "local": "source/177.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Ash Brown/Sitting.png": {
+      "sha": "dde8c755cca93b2f4b43d9fb189ea93d9a191958",
+      "local": "source/178.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Ash Brown/Walk.png": {
+      "sha": "b8d571b76864c70c6814290bda46d196268f929a",
+      "local": "source/179.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Black/Idle.png": {
+      "sha": "bdd96dca7f4b839c710f8b8c3cce08821d1aac1b",
+      "local": "source/180.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Black/Sitting.png": {
+      "sha": "45452b69898bb2a9492580314925d2049920dded",
+      "local": "source/181.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Black/Walk.png": {
+      "sha": "8b6820db71e61aed47247e04da706e8e7c7ff268",
+      "local": "source/182.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Gray/Idle.png": {
+      "sha": "78361f7c4b092ecbee3e5e9f90112bdd9f4812cd",
+      "local": "source/183.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Gray/Sitting.png": {
+      "sha": "585b396db48861c6dfe03a7470fb937b733fc0cb",
+      "local": "source/184.png"
+    },
+    "Characters/Hair/Short 05 - Natural/Gray/Walk.png": {
+      "sha": "63478161af927be0c32980e381565dbf3c72fb46",
+      "local": "source/185.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Black/Idle.png": {
+      "sha": "83ff32897684a365ba0866d6aa567c6f792356e2",
+      "local": "source/186.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Black/Sitting.png": {
+      "sha": "37f02ec7e21485980e63b4c85a7cbe1f1c4640b2",
+      "local": "source/187.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Black/Walk.png": {
+      "sha": "2bc49120214d2ff1a04bbe7ae805d72c7d24e861",
+      "local": "source/188.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Blonde/Idle.png": {
+      "sha": "2d52d4a0be17a5b6ebd5d3412fa24af159c760be",
+      "local": "source/189.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Blonde/Sitting.png": {
+      "sha": "8c2e7d1dd38aaf1d57c27bcfb772eed95f8f6b05",
+      "local": "source/190.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Blonde/Walk.png": {
+      "sha": "5e5d9e4e6d4c16581529ee7e2f72353a60ba3145",
+      "local": "source/191.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Gray/Idle.png": {
+      "sha": "7508deb1adf2ef6cb7970a6cf3ef1e594f080a43",
+      "local": "source/192.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Gray/Sitting.png": {
+      "sha": "d969a7290e13dfa27f50a867994ac62261005ece",
+      "local": "source/193.png"
+    },
+    "Characters/Hair/Short 06 - Balding/Gray/Walk.png": {
+      "sha": "8b24e0eca1e0c58e14fb521633b91d7c47a70ea9",
+      "local": "source/194.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Ash Brown/Idle.png": {
+      "sha": "7d47915b578912194f3992f3870c6bc8d8691f93",
+      "local": "source/195.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Ash Brown/Sitting.png": {
+      "sha": "a3cefde93c2bf7c36a11818577f11f5254f45d6b",
+      "local": "source/196.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Ash Brown/Walk.png": {
+      "sha": "c66c508bc5895a5d2610f75d4762e93d9e2302cc",
+      "local": "source/197.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Blonde/Idle.png": {
+      "sha": "783dfc93198f3ef6a1edd8ce8f17162a9e3af0ba",
+      "local": "source/198.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Blonde/Sitting.png": {
+      "sha": "684136a92a323b9a15959bbcfce1e7e895423fe3",
+      "local": "source/199.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Blonde/Walk.png": {
+      "sha": "2bd22d5c19eed433d30a63790a55f4f0ac3037bb",
+      "local": "source/200.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Gray/Idle.png": {
+      "sha": "c24f56dfcf9e7a6b995f9aae3e64b2ee3f2c4b1f",
+      "local": "source/201.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Gray/Sitting.png": {
+      "sha": "c45c0776bd84f1d01c7c8ded6166475d74737b65",
+      "local": "source/202.png"
+    },
+    "Characters/Hair/Short 07 - Flat Top/Gray/Walk.png": {
+      "sha": "43d2fc5eae86be4b985eedbeb279d83367c2f5f5",
+      "local": "source/203.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Bronze/Idle.png": {
+      "sha": "94d08fd74e4af92f8d95d83ee5a505adfb3a4331",
+      "local": "source/204.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Bronze/Sitting.png": {
+      "sha": "0ef33b47f206b832d1ca90efe7cf94452c6466be",
+      "local": "source/205.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Bronze/Walk.png": {
+      "sha": "58485641d43a1b861929dc48f126eb9b516c72cb",
+      "local": "source/206.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Brown/Idle.png": {
+      "sha": "4bc073c4787c90361a6c12c3459193e503a4f542",
+      "local": "source/207.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Brown/Sitting.png": {
+      "sha": "86349d28c6225a81133c0984eeb3e1362f631760",
+      "local": "source/208.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Brown/Walk.png": {
+      "sha": "c7b25035899f11241b7b39c7a2fa316db864760b",
+      "local": "source/209.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Coffee/Idle.png": {
+      "sha": "04728bc1270d83e2d36fa6defd5d0251b3b838cb",
+      "local": "source/210.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Coffee/Sitting.png": {
+      "sha": "2c5f2abd94cc37eb0c5e78e6e3e0d9b8e8fa80b7",
+      "local": "source/211.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Coffee/Walk.png": {
+      "sha": "d664958db40ffac432b2cc93309d4827d7fc28f5",
+      "local": "source/212.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Honey/Idle.png": {
+      "sha": "050482c316f60f2c26d971be81b55eb758b68bb9",
+      "local": "source/213.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Honey/Sitting.png": {
+      "sha": "28c5bca585df4bf6006f386342f057202551e3a5",
+      "local": "source/214.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Honey/Walk.png": {
+      "sha": "c03133afe9e1719e8b6aa6b5c9b3df938ccba5ca",
+      "local": "source/215.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Ivory/Idle.png": {
+      "sha": "999ae844feedcc25ac41cf37a7fb3b06bdc76260",
+      "local": "source/216.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Ivory/Sitting.png": {
+      "sha": "57bbea6fe12b57c12fc698dc9f14450959009906",
+      "local": "source/217.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Ivory/Walk.png": {
+      "sha": "008be34001ef8bab9ba1b0e9a78c86f4d81a3d10",
+      "local": "source/218.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Peach/Idle.png": {
+      "sha": "85d02ee16eb00254a20ede390b3af10bdc167909",
+      "local": "source/219.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Peach/Sitting.png": {
+      "sha": "b3ad242676e99c8565be8133acd6c99983acb985",
+      "local": "source/220.png"
+    },
+    "Characters/Head/Head 01 - Feminine/Peach/Walk.png": {
+      "sha": "429af89e4137d029d797a132f22d79f2b20fbe8c",
+      "local": "source/221.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Bronze/Idle.png": {
+      "sha": "5595bf5792d1741f6e42ef0bac3fcd421a4f1434",
+      "local": "source/222.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Bronze/Sitting.png": {
+      "sha": "608051cd923be231c7d5cd2e2481ee051cde0483",
+      "local": "source/223.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Bronze/Walk.png": {
+      "sha": "17a3daa568337dd37045fd31ecd0ae89ceac952f",
+      "local": "source/224.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Brown/Idle.png": {
+      "sha": "b9ec1265f6ea67ecf9ed9454685d5e36a1c3da1a",
+      "local": "source/225.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Brown/Sitting.png": {
+      "sha": "f27f13e9c5d5eb65b466619ad04786c2180abef9",
+      "local": "source/226.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Brown/Walk.png": {
+      "sha": "073bb51849f38b3b6d268bfad1b5511e63bbd065",
+      "local": "source/227.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Coffee/Idle.png": {
+      "sha": "7092ccb606b532ad3a2d2dd1e6b9f5a8fcea2564",
+      "local": "source/228.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Coffee/Sitting.png": {
+      "sha": "42690d1c04ae6e5ddfd69829e358fb263678dfa5",
+      "local": "source/229.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Coffee/Walk.png": {
+      "sha": "6b3fa9dd2603e6e6832f83377dfcf0cbb7d7d517",
+      "local": "source/230.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Honey/Idle.png": {
+      "sha": "b1a7cbd9bde653dfaa48f693b85b6fb55503c884",
+      "local": "source/231.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Honey/Sitting.png": {
+      "sha": "2daf68a1cd3edffccb5314d92191ec3d5c20d627",
+      "local": "source/232.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Honey/Walk.png": {
+      "sha": "285fa8c683d0012d6fa77b638659c343bef0b34a",
+      "local": "source/233.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Ivory/Idle.png": {
+      "sha": "27692a7ec3218af8eddd05e43e17ad7fea94fd9e",
+      "local": "source/234.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Ivory/Sitting.png": {
+      "sha": "f89cc568f5c674961a54ec30cf685e373fe3b2d3",
+      "local": "source/235.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Ivory/Walk.png": {
+      "sha": "515225907cae8c43bfb1f36956a76b236da4465b",
+      "local": "source/236.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Peach/Idle.png": {
+      "sha": "ebfc515089ce4b251098d8878c79d935883879ec",
+      "local": "source/237.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Peach/Sitting.png": {
+      "sha": "4e2b01978dfcdd6fa7f516f0ba830826d62c02bb",
+      "local": "source/238.png"
+    },
+    "Characters/Head/Head 02 - Masculine/Peach/Walk.png": {
+      "sha": "d1b34cf775b3791a38b13451ec16a515478d92c1",
+      "local": "source/239.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Honey/Idle.png": {
+      "sha": "5023e30c1a19dd0213c6dffd6bac75b9fce22eff",
+      "local": "source/240.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Honey/Sitting.png": {
+      "sha": "78e1d797e303264b3bec8e9af79726cd272e234e",
+      "local": "source/241.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Honey/Walk.png": {
+      "sha": "4f4c7fb2ad36f2bff0c70e4173085e518c0e7dd2",
+      "local": "source/242.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Ivory/Idle.png": {
+      "sha": "c8736f1962a9c7270aa37ae75181a432b6645bc8",
+      "local": "source/243.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Ivory/Sitting.png": {
+      "sha": "3de6a8c90ca9f3618b9bbd4af9766470f5f19136",
+      "local": "source/244.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Ivory/Walk.png": {
+      "sha": "0ad953a87833be73960316a9de323c601c57fb4a",
+      "local": "source/245.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Peach/Idle.png": {
+      "sha": "a24b80af5c8e01c9e394651eddf95b5e676e3198",
+      "local": "source/246.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Peach/Sitting.png": {
+      "sha": "750aac2640a3602fba9a212c7fd3bd128d7c8060",
+      "local": "source/247.png"
+    },
+    "Characters/Head/Head 03 - Elderly/Peach/Walk.png": {
+      "sha": "03d4cd963437f5ffa254a73a089eca58e9f7c069",
+      "local": "source/248.png"
+    },
+    "Characters/Credits.txt": {
+      "sha": "39f9e55a771093eac0afa4341017a393f394e9d4",
+      "local": "Characters-Credits.txt"
+    },
+    "Characters/Clothing/Credits.txt": {
+      "sha": "04775df5d578b779ce632934df70b66e17d20156",
+      "local": "Characters-Clothing-Credits.txt"
+    },
+    "Characters/Hair/Credits.txt": {
+      "sha": "d49633ed2f406fd65fa73af6a3647b37ddec9530",
+      "local": "Characters-Hair-Credits.txt"
+    },
+    "README.md": {
+      "sha": "295d7022cdb34b54075c29979bb24a89abf274a2",
+      "local": "README.md"
+    }
+  }
+}

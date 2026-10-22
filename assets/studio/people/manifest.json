@@ -1,0 +1,31 @@
+{
+  "license": "OGA-BY 3.0",
+  "source": "https://github.com/ElizaWy/LPC",
+  "commit": "f07f7f5892e67c932c68f70bb04472f2c64e46bc",
+  "looks": 24,
+  "width": 40,
+  "height": 64,
+  "columns": 8,
+  "rows": 32,
+  "states": [
+    "idle",
+    "walk",
+    "work",
+    "interact",
+    "celebrate",
+    "react",
+    "rest"
+  ],
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "animations": {
+    "walk": 8,
+    "idle": 3,
+    "sittingPoses": 3
+  },
+  "note": "Rest/desk work use seated pose; standing work and reactions use idle art with contextual tools/bubbles, not dedicated emote animations."
+}

@@ -219,7 +219,7 @@
   window.unlockAllCast = BOS2.unlockAllCast;
 
   // Interactive Box Office Sim 2 Talent Market Modal
-  let _marketRoster = [];
+  let _marketRoster = [], _marketState = null;
 
   function refreshMarketRoster() {
     _marketRoster = [];
@@ -241,10 +241,13 @@
     for (let i = 0; i < 2; i++) {
       _marketRoster.push(BOS2.generateHumanStar("writer"));
     }
+    // Restoring a save can reset the global nid counter; do not reuse directory IDs.
+    const reserved=new Set((window.G?.talent||[]).map(t=>String(t.id)));
+    for(const t of _marketRoster){while(reserved.has(String(t.id)))t.id=typeof nid==='function'?nid():Math.floor(Math.random()*900000000);reserved.add(String(t.id));}
   }
 
   BOS2.openTalentMarketModal = function() {
-    if (_marketRoster.length === 0) refreshMarketRoster();
+    if (_marketState !== window.G || _marketRoster.length === 0){ refreshMarketRoster(); _marketState=window.G; }
 
     let modal = document.getElementById("bos2TalentModal");
     if (!modal) {
@@ -310,7 +313,7 @@
                 ` : ""}
               </div>
               <button class="btn-sign-bos2" data-idx="${_marketRoster.indexOf(t)}" style="width:100%;background:#10b981;border:none;color:#0f172a;font-weight:bold;border-radius:6px;padding:8px;cursor:pointer;font-size:11px;margin-top:6px">
-                Sign Contract ($${t.fee}M)
+                Sign 3-picture deal ($4M signing)
               </button>
             </div>
           `).join("")}
@@ -321,11 +324,13 @@
     // Hook listeners
     document.getElementById("btnBos2Close").onclick = () => { modal.style.display = "none"; };
     document.getElementById("btnBos2Refresh").onclick = () => {
-      if (typeof window.G !== "undefined" && window.G && window.G.cash < 1.0) {
+      if (typeof window.G !== "undefined" && window.G && window.G.studio.cash < 1.0) {
         alert("Need $1.0M to refresh talent market scout reports.");
         return;
       }
-      if (typeof window.G !== "undefined" && window.G) window.G.cash -= 1.0;
+      if (!window.G?.studio) return;
+      if(typeof spend==='function')spend('studio',1);else window.G.studio.cash-=1;
+      if(typeof saveGame==='function')saveGame();
       refreshMarketRoster();
       renderMarketModalContent(modal, filter);
     };
@@ -342,19 +347,16 @@
         const talent = _marketRoster[idx];
         if (!talent) return;
 
-        if (typeof window.G !== "undefined" && window.G && Array.isArray(window.G.talent)) {
-          window.G.talent.push(talent);
-          _marketRoster.splice(idx, 1);
-          btn.textContent = "SIGNED!";
-          btn.style.background = "#64748b";
-          btn.disabled = true;
-          if (typeof window.showToast === "function") {
-            window.showToast("Signed " + talent.name + " to studio roster!");
-          }
-          setTimeout(() => {
-            renderMarketModalContent(modal, filter);
-          }, 350);
-        }
+        const g=window.G;
+        if(!g?.studio||!Array.isArray(g.talent)||typeof signContract!=='function')return;
+        if(g.studio.cash<4){btn.textContent='Need $4M to sign';return;}
+        if(g.talent.some(t=>t.id===talent.id)){btn.textContent='Already in directory · refresh scout reports';return;}
+        btn.disabled=true;g.talent.push(talent);
+        if(!signContract(talent.id,'multi')){g.talent=g.talent.filter(t=>t!==talent);btn.disabled=false;return;}
+        if(window.StudioLotBridge){window.StudioLotBridge.syncWithGameState(g);window.StudioLotBridge.persist(g);}
+        if(typeof saveGame==='function')saveGame();
+        _marketRoster.splice(idx,1);renderMarketModalContent(modal,filter);
+
       };
     });
   }

@@ -794,10 +794,12 @@
   };
 
   global.LotLife = api;
+  if (!global.BOW_LEGACY_LOT_EFFECTS) return; // No default listeners, polling or overlay owner.
 
   /* ─────────────────────────── boot wiring ─────────────────────────── */
   var _bootTries = 0;
   function boot() {
+    if (!global.BOW_LEGACY_LOT_EFFECTS) return; // Gameplay canvas owns presentation.
     /* The lot only exists after the player enters a save, so poll until the
        real canvas is mounted, then stop. */
     if (api.start()) {
