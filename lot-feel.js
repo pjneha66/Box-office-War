@@ -346,6 +346,7 @@
 
   /* ─────────────────────────────── boot ─────────────────────────────── */
   function boot() {
+    if (!global.BOW_LEGACY_LOT_EFFECTS) return; // Gameplay canvas owns presentation.
     S.reduced = prefersReduced();
     S.stage = doc.getElementById("studiolotGlobalStage");
     if (!S.stage) { setTimeout(boot, 300); return; }

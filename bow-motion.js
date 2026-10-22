@@ -213,6 +213,7 @@
   /* ─────────────────────────────── boot ─────────────────────────────── */
 
   function boot() {
+    if (!global.BOW_LEGACY_LOT_EFFECTS) return; // Gameplay canvas owns presentation.
     var app = doc.getElementById("app");
     if (!app) { setTimeout(boot, 250); return; }
 

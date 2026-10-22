@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "width": 24,
+  "height": 32,
+  "columns": 4,
+  "states": [
+    "idle",
+    "walk",
+    "work",
+    "interact",
+    "celebrate",
+    "react",
+    "rest"
+  ],
+  "directions": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "roles": [
+    "director",
+    "cameraman",
+    "star_actor",
+    "producer",
+    "writer",
+    "editor",
+    "audience"
+  ],
+  "fps": {
+    "idle": 2,
+    "walk": 8,
+    "work": 5,
+    "interact": 4,
+    "celebrate": 6,
+    "react": 5,
+    "rest": 1
+  }
+}

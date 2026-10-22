@@ -199,7 +199,9 @@ function applyTheme(t){
         gold:"#0b0e14", aurora:"#0a0f15", violet:"#0d0b16", carpet:"#120b0c",
         silver:"#0b0c0e", cyberpunk:"#070a14", noir:"#120f0c", slate:"#090d14", emerald:"#06130d"
       };
-      metaTheme.setAttribute("content", colors[THEME] || "#0b0e14");
+      const welcome=document.getElementById('startScreen');
+      const onWelcome=welcome && welcome.style.display!=='none';
+      metaTheme.setAttribute("content", onWelcome?'#181b1e':(colors[THEME] || "#0b0e14"));
     }
   }catch(e){}
   try{ localStorage.setItem("bow_theme", THEME); }catch(e){}
@@ -714,6 +716,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
 });
 function enterApp(fresh){
   $("#startScreen").style.display="none";
+  applyTheme();
   const app=$("#app");
   app.style.display="flex";
   try{ if(motionOK()){ app.style.animation="viewIn .45s cubic-bezier(.2,.85,.3,1)"; } }catch(e){}
@@ -7260,10 +7263,18 @@ function startSpinoff(fr){
   wizardModal();
 }
 
+function autoWeekTick(){
+  if(!G){toggleAuto(false);return;}
+  if(document.hidden || (typeof StudioLotBridge!=='undefined'&&StudioLotBridge.clock.paused))return;
+  if(G.pendingChoice||G.pendingReport||G.pendingEarnings||G.pendingAuction||G.pendingDeepfake||G.pendingSports||G.over)return;
+  if(document.querySelector('#modalRoot .modal'))return;
+  doWeek(1);
+}
 function toggleAuto(force){
   const want = (force===undefined)? !AUTO : force;
   if(want && !AUTO){
-    AUTO=setInterval(()=>{ if(!G){toggleAuto(false);return;} doWeek(1); },1100);
+    if(typeof StudioLotBridge!=='undefined')StudioLotBridge.clock.paused=false;
+    AUTO=setInterval(autoWeekTick,typeof autoIntervalMs==='function'?autoIntervalMs():1100);
     $("#btnAuto").classList.add("btn-primary"); $("#btnAuto").textContent=t("btn.autoOn");
   }else if(!want && AUTO){
     clearInterval(AUTO); AUTO=null;
@@ -8142,17 +8153,8 @@ function csStatsHTML(t,p){
       "<div class='tiny muted'>The mentee gains weekly XP; you gain a little and a loyal ally.</div>";
   } else {
     let cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>=(p.level||1)+3 && !x.prototype.mentee);
-    if(!cands.length){
-      cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>(p.level||1) && !x.prototype.mentee);
-    }
-    if(!cands.length){
-      cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype && (x.prototype.level||1)>(p.level||1));
-    }
-    if(!cands.length){
-      cands = (G.talent||[]).filter(x=>x.id!==t.id && x.prototype);
-    }
-    h+="<div class='tiny muted' style='margin:4px 0'>No mentorship yet — open a higher-level talent's sheet to take a mentee, or this talent's sheet on a senior colleague.</div>"+
-      "<div class='row' style='gap:4px'>"+cands.slice(0,3).map(m=>
+    h+="<div class='tiny muted' style='margin:4px 0'>Choose a mentor at least three levels above this talent. Each mentor may teach one mentee.</div>"+
+      "<div class='row' style='gap:4px'>"+(!cands.length?"<span class='tiny muted'>No eligible mentor available. Train a senior colleague first.</span>":"")+cands.slice(0,3).map(m=>
         "<button class='btn btn-xs btn-alt' data-cs-mentor='"+m.id+"'>Ask "+esc(m.name.split(" ")[0])+" (Lv "+(m.prototype.level||1)+")</button>").join("")+"</div>";
   }
   h+="</div>";
@@ -9058,9 +9060,10 @@ try{ AUTO_SPEED = parseInt(localStorage.getItem("bow_autospeed")||"1",10); }catc
 function autoIntervalMs(){ return Math.round(1100/AUTO_SPEED); }
 function setAutoSpeed(n){
   AUTO_SPEED = [1,2,4].includes(+n)? +n : 1;
+  if(typeof StudioLotBridge!=="undefined")StudioLotBridge.setSpeed(AUTO_SPEED);
   try{ localStorage.setItem("bow_autospeed", String(AUTO_SPEED)); }catch(e){}
   const b=document.getElementById("btnSpeed"); if(b) b.textContent=AUTO_SPEED+"×";
-  if(AUTO){ clearInterval(AUTO); AUTO=setInterval(()=>{ if(!G){toggleAuto(false);return;} doWeek(1); }, autoIntervalMs()); }
+  if(AUTO){ clearInterval(AUTO); AUTO=setInterval(autoWeekTick, autoIntervalMs()); }
 }
 
 /* ── colour-blind cues ── */

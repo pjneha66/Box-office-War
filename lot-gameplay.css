@@ -1,0 +1,230 @@
+/* Gameplay layer: flat, restrained chrome; the campus is the primary view. */
+.studiolot-viewport { background:#263b36; isolation:isolate; font-family:system-ui,sans-serif; }
+.studiolot-viewport .kairo-top-bar,.studiolot-viewport .kairo-bottom-deck { background:#19292f!important; border:0!important; box-shadow:none!important; border-radius:0!important; gap:8px; }
+.studiolot-viewport button { min-height:44px; min-width:44px; background:#30434b!important; color:#f3ead7!important; border:1px solid #56666a!important; border-radius:4px!important; box-shadow:none!important; text-shadow:none!important; animation:none!important; transform:none!important; font:600 12px system-ui!important; padding:8px 10px!important; }
+.studiolot-viewport button:hover,.studiolot-viewport button:focus-visible { background:#496069!important; outline:2px solid #edce7d; outline-offset:-2px; }
+.studiolot-viewport .kairo-nav-tab.active { border-bottom:3px solid #edce7d!important; }
+.studiolot-viewport .subtab-pixel-icon { width:24px; height:24px; object-fit:contain; }
+.studiolot-viewport .itch-hud-stat { background:none!important; box-shadow:none!important; border:0!important; }
+.studiolot-viewport .lbl { color:#b9c7c6!important; font-size:10px; }
+.studiolot-viewport .val { color:#f3ead7!important; font-size:13px; }
+#lotStatus { position:absolute; left:12px; bottom:76px; z-index:12; background:#19292f; color:#eee5d2; padding:7px 10px; font-size:12px; max-width:min(580px,85%); pointer-events:none; }
+.lot-inspector { background:#19292f; color:#f3ead7; padding:16px; border:1px solid #8b9a91; border-radius:5px; width:270px; max-height:calc(100dvh - 180px); overflow:auto; font-size:13px; }
+.lot-inspector strong { display:block; font-size:16px; }
+.lot-inspector p { color:#c7d2cf; margin:10px 0; }
+.lot-inspector button,.lot-inspector select { width:100%; margin-top:8px; }
+.lot-inspector select { min-height:44px; background:#30434b; color:#fff; font:inherit; }
+#lotPaletteRoot .palette-bar { flex-wrap:wrap; max-width:min(560px,85vw); background:#19292f!important; border:1px solid #8b9a91!important; }
+#btnToggleStats { display:none; } /* Legacy synthetic quality scoreboard, not management data. */
+.studiolot-viewport .kairo-top-bar { flex-wrap:wrap; }
+.studiolot-viewport .kairo-room-nav,.studiolot-viewport .kairo-top-right,.studiolot-viewport .lot-controls,.studiolot-viewport .lot-action-dock { gap:4px; }
+.studiolot-viewport .kairo-bottom-deck { overflow-x:auto; flex-wrap:nowrap; }
+.studiolot-viewport .lot-action-dock,.studiolot-viewport .lot-controls { flex-shrink:0; }
+#studioLotCanvas { image-rendering:pixelated; }
+@media(max-width:950px) {
+  .studiolot-viewport .kairo-hud-stats { gap:8px; }
+  .studiolot-viewport .kairo-nav-tab span { display:none; }
+  .studiolot-viewport .kairo-top-bar { padding:4px!important; }
+  #lotInspectorRoot { top:64px!important; right:6px!important; }
+  #lotPaletteRoot { top:64px!important; left:6px!important; }
+  .lot-inspector { width:235px; max-height:calc(100dvh - 155px); }
+  #lotStatus { bottom:65px; font-size:11px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
+/* Neutralize legacy decorative chrome, including dynamically injected rules. */
+#app, #startScreen, .start-card, .start-resume-card, .logo-block, .topbar, .tabs, .panel, .card { background-image:none!important; box-shadow:none!important; }
+body, #app { background-color:#17252c!important; }
+#app::before,#app::after,.logo-block::before,.logo-block::after,.start-card::before,.start-card::after,#studiolotGlobalStage::before,#studiolotGlobalStage::after { display:none!important; }
+#studiolotGlobalStage, .studiolot-viewport, .kairo-room-nav, .kairo-hud-stats, .lot-controls, .lot-action-dock { box-shadow:none!important; border:0!important; background-image:none!important; }
+#app .studiolot-viewport #btnToggleStats { display:none!important; }
+#app .studiolot-viewport .kairo-room-nav, #app .studiolot-viewport .kairo-hud-stats { background:transparent!important; border:0!important; }
+#app .studiolot-viewport .kairo-nav-tab.active { background:#496069!important; }
+#app .studiolot-viewport .kairo-top-bar { flex-wrap:nowrap!important; align-items:center; }
+#app .studiolot-viewport .kairo-top-right { flex:1; justify-content:flex-end; }
+#app .studiolot-viewport .kairo-hud-stats { gap:10px; }
+#app .studiolot-viewport .kairo-room-nav { flex-shrink:0; }
+@media(max-width:1100px) { #app .studiolot-viewport .kairo-top-bar { flex-wrap:wrap!important; } }
+#app #studiolotGlobalStage.lot-full { position:fixed!important; top:var(--lot-header-height,104px)!important; bottom:0!important; left:0!important; right:0!important; height:calc(100dvh - var(--lot-header-height,104px))!important; min-height:0!important; width:100%!important; margin:0!important; z-index:10; }
+#app #studiolotGlobalStage.lot-full .studiolot-viewport { min-height:0!important; }
+#app .studiolot-viewport .kairo-room-nav { max-width:none!important; }
+@media(max-width:950px) and (orientation:landscape) {
+ #app #studiolotGlobalStage.lot-full { top:var(--lot-header-height,58px)!important; height:calc(100dvh - var(--lot-header-height,58px))!important; }
+ #app .studiolot-viewport .kairo-hud-stats { padding:0 4px; gap:8px; }
+ #app .studiolot-viewport .kairo-room-nav { padding:0; }
+ #app .studiolot-viewport .kairo-top-bar { flex-wrap:nowrap!important; }
+ #btnLotFullscreen { display:none!important; }
+}
+#app .studiolot-viewport .kairo-hud-stats { flex-shrink:0; }
+#app .studiolot-viewport .itch-hud-stat { min-width:max-content; }
+@media(max-width:1350px) { #app .studiolot-viewport .kairo-nav-tab span { display:none; } }
+/* One management view at a time, not a pile of panels over animated scenery. */
+#app #studiolotGlobalStage.lot-backdrop { display:none!important; }
+#app #view:not(.view-hidden-lot) { position:relative!important; top:auto!important; bottom:auto!important; right:auto!important; left:auto!important; width:100%!important; max-width:1400px!important; margin:0 auto!important; padding:18px!important; background:#17252c!important; overflow:auto!important; box-sizing:border-box; }
+#app .card,#app .panel,#app .subnav,.modal { background:#20323c!important; background-image:none!important; border:1px solid #4e6368!important; box-shadow:none!important; border-radius:6px!important; }
+#app .btn,.modal .btn { background-image:none!important; box-shadow:none!important; text-shadow:none!important; min-height:40px; }
+#app .card::before,#app .card::after,#app .panel::before,#app .panel::after { display:none!important; }
+#app .tabs,#app .topbar { background:#17252c!important; background-image:none!important; border-color:#41545c!important; box-shadow:none!important; }
+#app .tab,#app .btab { box-shadow:none!important; background-image:none!important; }
+#app .tab.active,#app .btab.active { background:#405961!important;color:#f0dec0!important; }
+#app .chip,#app .stat { background:#20323c!important;box-shadow:none!important;background-image:none!important; }
+@media(max-width:950px) and (orientation:landscape) { #app #view:not(.view-hidden-lot) { position:fixed!important;top:58px!important;bottom:0!important;left:0!important;right:0!important;width:100%!important;max-width:none!important;z-index:20!important;padding:10px!important; } }
+#lotStatus { bottom:126px; }
+@media(max-width:950px) { #lotStatus { bottom:117px;max-width:60%; } }
+#app #studiolotGlobalStage.lot-full.lot-immersive { top:0!important; height:100dvh!important; z-index:500!important; }
+#app .btn-primary,.modal .btn-primary,#app .itch-btn-gold { background:#d5bc88!important;color:#172b34!important;border-color:#d5bc88!important; }
+#app .btn-alt,#app .btn-ghost,.modal .btn-alt,.modal .btn-ghost { background:#30474f!important;color:#eee3ca!important;border-color:#61767a!important; }
+#app button:disabled,.modal button:disabled { opacity:.45;cursor:not-allowed; }
+#app .studiolot-viewport button { color:#f3ead7!important; }
+#app .studiolot-viewport button { min-height:44px!important; min-width:44px!important; }
+@media(pointer:coarse) { #app button,.modal button { min-height:44px!important; } }
+/* No composited blur/scanline layers over a continuously repainted world.
+   Besides obscuring pixels, these force expensive full-screen software raster work. */
+body::before,body::after { display:none!important; }
+#app,#app *,#app *::before,#app *::after,.modal,.modal * { filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation:none!important;text-shadow:none!important; }
+#app .topbar::before,#app .topbar::after,#app .tabs::before,#app .tabs::after,.studiolot-viewport::before,.studiolot-viewport::after { display:none!important; }
+#lotInspectorRoot .lot-inspector { box-sizing:border-box; }
+@media(max-width:950px) and (orientation:landscape) {
+ #lotInspectorRoot .lot-inspector { max-height:calc(100dvh - 190px); }
+}
+
+/* Art-direction pass: readable studio navigation and restrained production chrome. */
+@media(min-width:1200px) {
+ #app .studiolot-viewport .kairo-nav-tab span { display:inline!important; font-size:11px; }
+ #app .studiolot-viewport .kairo-nav-tab { gap:5px; padding:7px!important; }
+ #app .studiolot-viewport .kairo-hud-stats { gap:8px; }
+ #app .studiolot-viewport .itch-hud-stat:nth-child(2),
+ #app .studiolot-viewport .itch-hud-stat:nth-child(4) { display:none; } /* already in global HUD */
+}
+#app .studiolot-viewport .kairo-top-bar { padding:8px 12px!important; background:#14272f!important; border-bottom:1px solid #496269!important; }
+#app .studiolot-viewport .kairo-bottom-deck { padding:8px 12px!important; background:#14272f!important; border-top:1px solid #496269!important; }
+#app .studiolot-viewport .kairo-nav-tab { background:#20383f!important; border-color:#3d5960!important; }
+#app .studiolot-viewport .kairo-nav-tab.active { background:#375858!important; border-color:#c5ae79!important; color:#ffe7ad!important; }
+#app .studiolot-viewport #btnTogglePalette,#app .studiolot-viewport #btnLotDevelop { background:#c6ad77!important; color:#182c33!important; border-color:#d7c191!important; }
+#app .studiolot-viewport .lot-inspector { border:1px solid #607e81; border-top:3px solid #c6ad77; background:#182f37; padding:18px; }
+#app .studiolot-viewport .lot-inspector strong { letter-spacing:.2px; font-size:17px; }
+#app .studiolot-viewport .lot-inspector button { background:#29454d!important; border-color:#4f6d73!important; }
+#app .studiolot-viewport .lot-inspector button:hover { background:#3b5a60!important; }
+#lotStatus { border-left:3px solid #c6ad77; background:#182d34; color:#d9e0d7; }
+#app .studiolot-viewport .itch-hud-stat::before,#app .studiolot-viewport .itch-hud-stat::after { display:none!important; }
+#app .studiolot-viewport .itch-hud-stat { padding:0 4px!important; }
+#app .studiolot-viewport .itch-hud-stat .lbl { display:block!important; line-height:1.4!important; letter-spacing:.9px; font-weight:500!important; background:none!important; }
+#app .studiolot-viewport .itch-hud-stat .val { display:block!important; line-height:1.5!important; }
+/* Layout correction: overlay bounds follow the real toolbar/deck, including wraps. */
+#app #lotInspectorRoot,#app #lotPaletteRoot { top:calc(var(--lot-toolbar-height,60px) + 8px)!important; }
+#app #lotInspectorRoot { max-height:calc(100% - var(--lot-toolbar-height,60px) - var(--lot-deck-height,60px) - 24px)!important; overflow:auto; }
+#app .lot-inspector { box-sizing:border-box; max-height:none!important; width:270px; }
+#app .studiolot-viewport .kairo-room-nav,#app .studiolot-viewport .kairo-top-right { min-width:0; }
+@media(max-width:950px) { #app .lot-inspector { width:235px; } }
+/* Selected direction: detailed pixel-tycoon. First complete screen: Writers. */
+#app .studiolot-viewport[data-lot-view="writers"] { background:#182c32; }
+#app .studiolot-viewport[data-lot-view="writers"] button { border-radius:2px!important; font-weight:650!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .kairo-top-bar { background:#182e32!important; border-bottom:2px solid #6b8272!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .kairo-bottom-deck { background:#182e32!important; border-top:2px solid #6b8272!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .kairo-nav-tab { background:#233d40!important; border-color:#4b6963!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .kairo-nav-tab.active { background:#536d59!important; color:#fff1c8!important; border:2px solid #cdb67d!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-inspector { background:#e6d7b5; border:2px solid #a89b76; border-top:5px solid #b39356; color:#2d4240; border-radius:2px; padding:17px; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-inspector strong { color:#293f3d; font-size:18px; line-height:1.3; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-inspector p { color:#556359; font-size:12px; line-height:1.6; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-inspector button { background:#446457!important; border-color:#2e5147!important; color:#fff1d0!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-inspector #lotClose { background:transparent!important; border-color:#aaa17f!important; color:#41554b!important; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-inspector select { background:#f0e6cc!important; color:#2d4240!important; border:1px solid #a79d79; border-radius:2px; }
+.lot-inspector-kicker { font-size:9px; letter-spacing:1.7px; font-weight:750; color:#78816b; margin:0 0 12px; }
+.lot-project-card { padding-top:15px; margin-top:18px; border-top:1px solid #bfb28d; }
+.lot-project-label { display:block; font-size:9px; letter-spacing:1.2px; color:#77816e; margin-bottom:8px; }
+#app .studiolot-viewport[data-lot-view="writers"] .lot-project-card strong { font-size:14px; }
+.lot-project-meta { display:flex; justify-content:space-between; font-size:11px; color:#657363; margin:12px 0 7px; }
+.lot-project-progress { height:6px; background:#c3b996; }
+.lot-project-progress i { display:block; height:100%; background:#5b7c63; }
+#lotSimDebug { position:absolute; top:80px; left:12px; z-index:100; margin:0; width:360px; max-height:65%; overflow:auto; pointer-events:none; white-space:pre-wrap; background:#101c24ee; color:#dcf4cf; padding:10px; font:10px/1.3 monospace; }
+#lotAgentTask { font-weight:700; }
+#lotAgentNeeds { font-variant-numeric:tabular-nums; }
+/* Detailed character art remains legible in both the live room and the roster. */
+.people-portrait { display:inline-block; flex:0 0 64px; width:64px; height:64px; background-image:url('assets/studio/people/portraits.png'); background-repeat:no-repeat; image-rendering:pixelated; background-color:#c8c8a8; border-bottom:3px solid #889477; box-sizing:content-box; }
+.people-inspector-head { display:flex; align-items:center; gap:12px; margin-bottom:15px; }
+.people-inspector-head>div { min-width:0; }
+.people-role { display:block; color:#b5c9b5; font-size:11px; line-height:1.5; text-transform:capitalize; margin-top:3px; }
+#app .studiolot-viewport[data-lot-view="writers"] .people-role { color:#65725b; }
+#modalRoot .modal:has(.lot-people) { width:min(1000px,calc(100vw - 32px)); max-width:1000px; }
+.lot-people { padding:4px 12px 16px; color:#ecdfbf; }
+.people-eyebrow { color:#b9c5a7; font:700 10px/1.5 system-ui; letter-spacing:1.8px; }
+.lot-people h2 { font:750 30px/1.2 system-ui; color:#f3dfb1; margin:10px 0; }
+.people-intro { color:#b7c4b9; font:13px/1.6 system-ui; max-width:650px; margin-bottom:24px; }
+.people-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.people-card { display:flex; position:relative; gap:12px; align-items:flex-start; text-align:left; border:1px solid #667b6c; border-top:3px solid #ad9564; background:#233b3d; color:#f2e4bf; padding:15px 11px; border-radius:2px; min-width:0; min-height:145px; cursor:pointer; font:12px/1.4 system-ui; }
+.people-card:hover { background:#304b48; border-color:#d3b97a; }
+.people-card:focus-visible { outline:3px solid #edce7d; outline-offset:2px; }
+.people-details { min-width:0; flex:1; }
+.people-details strong { display:block; font-size:14px; line-height:1.3; padding-right:10px; color:#f5e2b5; }
+.people-room { display:block; color:#9eb3a5; font-size:10px; margin-top:8px; }
+.people-task { display:block; color:#dfd5b6; margin-top:5px; font-size:11px; }
+.people-energy { display:block; color:#a5bf9d; font:600 10px/1.5 system-ui; margin-top:8px; font-variant-numeric:tabular-nums; }
+.people-locate { position:absolute; top:10px; right:10px; font-size:17px; color:#d4b97b; }
+.people-footer { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:22px; border-top:1px solid #4d655d; padding-top:16px; }
+.people-footer button { min-height:44px; }
+.people-footer>span { color:#a5b3a4; font:11px/1.5 system-ui; }
+@media(max-width:760px){.people-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.lot-people{padding:0 0 12px}.people-card{gap:9px;padding:12px 8px;}}
+@media(max-width:460px){.people-grid{grid-template-columns:1fr}.people-card{min-height:118px}.lot-people h2{font-size:26px}}
+#modalRoot .modal:has(.lot-people) { background:#192e33!important; border:1px solid #6e8271!important; border-top:3px solid #c3aa72!important; border-radius:3px!important; box-shadow:none!important; }
+#modalRoot .modal:has(.lot-people) .modal-head { background:#20393c!important; border-bottom:1px solid #50675c!important; color:#bfcdb6; font:650 11px/1.5 system-ui; letter-spacing:1.4px; }
+#modalRoot .modal-veil:has(.lot-people) { backdrop-filter:none!important; background:#091416e8!important; }
+
+#modalRoot .modal:has(.lot-people), #modalRoot .modal-veil:has(.lot-people) { animation:none!important; transition:none!important; opacity:1!important; }
+/* Department pass: the same restrained pixel-tycoon finish as Story. */
+#app .studiolot-viewport button { border-radius:2px!important; }
+#app .studiolot-viewport[data-lot-view="executive"] .kairo-nav-tab.active { background:#536d59!important; border-color:#cdb67d!important; }
+#app .studiolot-viewport[data-lot-view="post"] .kairo-nav-tab.active { background:#405f69!important; border-color:#b2c6b5!important; }
+#app .studiolot-viewport[data-lot-view="cinema"] .kairo-nav-tab.active { background:#6a4952!important; border-color:#c9af82!important; }
+#app .studiolot-viewport[data-lot-view="soundstage"] .kairo-nav-tab.active { background:#56695a!important; border-color:#c9b57d!important; }
+#app .studiolot-viewport[data-lot-view="executive"] .lot-inspector { background:#e6d7b5; color:#2d4240; border:2px solid #a89b76; border-top:5px solid #b39356; }
+#app .studiolot-viewport[data-lot-view="executive"] .lot-inspector strong { color:#293f3d; }
+#app .studiolot-viewport[data-lot-view="executive"] .lot-inspector p,#app .studiolot-viewport[data-lot-view="executive"] .people-role { color:#556359; }
+#app .studiolot-viewport[data-lot-view="executive"] .lot-inspector button { background:#446457!important; color:#fff1d0!important; }
+#app .studiolot-viewport[data-lot-view="executive"] .lot-inspector select { background:#f0e6cc; color:#2d4240; }
+
+/* Career-persistent, cosmetic room and theatre editor. */
+.lot-interiors { max-width:660px; }
+.lot-interiors p { color:#c9d5cf; line-height:1.5; }
+.lot-interiors label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:600; }
+.lot-interiors select { width:100%; min-height:44px; padding:8px; background:#30474f; color:#f3ead7; border:1px solid #80948b; border-radius:4px; }
+.interior-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+.interior-actions { display:flex; flex-wrap:wrap; gap:8px; }
+@media(max-width:550px) { .interior-fields { grid-template-columns:1fr; } }
+
+/* Separate editors: no bulk action can overwrite another room's choices. */
+.interior-room-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.interior-room-card { display:flex; flex-direction:column; align-items:flex-start; gap:8px; text-align:left; min-height:100px; padding:12px; border:1px solid #7c9286; background:#30474f; color:#f3ead7; }
+.interior-room-card span { font-size:12px; }
+.interior-editor-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.interior-editor-heading h2 { margin:0; font-size:19px; }
+.interior-editor-heading p { margin:6px 0; font-size:12px; }
+#modalRoot .modal:has(.lot-interiors),#modalRoot .modal:has(.lot-interior-picker) { max-width:760px; width:calc(100vw - 20px); max-height:calc(100dvh - 16px); box-sizing:border-box; padding:12px; }
+#modalRoot .modal-veil:has(.lot-interiors),#modalRoot .modal-veil:has(.lot-interior-picker) { z-index:4500; align-items:center; }
+#modalRoot .modal:has(.lot-interiors) .modal-head { margin-bottom:6px; font-size:11px; }
+.lot-interiors { max-width:none; }
+.lot-interiors .interior-fields { margin:10px 0; gap:8px 12px; }
+#interiorHint { font-size:12px; margin:8px 0; }
+.interior-actions { position:sticky; bottom:-12px; background:#20323c; padding:8px 0; }
+/* Compact individual-room editor on short landscape screens. */
+@media(max-height:500px) and (orientation:landscape) {
+ .lot-interiors .interior-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .interior-editor-heading h2 { font-size:16px; }
+}
+@media(max-width:550px) and (orientation:portrait) { .interior-room-grid { grid-template-columns:1fr; } }
+/* Real available talent and the signed studio roster share a single contract owner. */
+#modalRoot .modal:has(.lot-hiring) { width:min(1050px,calc(100vw - 20px)); max-width:1050px; max-height:calc(100dvh - 20px); }
+#modalRoot .modal-veil:has(.lot-hiring) { z-index:4500; align-items:center; }
+.hiring-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.hiring-heading h2 { margin:0; }
+.lot-hiring p { font-size:12px; color:#c4d1c7; }
+.hiring-filters { display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:10px; }
+.hiring-filters label { display:flex; flex-direction:column; gap:5px; font-size:12px; }
+.hiring-filters input,.hiring-filters select { min-height:44px; width:100%; box-sizing:border-box; background:#30474f; color:#f3ead7; border:1px solid #7c9286; padding:8px; }
+.hiring-columns { display:grid; grid-template-columns:1.2fr 1fr; gap:16px; }
+.hiring-columns h3 { font-size:14px; }
+.hiring-list { display:flex; flex-direction:column; gap:8px; max-height:45dvh; overflow-y:auto; }
+.hiring-card { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px; border:1px solid #667e72; background:#243f42; }
+.hiring-card strong,.hiring-card span { display:block; }
+.hiring-card span { font-size:11px; color:#c4d1c7; margin-top:5px; }
+.hiring-card button { flex-shrink:0; min-height:44px; }
+#hiringStatus { padding:8px; background:#28483e; }
+@media(max-width:600px) { .hiring-filters { grid-template-columns:1fr; } .hiring-columns { grid-template-columns:1fr; } }

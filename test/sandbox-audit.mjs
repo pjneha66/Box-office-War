@@ -174,8 +174,8 @@ testStep("Test building placement in 2D Lot engine (all 6 types)", () => {
     { type: "virtual_led", x: 12, y: 7 },
     { type: "post_suite", x: 8, y: 12 },
     { type: "writers_bungalow", x: 8, y: 15 },
-    { type: "cinema_theater", x: 3, y: 12 },
-    { type: "backlot", x: 3, y: 16 }
+    { type: "cinema_theater", x: 3, y: 13 }, // y=12 blocks the starter post suite entrance,
+    { type: "backlot", x: 3, y: 17 } // keep cinema entrance at y=16 clear
   ];
 
   for (const b of buildingTypes) {
