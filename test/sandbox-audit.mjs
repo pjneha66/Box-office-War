@@ -154,10 +154,14 @@ testStep("Boot start screen and configure Creative Sandbox mode", () => {
   if (G.studio.name !== "Sandbox Studios Prime") throw new Error("Studio name mismatch: " + G.studio.name);
 });
 
-// ── STEP 2: Verify 2D Studio Lot Mount on Start ──
-testStep("Verify 2D Studio Lot mounts automatically on launch", () => {
+// ── STEP 2: Verify the live lot is mounted and reachable ──
+// v33: the career opens on the Director's Office (Dashboard); the 2D lot is a
+// Studio destination rather than the landing screen.
+testStep("Verify the 2D Studio Lot is mounted and reachable from Studio", () => {
   const TAB = window.eval("TAB");
-  if (TAB !== "studiolot") throw new Error("Default TAB is not studiolot, found: " + TAB);
+  if (TAB !== "dashboard") throw new Error("Default TAB is not dashboard, found: " + TAB);
+  window.eval("switchTab('studiolot')");
+  if (window.eval("TAB") !== "studiolot") throw new Error("Studio must be able to open the live 2D lot");
   const container = $("#studiolotContainer");
   if (!container) throw new Error("#studiolotContainer element missing from DOM");
   const canvas = $("#studioLotCanvas");

@@ -140,7 +140,7 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
   await page.evaluate(()=>{closeModal();WZ=null;});
 
   /* series wizard carries the same cast flow */
-  await page.evaluate(()=>{startSeriesWizard();WZ.showrunner=freeTalent('director')[0];WZ.szStep=2;seriesModal();});
+  await page.evaluate(()=>{startSeriesWizard();WZ.showrunner=freeTalent('director')[0];WZ.szStep=1;seriesModal();});
   const seriesCast=await page.evaluate(()=>({cards:document.querySelectorAll('[data-szcast]').length,animals:[...document.querySelectorAll('[data-szcast]')].filter(b=>/Animal actor/.test(b.textContent)).length}));
   assert(seriesCast.cards>0,'series wizard must offer a cast step');
   assert(seriesCast.animals>0,'animal stars must be castable in a series');

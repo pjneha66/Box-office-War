@@ -196,13 +196,13 @@ w.eval("closeModal();WZ=null;");
 /* series wizard carries the same cast flow */
 w.eval("pinCast(G.talent.filter(t=>t.isAnimal)[1].id,'series');startSeriesWizard();");
 assert(w.eval('WZ.cast.some(c=>c.isAnimal)'),'a pinned animal star must board the next series pitch');
-w.eval("WZ.showrunner=freeTalent('director')[0];WZ.szStep=2;seriesModal();");
+w.eval("WZ.showrunner=freeTalent('director')[0];WZ.szStep=1;seriesModal();");
 assert($$('[data-szcast]').length>0,'the series wizard must offer a cast step');
 assert.equal($$('.cast-pick.sel').length,1,'the pinned lead must already be selected');
 const pick=$$('[data-szcast]').find(b=>!b.classList.contains('sel'));
 click(pick);
 assert.equal($$('.cast-pick.sel').length,2,'a second lead can be added to a season');
-w.eval("const t=document.querySelector('#szToPlat');t.click();G.streamer=G.streamer||{name:'Own',color:'#333',logo:'O'};WZ.platform='own';seriesModal();document.querySelector('#szPitch').click();");
+w.eval("const t=document.querySelector('#szToPlat');t.click();G.streamer=G.streamer||{name:'Own',color:'#333',logo:'O'};WZ.platform='own';seriesModal();document.querySelector('#szToReview').click();document.querySelector('#szPitch').click();");
 const series=w.eval('(G.series||[]).slice(-1)[0]');
 assert(series&&series.cast&&series.cast.length===2,'the series must be greenlit with both leads (got '+(series&&series.cast&&series.cast.length)+')');
 assert.equal(w.eval('G.castPins.series'),null,'a used pin is consumed so it does not repeat');
@@ -211,6 +211,97 @@ w.eval("closeModal();openBOS2TalentModal();");
 assert($('#castDirList'),'the legacy animal market must forward to the cast directory');
 assert.equal($('#bos2TalentModal'),null,'the old navy/gold market modal must be gone');
 w.eval("closeModal();G.castPins={film:null,series:null};G.talent=G.talent.filter(t=>!String(t.name).startsWith('Extra Performer'));");
+
+/* ── 10b. Pitch studio: one flat flow, a verdict sheet, a location desk
+        that never dead-ends, and an inbox rebuilt in the deck grammar ── */
+w.eval("closeModal();WZ=null;startFilmPitchWizard();");
+let pitchModal=$('#modalRoot .modal');
+assert(pitchModal.classList.contains('command-pitch-modal'),'the film pitch must open the pitch studio shell');
+assert.equal($$('#modalRoot .pitch-step').length,5,'film pitch has five numbered steps');
+assert.equal($$('#modalRoot .card').length,0,'the pitch studio must not reuse legacy cards');
+assert.equal($$('#modalRoot .subnav-pill').length,0,'the pitch studio must not reuse the pill strip');
+assert.equal($$('#modalRoot [style]').length,0,'the pitch studio must not use inline styles');
+assert(!/UNLOCK ALL CAST/.test($('#modalRoot').innerHTML),'the gold unlock button must be gone');
+assert.equal($$('#fpCancel').length,1,'concept step offers a way out');
+click($('[data-fpnext]'));
+assert.equal(w.eval('WZ.fpStep'),1,'next must advance the studio, not the old wizard');
+assert($('[data-fpd]'),'team step lists directors');
+assert($('[data-fpw]'),'team step lists writers');
+assert($('[data-fpp]'),'team step lists producers');
+w.eval("WZ.fpStep=4;filmPitchModal();");
+assert($('#fpGo'),'review step carries the board action');
+assert.equal($$('#modalRoot .pitch-stat').length,4,'review shows the four real cost figures');
+click($('#modalRoot .modal-x'));
+assert.equal(w.eval('WZ'),null,'closing the studio clears the draft');
+
+/* verdict mapping — accepted / board-vote / rejected, film and series */
+const verdicts=w.eval("['accepted','board','rejected','accepted','rejected'].map((_,i)=>{const o=[{mode:'film',ok:true},{mode:'film',ok:false,board:true},{mode:'film',ok:false},{mode:'series',ok:true},{mode:'series',ok:false}][i];return pitchVerdictCopy(o).state;})");
+assert.equal(Array.from(verdicts).join(','),'accepted,board,rejected,accepted,rejected','every pitch outcome maps to its own verdict');
+w.eval("closeModal();pitchResultModal({mode:'film',ok:false,label:'Test Picture',genre:'action',ev:{score:41,verdict:'Pass',profit:-4,be:80}});");
+assert($('.verdict[data-verdict="rejected"]'),'a rejected pitch renders the rejected sheet');
+assert($('#vdAgain')&&$('#vdGo'),'the verdict sheet always offers a next move');
+assert(/REJECTED/.test($('.verdict-stamp').textContent),'the stamp names the decision');
+w.eval("closeModal();pitchResultModal({mode:'film',ok:true,board:false,label:'Accepted Picture',genre:'action',ev:{score:78,verdict:'Board-ready',profit:12,be:90},project:{budget:40,rating:'PG-13'}});");
+assert($('.verdict[data-verdict="accepted"]'),'a greenlit pitch renders the accepted sheet');
+assert(/ACCEPTED/.test($('.verdict-stamp').textContent));
+w.eval("closeModal();pitchResultModal({mode:'film',ok:false,board:true,label:'Tentpole',genre:'action',ev:{score:60,verdict:'Viable'}});");
+assert($('.verdict[data-verdict="board"]'),'a failed board vote is its own state');
+assert($('.verdict-tally'),'a board vote shows the tally');
+
+/* location desk — reachable with no shoot, contractable with one */
+w.eval("closeModal();G.projects=[];LOC_DESK={projectId:null,focus:null};openLocationDesk();");
+let locModal=$('#modalRoot .modal');
+assert(locModal.classList.contains('command-location-modal'),'the desk renders its own command modal');
+assert.equal($$('#modalRoot [data-dest-id]').length,8,'every commission offers a contract button even with no shoot');
+assert($('#modalRoot .loc-empty'),'with no picture the desk explains what is missing');
+assert($('#locPitch'),'the empty desk still offers a route into development');
+assert.equal($$('#modalRoot .card').length,0,'the desk must not reuse legacy cards');
+assert($('#locLedger'),'the tax ledger stays one click away');
+click($('#locPitch'));
+assert.equal(w.eval('WZ && WZ.mode'),'filmPitch','the empty desk opens the pitch studio');
+w.eval("closeModal();WZ=null;G.projects.push({id:9999,title:'Location Test',phase:'pre',budget:50,genre:'action',cast:[],phaseLen:{pre:2,shoot:4,post:2}});openLocationDesk(9999);");
+assert(/Contract/.test($$('#modalRoot [data-dest-id]')[0].textContent),'with a picture the cards offer a contract');
+click($$('#modalRoot [data-locfocus]')[0]);
+assert($('#modalRoot .loc-dossier'),'opening a commission shows its scout file');
+const locCashBefore=w.eval('G.studio.cash');
+click($$('#modalRoot [data-dest-id]')[0]);
+const contracted=w.eval("(function(){const p=G.projects.find(x=>x.id===9999);return {dest:p.filmingDestination,shoot:p.shootingLocation,rebate:p.taxRebatePct,cash:G.studio.cash};})()");
+assert(contracted.dest,'contracting must set the film destination');
+assert(contracted.shoot,'contracting must also set the scouting location so the craft buff applies');
+assert(contracted.rebate>0,'the contracted destination must carry a rebate');
+assert(contracted.cash<locCashBefore,'travel cost must be charged when contracting');
+assert(w.eval("typeof LocationScouting!=='undefined' && !!LocationScouting.SHOOTING_LOCATIONS"),'the engine-facing LocationScouting global must exist');
+w.eval("closeModal();G.projects=G.projects.filter(p=>p.id!==9999);");
+
+/* inbox — rebuilt, no legacy rows, filters work */
+w.eval("G.notifications=[];addNotification('Deal signed with a streamer','gold');addNotification('Stage 3 overran by two days','bad');addNotification('Rival moved into your date','');notificationsModal();");
+const inboxModal=$('#modalRoot .modal');
+assert(inboxModal.classList.contains('command-inbox-modal'),'the inbox renders its own command modal');
+assert.equal($$('#modalRoot .card').length,0,'the inbox must not reuse legacy cards');
+assert(!/🔔 Notifications/.test($('#modalRoot').innerHTML),'the old bell heading must be gone');
+assert.equal($$('#modalRoot .inbox-row').length,3,'every notification is listed');
+assert.equal($$('#modalRoot .inbox-row.is-new').length,3,'entries that were unread when opened are marked');
+assert.equal($('#bellBadge').style.display,'none','opening the inbox clears the bell');
+assert.equal($$('#modalRoot [style]').length,0,'the inbox must not use inline styles');
+click($$('[data-nfilter="alerts"]')[0]);
+assert.equal($$('#modalRoot .inbox-row').length,1,'the alerts filter narrows the inbox');
+assert(/ALERT/.test($('#modalRoot .inbox-row').textContent));
+click($$('[data-nfilter="all"]')[0]);
+assert.equal($$('#modalRoot .inbox-row').length,3,'the everything filter restores the list');
+
+/* the Notifications tab is the same desk, full screen — not the old wire panel */
+w.eval("closeModal();G.notifications=[];addNotification('Deal signed with a streamer','gold');addNotification('Stage 3 overran by two days','bad');addNotification('Rival moved into your date','');switchTab('notifications');");
+assert($('#view .command-inbox-screen'),'the Notifications tab must render the inbox desk');
+assert.equal($$('#view .kairo-dept-banner').length,0,'the legacy Kairo wire banner must not render on the inbox');
+assert(!/WIRE TRANSMISSIONS|TELETYPE|Studio Espionage/.test($('#view').textContent),'the old wire copy must be gone');
+assert.equal($$('#view .inbox-row').length,3,'the desk lists every notification');
+assert.equal($$('#view .card').length,0,'the inbox desk must not reuse legacy cards');
+click($$('[data-inboxfilter="alerts"]')[0]);
+assert.equal($$('#view .inbox-row').length,1,'the page filter narrows the desk');
+const unreadBefore=$$('#view [data-nread]').length;
+click($$('#view [data-nread]')[0]);
+assert.equal($$('#view [data-nread]').length,unreadBefore-1,'marking an entry read updates the desk');
+w.eval("closeModal();G.notifications=[];INBOX_PAGE.filter='all';switchTab('develop');");
 
 /* ── 11. Console cleanliness ───────────────────────────────────────── */
 assert.deepEqual(errors.filter(e=>!/Not implemented: navigation/.test(e)),[],'unexpected console errors');

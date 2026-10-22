@@ -412,6 +412,8 @@ step("series pitch wizard", ()=>{
   if(!$$("[data-szcast]").length) throw new Error("series cast list missing");
   const toPlat=$("#szToPlat"); if(!toPlat) throw new Error("platform step button missing");
   click(toPlat);
+  const toReview=$("#szToReview"); if(!toReview) throw new Error("review step button missing");
+  click(toReview);
   if(!$("#szPitch")) throw new Error("pitch button missing");
   click($("#szPitch"));
   window.eval("closeModal();");
@@ -430,16 +432,24 @@ step("film pitch wizard", ()=>{
     click($$("[data-g]")[0]);
     if(!$$("[data-s]").length) throw new Error("film pitch scale chips missing");
     click($$("[data-s]")[0]);
+    const toTeam=$("#fpNext"); if(!toTeam) throw new Error("film pitch team step missing");
+    click(toTeam);
     if(!$$("[data-fpd]").length) throw new Error("film pitch director picker missing");
     click($$("[data-fpd]")[0]);
     if(!$$("[data-fpw]").length) throw new Error("film pitch writer picker missing");
     click($$("[data-fpw]")[0]);
     if(!$$("[data-fpp]").length) throw new Error("film pitch producer picker missing");
     click($$("[data-fpp]")[0]);
+    const toCast=$('[data-fpnext="2"]'); if(!toCast) throw new Error("film pitch cast step missing");
+    click(toCast);
     if(!$$("[data-fpc]").length) throw new Error("film pitch cast picker missing");
     click($$("[data-fpc]")[0]);
+    click($('[data-fpnext="3"]'));
+    click($('[data-fpnext="4"]'));
     if(!$("#fpGo")) throw new Error("film pitch go button missing");
     click($("#fpGo"));
+    if(!$(".verdict")) throw new Error("the board verdict sheet must appear after a pitch");
+    window.eval("closeModal();");
   }
   if(g().projects.length<=before) throw new Error("board passed on every pitch");
 });
@@ -884,16 +894,24 @@ step("v32.6 itch.io assets expansion suite verification", ()=>{
   if(!trophyModal) throw new Error("award trophy ceremony modal missing");
   window.eval("closeModal();");
 
-  // 5. Verify Location Scouting Weather Overlays
+  // 5. Verify the location desk is reachable from the scouting entry point.
+  //    Weather is a scouting attribute on each commission (rain, snow, heat),
+  //    not a decorative overlay — the desk replaced the arcade weather cards.
   window.eval(`
     if(!G.projects.some(p => p.phase === "pre" || p.phase === "dev")){
       G.projects.push({ id: 9911, title: "Weather Test Epic", genre: "scifi", phase: "dev", budget: 40 });
     }
     openLocationScoutingModal();
   `);
-  const weatherCards = $$(".weather-fx-rain, .weather-fx-snow, .weather-fx-heat, .weather-fx-neon");
-  if(weatherCards.length < 3) throw new Error("expected at least 3 weather fx location cards, got " + weatherCards.length);
-  window.eval("closeModal();");
+  const locDesk = $("#modalRoot .command-location-modal");
+  if(!locDesk) throw new Error("location scouting must open the location desk");
+  const destCards = $$("#modalRoot .loc-dest");
+  if(destCards.length < 3) throw new Error("expected at least 3 destination contracts, got " + destCards.length);
+  if(!$$("#modalRoot [data-dest-id]").length) throw new Error("destination contracts must be clickable");
+  if(!/weather/.test(locDesk.textContent)) throw new Error("the desk must report each commission's weather");
+  if($$("#modalRoot .weather-fx-rain, #modalRoot .weather-fx-snow, #modalRoot .weather-fx-heat, #modalRoot .weather-fx-neon").length)
+    throw new Error("decorative weather overlays must be gone from the redesigned desk");
+  window.eval("closeModal();G.projects=G.projects.filter(p=>p.id!==9911);");
 });
 
 console.log("");
