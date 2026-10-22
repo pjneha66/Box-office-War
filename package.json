@@ -43,7 +43,8 @@
     "test:lot:hiring": "node test/lot-hiring-browser.cjs",
     "test:start:theme": "node test/start-theme-browser.cjs",
     "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs",
-    "test:pitch": "node test/pitch-location-inbox-browser.cjs"
+    "test:pitch": "node test/pitch-location-inbox-browser.cjs",
+    "serve": "python3 -m http.server 8080 --bind 0.0.0.0"
   },
   "keywords": [
     "game",
