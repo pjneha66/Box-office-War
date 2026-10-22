@@ -222,51 +222,9 @@
     if(!S) return;
     initBoardTargets(S);
 
-    const b = S.boardTargets;
-    const week = S.week || 1;
-    const weeksLeft = 13 - ((week - 1) % 13);
-    const conf = b.confidence || 75;
-    const confColor = conf >= 70 ? "var(--good, #2ecc71)" : conf >= 40 ? "var(--gold, #f1c40f)" : "var(--bad, #e74c3c)";
-
-    let h = "<h3>Board of Directors &amp; Quarterly Directives</h3>";
-    h += "<div class='tiny muted' style='margin-bottom:12px'>Meet quarterly shareholder milestones to secure executive bonuses and maintain executive freedom. Failure triggers budget austerity and board intervention.</div>";
-
-    h += "<div class='stat-hero' style='margin-bottom:12px'>"+
-      "<div class='stat'><div class='s-v' style='color:" + confColor + "'>" + conf + "%</div><div class='s-l'>Board Confidence</div></div>"+
-      "<div class='stat'><div class='s-v'>Q" + (b.currentQuarter || 1) + "</div><div class='s-l'>Current Quarter</div></div>"+
-      "<div class='stat'><div class='s-v'>" + weeksLeft + " wks</div><div class='s-l'>Until Q Review</div></div>"+
-      "<div class='stat'><div class='s-v' style='color:" + (b.austerityMode ? "var(--bad)" : "var(--good)") + "'>" + (b.austerityMode ? "AUSTERITY" : "HEALTHY") + "</div><div class='s-l'>Governance Status</div></div>"+
-    "</div>";
-
-    h += "<div class='section-title'>Active Quarterly Directives</div><div class='grid g1' style='gap:8px'>";
-    (b.activeDirectives || []).forEach(d => {
-      let progressTxt = "";
-      if(d.type === "theatrical_revenue"){
-        progressTxt = "$" + (d.currentVal || 0).toFixed(1) + "M / $" + d.targetVal + "M";
-      } else if(d.type === "release_quality"){
-        progressTxt = (d.completed ? "Achieved" : "Highest: " + (d.currentVal || 0) + "/" + d.targetVal);
-      } else if(d.type === "cash_reserves"){
-        const cVal = _getCashM(S);
-        progressTxt = "$" + cVal.toFixed(1) + "M / $" + d.targetVal + "M";
-      }
-
-      h += "<div class='card'>"+
-        "<div class='spread'><b>" + d.title + "</b><span class='tag " + (d.completed ? "good" : "gold") + "'>" + (d.completed ? "SATISFIED" : "PENDING") + "</span></div>"+
-        "<div class='tiny muted' style='margin:4px 0'>" + d.desc + "</div>"+
-        "<div class='tiny' style='color:var(--gold)'>Progress: " + progressTxt + " | Target Bonus: $" + d.rewardCash + "M (+ " + d.confidenceBuff + "% Confidence)</div>"+
-      "</div>";
-    });
-    h += "</div>";
-
-    if((b.quarterlyHistory || []).length > 0){
-      h += "<div class='section-title' style='margin-top:14px'>Recent Board Reviews</div><div class='grid g1' style='gap:6px'>";
-      b.quarterlyHistory.slice(-4).reverse().forEach(hist => {
-        h += "<div class='card tiny spread'><span>Quarter " + hist.quarter + " (Week " + hist.week + ")</span><span>Satisfied: " + hist.completedCount + "/" + hist.totalCount + "</span><b style='color:var(--gold)'>Bonus: $" + hist.bonusCash + "M</b></div>";
-      });
-      h += "</div>";
-    }
-
-    if(typeof openModal === "function") openModal(h);
+    const h = "<section class='command-dialog strategy-review'><header class='command-dialog-hero'><div><span class='command-eyebrow'>STUDIO HQ / GOVERNANCE</span><h2>The Strategy Room</h2><p>Your quarterly commitments, confidence, and review history.</p></div></header>" + commandStrategyContent(S,true) + "</section>";
+    const view = openModal(h);
+    view.querySelector('.modal').classList.add('command-modal');
   }
 
   const BoardTargetsAPI = {

@@ -179,7 +179,9 @@
     if(!S) return { ok: false, msg: "State missing" };
     initGameDevHardware(S);
 
-    const talent = (S.talent || []).find(t => t.id === talentId || t.name === talentId) || { id: talentId, name: "Staff Talent " + talentId };
+    const talent = (S.talent || []).find(t => String(t.id) === String(talentId) || t.name === talentId);
+    if(!talent) return { ok:false, msg:"Talent not found." };
+    if((S.studio?S.studio.cash:S.cash)<0.2) return { ok:false, msg:"A recovery retreat requires $0.2M." };
 
     const spaCost = 0.2; // $200k luxury retreat
     _modCash(S, -spaCost);
@@ -294,36 +296,16 @@
   }
 
   function renderStaffStaminaSection(state){
-    const S = _getG(state);
-    if(!S) return "";
+    const S=_getG(state);if(!S)return '';
     initGameDevHardware(S);
-    const talent = S.talent || [];
-    const avg = getAverageStaffStamina(S);
-    let h = "<div class='card' style='margin-bottom:12px'>";
-    h += "<div class='spread'><b>Staff Stamina &amp; Sabbaticals (Burnout Protection)</b><span class='tag " + (avg >= 70 ? "green" : avg >= 40 ? "gold" : "red") + "'>Avg " + avg + "%</span></div>";
-    h += "<div class='tiny muted' style='margin:4px 0 10px'>Exhausted talent suffer severe production debuffs and high scandal vulnerability. Send tired staff to Swiss luxury wellness retreats to restore stamina.</div>";
-    if(!talent.length){
-      h += "<div class='tiny muted'>No contracted talent currently on the roster.</div>";
-    } else {
-      h += "<div style='display:flex;flex-direction:column;gap:6px'>";
-      talent.slice(0, 6).forEach(t => {
-        const stam = (S.gameDevHardware.staffStamina && typeof S.gameDevHardware.staffStamina[t.id] === "number") ? S.gameDevHardware.staffStamina[t.id] : 85;
-        const color = stam >= 70 ? "var(--green)" : stam >= 40 ? "var(--gold)" : "var(--red)";
-        h += "<div style='display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:4px;gap:8px'>" +
-          "<div style='flex:1;min-width:120px'>" +
-            "<div style='font-size:12px;font-weight:600'>" + t.name + " <span class='tiny muted'>(" + (t.kind || "talent") + ")</span></div>" +
-            "<div style='background:rgba(255,255,255,0.1);height:4px;border-radius:2px;overflow:hidden;margin-top:4px'>" +
-              "<div style='background:" + color + ";width:" + stam + "%;height:100%'></div>" +
-            "</div>" +
-          "</div>" +
-          "<div style='font-size:11px;font-weight:bold;color:" + color + ";min-width:35px;text-align:right'>" + stam + "%</div>" +
-          "<button class='btn btn-xs btn-alt btnSendSabbatical' data-sabbatical-id='" + t.id + "' style='font-size:10px;padding:3px 8px'>Rest ($0.2M)</button>" +
-        "</div>";
-      });
-      h += "</div>";
-    }
-    h += "</div>";
-    return h;
+    const stamina=t=>S.gameDevHardware.staffStamina[t.id]??85;
+    const talent=(S.talent||[]).filter(t=>!t.retired).slice().sort((a,b)=>stamina(a)-stamina(b));
+    const tired=talent.filter(t=>stamina(t)<40).length;
+    const avg=talent.length?Math.round(talent.reduce((sum,t)=>sum+stamina(t),0)/talent.length):0;
+    return `<section class="workforce-people"><header class="workforce-roster-heading"><div><span class="command-eyebrow">PEOPLE FIRST / RECOVERY DESK</span><h2>A healthier production floor.</h2><p>The lowest-energy people appear first. A $0.2M retreat restores stamina to 100.</p></div><div class="workforce-energy"><strong>${avg}%</strong><span>AVERAGE ENERGY</span><small>${tired} need recovery</small></div></header><div class="workforce-search"><input id="workforceSearch" type="search" aria-label="Search workforce" placeholder="Find a person by name"><select id="workforceFilter" aria-label="Filter workforce"><option value="all">Everyone (${talent.length})</option><option value="tired">Recovery priority</option><option value="booked">On production</option><option value="free">Available</option></select></div><div class="workforce-roster">${talent.map(t=>{
+      const energy=stamina(t), booked=t.bookedUntil>S.week;
+      return `<article class="workforce-person ${energy<40?'needs-rest':''}" data-workforce-name="${esc(t.name.toLowerCase())}" data-workforce-tired="${energy<40}" data-workforce-booked="${booked}"><div class="workforce-person-identity"><small>${esc(t.kind||'talent')} / ${booked?'ON PRODUCTION':'AVAILABLE'}</small><h3>${esc(t.name)}</h3><span>${booked?'Booked until week '+t.bookedUntil:'Ready for your next production'}</span></div><div class="workforce-person-energy"><div><span>ENERGY</span><b>${energy}%</b></div><div class="workforce-energy-track"><i style="width:${clamp(energy,0,100)}%"></i></div><small>${energy<40?'Recovery recommended':energy<70?'Keep an eye on workload':'In good shape'}</small></div><button class="command-secondary btnSendSabbatical" data-sabbatical-id="${t.id}" ${S.studio.cash<.2?'disabled':''}>Restore energy <small>$0.2M retreat</small></button></article>`;
+    }).join('')||'<p class="workforce-empty">No active talent in this career yet.</p>'}</div><p class="workforce-no-results" hidden>No people match this view.</p></section>`;
   }
 
   function renderHardwareSection(state){
@@ -358,6 +340,17 @@
     if(!root) return;
     const S = _getG(state);
 
+    const search=root.querySelector('#workforceSearch'), filter=root.querySelector('#workforceFilter');
+    function filterPeople(){
+      const query=search.value.trim().toLowerCase(), mode=filter.value;
+      let count=0;
+      root.querySelectorAll('[data-workforce-name]').forEach(row=>{
+        row.hidden=!row.dataset.workforceName.includes(query)||(mode==='tired'&&row.dataset.workforceTired!=='true')||(mode==='booked'&&row.dataset.workforceBooked!=='true')||(mode==='free'&&row.dataset.workforceBooked==='true');
+        if(!row.hidden)count++;
+      });
+      root.querySelector('.workforce-no-results').hidden=count>0;
+    }
+    if(search&&filter){search.oninput=filterPeople;filter.onchange=filterPeople;}
     root.querySelectorAll(".btnSendSabbatical").forEach(btn => {
       btn.onclick = (e) => {
         if(e) e.stopPropagation();
@@ -365,6 +358,7 @@
         const res = sendOnSabbatical(id, S);
         if(res.ok){
           if(typeof toast === "function") toast(res.msg, "good");
+          if(typeof saveGame === "function") saveGame();
           if(typeof render === "function") render();
         } else {
           if(typeof toast === "function") toast(res.msg, "bad");

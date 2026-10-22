@@ -9,7 +9,7 @@ const WWW = path.join(__dirname, "www");
 
 const FILES = [
   "index.html",
-  "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css",
+  "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css", "command-deck.css",
   "data.js", "engine.js", "i18n.js", "ui.js",
   "finance-tools.js", "v31-features.js",
   "challenge-leaderboard.js", "theater-chains.js", "dynamic-soundtrack.js", "dynasty-legacy.js",

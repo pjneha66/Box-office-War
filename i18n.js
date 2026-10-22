@@ -187,8 +187,9 @@ function setLang(l){
 }
 /* translate static chrome (topbar, tabs, start screen) */
 function applyChromeLang(){
-  const set = (sel, key)=>{ const el=document.querySelector(sel); if(el) el.textContent=t(key); };
-  document.querySelectorAll(".tab").forEach(b=>{ if(b.dataset.tab) b.textContent=t("tab."+b.dataset.tab); });
+  const chromeLabel = value=>String(value).replace(/\p{Extended_Pictographic}|[\uFE0F\u200D]/gu, "").trim();
+  const set = (sel, key)=>{ const el=document.querySelector(sel); if(el) el.textContent=chromeLabel(t(key)); };
+  document.querySelectorAll(".tab").forEach(b=>{ if(b.dataset.tab) b.textContent=chromeLabel(t("tab."+b.dataset.tab)); });
   document.querySelectorAll(".btab").forEach(b=>{
     if(!b.dataset.tab) return;
     const ic=b.querySelector("span"); const icHtml=ic? ic.outerHTML:"";

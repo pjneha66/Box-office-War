@@ -690,7 +690,13 @@ function spawnDirectorHot(){ G.talent.push(genDirector(true)); }
 function spawnWriterHot(){ if(G) G.talent.push(genWriter(true)); }
 function talentById(id){ return G.talent.find(t=>t.id===id); }
 function talentByKind(kind){ return G.talent.filter(t=>t.kind===kind); }
-function freeTalent(kind){ return G.talent.filter(t=>t.kind===kind && (G.allCastUnlocked || (!t.bookedUntil && !(t.retired)))); }
+function activePicturePact(t){
+  return t && G.talentPacts && (G.talentPacts.activeContracts||[]).find(c=>c.talentId===t.id && c.picturesRemaining>0);
+}
+function freeTalent(kind){
+  return G.talent.filter(t=>t.kind===kind && (G.allCastUnlocked || ((!t.bookedUntil || t.bookedUntil<=G.week) && !t.retired)))
+    .sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a)));
+}
 function unlockAllCast(){
   if(!G || !Array.isArray(G.talent)) return;
   G.allCastUnlocked = true;
@@ -959,6 +965,8 @@ function fireBTL(role){
 }
 function actorFee(t){
   if(!t) return 0;
+  const pact = activePicturePact(t);
+  if(pact) return pact.lockedRate; // Negotiated fixed quote, shared by the wizard and greenlight.
   const scandalDiscount = t.scandal>0? 0.55 : 1;
   let f = t.fee * (1+0.25*(t.heat||0)) * scandalDiscount;
   if(t.multiDeal) f *= (1-(t.multiDeal.disc||0.25)); // v9 multi-picture deal discount
@@ -2333,6 +2341,11 @@ function greenlight(cfg){
   if(cfg.writer){ cfg.writer.bookedUntil = G.week+total; cfg.writer.booked = p.title+" (writer)"; }
   if(cfg.producer){ cfg.producer.bookedUntil = G.week+total; cfg.producer.booked = p.title+" (producer)"; }
   cfg.cast.forEach(c=>{ c.bookedUntil=G.week+total; c.booked=p.title; });
+  // Studio picture pacts use the same talent objects as the development wizard.
+  if(typeof consumeContractPicture === "function"){
+    const participants = new Map([cfg.director,cfg.writer,cfg.producer,...(cfg.cast||[]),cfg.cameo].filter(Boolean).map(t=>[t.id,t]));
+    participants.forEach(t=>consumeContractPicture(t.id,p.id,G));
+  }
   // contracts tick down, chemistry accrues between co-stars, reunions pay buzz
   [cfg.director, cfg.writer, cfg.producer].concat(cfg.cast||[]).forEach(t=>{
     if(t&&t.contract&&t.contract.type==="multi"&&t.contract.filmsLeft>0){

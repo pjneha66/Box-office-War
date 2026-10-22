@@ -69,6 +69,8 @@
         completedContracts: []
       };
     }
+    S.talentPacts.activeContracts = S.talentPacts.activeContracts || [];
+    S.talentPacts.completedContracts = S.talentPacts.completedContracts || [];
     // Seed quirks onto talent if missing
     if(S.talent && S.talent.length){
       const quirkKeys = Object.keys(TALENT_QUIRKS);
@@ -92,14 +94,15 @@
     const talent = (S.talent || []).find(t => t.id === talentId);
     if(!talent) return { ok: false, error: "Talent not found in directory." };
 
-    const count = picturesCount === 5 ? 5 : 3;
+    if(talent.retired) return { ok:false, error:"Retired talent cannot sign new picture commitments." };
+    const count = Number(picturesCount) === 5 ? 5 : 3;
     const existing = S.talentPacts.activeContracts.find(c => c.talentId === talentId);
     if(existing){
       return { ok: false, error: talent.name + " already has an active " + existing.picturesRemaining + "-picture pact with the studio." };
     }
 
     // Base salary with 20% multi-picture volume discount
-    const standardFee = talent.fee || (talent.power * 2.5);
+    const standardFee = Number(talent.fee) || ((Number(talent.power) || 3) * 2.5);
     const discountedRate = Math.round(standardFee * 0.8 * 10) / 10;
     const signingBonus = Math.round(discountedRate * (count === 5 ? 1.2 : 0.8) * 10) / 10;
 
@@ -107,7 +110,8 @@
       return { ok: false, error: "Insufficient funds. Signing bonus requires $" + signingBonus + "M." };
     }
 
-    S.studio.cash = Math.round((S.studio.cash - signingBonus) * 10) / 10;
+    if(S === _getG() && typeof spend === "function") spend("talent", signingBonus);
+    else S.studio.cash = Math.round((S.studio.cash - signingBonus) * 10) / 10;
 
     const contract = {
       id: "pact_" + Date.now() + "_" + talent.id,
@@ -128,6 +132,7 @@
       log("Signed " + count + "-picture commitment with " + talent.name + ": locked at $" + discountedRate + "M/film (signing bonus $" + signingBonus + "M).", "gold");
     }
 
+    if(S === _getG() && typeof saveGame === "function") saveGame();
     return { ok: true, contract };
   }
 
@@ -137,6 +142,8 @@
     const contract = S.talentPacts.activeContracts.find(c => c.talentId === talentId);
     if(!contract || contract.picturesRemaining <= 0) return false;
 
+    if(filmId != null && (contract.usedInFilms || []).includes(filmId)) return false;
+    contract.usedInFilms = contract.usedInFilms || [];
     contract.picturesRemaining -= 1;
     if(filmId && !contract.usedInFilms.includes(filmId)){
       contract.usedInFilms.push(filmId);
@@ -163,63 +170,32 @@
     if(!S) return;
     initTalentPacts(S);
 
-    let h = "<h3>Multi-Picture Contracts &amp; Star Talent Quirks</h3>";
-    h += "<div class='tiny muted' style='margin-bottom:12px'>Lock top stars and visionary directors into 3-picture or 5-picture commitments with upfront signing bonuses and a 20% per-film discount. Manage unique personality quirks and production traits.</div>";
-
-    const activeCount = (S.talentPacts.activeContracts || []).length;
-    h += "<div class='stat-hero' style='margin-bottom:12px'>"+
-      "<div class='stat'><div class='s-v'>" + activeCount + "</div><div class='s-l'>Active Pacts</div></div>"+
-      "<div class='stat'><div class='s-v'>" + (S.talentPacts.completedContracts || []).length + "</div><div class='s-l'>Completed Pacts</div></div>"+
-      "<div class='stat'><div class='s-v' style='color:var(--gold)'>20%</div><div class='s-l'>Locked Salary Discount</div></div>"+
-    "</div>";
-
-    if(activeCount){
-      h += "<div class='section-title'>Active Studio Commitments</div><div class='card' style='margin-bottom:12px'>";
-      S.talentPacts.activeContracts.forEach(c => {
-        h += "<div class='spread' style='padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)'>"+
-          "<div><b>" + esc(c.talentName) + "</b> <span class='tag gold'>" + c.picturesRemaining + "/" + c.totalPictures + " pictures remaining</span></div>"+
-          "<div style='text-align:right'><b>Locked Fee: $" + c.lockedRate + "M</b><div class='tiny muted'>Signed W" + c.signedWeek + "</div></div>"+
-        "</div>";
-      });
-      h += "</div>";
-    }
-
-    h += "<div class='section-title'>Talent Roster &amp; Signing Desk</div><div class='grid g2'>";
-    (S.talent || []).slice(0, 12).forEach(t => {
-      const activePact = S.talentPacts.activeContracts.find(c => c.talentId === t.id);
-      const q = getTalentQuirk(t);
-      const stdFee = t.fee || (t.power * 2.5);
-      const rate3 = Math.round(stdFee * 0.8 * 10) / 10;
-      const bonus3 = Math.round(rate3 * 0.8 * 10) / 10;
-      const bonus5 = Math.round(rate3 * 1.2 * 10) / 10;
-
-      h += "<div class='card'>"+
-        "<div class='spread'><b>" + esc(t.name) + "</b><span class='tag'>" + (t.power || 3) + " Stars</span></div>"+
-        "<div class='tiny muted' style='margin:4px 0'>Role: " + (t.kind || "Actor").toUpperCase() + " · Market fee: $" + stdFee + "M</div>"+
-        (q ? (
-          "<div class='tiny' style='margin:6px 0;padding:4px;background:rgba(255,255,255,0.03);border-radius:6px'>"+
-            "<b>Trait: " + esc(q.name) + " (" + q.rarity.toUpperCase() + ")</b><div class='muted'>" + esc(q.desc) + "</div>"+
-          "</div>"
-        ) : "<div class='tiny muted' style='margin:6px 0'>Standard industry professional.</div>")+
-        "<div style='margin-top:8px'>"+
-          (activePact ? (
-            "<span class='tag green'>Pact Active (" + activePact.picturesRemaining + " pictures left)</span>"
-          ) : (
-            "<div class='row' style='gap:6px'>"+
-              "<button class='btn btn-xs btn-primary' data-pact='" + t.id + ":3'>Sign 3-Pic ($" + bonus3 + "M)</button>"+
-              "<button class='btn btn-xs btn-alt' data-pact='" + t.id + ":5'>Sign 5-Pic ($" + bonus5 + "M)</button>"+
-            "</div>"
-          ))+
-        "</div>"+
-      "</div>";
+    const contracts=S.talentPacts.activeContracts;
+    let h = `<header class="command-dialog-hero"><div><span class="command-eyebrow">STUDIO HQ / TALENT PARTNERSHIPS</span><h2>Picture Partners</h2><p>A shared slate. A fixed quote. Long-term creative relationships.</p></div></header><div class="partner-workspace"><aside class="partner-ledger"><span class="command-eyebrow">YOUR COMMITMENTS</span><h3>${contracts.length} active partners</h3><p>Signing reserves a rate, not a calendar slot. Attach available partners in film development.</p>${contracts.map(c=>`<article><small>${esc(c.talentKind)}</small><b>${esc(c.talentName)}</b><div class="picture-slots" aria-label="${c.picturesRemaining} of ${c.totalPictures} pictures remaining">${Array.from({length:c.totalPictures},(_,i)=>`<i class="${i<c.picturesRemaining?'remaining':''}"></i>`).join('')}</div><span>${c.picturesRemaining} pictures left · $${c.lockedRate}M / film</span></article>`).join('')||'<div class="partner-empty">Your next creative partnership starts at the signing desk.</div>'}<button id="btnPactDevelop" class="command-primary">Develop with partners ↗</button><footer>${S.talentPacts.completedContracts.length} completed commitments</footer></aside><section class="partner-signing"><div class="partner-signing-heading"><span class="command-eyebrow">THE SIGNING DESK</span><h3>Find your next collaborator.</h3><p>20% below the base quote. A signing bonus is paid now; the locked fee is paid on each greenlight.</p></div><div class="partner-filters"><input id="partnerSearch" type="search" placeholder="Search talent by name" aria-label="Search picture partners"><select id="partnerRole" aria-label="Filter talent role"><option value="all">Every discipline</option><option value="actor">Actors</option><option value="director">Directors</option><option value="writer">Writers</option><option value="producer">Producers</option><option value="signed">Signed partners</option></select></div><div class="partner-roster">`;
+    (S.talent||[]).filter(t=>!t.retired).forEach(t=>{
+      const pact=contracts.find(c=>c.talentId===t.id), q=getTalentQuirk(t);
+      const rate=Math.round((Number(t.fee)||((Number(t.power)||3)*2.5))*.8*10)/10;
+      const bonus3=Math.round(rate*.8*10)/10, bonus5=Math.round(rate*1.2*10)/10;
+      h+=`<article class="partner-person" data-partner-name="${esc(t.name.toLowerCase())}" data-partner-role="${esc(t.kind||'actor')}" data-partner-signed="${!!pact}"><div class="partner-monogram" aria-hidden="true">${esc(t.name.trim().split(/\s+/).map(n=>n[0]).slice(0,2).join(''))}</div><div class="partner-person-info"><small>${esc(t.kind||'actor')} / ${t.power||3} STAR</small><h4>${esc(t.name)}</h4><p>${t.bookedUntil>S.week?'On production until W'+t.bookedUntil:'Available for your next film'}</p>${q?`<span class="partner-trait">${esc(q.name)} · ${esc(q.desc)}</span>`:''}</div><div class="partner-offer"><small>LOCKED FILM QUOTE</small><strong>$${pact?pact.lockedRate:rate}M</strong>${pact?`<span class="partner-signed">SIGNED / ${pact.picturesRemaining} LEFT</span>`:`<div><button data-pact="${t.id}:3" ${S.studio.cash<bonus3?'disabled':''}>3 pictures <small>$${bonus3}M upfront</small></button><button data-pact="${t.id}:5" ${S.studio.cash<bonus5?'disabled':''}>5 pictures <small>$${bonus5}M upfront</small></button></div>`}</div></article>`;
     });
-    h += "</div>";
+    h+='</div><p class="partner-no-results" hidden>No collaborators match your search.</p></section></div><footer class="command-dialog-footer"><span>Multi-picture commitments / Current career</span><button class="command-primary" onclick="closeModal()">Return to studio</button></footer>';
 
-    h += "<div class='modal-actions' style='margin-top:14px'>"+
-      "<button class='btn btn-primary' onclick='closeModal()'>Close</button>"+
-    "</div>";
-
-    const v = openModal(h);
+    const v = openModal("<section class='command-dialog picture-partners'>" + h + "</section>");
+    v.querySelector(".modal").classList.add("command-modal");
+    function filterPartners(){
+      const search=v.querySelector('#partnerSearch').value.trim().toLowerCase();
+      const role=v.querySelector('#partnerRole').value;
+      let visible=0;
+      v.querySelectorAll('[data-partner-name]').forEach(row=>{
+        row.hidden=!row.dataset.partnerName.includes(search)||(role==='signed'?row.dataset.partnerSigned!=='true':role!=='all'&&row.dataset.partnerRole!==role);
+        if(!row.hidden)visible++;
+      });
+      v.querySelector('.partner-no-results').hidden=visible>0;
+    }
+    v.querySelector('#partnerSearch').oninput=filterPartners;
+    v.querySelector('#partnerRole').onchange=filterPartners;
+    const develop = v.querySelector("#btnPactDevelop");
+    if(develop) develop.onclick = ()=>{ closeModal(); switchTab("develop"); };
     v.querySelectorAll("[data-pact]").forEach(b => {
       b.onclick = () => {
         const parts = b.dataset.pact.split(":");
