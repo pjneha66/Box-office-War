@@ -368,17 +368,6 @@ function studioXpProgressBar(){
   return h;
 }
 
-function seasonCorridorHeatmap(){
-  let h = "<div class='card' style='margin:8px 0'><div class='spread'><b>🗓 52-Week Seasonal Corridor Heatmap</b><span class='tiny muted'>Summer &amp; Holidays hot · Jan/Sep dead zone</span></div><div class='season-heatmap'>";
-  for(let w=1; w<=52; w++){
-    const s = DATA.seasonOf(w);
-    const cls = s.season >= 1.15 ? "hot" : s.season <= 0.9 ? "dead" : "mid";
-    h += "<div class='season-cell "+cls+"' title='W"+w+" ("+s.month+"): corridor ×"+s.season.toFixed(2)+(s.holiday?" (holiday legs)":"")+"'>"+w+"</div>";
-  }
-  h += "</div><div class='tiny muted' style='display:flex;gap:12px;margin-top:4px'><span><span class='tag gold'>Gold</span> Prime Corridor (×1.15+)</span><span><span class='tag'>Grey</span> Neutral Corridor</span><span><span class='tag red'>Red</span> Dead Zone (≤×0.90)</span></div></div>";
-  return h;
-}
-
 function studioDnaCard(){
   let s = {blockbuster:40, prestige:40, indie:40, franchise:40, streaming:40};
   try{ s = repScores(); }catch(e){}
@@ -512,6 +501,13 @@ function openModal(html, opts){
     const dialog=veil.querySelector('.modal');
     dialog.classList.add('command-modal','command-management-modal');
     buildManagementWorkspace(dialog);
+    const title=dialog.querySelector('h3,h2');
+    if(title){ dialog.setAttribute('aria-label',title.textContent); }
+  } else if(TAB==="develop"){
+    // Story Department dialogs share the same shell and flat surface, but keep
+    // their own flow (wizards, research desks) instead of the workshop layout.
+    const dialog=veil.querySelector('.modal');
+    dialog.classList.add('command-modal','command-develop-modal');
     const title=dialog.querySelector('h3,h2');
     if(title){ dialog.setAttribute('aria-label',title.textContent); }
   }
@@ -1213,11 +1209,11 @@ function _renderImpl(){
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : (TAB === "productions" ? (typeof PROD_FILTER !== "undefined" ? PROD_FILTER : null) : null)))
       : "";
     v.dataset.screen = TAB;
-    const commandNav = ["dashboard", "studio"].includes(TAB) ? commandSectionNav(TAB) : "";
+    const commandNav = ["dashboard", "studio"].includes(TAB) ? commandSectionNav(TAB) : (TAB === "develop" ? commandDevelopNav() : "");
     v.innerHTML = (tb? tb : "") + kairoBanner + commandNav + h;
     bindView();
     bindFolds(v);   // v15: collapsible sections remember their state
@@ -1741,29 +1737,6 @@ function progressionCard(){
 }
 
 /* ═══════════ VIEW: develop ═══════════ */
-function trendBoard(){
-  const gs=Object.keys(DATA.GENRES).map(g=>({g, v:trendOf(g)})).sort((a,b)=>b.v-a.v);
-  const weeksLeft=Math.max(0,(G.trendShiftAt||G.week)-G.week);
-  let h="<div class='spread'><div class='section-title' style='margin:0'>📈 Genre trends</div>"+
-        "<span class='tiny muted'>market re-rates in "+weeksLeft+" wk"+(weeksLeft===1?"":"s")+"</span></div>";
-  h+="<div class='card trend-board'>";
-  gs.forEach(function(row){
-    const g=row.g, v=row.v, G0=DATA.GENRES[g], l=trendLabel(g);
-    const pct=clamp((v-0.78)/(1.28-0.78)*100,3,100);
-    let spark="";
-    const hist=(G.trendHist&&G.trendHist[g])||[];
-    if(hist.length>1){
-      const mn=Math.min.apply(null,hist), mx=Math.max.apply(null,hist);
-      spark="<div class='spark-mini'>"+hist.map(function(x){ return "<i style='height:"+Math.max(12,(mx>mn? (x-mn)/(mx-mn):0.5)*100)+"%'></i>"; }).join("")+"</div>";
-    }
-    const nextQ = (1.0 + (v - 1.0) * 0.72).toFixed(2);
-    h+="<div class='trend-row'><div class='tr-name'>"+G0.emoji+" "+G0.name+"</div>"+
-       "<div class='tr-track'><div class='tr-fill "+(v>=1.07?"hot":v<=0.94?"cold":"")+"' style='width:"+pct+"%'></div>"+spark+"</div>"+
-       "<div class='tr-val'><span class='tag "+l.cls+"'>"+l.tag+"</span> <b>"+v.toFixed(2)+"×</b> <span class='tiny muted' title='Next quarter mean reversion forecast'>Next Q: ~"+nextQ+"×</span></div></div>";
-  });
-  h+="<div class='tiny muted' style='margin-top:6px'>Heat multiplies opening weekend and streaming appetite, and it shifts every quarter. Hits warm a genre up; flops cool it down. Mean-reversion forecasts project the next quarter trend.</div></div>";
-  return h;
-}
 /* Market report: read-only rollup per genre from trends, recent runs, slates, season. */
 function genreDelta(g){
   try{
@@ -1799,30 +1772,6 @@ function genreOpp(g, heat, d, rec, comp){
   if(heat<=0.85||(rec.flops>rec.hits&&rec.n>=2)) return "Avoid — cold + weak results";
   if(comp.soon>=2) return "Crowded — "+comp.soon+" rivals dated";
   return "Watch — neutral";
-}
-function marketReport(){
-  let gs;
-  try{ gs=Object.keys(DATA.GENRES).map(g=>({g, heat:trendOf(g)})).sort((a,b)=>b.heat-a.heat); }
-  catch(e){ return ""; }
-  const s=DATA.seasonOf(woyOf(G.week));
-  const hot=gs.filter(r=>r.heat>=1.07), weak=gs.filter(r=>r.heat<=0.94), em=gs.filter(r=>{ const d=genreDelta(r.g); return d>=0.03&&r.heat<1.07; });
-  let h="<div class='section-title'>Market report — "+s.month+" (corridor ×"+s.season.toFixed(2)+(s.holiday?", holiday legs":"")+")</div>"+
-    "<div class='card'><div class='row'>"+
-    "<span class='tag green'>🔥 Hot: "+(hot.length?hot.map(r=>DATA.GENRES[r.g].name).join(", "):"none")+"</span>"+
-    "<span class='tag red'>🥶 Weak: "+(weak.length?weak.map(r=>DATA.GENRES[r.g].name).join(", "):"none")+"</span>"+
-    (em.length?"<span class='tag gold'>🌱 Emerging: "+em.map(r=>DATA.GENRES[r.g].name).join(", ")+"</span>":"")+
-    "</div><div class='tiny muted' style='margin-top:4px'>Seasonal: "+(s.season>=1.15?"tentpoles open big — date mass genres now.":s.season<=0.9?"dead zone — platform rollouts + legs genres hold better.":"mid corridor — clean weekends matter more than month.")+"</div></div>"+
-    "<div class='grid g2' style='margin-top:8px'>";
-  gs.forEach(r=>{
-    const g=r.g, G0=DATA.GENRES[g], d=genreDelta(g), rec=genreRecent(g), comp=genreComp(g);
-    h+="<div class='card'><div class='spread'><b>"+G0.emoji+" "+G0.name+"</b><span class='tag "+(r.heat>=1.07?"green":r.heat<=0.94?"red":"")+"'>"+r.heat.toFixed(2)+"× "+(d>0?"▲":d<0?"▼":"—")+"</span></div>"+
-      "<div class='cost-line'><span>Current heat</span><b>"+r.heat.toFixed(2)+"×</b></div>"+
-      "<div class='cost-line'><span>Trend</span><b>"+(d>0?"+":"")+d.toFixed(2)+"/qtr</b></div>"+
-      "<div class='cost-line'><span>Recent (52w)</span><b>"+(rec.n?rec.hits+" hits · "+rec.flops+" flops · "+rec.n+" runs":"no runs")+"</b></div>"+
-      "<div class='cost-line'><span>Competition</span><b>"+(comp.live?comp.live+" live · ":"")+comp.soon+" rival(s) dated 12w</b></div>"+
-      "<div class='cost-line'><span>Opportunity</span><b class='tiny'>"+genreOpp(g, r.heat, d, rec, comp)+"</b></div></div>";
-  });
-  return h+"</div>";
 }
 let SCRIPT_GENRE_FILTER = "all";
 let DASHBOARD_SUB = "overview";
@@ -1946,7 +1895,7 @@ function renderSubTabs(){
   const bar = $("#subTabs");
   if(!bar) return;
   // These screens own a single branded navigation, shared across all viewports.
-  if(TAB === "dashboard" || TAB === "studio"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -1961,366 +1910,357 @@ function renderSubTabs(){
   }).join("");
   bar.style.display = "flex";
 }
+/* ═══════════ VIEW: develop — the Story Department command deck ═══════════
+   Seven sections share one landscape-first workspace. Every figure below is
+   read from the live career; nothing is invented for the interface. */
+const DEVELOP_SECTIONS = [
+  ["scripts", "Scripts"],
+  ["demographics", "Audience lab"],
+  ["creativity", "Craft & vault"],
+  ["ip", "Rights market"],
+  ["talent", "Talent desk"],
+  ["combos", "Combos codex"],
+  ["tax", "Locations & partners"]
+];
+let DEVELOP_COMBO_FILTER = "all";
+
+function developHeat(g){
+  try{ return +trendOf(g) || 1; }catch(e){ return 1; }
+}
+function developMarketRows(){
+  let rows=[];
+  try{
+    rows=Object.keys(DATA.GENRES).map(g=>({ g, heat:developHeat(g), delta:genreDelta(g), rec:genreRecent(g), comp:genreComp(g) }));
+  }catch(e){ rows=[]; }
+  return rows.sort((a,b)=>b.heat-a.heat);
+}
+function developWeekBadge(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return `<div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div>`;
+}
+function developHead(eyebrow,title,description){
+  return `<header class="command-heading"><div><span class="command-edition">STORY DEPARTMENT / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">${eyebrow}</span><h1>${title}</h1><p>${description}</p></div>${developWeekBadge()}</header>`;
+}
+function developPanel(eyebrow,title,description,content,action){
+  return `<section class="develop-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${action||""}</div>${content}</section>`;
+}
+/* A single numbered section switcher replaces the pixel-icon pill strip and
+   the duplicated mobile sub-tab bar. */
+function commandDevelopNav(){
+  const active = DEVELOP_SECTIONS.some(s=>s[0]===DEVELOP_SUB) ? DEVELOP_SUB : "scripts";
+  return `<nav class="command-section-nav command-develop-nav" aria-label="Story department sections">
+    <div class="command-nav-brand"><span>STORY DEPARTMENT</span><small>WRITE / RIGHTS / CAST / SHOOT</small></div>
+    <div class="command-nav-items">${DEVELOP_SECTIONS.map(([key,label],i)=>`<button data-devsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div>
+    <div class="command-nav-tools"><button id="btnOpenAgencyPackaging" aria-label="Agency packaging desk"><small>TOOL / TALENT</small><span>Agency packaging</span></button><button id="btnOpenContracts" aria-label="Picture partners and multi-picture contracts"><small>TOOL / CONTRACTS</small><span>Picture partners</span></button><button id="btnOpenTalentAgency" aria-label="Talent agency ownership"><small>TOOL / AGENCY</small><span>Talent agency</span></button></div>
+  </nav>`;
+}
+
 function viewDevelop(){
-  if(!DEVELOP_SUB) DEVELOP_SUB="scripts";
-  const DEV_TABS=[
-    ["scripts","Scripts","assets/bos2-icons/general/writer.png"],
-    ["demographics","Demographics &amp; Dial Tests","assets/bos2-icons/general/icons8-audience-100.png"],
-    ["creativity","Lenses &amp; Remake Vault","assets/2d/char_cameraman.png"],
-    ["ip","IP Market","assets/bos2-icons/logos/icons8-diamond-100.png"],
-    ["talent","Talent Business","assets/bos2-icons/general/group.png"],
-    ["combos","Combos Codex","assets/itch-ui/icons/Icon_03.png"],
-    ["tax","Tax Rebates &amp; Co-Pro","assets/bos2-icons/general/icons8-map-marker-90.png"]
-  ];
-  let h="<div class='subnav-pills'>"+
-    DEV_TABS.map(x=>"<button class='subnav-pill "+(DEVELOP_SUB===x[0]?"active":"")+"' data-devsub='"+x[0]+"'><img class='subtab-pixel-icon' src='"+x[2]+"' alt='' /><span>"+x[1]+"</span></button>").join("")+
-    "<button class='subnav-pill' id='btnOpenAgencyPackaging'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Agency Packaging</span></button>"+
-    "<button class='subnav-pill' id='btnOpenContracts'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_04.png' alt='' /><span>Multi-Pic Contracts</span></button>"+
-    "<button class='subnav-pill' id='btnOpenTalentAgency'><img class='subtab-pixel-icon' src='assets/2d/char_star_actor.png' alt='' /><span>Talent Agency</span></button>"+
-    "<button class='subnav-pill' id='btnClashAnalytics'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_06.png' alt='' /><span>Clash Radar</span></button>"+
-  "</div>";
-  if(DEVELOP_SUB==="demographics"){
-    let dH = h;
-    if(typeof DemographicsEngine !== "undefined" && typeof DemographicsEngine.renderDemographicsSection === "function"){
-      dH += DemographicsEngine.renderDemographicsSection();
-    }
-    return dH;
-  }
-  if(DEVELOP_SUB==="creativity"){
-    let cH = h;
-    if(typeof ProductionCreativity !== "undefined" && typeof ProductionCreativity.renderProductionCreativitySection === "function"){
-      cH += ProductionCreativity.renderProductionCreativitySection();
-    }
-    return cH;
-  }
-  if(DEVELOP_SUB==="combos") return h+viewCombosCodex();
-  if(DEVELOP_SUB==="ip") return h+viewDevelopIP();
-  if(DEVELOP_SUB==="talent") return h+viewDevelopTalent();
-  if(DEVELOP_SUB==="tax"){
-    let txH = h;
-    if(typeof FilmLocationsTax !== "undefined"){
-      if(typeof FilmLocationsTax.renderLocationsSection === "function") txH += FilmLocationsTax.renderLocationsSection();
-      if(typeof FilmLocationsTax.renderAnimalsSection === "function") txH += FilmLocationsTax.renderAnimalsSection();
-      if(typeof FilmLocationsTax.renderWardrobeSection === "function") txH += FilmLocationsTax.renderWardrobeSection();
-    }
-    if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderProductPlacementSection === "function"){
-      txH += StudioOperationsSuite.renderProductPlacementSection();
-    }
-    if(typeof LiveOpsCoPro !== "undefined" && typeof LiveOpsCoPro.renderCoProductionSection === "function"){
-      txH += LiveOpsCoPro.renderCoProductionSection();
-    }
-    return txH;
-  }
-  try{ if(typeof trendBoard==="function") h+=trendBoard(); }catch(e){}
-  try{ if(typeof seasonCorridorHeatmap==="function") h+=seasonCorridorHeatmap(); }catch(e){}
-  try{ if(typeof marketReport==="function") h+=marketReport(); }catch(e){}
-  // new faces (main)
-  try{
-    const cls=(G.talent||[]).filter(t=>t.cls===yearOf(G.week));
-    if(cls.length) h+="<div class='card' style='border-left:3px solid var(--green)'><b>🌟 New Faces of Year "+yearOf(G.week)+"</b><div class='tiny muted'>"+cls.slice(0,5).map(x=>esc(x.name)+" ("+x.power+"★)").join(" · ")+"</div></div>";
-  }catch(e){}
-  h+="<div class='spread'><div class='section-title' style='margin:0'>Script market</div>"+
-     "<button class='btn btn-sm' id='btnPitchSeries'>Pitch a Series</button>"+
-     "<button class='btn btn-sm' id='btnPitchFilm' style='margin-left:8px'>Pitch a Film</button>"+
-     "<button class='btn btn-sm btn-alt' id='btnBowShorts' style='margin-left:8px'>BOW Shorts</button>"+
-     "<button class='btn btn-sm btn-alt' id='btnFestivalPr' style='margin-left:8px'>Festivals &amp; PR</button>"+
-     "<button class='btn btn-sm btn-alt' id='btnClashAnalytics' style='margin-left:8px'>Clash Analytics</button>"+
-     "<button class='btn btn-sm' id='btnAIPitch' style='margin-left:8px'>AI Pitch</button>"+
-     "<button class='btn btn-sm' id='btnStarSign' style='margin-left:8px'>New superstar</button>"+
-     "<button class='btn btn-sm btn-alt' id='btnCustomCreator' style='margin-left:8px'>Custom Creator</button></div>";
-  h+="<div class='row' style='margin:10px 0 6px;gap:6px;flex-wrap:wrap'><span class='small muted' style='align-self:center'>Filter:</span>"+
-    "<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER==="all"?"btn-primary":"")+"' data-filter-genre='all'>All genres</button>"+
-    Object.keys(DATA.GENRES).map(gk=>"<button class='btn btn-xs "+(SCRIPT_GENRE_FILTER===gk?"btn-primary":"")+"' data-filter-genre='"+gk+"'>"+DATA.GENRES[gk].emoji+" "+DATA.GENRES[gk].name+"</button>").join("")+
-  "</div>";
-  const ideasToShow = (SCRIPT_GENRE_FILTER==="all") ? G.ideas : (G.ideas||[]).filter(i=>i.genre===SCRIPT_GENRE_FILTER);
-  h+="<div class='grid g2' style='margin-top:8px'>";
-  for(const i of ideasToShow){
-    const S=DATA.SCALES[i.scale];
-    const tl=(typeof trendLabel==="function")? trendLabel(i.genre) : {tag:"",cls:""};
-    const tVal=(typeof trendOf==="function")? trendOf(i.genre) : 1;
-    const trendV=tVal.toFixed(2);
-    const timingTag = tVal >= 1.07 ? "<span class='tag green'>🔥 Hot timing (+"+Math.round((tVal-1)*100)+"% open)</span>" : tVal <= 0.94 ? "<span class='tag red'>❄ Counter-cyclical (cold)</span>" : "<span class='tag'>⚖ Steady cycle</span>";
-    h+="<div class='card idea-card'><div class='spread'><h4>"+(DATA.GENRES[i.genre]?DATA.GENRES[i.genre].emoji:"🎬")+" "+esc(i.title)+"</h4>"+
-      (i.hot?"<span class='tag red'>🔥 Hot spec</span>":"")+(i.awareness?"<span class='tag purple'>📚 known IP</span>":"")+(i.crossover?"<span class='tag gold'>💥 crossover</span>":"")+"</div>"+
-      "<div class='idea-blurb'>“"+esc(i.blurb)+"”</div>"+
-      "<div class='idea-meta'>"+gTag(i.genre)+"<span class='tag'>"+S.emoji+" "+S.name+"</span>"+
-      "<span class='tag "+(i.script>=75?"green":i.script>=60?"gold":"")+"'>📝 Script "+i.script+"</span>"+
-      (tl.tag?"<span class='tag "+tl.cls+"'>"+tl.tag+" "+trendV+"×</span>":"")+
-      timingTag+
-      (i.awareness?"<span class='tag blue'>👁 awareness +"+Math.round(i.awareness*100)+"%</span>":"")+"</div>"+
-      "<div class='row' style='margin-top:10px'><span class='small muted'>Est. budget "+fmtM(neededBudget(i.genre,i.scale))+" · dev rights "+fmtM(devCostOf(i))+"</span></div>"+
-      (i.pitch?"<div class='row' style='margin-top:6px'><span class='tag gold'>🎤 pitched "+i.pitch.score+" · "+esc(i.pitch.verdict)+"</span></div>":"")+
-      "<div class='row' style='margin-top:10px'><button class='btn btn-alt' style='flex:1' data-pitch='"+i.id+"'>🎤 Pitch</button>"+
-      "<button class='btn btn-primary' style='flex:2' data-dev='"+i.id+"'>🎬 Develop this</button></div></div>";
-  }
-  h+="</div>";
-  // IP market (main)
-  try{
-    if(G.ipMarket && G.ipMarket.length){
-      h+="<div class='section-title'>📚 IP Market</div><div class='grid g3'>";
-      (G.ipMarket||[]).forEach(it=>{
-        const k=(it.kind==="legacy")? {emoji:"🌍", name:"Legacy franchise — proven IP with a built-in fanbase"}
-              : (it.kind==="custom")? {emoji:"✨", name:"Custom franchise — your created IP"}
-              : (DATA.IPKINDS? DATA.IPKINDS.find(x=>x.id===it.kind) : null) || {emoji:"📚",name:it.kind};
-        h+="<div class='card"+(it.kind==="legacy"?" gold":"")+"'><div class='spread'><b>"+k.emoji+" "+esc(it.title)+"</b><span class='tag gold'>"+fmtM(it.price)+"</span></div>"+
-          "<div class='tiny muted'>"+esc(k.name||"")+" · "+gTag(it.genre)+" · script +"+it.boost+" · awareness +"+Math.round(it.buzz*100)+"%</div>"+
-          "<button class='btn btn-sm btn-primary' style='margin-top:8px' data-ip='"+it.id+"'>"+(it.kind==="legacy"?"Buy franchise rights":"Buy rights")+"</button></div>";
-      });
-      h+="</div>";
-    }
-  }catch(e){}
-  // talent business (main)
-  try{
-    h+="<div class='section-title'>🎫 Talent Business</div><div class='grid g3'>";
-    h+="<div class='card'><b>🎫 Wrap deal — $20M</b><div class='tiny muted' style='margin:4px 0 8px'>Next 3 pictures: all talent fees −20%.</div>"+
-      (G.wrapDeal>0? "<span class='tag green'>"+G.wrapDeal+" picture(s) left</span>" : "<button class='btn btn-sm btn-alt' id='btnWrap'>Sign wrap deal</button>")+"</div>";
-    h+="<div class='card'><b>🖋 Town-wide agency truce — $30M</b><div class='tiny muted' style='margin:4px 0 8px'>2 years of −15% on every quote, every agency.</div>"+
-      (G.agencyExcl>G.week? "<span class='tag green'>"+(G.agencyExcl-G.week)+" weeks left</span>" : "<button class='btn btn-sm btn-alt' id='btnAgency'>Sign truce</button>")+"</div>";
-    h+="<div class='card'><b>🌟 Cameos</b><div class='tiny muted'>While greenlighting, add a superstar cameo for 30% of their fee — +6% buzz.</div></div>";
-    h+="</div>";
-    /* v28: talent watchlist + long-term deals overview (mechanics study: REFERENCE-NOTES.md) */
-    const watch=(G.watchlist||[]).map(id=>(G.talent||[]).find(t=>t.id===id)).filter(Boolean);
-    const deals=(G.talent||[]).filter(t=>t.multiDeal);
-    if(watch.length || deals.length){
-      h+="<div class='section-title'>⭐ Watchlist &amp; 📜 Active Deals</div><div class='grid g2'>";
-      h+="<div class='card'><b class='small'>⭐ Watchlist</b>"+
-        (watch.length? watch.map(t=>"<div class='cost-line'><span><span class='link' style='cursor:pointer' onclick='talentModal("+t.id+")'>"+esc(t.name)+"</span></span><b class='tiny'>"+stars(t.power)+" · "+fmtM(actorFee(t))+"</b></div>").join("")
-        : "<div class='tiny muted'>Pin talent from their profile (☆ watch) to track them here.</div>")+"</div>";
-      h+="<div class='card'><b class='small'>📜 Active multi-film deals</b>"+
-        (deals.length? deals.map(t=>"<div class='cost-line'><span>"+esc(t.name)+"</span><b class='tiny'>"+t.multiDeal.left+" film(s) left · −25% fees</b></div>").join("")
-        : "<div class='tiny muted'>No long-term deals running. Sign a 3-film deal from any talent card.</div>")+"</div>";
-      h+="</div>";
-    }
-    /* v5: named talent agencies — packaging fees, exclusives, poaching wars */
-    if(DATA.AGENCIES){
-      h+="<div class='section-title'>🕴 The Agencies</div><div class='tiny muted' style='margin:-4px 0 6px'>Package two clients of the same agency in one film and they bill a packaging fee. An exclusive first-look deal waives their fee and cuts their clients' quotes.</div><div class='grid g3'>";
-      DATA.AGENCIES.forEach(function(ag){
-        const roster = (typeof agencyRoster==="function"? agencyRoster(ag.id) : []).filter(t=>!t.bookedUntil);
-        const power = roster.reduce((a,t)=>a+t.power,0);
-        const excl = G.agencyDeals && G.agencyDeals[ag.id]>G.week;
-        h+="<div class='card'><div class='spread'><b>"+ag.icon+" "+ag.name+"</b>"+(excl? "<span class='tag green'>exclusive · "+(G.agencyDeals[ag.id]-G.week)+" wks</span>":"")+"</div>"+
-          "<div class='tiny muted' style='margin:4px 0'>"+ag.blurb+"</div>"+
-          "<div class='tiny muted'>Free agents repped: "+roster.length+" · combined "+power+"★"+(G.agencyExcl>G.week?" · covered by your town-wide truce":"")+"</div>"+
-          (excl? "" : "<button class='btn btn-sm btn-alt' style='margin-top:8px' data-agdeal='"+ag.id+"'>Sign exclusive — "+fmtM(ag.dealCost)+" · "+Math.round(ag.dealWeeks/52)+" yrs · clients −"+Math.round(ag.disc*100)+"%</button>")+
-          "</div>";
-      });
-      h+="</div>";
-    }
-  }catch(e){}
-  // writers, producers, directors, cast (v4 + main)
-  try{
-    h+="<div class='spread' style='align-items:center;margin:16px 0 8px;flex-wrap:wrap;gap:8px'>"+
-       "<div class='section-title' style='margin:0'>TALENT ROSTER &amp; MARKET</div>"+
-       "<div style='display:flex;gap:6px;flex-wrap:wrap'>"+
-         "<button class='btn btn-xs' style='background:#f5c518;color:#0f172a;font-weight:bold' onclick='if(typeof unlockAllCast===\"function\"){unlockAllCast();render();}'>UNLOCK ALL CAST ("+(G.talent||[]).length+")</button>"+
-         (typeof openBOS2TalentModal === "function" ? "<button class='btn btn-xs btn-alt' onclick='openBOS2TalentModal()'>Animal Actors &amp; Market</button>" : "")+
-       "</div>"+
-     "</div>";
-    const freeA=(typeof freeTalent==="function"? freeTalent("actor") : G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil)).sort((a,b)=>b.power-a.power||b.skill-a.skill);
-    const freeD=(typeof freeTalent==="function"? freeTalent("director") : G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil)).sort((a,b)=>b.power-a.power||b.skill-a.skill);
-    const freeW=(typeof freeTalent==="function"? freeTalent("writer") : []).sort((a,b)=>b.skill-a.skill||b.power-a.power);
-    const freeP=(typeof freeTalent==="function"? freeTalent("producer") : []).sort((a,b)=>b.skill-a.skill||b.power-a.power);
-    if(freeW.length){
-      h+="<div class='section-title'>✍️ Writers on the market ("+freeW.length+")</div><div class='grid g3'>";
-      for(const w of freeW.slice(0,6)) h+=talentCard(w);
-      h+="</div>";
-    }
-    if(freeP.length){
-      h+="<div class='section-title'>🎫 Producers on the market ("+freeP.length+")</div><div class='grid g3'>";
-      for(const p of freeP.slice(0,6)) h+=talentCard(p);
-      h+="</div>";
-    }
-    /* v9: below-the-line crew — studio-wide DP / composer / VFX house */
-    if(typeof btlSeedIfMissing==="function"){
-      btlSeedIfMissing();
-      const roleMeta={dp:{icon:"🎥",name:"Cinematographer",eff:"audience +skill/25 on every film"},composer:{icon:"🎼",name:"Composer",eff:"critics +skill/22 (Oscar trait +2)"},vfx:{icon:"💫",name:"VFX house",eff:"audience +skill/30 on spectacle genres, overruns −8%"}};
-      h+="<div class='section-title'>🎥 Below-the-line crew <span class='tiny'>(studio-wide · weekly retainer)</span></div><div class='grid g3'>";
-      ["dp","composer","vfx"].forEach(r=>{
-        const meta=roleMeta[r], cur=G.btl[r];
-        h+="<div class='card'><b>"+meta.icon+" "+meta.name+"</b>";
-        if(cur){
-          h+="<div class='tiny muted' style='margin-top:4px'>✅ <b>"+esc(cur.name)+"</b> — "+esc(cur.trait)+" · skill "+cur.skill+" · "+fmtM(cur.salary)+"/wk</div>"+
-            "<div class='tiny' style='margin-top:2px'><span class='tag'>Lv "+levelOf(cur)+"</span> <span class='tag green'>effect ×"+lvlMult(cur).toFixed(2)+"</span> <span class='tiny muted'>"+(cur.xp||0)+" shipped films</span></div>"+
-            "<div class='tiny muted'>"+meta.eff+"</div>"+
-            "<button class='btn btn-sm btn-ghost' style='margin-top:6px' data-btlfire='"+r+"'>✕ Let go ("+fmtM(cur.salary*8)+" severance)</button>";
-        }else{
-          h+="<div class='tiny muted' style='margin-top:4px'>Slot empty — "+meta.eff+".</div>";
-          (G.btlMarket[r]||[]).forEach(c=>{
-            h+="<div class='bid-card' style='margin-top:6px'><div style='flex:1;min-width:0'><b class='small'>"+esc(c.name)+"</b>"+
-              "<div class='tiny muted'>"+esc(c.trait)+" · skill "+c.skill+"</div></div>"+
-              "<button class='btn btn-xs btn-primary' data-btlhire='"+r+":"+c.id+"'>Sign "+fmtM(c.fee)+"</button></div>";
-          });
-        }
-        h+="</div>";
-      });
-      h+="</div>";
-    }
-    h+="<div class='section-title'>🎬 Directors &amp; 🌟 cast</div><div class='grid g3'>";
-    for(const d of freeD.slice(0,6)) h+=talentCard(d);
-    h+="</div><div class='grid g3' style='margin-top:8px'>";
-    for(const a of freeA.slice(0,9)) h+=talentCard(a);
-    const hidden=freeA.length+freeD.length-15;
-    if(hidden>0)h+="<div class='card muted small' style='display:flex;align-items:center;justify-content:center'>+ "+hidden+" more on the market → refreshed weekly</div>";
-    h+="</div>";
-  }catch(e){}
-
-  if((G.retired||[]).length){
-    h+="<div class='section-title'>👋 Recently retired</div><div class='card'>";
-    G.retired.slice(-6).reverse().forEach(function(r){
-      h+="<div class='cost-line'><span>"+esc(r.name)+" <span class='tiny muted'>"+(r.kind||"")+"</span></span><b class='muted'>age "+r.age+" · "+dateLabel(r.week)+"</b></div>";
-    });
-    h+="</div>";
-  }
-  return h;
+  if(!DEVELOP_SECTIONS.some(s=>s[0]===DEVELOP_SUB)) DEVELOP_SUB="scripts";
+  if(DEVELOP_SUB==="demographics") return commandDevelopAudience();
+  if(DEVELOP_SUB==="creativity") return commandDevelopCraft();
+  if(DEVELOP_SUB==="ip") return commandDevelopRights();
+  if(DEVELOP_SUB==="talent") return commandDevelopTalent();
+  if(DEVELOP_SUB==="combos") return commandDevelopCombos();
+  if(DEVELOP_SUB==="tax") return commandDevelopLocations();
+  return commandDevelopScripts();
 }
 
-
-/* ── v28: Develop sub-tab helpers ── */
-function viewDevelopIP(){
-  let h="";
-  try{
-    if(G.ipMarket && G.ipMarket.length){
-      h+="<div class='section-title'>📚 IP Market</div><div class='grid g3'>";
-      (G.ipMarket||[]).forEach(it=>{
-        const k=(it.kind==="legacy")? {emoji:"🌍", name:"Legacy franchise — proven IP with a built-in fanbase"}
-              : (it.kind==="custom")? {emoji:"✨", name:"Custom franchise — your created IP"}
-              : (DATA.IPKINDS? DATA.IPKINDS.find(x=>x.id===it.kind) : null) || {emoji:"📚",name:it.kind};
-        h+="<div class='card"+(it.kind==="legacy"?" gold":"")+"'><div class='spread'><b>"+k.emoji+" "+esc(it.title)+"</b><span class='tag gold'>"+fmtM(it.price)+"</span></div>"+
-          "<div class='tiny muted'>"+esc(k.name||"")+" · "+gTag(it.genre)+" · script +"+it.boost+" · awareness +"+Math.round(it.buzz*100)+"%</div>"+
-          "<button class='btn btn-sm btn-primary' style='margin-top:8px' data-ip='"+it.id+"'>"+(it.kind==="legacy"?"Buy franchise rights":"Buy rights")+"</button></div>";
-      });
-      h+="</div>";
-    } else {
-      h+="<div class='card muted small'>No IP available this week. Check back next week.</div>";
-    }
-  }catch(e){}
-  return h;
+/* ── 01 / Scripts ─────────────────────────────────────────────────────── */
+function developScriptCard(i){
+  const S=DATA.SCALES?DATA.SCALES[i.scale]:null, G0=DATA.GENRES[i.genre];
+  const heat=developHeat(i.genre);
+  const tl=(typeof trendLabel==="function")?trendLabel(i.genre):{tag:"",cls:""};
+  let budget=0, dev=0;
+  try{ budget=neededBudget(i.genre,i.scale); }catch(e){}
+  try{ dev=devCostOf(i); }catch(e){}
+  const timing = heat>=1.07 ? "HOT TIMING" : heat<=0.94 ? "COLD CYCLE" : "STEADY";
+  return `<article class="develop-script">
+    <header><span>${G0?G0.emoji+" "+esc(G0.name):esc(i.genre)}</span><b>${S?esc(S.name):esc(i.scale)}</b></header>
+    <h3>${esc(i.title)}</h3>
+    <p class="develop-script-blurb">“${esc(i.blurb)}”</p>
+    <div class="develop-script-flags">${i.hot?'<span class="flag-hot">HOT SPEC</span>':""}${i.awareness?'<span class="flag-ip">KNOWN IP</span>':""}${i.crossover?'<span class="flag-crossover">CROSSOVER</span>':""}<span class="flag-timing ${heat>=1.07?"hot":heat<=0.94?"cold":""}">${timing}</span></div>
+    <dl class="develop-script-stats"><div><dt>Script</dt><dd>${i.script}</dd></div><div><dt>Trend</dt><dd>${heat.toFixed(2)}×</dd></div><div><dt>Budget</dt><dd>${fmtM(budget)}</dd></div><div><dt>Dev rights</dt><dd>${fmtM(dev)}</dd></div></dl>
+    ${i.pitch?`<p class="develop-script-pitch">Pitched ${i.pitch.score} · ${esc(i.pitch.verdict)}</p>`:""}
+    <footer><button class="develop-ghost" data-pitch="${i.id}">Pitch</button><button class="develop-action" data-dev="${i.id}">Develop this film</button></footer>
+  </article>`;
 }
-
-function viewDevelopTalent(){
-  let h="";
-  try{
-    // talent business
-    h+="<div class='section-title'>🎫 Talent Business</div><div class='grid g3'>";
-    h+="<div class='card'><b>🎫 Wrap deal — $20M</b><div class='tiny muted' style='margin:4px 0 8px'>Next 3 pictures: all talent fees −20%.</div>"+
-      (G.wrapDeal>0? "<span class='tag green'>"+G.wrapDeal+" picture(s) left</span>" : "<button class='btn btn-sm btn-alt' id='btnWrap'>Sign wrap deal</button>")+"</div>";
-    h+="<div class='card'><b>🖋 Town-wide agency truce — $30M</b><div class='tiny muted' style='margin:4px 0 8px'>2 years of −15% on every quote, every agency.</div>"+
-      (G.agencyExcl>G.week? "<span class='tag green'>"+(G.agencyExcl-G.week)+" weeks left</span>" : "<button class='btn btn-sm btn-alt' id='btnAgency'>Sign truce</button>")+"</div>";
-    h+="<div class='card'><b>🌟 Cameos</b><div class='tiny muted'>While greenlighting, add a superstar cameo for 30% of their fee — +6% buzz.</div></div>";
-    h+="</div>";
-    /* v28: talent watchlist + long-term deals overview */
-    const watch=(G.watchlist||[]).map(id=>(G.talent||[]).find(t=>t.id===id)).filter(Boolean);
-    const deals=(G.talent||[]).filter(t=>t.multiDeal);
-    if(watch.length || deals.length){
-      h+="<div class='section-title'>⭐ Watchlist & 📜 Active Deals</div><div class='grid g2'>";
-      h+="<div class='card'><b class='small'>⭐ Watchlist</b>"+
-        (watch.length? watch.map(t=>"<div class='cost-line'><span><span class='link' style='cursor:pointer' onclick='talentModal("+t.id+")'>"+esc(t.name)+"</span></span><b class='tiny'>"+stars(t.power)+" · "+fmtM(actorFee(t))+"</b></div>").join("")
-        : "<div class='tiny muted'>Pin talent from their profile (☆ watch) to track them here.</div>")+"</div>";
-      h+="<div class='card'><b class='small'>📜 Active multi-film deals</b>"+
-        (deals.length? deals.map(t=>"<div class='cost-line'><span>"+esc(t.name)+"</span><b class='tiny'>"+t.multiDeal.left+" film(s) left · −25% fees</b></div>").join("")
-        : "<div class='tiny muted'>No long-term deals running. Sign a 3-film deal from any talent card.</div>")+"</div>";
-      h+="</div>";
-    }
-    /* v5: named talent agencies */
-    if(DATA.AGENCIES){
-      h+="<div class='section-title'>🕴 The Agencies</div><div class='tiny muted' style='margin:-4px 0 6px'>Package two clients of the same agency in one film and they bill a packaging fee. An exclusive first-look deal waives their fee and cuts their clients' quotes.</div><div class='grid g3'>";
-      DATA.AGENCIES.forEach(function(ag){
-        const roster = (typeof agencyRoster==="function"? agencyRoster(ag.id) : []).filter(t=>!t.bookedUntil);
-        const power = roster.reduce((a,t)=>a+t.power,0);
-        const excl = G.agencyDeals && G.agencyDeals[ag.id]>G.week;
-        h+="<div class='card'><div class='spread'><b>"+ag.icon+" "+ag.name+"</b>"+(excl? "<span class='tag green'>exclusive · "+(G.agencyDeals[ag.id]-G.week)+" wks</span>":"")+"</div>"+
-          "<div class='tiny muted' style='margin:4px 0'>"+ag.blurb+"</div>"+
-          "<div class='tiny muted'>Free agents repped: "+roster.length+" · combined "+power+"★"+(G.agencyExcl>G.week?" · covered by your town-wide truce":"")+"</div>"+
-          (excl? "" : "<button class='btn btn-sm btn-alt' style='margin-top:8px' data-agdeal='"+ag.id+"'>Sign exclusive — "+fmtM(ag.dealCost)+" · "+Math.round(ag.dealWeeks/52)+" yrs · clients −"+Math.round(ag.disc*100)+"%</button>")+
-          "</div>";
-      });
-      h+="</div>";
-    }
-    // writers, producers, directors, cast
-    try{
-      const freeA=(typeof freeTalent==="function"? freeTalent("actor") : G.talent.filter(t=>t.kind==="actor"&&!t.bookedUntil)).sort((a,b)=>b.power-a.power||b.skill-a.skill);
-      const freeD=(typeof freeTalent==="function"? freeTalent("director") : G.talent.filter(t=>t.kind==="director"&&!t.bookedUntil)).sort((a,b)=>b.power-a.power||b.skill-a.skill);
-      const freeW=(typeof freeTalent==="function"? freeTalent("writer") : []).sort((a,b)=>b.skill-a.skill||b.power-a.power);
-      const freeP=(typeof freeTalent==="function"? freeTalent("producer") : []).sort((a,b)=>b.skill-a.skill||b.power-a.power);
-      if(freeW.length){
-        h+="<div class='section-title'>✍️ Writers on the market ("+freeW.length+")</div><div class='grid g3'>";
-        for(const w of freeW.slice(0,6)) h+=talentCard(w);
-        h+="</div>";
-      }
-      if(freeP.length){
-        h+="<div class='section-title'>🎫 Producers on the market ("+freeP.length+")</div><div class='grid g3'>";
-        for(const p of freeP.slice(0,6)) h+=talentCard(p);
-        h+="</div>";
-      }
-      /* v9: below-the-line crew */
-      if(typeof btlSeedIfMissing==="function"){
-        btlSeedIfMissing();
-        const roleMeta={dp:{icon:"🎥",name:"Cinematographer",eff:"audience +skill/25 on every film"},composer:{icon:"🎼",name:"Composer",eff:"critics +skill/22 (Oscar trait +2)"},vfx:{icon:"💫",name:"VFX house",eff:"audience +skill/30 on spectacle genres, overruns −8%"}};
-        h+="<div class='section-title'>🎥 Below-the-line crew <span class='tiny'>(studio-wide · weekly retainer)</span></div><div class='grid g3'>";
-        ["dp","composer","vfx"].forEach(r=>{
-          const meta=roleMeta[r], cur=G.btl[r];
-          h+="<div class='card'><b>"+meta.icon+" "+meta.name+"</b>";
-          if(cur){
-            h+="<div class='tiny muted' style='margin-top:4px'>✅ <b>"+esc(cur.name)+"</b> — "+esc(cur.trait)+" · skill "+cur.skill+" · "+fmtM(cur.salary)+"/wk</div>"+
-              "<div class='tiny' style='margin-top:2px'><span class='tag'>Lv "+levelOf(cur)+"</span> <span class='tag green'>effect ×"+lvlMult(cur).toFixed(2)+"</span> <span class='tiny muted'>"+(cur.xp||0)+" shipped films</span></div>"+
-              "<div class='tiny muted'>"+meta.eff+"</div>"+
-              "<button class='btn btn-sm btn-ghost' style='margin-top:6px' data-btlfire='"+r+"'>✕ Let go ("+fmtM(cur.salary*8)+" severance)</button>";
-          }else{
-            h+="<div class='tiny muted' style='margin-top:4px'>Slot empty — "+meta.eff+".</div>";
-            (G.btlMarket[r]||[]).forEach(c=>{
-              h+="<div class='bid-card' style='margin-top:6px'><div style='flex:1;min-width:0'><b class='small'>"+esc(c.name)+"</b>"+
-                "<div class='tiny muted'>"+esc(c.trait)+" · skill "+c.skill+"</div></div>"+
-                "<button class='btn btn-xs btn-primary' data-btlhire='"+r+":"+c.id+"'>Sign "+fmtM(c.fee)+"</button></div>";
-            });
-          }
-          h+="</div>";
-        });
-        h+="</div>";
-      }
-      h+="<div class='section-title'>🎬 Directors & 🌟 cast</div><div class='grid g3'>";
-      for(const d of freeD.slice(0,6)) h+=talentCard(d);
-      h+="</div><div class='grid g3' style='margin-top:8px'>";
-      for(const a of freeA.slice(0,9)) h+=talentCard(a);
-      const hidden=freeA.length+freeD.length-15;
-      if(hidden>0)h+="<div class='card muted small' style='display:flex;align-items:center;justify-content:center'>+ "+hidden+" more on the market → refreshed weekly</div>";
-      h+="</div>";
-    }catch(e){}
-    if((G.retired||[]).length){
-      h+="<div class='section-title'>👋 Recently retired</div><div class='card'>";
-      G.retired.slice(-6).reverse().forEach(function(r){
-        h+="<div class='cost-line'><span>"+esc(r.name)+" <span class='tiny muted'>"+(r.kind||"")+"</span></span><b class='muted'>age "+r.age+" · "+dateLabel(r.week)+"</b></div>";
-      });
-      h+="</div>";
-    }
-  }catch(e){}
-  return h;
+function developGenreFilterBar(){
+  return `<div class="develop-filters" role="group" aria-label="Filter scripts by genre"><button data-filter-genre="all" class="${SCRIPT_GENRE_FILTER==="all"?"active":""}" aria-pressed="${SCRIPT_GENRE_FILTER==="all"}">All genres</button>${Object.keys(DATA.GENRES).map(gk=>`<button data-filter-genre="${gk}" class="${SCRIPT_GENRE_FILTER===gk?"active":""}" aria-pressed="${SCRIPT_GENRE_FILTER===gk}">${esc(DATA.GENRES[gk].name)}</button>`).join("")}</div>`;
 }
-
-function viewCombosCodex(){
-  let h="<div class='section-title'>🧩 Combos Codex</div>"+
-    "<div class='tiny muted' style='margin-bottom:8px'>Discover hidden genre × theme affinities by releasing films. ⭐ = Great match (+5 quality, +8% opening). ✖ = Clash (−4 quality).</div>";
-  const known = G.comboKnown || {};
-  const themes = DATA.THEMES || [];
-  const genres = Object.keys(DATA.GENRES || {});
-  let discovered = 0;
-  for(const g of genres) for(const th of themes){ const k=g+"|"+th.id; if(known[k]) discovered++; }
-  h+="<div class='card'><div class='spread'><b>Progress</b><span class='tag gold'>"+discovered+" / "+(genres.length*themes.length)+" combos discovered</span></div>"+
-    "<div style='height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-top:4px'><div style='height:100%;width:"+(discovered/(genres.length*themes.length)*100)+"%;background:var(--gold);transition:width .5s'></div></div></div>";
-  h+="<div class='grid g4' style='margin-top:8px'>";
-  for(const g of genres){
-    for(const th of themes){
-      const k=g+"|"+th.id, mood=known[k];
-      const cls = mood==="love"?"pos":mood==="clash"?"neg":"muted";
-      const icon = mood==="love"?"⭐":mood==="clash"?"✖":"?";
-      h+="<div class='card "+cls+"' style='text-align:center;padding:12px 6px'><div class='tiny'>"+DATA.GENRES[g].emoji+" "+DATA.GENRES[g].name+" × "+th.emoji+" "+th.name+"</div>"+
-        "<div class='small "+cls+"' style='margin-top:4px;font-size:18px'>"+icon+"</div>"+
-        (mood==="love"?"<div class='tiny pos'>+5 quality, +8% opening</div>":
-         mood==="clash"?"<div class='tiny neg'>−4 quality</div>":
-         "<div class='tiny muted'>Unknown — ship a film to discover</div>")+"</div>";
-    }
+function developSnapshot(){
+  const rows=developMarketRows();
+  const hot=rows.filter(r=>r.heat>=1.07).slice(0,3);
+  const cold=rows.filter(r=>r.heat<=0.94).slice(-2).reverse();
+  const season=DATA.seasonOf(woyOf(G.week));
+  const top=rows[0], low=rows[rows.length-1];
+  return `<section class="develop-snapshot">
+    <header><span class="command-eyebrow">MARKET SNAPSHOT</span><h2>What the town is buying</h2><p>${esc(season.month)} corridor ×${season.season.toFixed(2)}${season.holiday?" · holiday legs":""}</p></header>
+    ${hot.length?hot.map(r=>`<div class="develop-snapshot-row"><span>${DATA.GENRES[r.g].emoji} ${esc(DATA.GENRES[r.g].name)}</span><i><b style="width:${clamp((r.heat-0.78)/(1.28-0.78)*100,4,100)}%"></b></i><strong>${r.heat.toFixed(2)}×</strong></div>`).join(""):`<div class="develop-snapshot-empty">No genre is running above 1.07× this week.</div>`}
+    <div class="develop-snapshot-divider"><span>COOLING</span></div>
+    ${cold.length?cold.map(r=>`<div class="develop-snapshot-row cold"><span>${DATA.GENRES[r.g].emoji} ${esc(DATA.GENRES[r.g].name)}</span><i><b style="width:${clamp((r.heat-0.78)/(1.28-0.78)*100,4,100)}%"></b></i><strong>${r.heat.toFixed(2)}×</strong></div>`).join(""):`<div class="develop-snapshot-empty">Nothing is under 0.94× right now.</div>`}
+    <footer><small>Hottest ${top?esc(DATA.GENRES[top.g].name):"—"} · coldest ${low?esc(DATA.GENRES[low.g].name):"—"}</small><button class="develop-link" onclick="document.getElementById('developTrends')?.scrollIntoView({block:'start'})">Genre board ↓</button></footer>
+  </section>`;
+}
+function developRightsRail(){
+  const items=(G.ipMarket||[]).slice(0,4);
+  const body=items.length? `<div class="develop-rights">${items.map(it=>{
+    const kind=(it.kind==="legacy")?"Legacy franchise":(it.kind==="custom")?"Your own IP":((DATA.IPKINDS&&DATA.IPKINDS.find(x=>x.id===it.kind))||{}).name||it.kind;
+    return `<article><header><span>${esc(kind)}</span><b>${fmtM(it.price)}</b></header><h3>${esc(it.title)}</h3><p>${DATA.GENRES[it.genre]?esc(DATA.GENRES[it.genre].name):esc(it.genre)} · script +${it.boost} · awareness +${Math.round(it.buzz*100)}%</p><button class="develop-action" data-ip="${it.id}">Buy rights</button></article>`;
+  }).join("")}</div>` : `<div class="command-empty"><b>No rights listed this week.</b><small>The literary market rotates every week. Check back after the next advance.</small></div>`;
+  return developPanel("ON THE DESK","Rights you could own","Adapt a book, a classic, or your own catalogue instead of starting from a blank page.",body,`<button class="develop-ghost" data-devsub="ip">Full rights market ↗</button>`);
+}
+function developTrendBoard(){
+  const rows=developMarketRows();
+  const max=rows.reduce((m,r)=>Math.max(m,r.heat),1.28);
+  return `<section class="develop-panel" id="developTrends"><div class="develop-panel-head"><div><span class="command-eyebrow">GENRE HEAT</span><h2>The genre board</h2><p>Heat multiplies opening weekend and streaming appetite. It re-rates every quarter; hits warm a genre, flops cool it.</p></div><span class="develop-stamp">RE-RATES IN ${Math.max(0,(G.trendShiftAt||G.week)-G.week)} WK</span></div>
+  <div class="develop-trends">${rows.map(r=>{const G0=DATA.GENRES[r.g];const cls=r.heat>=1.07?"hot":r.heat<=0.94?"cold":"mid";const next=(1+(r.heat-1)*0.72).toFixed(2);return `<div class="develop-trend ${cls}"><span class="develop-trend-name">${G0.emoji} ${esc(G0.name)}</span><i><b style="width:${clamp(r.heat/max*100,4,100)}%"></b></i><span class="develop-trend-value">${r.heat.toFixed(2)}×</span><span class="develop-trend-next">next ~${next}×</span></div>`}).join("")}</div></section>`;
+}
+function developMarketTable(){
+  const rows=developMarketRows();
+  return `<section class="develop-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">52-WEEK READ</span><h2>Genre intelligence</h2><p>Your own runs and rival slates, measured against the current corridor.</p></div></div>
+  <div class="develop-table-wrap"><table class="develop-table"><thead><tr><th scope="col">Genre</th><th scope="col">Heat</th><th scope="col">Quarter Δ</th><th scope="col">Your runs (52w)</th><th scope="col">Rivals dated (12w)</th><th scope="col">Verdict</th></tr></thead><tbody>${rows.map(r=>{const G0=DATA.GENRES[r.g];const cls=r.heat>=1.07?"good":r.heat<=0.94?"bad":"mid";return `<tr><th scope="row">${G0.emoji} ${esc(G0.name)}</th><td><b class="${cls}">${r.heat.toFixed(2)}×</b></td><td>${r.delta>0?"+":""}${r.delta.toFixed(2)}</td><td>${r.rec.n?`${r.rec.hits} hits · ${r.rec.flops} flops · ${r.rec.n} runs`:"no runs yet"}</td><td>${r.comp.live?r.comp.live+" live · ":""}${r.comp.soon} dated</td><td>${esc(genreOpp(r.g,r.heat,r.delta,r.rec,r.comp))}</td></tr>`}).join("")}</tbody></table></div></section>`;
+}
+function developSeasonStrip(){
+  if(!DATA.seasonOf) return "";
+  let cells="";
+  for(let w=1;w<=52;w++){
+    const s=DATA.seasonOf(w);
+    const cls=s.season>=1.15?"hot":s.season<=0.9?"cold":"mid";
+    const now=(woyOf(G.week)===w)?" now":"";
+    cells+=`<span class="develop-season-cell ${cls}${now}" title="Week ${w} · ${esc(s.month)} · corridor ×${s.season.toFixed(2)}${s.holiday?" (holiday legs)":""}">${w}</span>`;
   }
-  h+="</div>";
-  return h;
+  return `<section class="develop-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">RELEASE CORRIDOR</span><h2>Where the year is soft</h2><p>Seasonal demand by release week. Tentpoles open best in the gold corridor; platform plays survive the dead zone.</p></div></div><div class="develop-season">${cells}</div><footer class="develop-season-key"><span><i class="hot"></i>Prime ×1.15+</span><span><i class="mid"></i>Neutral</span><span><i class="cold"></i>Dead zone ≤×0.90</span><span class="develop-season-now">This week is outlined</span></footer></section>`;
+}
+function commandDevelopScripts(){
+  const ideas=G.ideas||[];
+  const rows=developMarketRows();
+  const writers=(typeof freeTalent==="function")?freeTalent("writer").length:0;
+  const weeksLeft=Math.max(0,(G.trendShiftAt||G.week)-G.week);
+  const filtered=(SCRIPT_GENRE_FILTER==="all")?ideas:ideas.filter(i=>i.genre===SCRIPT_GENRE_FILTER);
+  const top=rows[0], hottest=top&&top.heat>=1.07?top:null;
+  const inSlate=(G.projects||[]).filter(p=>!p.released).length;
+  return `<section class="command-deck command-develop">
+    ${developHead("01 / SCRIPTS","Put a story into development.",`${esc(G.studio.name)} · ${inSlate} project(s) in the slate · ${ideas.length} draft(s) on the desk`)}
+    <div class="command-telemetry">${commandMetric("DRAFTS ON THE DESK",ideas.length,"Specs ready to develop")}${commandMetric("WRITERS AVAILABLE",writers,"Free to take an assignment")}${commandMetric("HOTTEST GENRE",hottest?`${esc(DATA.GENRES[hottest.g].name)} · ${hottest.heat.toFixed(2)}×`:"No genre above 1.07×",hottest?"Develop into the heat":"Wait for a warmer cycle")}${commandMetric("MARKET RE-RATES",weeksLeft+" wk"+(weeksLeft===1?"":"s"),"Heat rotates every quarter")}</div>
+    <div class="develop-lead">
+      <section class="develop-brief">
+        <span class="command-eyebrow">YOUR NEXT GREENLIGHT</span>
+        <h2>${hottest?`${esc(DATA.GENRES[hottest.g].name)} is running at ${hottest.heat.toFixed(2)}×.`:`The market is flat this week.`}</h2>
+        <p>${ideas.length?`Pick a spec, pitch it to the board, or greenlight it straight into development. A writer adds up to +11 to the script; a director shapes the tone.`:`Your desk is empty. Pitch a new film or buy rights to refill the development slate.`}</p>
+        <div class="develop-brief-actions"><button class="develop-action" id="btnPitchFilm">Pitch a film <span>↗</span></button><button class="develop-ghost" id="btnPitchSeries">Pitch a series</button></div>
+        <footer><span>ON THE DESK</span><b>${ideas.length} draft(s) · ${writers} writer(s) free</b><small>${filtered.length} matches your genre filter · ${inSlate} project(s) already in the slate</small></footer>
+      </section>
+      ${developSnapshot()}
+    </div>
+    <nav class="develop-tools" aria-label="Development tools">
+      <button id="btnAIPitch"><small>SYNTH SCRIBE</small><span>AI pitch</span></button>
+      <button id="btnStarSign"><small>CASTING</small><span>Create a superstar</span></button>
+      <button id="btnCustomCreator"><small>WORLD BUILDING</small><span>Custom creator</span></button>
+      <button id="btnBowShorts"><small>SHORT FORM</small><span>BOW Shorts</span></button>
+      <button id="btnFestivalPr"><small>PUBLICITY</small><span>Festivals &amp; PR</span></button>
+      <button id="btnClashAnalytics"><small>RELEASE PLANNING</small><span>Clash radar</span></button>
+    </nav>
+    <section class="develop-panel">
+      <div class="develop-panel-head"><div><span class="command-eyebrow">SCRIPT MARKET</span><h2>Specs on the desk</h2><p>Each draft carries its own script score, scale, and dev price. Trend timing is checked against the live market.</p></div><span class="develop-stamp">${filtered.length} / ${ideas.length} SHOWN</span></div>
+      ${developGenreFilterBar()}
+      ${filtered.length?`<div class="develop-scripts">${filtered.map(developScriptCard).join("")}</div>`:`<div class="command-empty"><b>No specs match this filter.</b><small>Reset the filter, or pitch a new film to put something back on the desk.</small><button class="develop-ghost" onclick="SCRIPT_GENRE_FILTER='all';render();">Show all genres</button></div>`}
+    </section>
+    ${developRightsRail()}
+    ${developTrendBoard()}
+    ${developMarketTable()}
+    ${developSeasonStrip()}
+  </section>`;
+}
+
+/* ── 02 / Audience lab ────────────────────────────────────────────────── */
+function commandDevelopAudience(){
+  try{ if(typeof DemographicsEngine!=="undefined"&&typeof DemographicsEngine.initDemographics==="function") DemographicsEngine.initDemographics(G); }catch(e){}
+  const last=(G.demographicEngine&&G.demographicEngine.lastScreeningResult)||null;
+  const quadrants=(typeof DemographicsEngine!=="undefined"&&DemographicsEngine.AUDIENCE_QUADRANTS)||[];
+  const active=(G.projects||[]).filter(p=>!p.released);
+  const best=quadrants.length&&last?quadrants.map(q=>({q,score:last.appeal[q.id]||0})).sort((a,b)=>b.score-a.score)[0]:null;
+  const quadCards=quadrants.length?quadrants.map(q=>{
+    const score=last?(last.appeal[q.id]||0):null;
+    const cls=score==null?"unscored":score>=70?"good":score>=45?"mid":"bad";
+    return `<article class="develop-quadrant ${cls}"><header><b>${esc(q.name)}</b><strong>${score==null?"—":score+"%"}</strong></header><i><b style="width:${score==null?0:clamp(score,0,100)}%"></b></i><p>${esc(q.desc||"")}</p></article>`;
+  }).join(""):`<div class="command-empty"><b>Audience model unavailable.</b><small>The demographics engine did not load.</small></div>`;
+  const dial=(last&&last.dialData&&last.dialData.length)?`<div class="develop-dial">${last.dialData.map(d=>`<div><b>${d.score}%</b><i style="height:${clamp(d.score,10,100)}%"></i><small>${esc(String(d.timestamp).split(" ")[0])}</small></div>`).join("")}</div>`:`<div class="command-empty"><b>No dial curve on file.</b><small>Run a screening to plot the minute-by-minute focus-group reaction.</small></div>`;
+  return `<section class="command-deck command-develop">
+    ${developHead("02 / AUDIENCE LAB","Test the film before the public does.",`Focus-group your active slate across four audience quadrants, then send in a script doctor if the third act sags.`)}
+    <div class="command-telemetry">${commandMetric("LAST SCREENED",last?esc(last.projectTitle):"None yet",last?"Most recent dial test":"Run your first test below")}${commandMetric("CRITICS SCORE",last?last.criticsScore+"%":"—",last&&last.certifiedFresh?"Certified fresh":"Awaiting a screening")}${commandMetric("AUDIENCE SCORE",last?last.audienceScore+"%":"—","Popcornmeter estimate")}${commandMetric("STRONGEST QUADRANT",best?esc(best.q.name):"—",best?best.score+"% affinity":"No dial data")}</div>
+    <div class="develop-lead">
+      <section class="develop-brief">
+        <span class="command-eyebrow">THE RESEARCH DESK</span>
+        <h2>${active.length?`${active.length} project(s) can be dial-tested.`:`Nothing to test yet.`}</h2>
+        <p>${active.length?"A dial test costs $0.35M per project. You get a critics and audience estimate, four quadrant scores, and the minute the room disengages.":"Greenlight a film first. Dial tests only run on unreleased projects in the slate."}</p>
+        <div class="develop-brief-actions"><button class="develop-action" id="btnOpenDemographicsModal" ${active.length?"":"disabled"}>Open the research desk <span>↗</span></button></div>
+        <footer><span>WHAT IT COSTS</span><b>$0.35M per screening</b><small>Tests, comparisons, and script doctors all sit behind this desk.</small></footer>
+      </section>
+      <section class="develop-panel develop-inline-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">LATEST RESULT</span><h2>${last?esc(last.projectTitle):"No screening on file"}</h2><p>${last?"Four quadrants, measured on your actual project.":"Every dial test you run is recorded here until the next one."}</p></div></div><div class="develop-quadrants">${quadCards}</div></section>
+    </div>
+    ${developPanel("MINUTE BY MINUTE","Focus-group dial curve",last?"Where the room leaned in, and where it drifted.":"Run a screening to build the curve.","<div class=\"develop-dial-wrap\">"+dial+"</div>")}
+    ${developPanel("HOW THE DESK WORKS","Three calls you can make","",`<div class="develop-steps"><article><small>01</small><h3>Dial-test a cut</h3><p>Spend $0.35M on an unreleased project. Quadrant affinity is checked against its genre, cast, and quality.</p></article><article><small>02</small><h3>Read the room</h3><p>Critics and audience estimates flag whether the film is landing before you commit marketing money.</p></article><article><small>03</small><h3>Hire a script doctor</h3><p>Third-act pacing problems can be fixed on an active project from the research desk.</p></article></div>`)}
+  </section>`;
+}
+
+/* ── 03 / Craft & vault ───────────────────────────────────────────────── */
+function commandDevelopCraft(){
+  try{ if(typeof ProductionCreativity!=="undefined"&&typeof ProductionCreativity.initProductionCreativity==="function") ProductionCreativity.initProductionCreativity(G); }catch(e){}
+  const suite=G.productionSuite||{};
+  const level=suite.writersRoomLevel||1;
+  const staff=suite.writersRoomHired||level*2;
+  const sparks=(suite.directorSparksHistory||[]).length;
+  const remakes=(suite.remakeVaultHistory||[]).length;
+  const formats=(typeof ProductionCreativity!=="undefined"&&ProductionCreativity.CAMERA_LENS_FORMATS)||[];
+  const projects=(G.projects||[]).filter(p=>!p.released);
+  const upgradeCost=level*1.5;
+  const lensCards=formats.map(f=>`<article class="develop-lens"><header><b>${esc(f.name)}</b><span>${fmtM(f.costM)}</span></header><p>${esc(f.desc)}</p><footer><span>+${f.craftBonus} quality</span>${f.prestigeBonus?`<span>+${f.prestigeBonus} prestige</span>`:""}${f.speedBonusPct?`<span>+${Math.round(f.speedBonusPct*100)}% schedule</span>`:""}${f.indieBonus?`<span>+${f.indieBonus} indie</span>`:""}</footer></article>`).join("");
+  const projectRows=projects.length?projects.map(p=>{
+    const pid=esc(p.id!=null?p.id:p.title);
+    return `<div class="develop-fit"><div><small>${esc((p.genre||"film").toUpperCase())} / ${esc(p.phase||"development")}</small><b>${esc(p.title)}</b><span>${p.cameraFormatName?esc(p.cameraFormatName):"No lens rig fitted"}</span></div><select data-lens-for="${pid}" aria-label="Lens format for ${esc(p.title)}">${formats.map(f=>`<option value="${f.id}"${p.cameraFormat===f.id?" selected":""}>${esc(f.name)} · ${fmtM(f.costM)}</option>`).join("")}</select><button class="develop-action" data-fit-lens="${pid}">Fit lens</button><button class="develop-ghost" data-spark-lens="${pid}">Auteur spark</button></div>`;
+  }).join(""):`<div class="command-empty"><b>No active project to fit.</b><small>Lens rigs and auteur sparks attach to films already in your slate.</small></div>`;
+  return `<section class="command-deck command-develop">
+    ${developHead("03 / CRAFT &amp; VAULT","Give the film a look, and the room a voice.",`Lens formats, the permanent writers room, and the classics you can remake.`)}
+    <div class="command-telemetry">${commandMetric("WRITERS ROOM","Tier "+level,level>=5?"Maximum capacity":`Next tier ${fmtM(upgradeCost)}`)}${commandMetric("STAFF WRITERS",staff,"Permanent contract staff")}${commandMetric("AUTEUR SPARKS",sparks,"Logged creative detours")}${commandMetric("CLASSICS REMADE",remakes,"From your released catalogue")}</div>
+    <div class="develop-lead">
+      <section class="develop-brief">
+        <span class="command-eyebrow">THE WRITERS ROOM</span>
+        <h2>${level>=5?"Tier 5 · full quorum.":`Tier ${level} · room for ${staff} writers.`}</h2>
+        <p>Each tier keeps two more screenwriters on contract, generating spec work between productions. Expansion costs $1.5M per tier and tops out at Tier 5.</p>
+        <div class="develop-brief-actions">${level>=5?`<button class="develop-ghost" disabled>Maximum tier reached</button>`:`<button class="develop-action" id="btnExpandWritersRoom">Expand the room — ${fmtM(upgradeCost)}</button>`}<button class="develop-ghost" id="btnOpenRemakeVaultModal">Open the remake vault</button></div>
+        <footer><span>VAULT</span><b>${remakes} classic(s) remade</b><small>Remakes inherit nostalgia awareness from the original release.</small></footer>
+      </section>
+      <section class="develop-panel develop-inline-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">LENS LIBRARY</span><h2>Camera &amp; format</h2><p>Fitted per project in the panel below. Quality bonuses are applied to the film immediately.</p></div></div><div class="develop-lenses">${lensCards||'<div class="command-empty"><b>No lens formats available.</b><small>The creativity suite did not load.</small></div>'}</div></section>
+    </div>
+    ${developPanel("FIT TO A PROJECT","Lens rigs and auteur sparks","Fitting a lens debits the format cost and raises the film's quality. An auteur spark is a random on-set detour: real cash for real quality.",`<div class="develop-fits">${projectRows}</div>`)}
+  </section>`;
+}
+
+/* ── 04 / Rights market ───────────────────────────────────────────────── */
+function commandDevelopRights(){
+  const items=G.ipMarket||[];
+  const franchises=(G.franchises||[]).length;
+  const prices=items.map(i=>i.price);
+  const cheapest=prices.length?Math.min.apply(null,prices):0;
+  const boosts=items.map(i=>i.boost);
+  const bestBoost=boosts.length?Math.max.apply(null,boosts):0;
+  const cards=items.map(it=>{
+    const kind=(it.kind==="legacy")?{emoji:"🌍",name:"Legacy franchise — a proven fanbase"}:it.kind==="custom"?{emoji:"✨",name:"Custom IP — created in your sandbox"}:((DATA.IPKINDS&&DATA.IPKINDS.find(x=>x.id===it.kind))||{emoji:"📚",name:it.kind});
+    const affordable=G.studio.cash>=it.price;
+    return `<article class="develop-right${it.kind==="legacy"?" legacy":""}"><header><span>${kind.emoji} ${esc(kind.name)}</span><b>${fmtM(it.price)}</b></header><h3>${esc(it.title)}</h3><div class="develop-right-meta"><span>${DATA.GENRES[it.genre]?DATA.GENRES[it.genre].emoji+" "+esc(DATA.GENRES[it.genre].name):esc(it.genre)}</span><span>Script +${it.boost}</span><span>Awareness +${Math.round(it.buzz*100)}%</span></div><footer><small>${affordable?"Cash on hand covers this":"Short "+fmtM(it.price-G.studio.cash)+" of the asking price"}</small><button class="develop-action" data-ip="${it.id}" ${affordable?"":"disabled"}>${it.kind==="legacy"?"Buy franchise rights":"Buy rights"}</button></footer></article>`;
+  }).join("");
+  return `<section class="command-deck command-develop">
+    ${developHead("04 / RIGHTS MARKET","Own the story before someone else does.",`Public-domain classics, bestsellers, and franchise rights on the block this week.`)}
+    <div class="command-telemetry">${commandMetric("LISTINGS THIS WEEK",items.length,"Rotates every advance")}${commandMetric("CHEAPEST RIGHTS",items.length?fmtM(cheapest):"—","Entry price on the board")}${commandMetric("BEST SCRIPT BOOST",items.length?"+"+bestBoost:"—","Applied to the adaptation")}${commandMetric("FRANCHISES OWNED",franchises,"In your stable")}</div>
+    <div class="develop-lead">
+      <section class="develop-brief"><span class="command-eyebrow">HOW RIGHTS WORK</span><h2>Buy once, adapt at will.</h2><p>A regular rights purchase drops a ready-made idea on your desk with the book's title, genre, and awareness. A legacy or custom franchise purchase goes straight into your franchise stable instead — check Empire for the entries.</p><footer><span>YOUR CASH</span><b>${fmtM(G.studio.cash)}</b><small>Rights are paid from development spend.</small></footer></section>
+      <section class="develop-panel develop-inline-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">THE SHELF</span><h2>${items.length} title(s) on offer</h2><p>${items.length?"Prices and awareness change when the market refreshes.":"The market is empty right now."}</p></div></div>${items.length?`<div class="develop-rights compact">${cards}</div>`:`<div class="command-empty"><b>No rights this week.</b><small>Advance a week — the literary market restocks.</small></div>`}</section>
+    </div>
+    <p class="develop-note">Every purchase is logged to your development ledger and saved immediately. Existing saves keep their owned rights.</p>
+  </section>`;
+}
+
+/* ── 05 / Talent desk ─────────────────────────────────────────────────── */
+function commandDevelopTalent(){
+  const watch=(G.watchlist||[]).map(id=>(G.talent||[]).find(t=>t.id===id)).filter(Boolean);
+  const deals=(G.talent||[]).filter(t=>t.multiDeal);
+  const freeA=(typeof freeTalent==="function")?freeTalent("actor"):[];
+  const freeD=(typeof freeTalent==="function")?freeTalent("director"):[];
+  const freeW=(typeof freeTalent==="function")?freeTalent("writer"):[];
+  const freeP=(typeof freeTalent==="function")?freeTalent("producer"):[];
+  freeA.sort((a,b)=>b.power-a.power||b.skill-a.skill);
+  freeD.sort((a,b)=>b.power-a.power||b.skill-a.skill);
+  freeW.sort((a,b)=>b.skill-a.skill||b.power-a.power);
+  freeP.sort((a,b)=>b.skill-a.skill||b.power-a.power);
+  const agencies=(DATA.AGENCIES||[]).map(ag=>{
+    const roster=(typeof agencyRoster==="function"?agencyRoster(ag.id):[]).filter(t=>!t.bookedUntil);
+    const power=roster.reduce((a,t)=>a+t.power,0);
+    const excl=G.agencyDeals&&G.agencyDeals[ag.id]>G.week;
+    return `<article class="develop-agency"><header><b>${esc(ag.name)}</b>${excl?`<span class="develop-badge on">EXCLUSIVE · ${G.agencyDeals[ag.id]-G.week} WK</span>`:`<span class="develop-badge">${fmtM(ag.dealCost)}</span>`}</header><p>${esc(ag.blurb)}</p><dl><div><dt>Free clients</dt><dd>${roster.length}</dd></div><div><dt>Combined power</dt><dd>${power}★</dd></div><div><dt>Client discount</dt><dd>−${Math.round(ag.disc*100)}%</dd></div><div><dt>Packaging fee</dt><dd>${Math.round((ag.packFee||0)*100)}%</dd></div></dl>${excl?`<footer><span>First-look in force${G.agencyExcl>G.week?" · town truce covers the rest":""}</span></footer>`:`<footer><span>${G.agencyExcl>G.week?"Town truce already covers this roster":`${Math.round(ag.dealWeeks/52)}-year exclusive`}</span><button class="develop-action" data-agdeal="${ag.id}">Sign exclusive — ${fmtM(ag.dealCost)}</button></footer>`}</article>`;
+  }).join("");
+  const crewRoles=[["dp","Cinematographer","Audience +skill/25 on every film"],["composer","Composer","Critics +skill/22 · Oscar trait +2"],["vfx","VFX house","Audience +skill/30 on spectacle · overruns −8%"]];
+  let crew="";
+  if(typeof btlSeedIfMissing==="function"){
+    btlSeedIfMissing();
+    crew=crewRoles.map(([role,name,eff])=>{
+      const cur=G.btl?G.btl[role]:null;
+      if(cur){
+        return `<article class="develop-crew filled"><header><span>${esc(name)}</span><b>${esc(cur.name)}</b></header><p>${esc(cur.trait)} · skill ${cur.skill} · ${fmtM(cur.salary)}/wk</p><div class="develop-crew-meta"><span>LEVEL ${levelOf(cur)}</span><span>EFFECT ×${lvlMult(cur).toFixed(2)}</span><span>${cur.xp||0} SHIPPED</span></div><small>${esc(eff)}</small><footer><button class="develop-ghost" data-btlfire="${role}">Let go — ${fmtM(cur.salary*8)} severance</button></footer></article>`;
+      }
+      const market=(G.btlMarket&&G.btlMarket[role])||[];
+      return `<article class="develop-crew empty"><header><span>${esc(name)}</span><b>Open slot</b></header><p>${esc(eff)}</p>${market.slice(0,3).map(c=>`<div class="develop-crew-bid"><div><b>${esc(c.name)}</b><small>${esc(c.trait)} · skill ${c.skill}</small></div><button class="develop-action" data-btlhire="${role}:${c.id}">Sign ${fmtM(c.fee)}</button></div>`).join("")||`<small class="develop-muted">No candidates this week.</small>`}</article>`;
+    }).join("");
+  }
+  const watchList=`<div class="develop-watch"><article><header><span>WATCHLIST</span><b>${watch.length}</b></header>${watch.length?watch.map(t=>`<button class="develop-watch-row" onclick="talentModal(${t.id})"><span>${esc(t.name)}</span><small>${stars(t.power)} · ${fmtM(actorFee(t))}</small></button>`).join(""):`<p>Pin talent from any profile to track their quote here.</p>`}</article><article><header><span>MULTI-PICTURE DEALS</span><b>${deals.length}</b></header>${deals.length?deals.map(t=>`<button class="develop-watch-row" onclick="talentModal(${t.id})"><span>${esc(t.name)}</span><small>${t.multiDeal.left} film(s) left · −25%</small></button>`).join(""):`<p>No long-term deals running. Offer one from a talent profile or the picture-partner desk.</p>`}</article></div>`;
+  const roster=(title,list,cap)=>list.length?`<section class="develop-roster-block${/^CAST/.test(title)?" cast-block":""}"><div class="develop-roster-head"><span class="command-eyebrow">${title}</span><b>${list.length} AVAILABLE</b></div><div class="develop-roster">${list.slice(0,cap).map(talentCard).join("")}</div></section>`:"";
+  return `<section class="command-deck command-develop">
+    ${developHead("05 / TALENT DESK","People are the production.",`Negotiate blanket deals, sign exclusives, keep a crew under contract, and work the open market.`)}
+    <div class="command-telemetry">${commandMetric("WRITERS FREE",freeW.length,"Ready for assignment")}${commandMetric("DIRECTORS FREE",freeD.length,"Available to attach")}${commandMetric("CAST FREE",freeA.length,"Available for casting")}${commandMetric("DEALS RUNNING",deals.length,"Multi-picture agreements")}</div>
+    <section class="develop-deals">
+      <article class="develop-deal ${G.wrapDeal>0?"done":""}"><span class="command-eyebrow">TALENT FEES</span><h3>Wrap deal</h3><p>Next three pictures: every talent fee −20%.</p><b>${fmtM(20)}</b>${G.wrapDeal>0?`<footer><span class="develop-badge on">${G.wrapDeal} PICTURE(S) LEFT</span></footer>`:`<footer><button class="develop-action" id="btnWrap">Sign the deal</button></footer>`}</article>
+      <article class="develop-deal ${G.agencyExcl>G.week?"done":""}"><span class="command-eyebrow">AGENCY RELATIONS</span><h3>Town-wide truce</h3><p>Two years of −15% on every quote, every agency. Packaging fees pause.</p><b>${fmtM(30)}</b>${G.agencyExcl>G.week?`<footer><span class="develop-badge on">${G.agencyExcl-G.week} WEEKS LEFT</span></footer>`:`<footer><button class="develop-action" id="btnAgency">Sign the truce</button></footer>`}</article>
+      <article class="develop-deal"><span class="command-eyebrow">CASTING</span><h3>Superstar cameo</h3><p>While greenlighting, add a cameo for 30% of the star's fee: +6% buzz.</p><b>30%</b><footer><span class="develop-badge">OFFERED IN THE WIZARD</span></footer></article>
+    </section>
+    ${watchList}
+    ${developPanel("AGENCY ROWS","The three houses",`Package two clients of the same agency in one film and they bill a packaging fee. An exclusive waives it and cuts their clients' quotes.`,agencies?`<div class="develop-agencies">${agencies}</div>`:`<div class="command-empty"><b>No agencies loaded.</b><small>The talent market did not initialise.</small></div>`)}
+    ${developPanel("STUDIO-WIDE HIRES","Below-the-line crew",`Hired on a weekly retainer. Each one lifts every film you greenlight.`,crew?`<div class="develop-crew-grid">${crew}</div>`:`<div class="command-empty"><b>Crew market unavailable.</b><small>The crew system did not load.</small></div>`)}
+    ${roster("WRITERS ON THE MARKET",freeW,6)}${roster("PRODUCERS ON THE MARKET",freeP,6)}${roster("DIRECTORS ON THE MARKET",freeD,6)}${roster("CAST ON THE MARKET",freeA,9)}<div class="develop-roster-actions"><button class="develop-ghost" onclick="if(typeof openBOS2TalentModal==='function')openBOS2TalentModal();">Animal actors &amp; market</button><button class="develop-ghost" onclick="if(typeof unlockAllCast==='function'){unlockAllCast();render();}">Reveal every cast member (${(G.talent||[]).length})</button></div>
+    ${(G.retired||[]).length?developPanel("CAREERS THAT ENDED","Recently retired","",`<div class="develop-retired">${G.retired.slice(-8).reverse().map(r=>`<div><b>${esc(r.name)}</b><span>${esc(r.kind||"")} · age ${r.age||"—"} · ${esc(dateLabel?dateLabel(r.week):"")}</span></div>`).join("")}</div>`):""}
+  </section>`;
+}
+
+/* ── 06 / Combos codex ────────────────────────────────────────────────── */
+function commandDevelopCombos(){
+  const themes=DATA.THEMES||[], genres=Object.keys(DATA.GENRES||{});
+  const known=G.comboKnown||{};
+  let love=0,clash=0,unknown=0;
+  genres.forEach(g=>themes.forEach(th=>{const s=known[g+"|"+th.id];if(s==="love")love++;else if(s==="clash")clash++;else unknown++;}));
+  const total=genres.length*themes.length;
+  const filters=[["all","All",total],["love","Matches",love],["clash","Clashes",clash],["unknown","Undiscovered",unknown]];
+  const groups=genres.map(g=>{
+    const chips=themes.map(th=>({th,state:known[g+"|"+th.id]||"unknown"})).filter(c=>DEVELOP_COMBO_FILTER==="all"||c.state===DEVELOP_COMBO_FILTER);
+    if(!chips.length) return "";
+    return `<section class="develop-combo-genre"><header><span>${DATA.GENRES[g].emoji}</span><h3>${esc(DATA.GENRES[g].name)}</h3><b>${chips.length} / ${themes.length}</b></header><div class="develop-combo-chips">${chips.map(c=>`<span class="develop-combo ${c.state}" title="${esc(c.th.name)} — ${c.state==="love"?"great match (+5 quality, +8% opening)":c.state==="clash"?"clash (−4 quality)":"not yet discovered"}"><b>${c.th.emoji||"#"}</b><span>${esc(c.th.name)}</span><i>${c.state==="love"?"★":c.state==="clash"?"✕":"?"}</i></span>`).join("")}</div></section>`;
+  }).join("");
+  return `<section class="command-deck command-develop">
+    ${developHead("06 / COMBOS CODEX","Learn what your audience rewards.",`Genre × theme chemistry is discovered by releasing films. The codex records every pairing your studio has proved.`)}
+    <div class="command-telemetry">${commandMetric("DISCOVERED",love+clash+" / "+total,"Pairings on record")}${commandMetric("GREAT MATCHES",love,"+5 quality · +8% opening")}${commandMetric("CLASHES",clash,"−4 quality")}${commandMetric("UNDISCOVERED",unknown,"Ship a film to reveal")}</div>
+    <div class="develop-progress"><div><span style="width:${total?clamp((love+clash)/total*100,0,100):0}%"></span></div><small>${love+clash} of ${total} pairings discovered · ${Math.round(total?((love+clash)/total*100):0)}% of the codex</small></div>
+    <div class="develop-filters" role="group" aria-label="Filter combos">${filters.map(([k,label,n])=>`<button data-combo-filter="${k}" class="${DEVELOP_COMBO_FILTER===k?"active":""}" aria-pressed="${DEVELOP_COMBO_FILTER===k}">${label} <b>${n}</b></button>`).join("")}</div>
+    <div class="develop-combos">${groups||`<div class="command-empty"><b>Nothing matches this filter.</b><small>Switch back to “All” to see every pairing.</small></div>`}</div>
+  </section>`;
+}
+
+/* ── 07 / Locations & partners ────────────────────────────────────────── */
+function commandDevelopLocations(){
+  try{ if(typeof FilmLocationsTax!=="undefined"&&typeof FilmLocationsTax.initFilmLocationsTax==="function") FilmLocationsTax.initFilmLocationsTax(G); }catch(e){}
+  try{ if(typeof LiveOpsCoPro!=="undefined"&&typeof LiveOpsCoPro.initLiveOpsCoPro==="function") LiveOpsCoPro.initLiveOpsCoPro(G); }catch(e){}
+  const D=(typeof FilmLocationsTax!=="undefined"&&FilmLocationsTax.DESTINATIONS)||{};
+  const destinations=Object.keys(D).map(k=>D[k]);
+  const inProd=(G.projects||[]).filter(p=>["prod","pre","shoot","post"].includes(p.phase||""));
+  const best=destinations.reduce((m,d)=>Math.max(m,d.taxRebatePct||0),0);
+  const alliances=(typeof LiveOpsCoPro!=="undefined"&&LiveOpsCoPro.RIVAL_ALLIANCES)||[];
+  const sponsors=(typeof StudioOperationsSuite!=="undefined"&&StudioOperationsSuite.SPONSOR_TIERS)||[];
+  const animals=(typeof FilmLocationsTax!=="undefined"&&FilmLocationsTax.ANIMAL_TALENT)||{};
+  const wardrobe=(typeof FilmLocationsTax!=="undefined"&&FilmLocationsTax.WARDROBE_COLLECTIONS)||{};
+  const destCards=destinations.map(d=>`<article class="develop-destination"><header><b>${esc(d.name)}</b><span>${Math.round((d.taxRebatePct||0)*100)}% REBATE</span></header><p>${esc(d.desc||"")}</p><dl><div><dt>Region</dt><dd>${esc(d.region||"—")}</dd></div><div><dt>Travel cost</dt><dd>${fmtM(d.travelCost||0)}</dd></div></dl><footer>${inProd.length?`<small>Contract for “${esc(inProd[0].title)}”</small><button class="develop-action" data-dest-id="${d.id}">Contract location</button>`:`<small>No in-production title to attach</small><button class="develop-ghost" disabled>Awaiting a shoot</button>`}</footer></article>`).join("");
+  const animalCards=Object.keys(animals).map(k=>{const a=animals[k];return `<article class="develop-partner"><header><b>${esc(a.name)}</b><span>${esc(a.species||"")}</span></header><p>${esc(a.desc||"")}</p><footer><span>Handler ${fmtM(a.handlerFee||0)}</span><span>Family +${Math.round((a.bonusFamilyPull||0)*100)}%</span><span>Quality +${a.bonusQuality||0}</span></footer></article>`;}).join("");
+  const wardrobeCards=Object.keys(wardrobe).map(k=>{const w=wardrobe[k];return `<article class="develop-partner"><header><b>${esc(w.name)}</b><span>${fmtM(w.cost||0)}</span></header><p>${esc(w.desc||"")}</p><footer><span>Quality +${w.qualityBoost||0}</span><span>Costume odds +${Math.round((w.costumeAwardOdds||0)*100)}%</span></footer></article>`;}).join("");
+  return `<section class="command-deck command-develop">
+    ${developHead("07 / LOCATIONS &amp; PARTNERS","Where you shoot changes what you keep.",`Regional rebates, co-financing pacts, brand partners, and the creature and costume departments.`)}
+    <div class="command-telemetry">${commandMetric("DESTINATIONS",destinations.length,"Certified commissions")}${commandMetric("BEST REBATE",Math.round(best*100)+"%","Cash back after wrap")}${commandMetric("IN PRODUCTION",inProd.length,inProd.length?"Eligible for location deals":"No shoot to attach")}${commandMetric("CO-PRO PARTNERS",alliances.length,"Studios open to risk sharing")}</div>
+    <div class="develop-lead">
+      <section class="develop-brief"><span class="command-eyebrow">THE SHOOTING DECISION</span><h2>${inProd.length?`${esc(inProd[0].title)} can shoot on location.`:`No shoot in production.`}</h2><p>${inProd.length?"Pick a commission and the rebate is settled when the film wraps post-production. Travel costs are paid now; the rebate arrives later.":"Location contracts attach to films in pre-production, production, or post. Greenlight something first."}</p><footer><span>STUDIO CASH</span><b>${fmtM(G.studio.cash)}</b><small>Travel costs come out of overhead.</small></footer></section>
+      <section class="develop-panel develop-inline-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">RISK SHARING</span><h2>Who will co-finance</h2><p>Partners cover 40-50% of a production budget against backend box office.</p></div></div><div class="develop-alliances">${alliances.map(p=>`<article><header><b>${esc(p.name)}</b><span>${Math.round((p.costSharePct||0)*100)}%</span></header><p>${esc(p.desc||"")}</p><footer><span>Rep ${p.partnerRep||"—"}</span><span>Backend ${Math.round((p.revSharePct||0)*100)}%</span></footer></article>`).join("")||`<div class="command-empty"><b>No partners listed.</b><small>The co-production desk did not load.</small></div>`}<div class="develop-panel-actions"><button class="develop-action" id="btnDevelopCoPro">Manage co-production pacts</button><button class="develop-ghost" id="btnDevelopSponsors">Brand placement desk</button></div></div></section>
+    </div>
+    ${developPanel("REGIONAL COMMISSIONS","Filming destinations",`Rebates are paid on wrap. Travel cost is charged when the location is contracted.`,destCards?`<div class="develop-destinations">${destCards}</div>`:`<div class="command-empty"><b>No destinations available.</b><small>The location system did not load.</small></div>`)}
+    ${developPanel("COMMERCIAL PARTNERS","Brand placement tiers","Sponsor deals are negotiated per production and carry a critic-backlash risk.",sponsors.length?`<div class="develop-sponsors">${sponsors.map(sp=>`<article><header><b>${esc(sp.name)}</b><span>${fmtM(sp.cashAdvance||0)}</span></header><p>${esc(sp.desc||"")}</p><footer><span>${esc(sp.category||"")}</span><span>Backlash ${Math.round((sp.criticPenaltyRisk||0)*100)}%</span></footer></article>`).join("")}</div>`:`<div class="command-empty"><b>No sponsor tiers loaded.</b><small>The partnerships desk did not load.</small></div>`)}
+    <div class="develop-two-up">
+      ${developPanel("ANIMAL &amp; MASCOT ACTORS","Creature performers","Viral buzz and family-demographic multipliers on the production they join.",animalCards?`<div class="develop-partners">${animalCards}</div>`:`<div class="command-empty"><b>No animal talent listed.</b><small>The casting extension did not load.</small></div>`)}
+      ${developPanel("COSTUME HOUSE","Wardrobe collections","Quality and costume-award odds added to the production.",wardrobeCards?`<div class="develop-partners">${wardrobeCards}</div>`:`<div class="command-empty"><b>No collections listed.</b><small>The costume catalogue did not load.</small></div>`)}
+    </div>
+  </section>`;
 }
 
 /* Talent profile: career stage + derived history. Stage from engine age/power/heat;/* Talent profile: career stage + derived history. Stage from engine age/power/heat;
@@ -5341,6 +5281,7 @@ function bindView(){
     if(G.studio.cash<20){ toast("The wrap deal costs $20M.","bad"); return; }
     spend("studio",20); G.wrapDeal=3;
     log("🎫 Wrap deal signed (−$20M): all talent fees −20% on your next 3 pictures.","gold");
+    if(typeof saveGame==="function") saveGame();
     beep("gold"); flashes(G.flash); render();
   };
   const agb=$("#btnAgency");
@@ -5348,6 +5289,7 @@ function bindView(){
     if(G.studio.cash<30){ toast("The town-wide agency truce costs $30M.","bad"); return; }
     spend("studio",30); G.agencyExcl=G.week+104;
     log("🕴 You sign a town-wide truce with the agencies (−$30M): packaging fees pause while it lasts.","gold");
+    if(typeof saveGame==="function") saveGame();
     beep("gold"); flashes(G.flash); render();
   };
   $$("[data-agdeal]").forEach(b=>b.onclick=()=>{ if(signAgencyDeal(b.dataset.agdeal)){ beep("gold"); flashes(G.flash); } render(); });
@@ -5458,6 +5400,25 @@ function bindView(){
   $$("[data-dashsub]").forEach(b=>b.onclick=()=>{ DASHBOARD_SUB=b.dataset.dashsub; beep("click"); render(); });
   $$("[data-studiosub]").forEach(b=>b.onclick=()=>{ STUDIO_SUB=b.dataset.studiosub; beep("click"); render(); });
   $$("[data-devsub]").forEach(b=>b.onclick=()=>{ DEVELOP_SUB=b.dataset.devsub; beep("click"); render(); });
+  $$("[data-filter-genre]").forEach(b=>b.onclick=()=>{ SCRIPT_GENRE_FILTER=b.dataset.filterGenre; beep("click"); render(); });
+  $$("[data-combo-filter]").forEach(b=>b.onclick=()=>{ DEVELOP_COMBO_FILTER=b.dataset.comboFilter; beep("click"); render(); });
+  $$("[data-fit-lens]").forEach(b=>b.onclick=()=>{
+    const wrap=b.closest(".develop-fit"), sel=wrap?wrap.querySelector("select"):null;
+    if(!sel || typeof ProductionCreativity==="undefined" || typeof ProductionCreativity.applyCameraFormat!=="function") return;
+    const res=ProductionCreativity.applyCameraFormat(b.dataset.fitLens, sel.value, G);
+    if(res && res.ok){ if(typeof saveGame==="function") saveGame(); beep("gold"); flashes(G.flash); toast(res.msg,"good"); render(); }
+    else toast((res&&res.msg)||"That lens could not be fitted.","bad");
+  });
+  $$("[data-spark-lens]").forEach(b=>b.onclick=()=>{
+    if(typeof ProductionCreativity==="undefined" || typeof ProductionCreativity.triggerDirectorSpark!=="function") return;
+    const res=ProductionCreativity.triggerDirectorSpark(b.dataset.sparkLens, G);
+    if(res && res.ok){ if(typeof saveGame==="function") saveGame(); beep("gold"); flashes(G.flash); toast(res.msg,"good"); render(); }
+    else toast((res&&res.msg)||"No auteur spark available.","bad");
+  });
+  const coProDesk=$("#btnDevelopCoPro");
+  if(coProDesk) coProDesk.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderCoProductionModal==="function") LiveOpsCoPro.renderCoProductionModal(); };
+  const sponsorDesk=$("#btnDevelopSponsors");
+  if(sponsorDesk) sponsorDesk.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.renderProductPlacementModal==="function") StudioOperationsSuite.renderProductPlacementModal(); };
   $$("[data-bosub]").forEach(b=>b.onclick=()=>{ BOXOFFICE_SUB=b.dataset.bosub; beep("click"); render(); });
   $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
   $$("[data-libsub]").forEach(b=>b.onclick=()=>{ LIBRARY_SUB=b.dataset.libsub; beep("click"); render(); });
@@ -9045,25 +9006,6 @@ function applyCbCues(){
 applyCbCues();
 
 /* ── calendar genre heat overlay ── */
-function seasonCorridorHeatmap(){
-  if(!DATA.SEASONS) return "";
-  const rows=DATA.SEASONS;
-  let h="<div class='heat-wrap'>";
-  h+="<div class='heat-row heat-head'><span></span>";
-  for(const g of Object.keys(DATA.GENRES)) h+="<span class='heat-g'>"+DATA.GENRES[g].emoji+"</span>";
-  h+="</div>";
-  for(const r of rows){
-    h+="<div class='heat-row'><span class='heat-w'>"+r.name+"</span>";
-    for(const g of Object.keys(DATA.GENRES)){
-      const d=(r.demand||{})[g]||1;
-      const cls=d>=1.15?"h-hot":d>=1.05?"h-warm":d>=0.95?"h-mid":"h-cold";
-      h+="<span class='heat-cell "+cls+"' title='"+DATA.GENRES[g].name+": "+fmtNum(d,2)+"×'></span>";
-    }
-    h+="</div>";
-  }
-  return h+"</div>";
-}
-
 /* ── chemistry web SVG ── */
 function chemOf(a,b){
   if(!a||!b) return 0;

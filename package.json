@@ -1,6 +1,6 @@
 {
   "name": "box-office-war",
-  "version": "33.0.0",
+  "version": "33.1.0",
   "description": "A realistic movie-business simulation game that runs in any browser \u2014 phone, tablet, or PC. No installs, no dependencies, no server: pure HTML/CSS/JS, works offline (just open index.html).",
   "main": "data.js",
   "directories": {
@@ -42,7 +42,7 @@
     "test:start:layout": "node test/start-landscape-browser.cjs",
     "test:lot:hiring": "node test/lot-hiring-browser.cjs",
     "test:start:theme": "node test/start-theme-browser.cjs",
-    "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs"
+    "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs"
   },
   "keywords": [
     "game",

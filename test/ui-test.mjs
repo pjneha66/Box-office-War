@@ -173,7 +173,8 @@ step("v9 contracts, training, BTL crew", ()=>{
   const a=window.eval("G.talent.find(t=>t.kind==='actor'&&t.age<=34&&!t.training)");
   if(a){ window.eval(`startTraining(${a.id})`);
     if(!window.eval(`G.talent.find(t=>t.id===${a.id}).training`)) throw new Error("training not started"); }
-  // below-the-line hire
+  // below-the-line hire — crew desks live on the Story Department's Talent section
+  window.eval("DEVELOP_SUB='talent'; render();");
   if(!$("#view").innerHTML.includes("Below-the-line crew")) throw new Error("BTL section missing");
   const hire=$$("[data-btlhire]")[0];
   if(!hire) throw new Error("BTL hire button missing");
@@ -319,10 +320,15 @@ step("v4 named critics reviewed the release", ()=>{
 });
 step("v4 genre trend board renders in Develop", ()=>{
   click($(".tab[data-tab='develop']"));
-  if(!$(".trend-board")) throw new Error("trend board missing");
-  if($$(".trend-row").length !== Object.keys(window.eval("DATA.GENRES")).length) throw new Error("trend rows incomplete");
-  if(!$("#view").innerHTML.includes("Writers on the market")) throw new Error("writer market missing");
-  if(!$("#view").innerHTML.includes("Producers on the market")) throw new Error("producer market missing");
+  // The Story Department's genre board is .develop-trends (one row per film genre).
+  if(!$(".develop-trends")) throw new Error("trend board missing");
+  if($$(".develop-trend").length !== Object.keys(window.eval("DATA.GENRES")).length) throw new Error("trend rows incomplete");
+  if(!$(".develop-table")) throw new Error("genre intelligence table missing");
+  // The open talent market lives on the Talent desk section now.
+  window.eval("DEVELOP_SUB='talent'; render();");
+  if(!$("#view").innerHTML.includes("WRITERS ON THE MARKET")) throw new Error("writer market missing");
+  if(!$("#view").innerHTML.includes("PRODUCERS ON THE MARKET")) throw new Error("producer market missing");
+  window.eval("DEVELOP_SUB='scripts'; render();");
 });
 step("v4 streamer tiers + password crackdown state", ()=>{
   window.eval("G.studio.rep=Math.max(G.studio.rep,45); G.studio.cash=Math.max(G.studio.cash,700); launchStreamer(); render();");
@@ -673,6 +679,7 @@ step("v26 character sheet opens with tabs", ()=>{
   const t=window.eval("G.talent[0]");
   if(!t) throw new Error("no talent on roster");
   click($(".tab[data-tab='develop']"));
+  window.eval("DEVELOP_SUB='talent'; render();");   // roster moved to the Story Department's talent desk
   const btn=$$("[onclick*='characterSheet']")[0];
   if(!btn) throw new Error("RPG sheet button missing on talent card");
   click(btn);
@@ -752,6 +759,7 @@ step("v27 launched game earns weekly sales + live ops", ()=>{
 step("v27 character sheet: moral axis, branches, guild, mentorship", ()=>{
   window.eval("G.talent.forEach(t=>{initPrototypeTalent(t); t.prototype.level=Math.max(t.prototype.level||1,6); t.prototype.skillPoints=6;})");
   click($(".tab[data-tab='develop']"));
+  window.eval("DEVELOP_SUB='talent'; render();");
   const btn=$$("[onclick*='characterSheet']")[0];
   if(!btn) throw new Error("RPG sheet button missing");
   click(btn);
