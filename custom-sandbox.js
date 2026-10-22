@@ -171,20 +171,17 @@
     let activeTab = "talent";
 
     function renderInnerContent(){
-      let h = "<h3>Custom Sandbox &amp; Database Editor</h3>";
-      h += "<p class='tiny muted' style='margin-bottom:12px'>Create custom actors, directors, rival studios, franchises, and screenplays to personalize your industry simulation (Box Office Sim 2 parity).</p>";
-
-      // Sub-tabs
-      h += "<div style='display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;touch-action:pan-x;'>";
-      h += "<button class='btn btn-xs " + (activeTab === "talent" ? "btn-primary" : "btn-alt") + "' data-stab='talent'>Create Talent</button>";
-      h += "<button class='btn btn-xs " + (activeTab === "rival" ? "btn-primary" : "btn-alt") + "' data-stab='rival'>Create Rival Studio</button>";
-      h += "<button class='btn btn-xs " + (activeTab === "franchise" ? "btn-primary" : "btn-alt") + "' data-stab='franchise'>Create Franchise</button>";
-      h += "<button class='btn btn-xs " + (activeTab === "idea" ? "btn-primary" : "btn-alt") + "' data-stab='idea'>Create Script</button>";
-      h += "</div>";
+      const sections = [["talent","01","Casting bench","Actors & directors"],["rival","02","Industry builders","Rival studios"],["franchise","03","World workshop","Franchises & IP"],["idea","04","Story desk","Original screenplays"]];
+      let h = "<header class='command-dialog-hero'><div><span class='command-eyebrow'>STUDIO HQ / 08 / CUSTOM WORLDS</span><h2>Creative Lab</h2><p>Make the people, stories, and competition that shape your industry.</p></div><span class='lab-badge'>CAREER DATABASE<br>LIVE EDITOR</span></header>";
+      h += "<div class='lab-workspace'><aside class='lab-sidebar'><span class='command-eyebrow'>CHOOSE YOUR WORKBENCH</span>";
+      sections.forEach(([key,number,label,desc])=>{
+        h += "<button class='lab-tab " + (activeTab===key?"active":"") + "' data-stab='"+key+"' aria-pressed='"+(activeTab===key)+"'><small>"+number+" / CREATE</small><b>"+label+"</b><span>"+desc+"</span></button>";
+      });
+      h += "<p class='lab-note'>Your creations join this career immediately. Changes are saved to your current studio.</p></aside><section class='lab-editor'>";
 
       if(activeTab === "talent"){
         h += "<div class='card'>";
-        h += "<b>Create Custom Actor or Director</b>";
+        h += "<b>Casting bench / Create talent</b>";
         h += "<div class='grid g2' style='gap:8px;margin-top:8px'>";
         h += "<div><label class='tiny muted'>Full Name</label><input type='text' id='cs_name' class='input' placeholder='e.g. Leo Sterling' style='width:100%'></div>";
         h += "<div><label class='tiny muted'>Role</label><select id='cs_kind' class='input' style='width:100%'><option value='actor'>Actor / Star</option><option value='director'>Director</option></select></div>";
@@ -197,11 +194,11 @@
         });
         h += "</select></div>";
         h += "</div>";
-        h += "<button class='btn btn-sm btn-primary' id='btnSaveTalent' style='margin-top:12px;width:100%'>Inject Custom Talent into Game</button>";
+        h += "<button class='btn btn-sm btn-primary' id='btnSaveTalent' style='margin-top:12px;width:100%'>Add talent to your industry</button>";
         h += "</div>";
       } else if(activeTab === "rival"){
         h += "<div class='card'>";
-        h += "<b>Create Custom Rival Studio</b>";
+        h += "<b>Industry builders / Found a rival</b>";
         h += "<div class='grid g2' style='gap:8px;margin-top:8px'>";
         h += "<div><label class='tiny muted'>Studio Name</label><input type='text' id='cr_name' class='input' placeholder='e.g. Mirage Pictures' style='width:100%'></div>";
         h += "<div><label class='tiny muted'>Studio Slate Style</label><select id='cr_style' class='input' style='width:100%'><option value='tentpole'>Tentpole Blockbuster Factory</option><option value='prestige'>Prestige Awards Darling</option><option value='balanced'>Balanced Commercial Slate</option><option value='horror'>Horror / Low-Budget High-ROI</option></select></div>";
@@ -212,7 +209,7 @@
         h += "</div>";
       } else if(activeTab === "franchise"){
         h += "<div class='card'>";
-        h += "<b>Create Custom Legacy Franchise / IP</b>";
+        h += "<b>World workshop / Create a franchise</b>";
         h += "<div class='grid g2' style='gap:8px;margin-top:8px'>";
         h += "<div><label class='tiny muted'>Franchise Universe Name</label><input type='text' id='cfr_name' class='input' placeholder='e.g. Chrono Knight Universe' style='width:100%'></div>";
         h += "<div><label class='tiny muted'>Core Genre</label><select id='cfr_genre' class='input' style='width:100%'><option value='action'>Action</option><option value='scifi'>Sci-Fi</option><option value='fantasy'>Fantasy</option><option value='horror'>Horror</option><option value='animation'>Animation</option></select></div>";
@@ -222,7 +219,7 @@
         h += "</div>";
       } else if(activeTab === "idea"){
         h += "<div class='card'>";
-        h += "<b>Commission Custom Screenplay</b>";
+        h += "<b>Story desk / Commission a screenplay</b>";
         h += "<div class='grid g2' style='gap:8px;margin-top:8px'>";
         h += "<div><label class='tiny muted'>Script Title</label><input type='text' id='cid_title' class='input' placeholder='e.g. Quantum Midnight' style='width:100%'></div>";
         h += "<div><label class='tiny muted'>Genre</label><select id='cid_genre' class='input' style='width:100%'><option value='scifi'>Sci-Fi</option><option value='action'>Action</option><option value='thriller'>Thriller</option><option value='horror'>Horror</option><option value='drama'>Drama</option><option value='comedy'>Comedy</option></select></div>";
@@ -233,6 +230,7 @@
         h += "</div>";
       }
 
+      h += "</section></div><footer class='command-dialog-footer'><span>Creative control. A world that’s yours.</span><button class='command-primary' onclick='closeModal()'>Return to studio</button></footer>";
       return h;
     }
 
@@ -319,9 +317,11 @@
       }
     }
 
-    const initialHtml = "<div id='sandboxModalInner'>" + renderInnerContent() + "</div>";
+    const initialHtml = "<div id='sandboxModalInner' class='command-dialog creative-lab'>" + renderInnerContent() + "</div>";
     const v = (typeof global.openModal === "function") ? global.openModal(initialHtml) : null;
     if(v){
+      v.querySelector('.modal').classList.add('command-modal');
+      v.querySelector('[role="dialog"]').setAttribute('aria-label','Creative Lab');
       wireEvents(v);
     }
   };

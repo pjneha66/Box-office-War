@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="bow-restyle.css?v=33.0">
 <link rel="stylesheet" href="lot-gameplay.css?v=45.0">
 <link rel="stylesheet" href="welcome.css?v=45.0">
+<link rel="stylesheet" href="command-deck.css?v=47.0">
 </head>
 <body>
 <div id="offlineBanner" class="offline-banner" style="display:none">Offline mode — changes saved locally in device storage</div>
@@ -102,23 +103,17 @@
 
   <!-- TOP BAR -->
   <header class="topbar">
-    <div class="topbar-row">
-      <div class="brand" id="brandName">Studio</div>
-      <div class="chip-row">
-        <div class="chip chip-cash" id="chipCashWrap" title="Cash — tap for finance overview" role="button" tabindex="0">Cash: <b id="chipCash">$0</b></div>
-        <div class="chip chip-debt" id="chipDebtWrap" title="Debt (weekly interest)">Debt: <b id="chipDebt">$0</b></div>
-        <div class="chip" title="Industry reputation">Rep: <b id="chipRep">25</b></div>
-        <div class="chip" id="chipDateWrap" title="Date — tap for release calendar" role="button" tabindex="0">Date: <b id="chipDate">Y1 · W1</b></div>
+    <div class="topbar-row command-header-row">
+      <div class="command-header-identity"><span class="command-header-mark" aria-hidden="true">BW</span><div><span class="command-header-eyebrow">BOX OFFICE WAR / STUDIO TYCOON</span><div class="brand" id="brandName">Studio</div></div></div>
+      <div class="chip-row command-header-ledger" aria-label="Career status">
+        <div class="chip chip-cash" id="chipCashWrap" title="Open finance overview" role="button" tabindex="0"><span>CAPITAL</span><b id="chipCash">$0</b></div>
+        <div class="chip chip-debt" id="chipDebtWrap" title="Debt with weekly interest"><span>LIABILITIES</span><b id="chipDebt">$0</b></div>
+        <div class="chip" title="Industry reputation"><span>STANDING</span><b id="chipRep">25</b></div>
+        <div class="chip" id="chipDateWrap" title="Open release calendar" role="button" tabindex="0"><span>STUDIO CALENDAR</span><b id="chipDate">Y1 · W1</b></div>
       </div>
-      <div class="topbar-actions">
-        <button id="btnWeek" class="btn btn-primary">Next Week</button>
-        <button id="btnFast" class="btn btn-alt" title="Advance 4 weeks (pauses on big events)">» ×4</button>
-        <button id="btnAuto" class="btn btn-icon" title="Auto-play weeks" aria-label="Auto-play weeks">▶▶</button>
-        <button id="btnSpeed" class="btn btn-icon" title="Auto-play speed" aria-label="Auto-play speed" style="display:none">1×</button>
-        <button id="btnBell" class="btn btn-icon" title="Notifications" aria-label="Notifications">Bell <b id="bellBadge" class="bell-badge" style="display:none">0</b></button>
-        <button id="btnSound" class="btn btn-icon" title="Sound" aria-label="Toggle sound">Sound</button>
-        <button id="btnSettings" class="btn btn-icon" title="Settings · भाषा · saves" aria-label="Settings, language, saves">Settings</button>
-        <button id="btnHelp" class="btn btn-icon" title="How to play" aria-label="How to play">Guide</button>
+      <div class="topbar-actions command-header-actions">
+        <div class="command-time-controls" aria-label="Advance the simulation"><button id="btnWeek" class="btn btn-primary">Next Week</button><button id="btnFast" class="btn btn-alt" title="Advance 4 weeks, pausing for major events" aria-label="Advance four weeks">+4W</button><button id="btnAuto" class="btn btn-icon" title="Auto-play weeks" aria-label="Auto-play weeks">Auto</button><button id="btnSpeed" class="btn btn-icon" title="Auto-play speed" aria-label="Auto-play speed" style="display:none">1×</button></div>
+        <div class="command-header-utilities" aria-label="Studio tools"><button id="btnBell" class="btn btn-icon" title="Notifications" aria-label="Notifications">Inbox <b id="bellBadge" class="bell-badge" style="display:none">0</b></button><button id="btnSound" class="btn btn-icon" title="Sound" aria-label="Toggle sound">Sound</button><button id="btnSettings" class="btn btn-icon" title="Preferences, language and saves" aria-label="Settings, language, saves">Settings</button><button id="btnHelp" class="btn btn-icon" title="Studio field guide" aria-label="How to play">Field Guide</button></div>
       </div>
     </div>
 <!-- DESKTOP TABS -->
@@ -171,11 +166,11 @@
 <div id="srAlert" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
 <script src="data.js?v=33.0"></script>
-<script src="engine.js?v=33.0"></script>
-<script src="i18n.js?v=44.0"></script>
-<script src="ui.js?v=34.0"></script>
+<script src="engine.js?v=46.5"></script>
+<script src="i18n.js?v=47.0"></script>
+<script src="ui.js?v=47.0"></script>
 <script src="finance-tools.js?v=33.0"></script>
-<script src="v31-features.js?v=33.0"></script>
+<script src="v31-features.js?v=46.2"></script>
 <script src="challenge-leaderboard.js?v=33.0"></script>
 <script src="theater-chains.js?v=33.0"></script>
 <script src="dynamic-soundtrack.js?v=33.0"></script>
@@ -186,29 +181,29 @@
 <script src="festival-pr.js?v=33.0"></script>
 <script src="studio-facilities.js?v=33.0"></script>
 <script src="syndication-tv.js?v=33.0"></script>
-<script src="talent-contracts.js?v=33.0"></script>
+<script src="talent-contracts.js?v=46.7"></script>
 <script src="bond-market.js?v=33.0"></script>
 <script src="clash-analytics.js?v=33.0"></script>
 <script src="cinematic-universe.js?v=33.0"></script>
 <script src="location-scouting.js?v=33.0"></script>
 <script src="production-insurance.js?v=33.0"></script>
 <script src="awards-campaign.js?v=33.0"></script>
-<script src="board-targets.js?v=33.0"></script>
+<script src="board-targets.js?v=46.7"></script>
 <script src="fan-conventions.js?v=33.0"></script>
 <script src="test-screenings.js?v=33.0"></script>
 <script src="studio-espionage.js?v=33.0"></script>
 <script src="merch-licensing.js?v=33.0"></script>
 <script src="territory-licensing.js?v=33.0"></script>
-<script src="custom-sandbox.js?v=33.0"></script>
+<script src="custom-sandbox.js?v=46.4"></script>
 <script src="film-locations-tax.js?v=33.0"></script>
-<script src="studio-operations-suite.js?v=33.0"></script>
-<script src="gamedev-console-hardware.js?v=33.0"></script>
+<script src="studio-operations-suite.js?v=46.8"></script>
+<script src="gamedev-console-hardware.js?v=46.8"></script>
 <script src="live-ops-coproduction.js?v=33.0"></script>
 <script src="hollywood-crises-pr.js?v=33.0"></script>
 <script src="demographics-audiences.js?v=33.0"></script>
 <script src="production-creativity-suite.js?v=33.0"></script>
 <script src="exhibition-plf-concessions.js?v=33.0"></script>
-<script src="marketing-blitz-engine.js?v=33.0"></script>
+<script src="marketing-blitz-engine.js?v=46.5"></script>
 <script src="studio-agent-life.js?v=40.0"></script>
 <script src="studio-lot-engine.js?v=41.0"></script>
 <script src="studio-actors.js?v=41.0"></script>
@@ -218,7 +213,7 @@
 <script src="lot-feel.js?v=34.0"></script>
 <script src="bow-motion.js?v=34.0"></script>
 <script src="box-office-sim-2-cast.js?v=44.0"></script>
-<script src="gamestudio-gdd-engine.js?v=33.0"></script>
+<script src="gamestudio-gdd-engine.js?v=46.5"></script>
 <script src="social-viral-network.js?v=33.0"></script>
 <script src="sports-stadium-deals.js?v=33.0"></script>
 <script src="kairo-theme-suite.js?v=33.0"></script>

@@ -340,8 +340,8 @@ const NAV_GROUPS = [
   { id:"more",   icon:"", label:"More",   tabs:["empire","library","games","finance","notifications"] },
 ];
 const TAB_META = {
-  dashboard:   [["overview","Executive Overview"],["actions","Quick Launch"],["slate","Production Slate"],["macro","Macro Economy"]],
-  studio:      [["lot","Studio Lot"],["csuite","C-Suite Execs"],["board","Board Directives"],["operations","Studio Operations"],["heritage","Heritage Vault"]],
+  dashboard:   [["overview","Command deck"],["actions","Management desks"],["slate","Project tracker"],["macro","Industry pulse"]],
+  studio:      [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"]],
   develop:     [["scripts","Scripts"],["ip","IP Market"],["talent","Talent Business"],["combos","Combos Codex"],["tax","Tax Rebates"]],
   productions: [["all","All"],["pre","Pre"],["shoot","Shoot"],["post","Post"],["ready","Ready"],["dated","Dated"]],
   boxoffice:   [["chart","Theatrical Charts"],["chains","Mega-Chains and PLF"],["territories","Territory Deals"],["awards","Awards Circuit"],["clash","Clash Radar"]],

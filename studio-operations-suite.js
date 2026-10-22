@@ -409,30 +409,13 @@
   }
 
   function renderCSuiteSection(){
-    const S = _getG();
-    const ops = initStudioOperations(S);
-    const hired = (ops && ops.hiredCSuite) ? ops.hiredCSuite : {};
-    let h = "<div class='section-title'>Executive C-Suite Board of Directors</div>";
-    h += "<p class='tiny muted' style='margin-bottom:8px'>Contract seasoned studio chiefs to safeguard financing, boost marketing pull, and eliminate production overruns.</p>";
-    h += "<div class='grid g2' style='gap:8px'>";
-    CSUITE_OFFICERS.forEach(off => {
-      const isHired = !!hired[off.id];
-      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
-        "<div><div class='spread'><b>" + off.title + "</b>" +
-        (isHired ? "<span class='tag green'>SEATED</span>" : "<span class='tag purple'>Appoint</span>") + "</div>"+
-        "<div class='small' style='margin:2px 0;color:var(--gold)'>" + off.name + "</div>"+
-        "<div class='tiny muted'>" + off.perk + "</div>"+
-        "<div class='tiny' style='margin-top:4px;color:var(--blue)'>Signing: $" + off.signingFee + "M · Salary: $" + (off.weeklySalary*1000).toFixed(0) + "k/wk</div></div>"+
-        "<div style='margin-top:8px'>";
-      if(isHired){
-        h += "<button class='btn btn-xs' style='width:100%' disabled>Contract Active</button>";
-      } else {
-        h += "<button class='btn btn-xs btn-primary' style='width:100%' data-csuite-hire='" + off.id + "'>Hire Officer (-$" + off.signingFee + "M)</button>";
-      }
-      h += "</div></div>";
-    });
-    h += "</div>";
-    return h;
+    const S=_getG(), ops=initStudioOperations(S), hired=ops.hiredCSuite||{};
+    const seated=CSUITE_OFFICERS.filter(off=>hired[off.id]);
+    const payroll=seated.reduce((sum,off)=>sum+off.weeklySalary,0);
+    return `<div class="leadership-workspace"><aside class="leadership-brief"><span class="command-eyebrow">THE EXECUTIVE TABLE</span><h2>People behind<br>the pictures.</h2><div class="leadership-seats"><strong>${seated.length}<small> / ${CSUITE_OFFICERS.length}</small></strong><span>LEADERSHIP SEATS FILLED</span></div><div class="leadership-seat-map" aria-label="${seated.length} filled executive seats">${CSUITE_OFFICERS.map(off=>`<span class="${hired[off.id]?'filled':''}">${esc(off.id==='head_casting'?'CAST':off.id.toUpperCase())}</span>`).join('')}</div><dl><div><dt>Weekly payroll</dt><dd>$${payroll.toFixed(2)}M</dd></div><div><dt>Open appointments</dt><dd>${CSUITE_OFFICERS.length-seated.length}</dd></div></dl><p>Appoint specialists to strengthen the business behind your films. Each seat has a one-time signing fee and a weekly salary.</p></aside><section class="leadership-roster"><header><span class="command-eyebrow">APPOINTMENTS / YOUR EXECUTIVE TEAM</span><h2>Build your inner circle.</h2></header>${CSUITE_OFFICERS.map((off,i)=>{
+      const active=!!hired[off.id];
+      return `<article class="leadership-profile ${active?'appointed':''}" data-officer-id="${off.id}"><div class="leadership-profile-number">0${i+1}<small>${active?'SEATED':'OPEN SEAT'}</small></div><div class="leadership-person"><small>${esc(off.title)}</small><h3>${esc(off.name)}</h3><p>${esc(off.perk)}</p><div class="leadership-terms"><span>SIGNING <b>$${off.signingFee.toFixed(1)}M</b></span><span>WEEKLY <b>$${(off.weeklySalary*1000).toFixed(0)}k</b></span></div></div><div class="leadership-appointment">${active?'<span class="leadership-active">Contract Active</span>':`<button class="command-primary" data-csuite-hire="${off.id}" ${S.studio.cash<off.signingFee?'disabled':''}>Appoint leader ↗</button><small>${S.studio.cash<off.signingFee?'Insufficient signing capital':'One-time signing fee applies'}</small>`}</div></article>`;
+    }).join('')}</section></div>`;
   }
 
   function renderProductPlacementSection(){
@@ -474,6 +457,7 @@
         const res = purchaseSoundstageLot(stageId, S);
         if(res.ok && typeof toast === "function") toast(res.msg, "good");
         else if(typeof toast === "function") toast(res.msg, "bad");
+        if(res.ok && typeof saveGame === "function") saveGame();
         if(typeof render === "function") render();
       };
     });
@@ -483,6 +467,7 @@
         const res = hireCSuiteOfficer(offId, S);
         if(res.ok && typeof toast === "function") toast(res.msg, "good");
         else if(typeof toast === "function") toast(res.msg, "bad");
+        if(res.ok && typeof saveGame === "function") saveGame();
         if(typeof render === "function") render();
       };
     });
