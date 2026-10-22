@@ -684,6 +684,48 @@ function genTalentPool(){
   G.talent.push(genActor(true));
   G.talent.push(genDirector(true));
   G.talent.push(genWriter(true));
+  ensureAnimalCast();
+}
+
+/* A working studio keeps trained animals on the books. Every new career opens
+   with the eight signature animal performers, and saves made before they
+   existed are topped up the next time a call sheet is opened. Without this the
+   animal filter in every casting desk was permanently empty. */
+const SIGNATURE_ANIMALS=["bear","lion","panda","wolf","dog","cat","eagle","aardvark"];
+function ensureAnimalCast(){
+  if(typeof G==="undefined" || !G || !Array.isArray(G.talent)) return 0;
+  if(G.talent.some(t=>t.isAnimal)) return 0;
+  let added=0;
+  const B=(typeof window!=="undefined" && window.BOS2) ? window.BOS2 : null;
+  if(B && typeof B.generateAnimalActor==="function"){
+    const list=Array.isArray(B.animals)?B.animals:[];
+    const ids=[];
+    SIGNATURE_ANIMALS.forEach(w=>{
+      const hit=list.find(a=>String(a.n||"").toLowerCase()===w || String(a.n||"").toLowerCase().includes(w));
+      if(hit && ids.indexOf(hit.id)<0) ids.push(hit.id);
+    });
+    list.forEach(a=>{ if(ids.length<8 && ids.indexOf(a.id)<0) ids.push(a.id); });
+    const seen=new Set();
+    ids.forEach(sp=>{
+      try{
+        const animal=B.generateAnimalActor(sp);
+        if(animal && animal.species && !seen.has(animal.species)){ seen.add(animal.species); G.talent.push(animal); added++; }
+      }catch(e){}
+    });
+  } else {
+    const species=[["Dog","Canine","comedy",4,78],["Cat","Feline","horror",3,74],["Bear","Ursidae","adventure",5,84],
+      ["Lion","Panthera","drama",5,82],["Panda","Ailuropoda","family",4,76],["Wolf","Canis","thriller",4,80],
+      ["Eagle","Accipitridae","action",3,72],["Aardvark","Orycteropodidae","comedy",3,70]];
+    species.forEach(([n,sp,fit,power,skill])=>{
+      G.talent.push({ id:nid(), kind:"actor", isAnimal:true, species:sp, name:"Studio "+n+" (Trained)",
+        power, skill, fee:Math.max(0.4,Math.round(skill/22*10)/10), bookedUntil:0, heat:1,
+        genreFit:fit, age:6, scandal:0, pics:0,
+        powerByRegion:{NA:power,EU:power,AS:power,LA:power,AF:power},
+        ability:null, abilityName:"Trained Performer", abilityDesc:"Animal star — castable in any film or series", abilityKnown:true });
+      added++;
+    });
+  }
+  return added;
 }
 
 function spawnDirectorHot(){ G.talent.push(genDirector(true)); }
@@ -2154,8 +2196,14 @@ function pitchFilm(cfg){
   let cameo=null;
   if(cfg.cameo){
     const taken=[dir,writer,producer].concat(cast).filter(Boolean).map(t=>t.id);
-    cameo = freeTalent("actor").filter(t=>!taken.includes(t.id)).sort((a,b)=>b.power-a.power)[0] || null;
-    if(!cameo) log("🌟 No superstar is available for a cameo — booking the pitch without one.","");
+    if(typeof cfg.cameo==="object" && cfg.cameo && cfg.cameo.id!=null){
+      cameo = G.talent.find(t=>t.id===cfg.cameo.id) || null;
+      if(cameo && taken.includes(cameo.id)) cameo = null;
+      if(!cameo) log("🌟 That cameo is already on the call sheet — the pitch goes ahead without one.","");
+    } else {
+      cameo = freeTalent("actor").filter(t=>!taken.includes(t.id)).sort((a,b)=>b.power-a.power)[0] || null;
+      if(!cameo) log("🌟 No superstar is available for a cameo — booking the pitch without one.","");
+    }
   }
   const cameoFee = cameo? Math.round(actorFee(cameo)*0.3*10)/10 : 0;
   const budget = cfg.budget || Math.round(neededBudget(cfg.genre, cfg.scale));
@@ -5648,7 +5696,10 @@ function advanceWeek(){
       }
     });
   }
-  G.talent=G.talent.filter(t=>!t.bookedUntil||t.bookedUntil>=G.week-30).slice(-52);
+  { const animals=G.talent.filter(t=>t.isAnimal);
+    const humans=G.talent.filter(t=>!t.isAnimal).filter(t=>!t.bookedUntil||t.bookedUntil>=G.week-30).slice(-52);
+    G.talent=humans.concat(animals); }
+  if(!G.talent.some(t=>t.isAnimal)) ensureAnimalCast();
   if(typeof tickPoaching==="function") tickPoaching();
   if(typeof checkContractRenegotiation==="function") checkContractRenegotiation();
   if(typeof tickFestivals==="function") tickFestivals();

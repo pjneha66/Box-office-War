@@ -701,9 +701,15 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("#btnWeek").onclick=()=>{ doWeek(1); };
   $("#btnFast").onclick=()=>{ doWeek(4); };
   $("#btnAuto").onclick=()=>{ toggleAuto(); beep("click"); };
-  $("#btnSound").onclick=()=>{ SOUND=!SOUND; localStorage.setItem("bow_snd", SOUND?"1":"0");
-    $("#btnSound").textContent=SOUND?"Sound on":"Sound off"; beep("click"); };
-  SOUND = localStorage.getItem("bow_snd")!=="0"; $("#btnSound").textContent=SOUND?"Sound on":"Sound off";
+  const paintSound=()=>{
+    const el=$("#btnSound"); if(!el) return;
+    el.classList.toggle("on",!!SOUND);
+    el.setAttribute("aria-pressed",SOUND?"true":"false");
+    el.innerHTML='<span class="sound-dot" aria-hidden="true"></span><span class="sound-label">SOUND</span><b>'+(SOUND?"ON":"OFF")+'</b>';
+    el.title=SOUND?"Sound on — click to mute":"Sound off — click to enable";
+  };
+  $("#btnSound").onclick=()=>{ SOUND=!SOUND; localStorage.setItem("bow_snd", SOUND?"1":"0"); paintSound(); beep("click"); };
+  SOUND = localStorage.getItem("bow_snd")!=="0"; paintSound();
   $("#btnBell").onclick=()=>{ beep("click"); notificationsModal(); };
   $("#btnSettings").onclick=()=>{ beep("click"); settingsModal(); };
   $("#btnHelp").onclick=()=>helpModal();
@@ -1956,7 +1962,7 @@ function commandDevelopNav(){
   return `<nav class="command-section-nav command-develop-nav" aria-label="Story department sections">
     <div class="command-nav-brand"><span>STORY DEPARTMENT</span><small>WRITE / RIGHTS / CAST / SHOOT</small></div>
     <div class="command-nav-items">${DEVELOP_SECTIONS.map(([key,label],i)=>`<button data-devsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div>
-    <div class="command-nav-tools"><button id="btnOpenAgencyPackaging" aria-label="Agency packaging desk"><small>TOOL / TALENT</small><span>Agency packaging</span></button><button id="btnOpenContracts" aria-label="Picture partners and multi-picture contracts"><small>TOOL / CONTRACTS</small><span>Picture partners</span></button><button id="btnOpenTalentAgency" aria-label="Talent agency ownership"><small>TOOL / AGENCY</small><span>Talent agency</span></button></div>
+    <div class="command-nav-tools" role="group" aria-label="Story department tools"><span class="command-nav-tools-label">TOOLS</span><button id="btnOpenAgencyPackaging" aria-label="Agency packaging desk"><small>TOOL / TALENT</small><span>Agency packaging</span></button><button id="btnOpenContracts" aria-label="Picture partners and multi-picture contracts"><small>TOOL / CONTRACTS</small><span>Picture partners</span></button><button id="btnOpenTalentAgency" aria-label="Talent agency ownership"><small>TOOL / AGENCY</small><span>Talent agency</span></button></div>
   </nav>`;
 }
 
@@ -2857,287 +2863,255 @@ function decisionCard(rows){
   return "<div class='card' style='margin:8px 0'><div class='tiny muted' style='margin-bottom:4px'><b>Decision impact</b></div>"+
     rows.map(r=>"<div class='cost-line'><span>"+r[0]+"</span><b>"+r[1]+"</b></div>").join("")+"</div>";
 }
-function wizardModal(){
-  const S=DATA.SCALES[WZ.idea.scale];
-  const step = WZ.sub;
-  const gname = DATA.GENRES[WZ.idea.genre].name;
-  const flowActive={2:"Script",3:"Cast",4:"Cast",5:"Production",6:"Production"}[step]||"Concept";
-  let h="<h3>Greenlight: “"+esc(WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title)+"”</h3>"+
-    filmFlowStrip(flowActive)+
-    "<div class='wiz-step'>"+
-      "<span class='done'>1 · Script</span>"+
-      "<span class='"+(step===2?"on":WZ.writer?"done":"")+"'>2 · Writer</span>"+
-      "<span class='"+(step===3?"on":WZ.director?"done":"")+"'>3 · Director</span>"+
-      "<span class='"+(step===4?"on":WZ.cast.length?"done":"")+"'>8 · Cast</span>"+
-      "<span class='"+(step===5?"on":WZ.producer?"done":"")+"'>5 · Producer</span>"+
-      "<span class='"+(step===6?"on":"")+"'>6 · Budget</span>"+
-    "</div>";
-  if(step===2){
-    const ws=freeTalent("writer").sort((a,b)=>(writerBonus(b,WZ.idea.genre)-writerBonus(a,WZ.idea.genre))||b.skill-a.skill);
-    const base=WZ.idea.script+(WZ.scriptPolish?6:0);
-    h+="<p class='small muted'>The writer drives the page — and the page is 30% of a film's quality. Skill plus genre fit is worth up to <b>+11 script</b>. This spec reads <b>"+base+"</b>"+
-       (WZ.writer? " → <b class='pos'>"+Math.round(clamp(base+writerBonus(WZ.writer,WZ.idea.genre),20,99))+"</b>":"")+".</p>";
-    if(DATA.AI){
-      h+="<div class='card craft-block' style='cursor:pointer;margin-bottom:8px' id='wzAIw'><div class='spread'><span class='small'>"+(WZ.aiScript?"✅ ":"⬜ ")+"<b>🤖 SynthScribe</b> writes it overnight</span><span class='tag "+(WZ.aiScript?"gold":"")+"'>free · script "+DATA.AI.scriptScore+"</span></div>"+
-        "<div class='tiny muted'>No writer's voice: quality −"+DATA.AI.scrQualityPenalty+", the guilds heat up (strike risk), and the internet may revolt. Cheap, fast, radioactive.</div></div>";
-    }
-    if(!ws.length && !WZ.aiScript) h+="<div class='card muted small'>Every writer in town is booked. You can shoot the spec as-is.</div>";
-    if(!WZ.aiScript){
-      h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
-        "<button class='btn btn-xs subtab-btn "+(WZ._wFilter==='all'||!WZ._wFilter?'btn-primary':'btn-alt')+"' onclick='WZ._wFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/writer.png' alt='' /><span>All Writers ("+ws.length+")</span></button>"+
-        "<button class='btn btn-xs subtab-btn "+(WZ._wFilter==='top'?'btn-primary':'btn-alt')+"' onclick='WZ._wFilter=\"top\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>Elite (Skill 85+)</span></button>"+
-        "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
-      "</div>";
-      const filtWs = (WZ._wFilter==='top') ? ws.filter(w=>w.skill>=85) : ws;
-      h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
-      filtWs.forEach(function(w){ h+=crewCard(w,{genre:WZ.idea.genre, sel:!!(WZ.writer&&WZ.writer.id===w.id), attr:"data-writer='"+w.id+"'"}); });
-      h+="</div>";
-    }
-    if(WZ.writer) h+=decisionCard([["Cost","+"+fmtM(actorFee(WZ.writer))+" fee"],["Script",base+" → "+Math.round(clamp(base+writerBonus(WZ.writer,WZ.idea.genre),20,99))],["Quality impact","Page ≈30% of quality"],["Box office","Via quality → legs + opening buzz"]]);
-    else if(WZ.aiScript) h+=decisionCard([["Cost","$0"],["Script","SynthScribe "+DATA.AI.scriptScore],["Quality impact","−"+DATA.AI.scrQualityPenalty+" craft, flat page"],["Risk","Guild heat + backlash rolls"]]);
-    else h+=decisionCard([["Cost","$0 as-is"],["Script",String(base)],["Quality impact","No writer bonus (up to +11 missed)"],["Risk","Weak page → weak legs"]]);
-    h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzSkipWriter'>Shoot the spec as-is →</button>"+
-       ((WZ.writer||WZ.aiScript)? "<button class='btn btn-primary' id='wzNext'>To Director →</button>":"")+"</div>";
-  }else if(step===3){
-    const dirs=freeTalent("director").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a)) || (b.power*20+b.skill)-(a.power*20+a.skill));
-    h+="<p class='small muted'>A director shapes ~25% of quality. Genre fit adds a bonus. Bigger names also lift buzz.</p>";
-    if(WZ.director) h+=decisionCard([["Cost","+"+fmtM(actorFee(WZ.director))+" fee"],["Quality impact","Skill "+WZ.director.skill+(WZ.director.genreFit===WZ.idea.genre?" · genre fit ×1.1":"")],["Critics","Fit directors review better"],["Box office","Via quality + buzz"]]);
-    h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
-      "<button class='btn btn-xs subtab-btn "+(WZ._dFilter==='all'||!WZ._dFilter?'btn-primary':'btn-alt')+"' onclick='WZ._dFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/2d/char_director.png' alt='' /><span>All Directors ("+dirs.length+")</span></button>"+
-      "<button class='btn btn-xs subtab-btn "+(WZ._dFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._dFilter=\"stars\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>5-Star Auteurs</span></button>"+
-      "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
-    "</div>";
-    const filtDirs = (WZ._dFilter==='stars') ? dirs.filter(d=>activePicturePact(d)||d.power>=5) : dirs;
-    h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
-    filtDirs.forEach(function(d){ h+=crewCard(d,{genre:WZ.idea.genre, sel:!!(WZ.director&&WZ.director.id===d.id), attr:"data-dir='"+d.id+"'"}); });
-    h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='wzBackWriter'>← Writer</button>"+
-       (WZ.director? "<button class='btn btn-primary' id='wzNext'>To Cast →</button>":"")+"</div>";
-  }else if(step===4){
-    const acts=freeTalent("actor").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a)) || (b.power*20+b.skill)-(a.power*20+a.skill));
-    h+="<p class='small muted'>Pick 1–3 leads. Star power drives opening weekend; skill drives reviews. Scandal-hit stars come cheap — and cost you at the box office.</p>";
-    { const sp=(WZ.cast||[]).reduce((s,c)=>s+c.power,0);
-      if(WZ.aiCast) h+=decisionCard([["Cost","$0 fees"],["Audience impact","−"+DATA.AI.audPenalty+" score"],["Box office","No star power · hype ×0.97"],["Risk","Guild heat + backlash"]]);
-      else if(sp>0) h+=decisionCard([["Star power",sp+"★ → opening ×"+starOpenMult(sp)],["Cost","+"+fmtM(WZ.cast.reduce((s,c)=>s+actorFee(c),0))+" fees"],["Critics / audience","Skill avg "+Math.round(WZ.cast.reduce((s,c)=>s+c.skill,0)/WZ.cast.length)],["Risk",WZ.cast.some(c=>c.scandal>0)?"Scandal cast −opening":"Clean"]]); }
-    if(DATA.AI){
-      h+="<div class='card craft-block' style='cursor:pointer;margin-bottom:8px' id='wzAIc'><div class='spread'><span class='small'>"+(WZ.aiCast?"✅ ":"⬜ ")+"<b>🤖 Synthetic cast</b> — fully licensed digital doubles</span><span class='tag "+(WZ.aiCast?"gold":"")+"'>cast fees $0</span></div>"+
-        "<div class='tiny muted'>Zero fees upfront, but: audience score −"+DATA.AI.audPenalty+", no star opening power, no press tour, the guilds take note. The money you save buys P&A.</div></div>";
-    }
-    if(!WZ.aiCast){
-      h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
-        "<button class='btn btn-xs subtab-btn "+(WZ._cFilter==='all'||!WZ._cFilter?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/group.png' alt='' /><span>All ("+acts.length+")</span></button>"+
-        "<button class='btn btn-xs subtab-btn "+(WZ._cFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"stars\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>5-Star Superstars ("+acts.filter(a=>a.power>=5).length+")</span></button>"+
-        "<button class='btn btn-xs subtab-btn "+(WZ._cFilter==='animals'?'btn-primary':'btn-alt')+"' onclick='WZ._cFilter=\"animals\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-cat-footprint-100.png' alt='' /><span>Animal Stars ("+acts.filter(a=>a.isAnimal).length+")</span></button>"+
-        "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
-      "</div>";
-      const filtActs = (WZ._cFilter==='stars') ? acts.filter(a=>activePicturePact(a)||a.power>=5) :
-                       (WZ._cFilter==='animals') ? acts.filter(a=>a.isAnimal) : acts;
-      const shownActs=filtActs.slice(0,80);
-      h+="<div class='tiny muted' style='margin-bottom:6px'>Showing the "+shownActs.length+" strongest of "+filtActs.length+" free performers."+
-        " <button class='btn btn-xs btn-alt' onclick='if(typeof openCastDirectory===\"function\"){closeModal();openCastDirectory();}'>Search the cast directory ("+(G.talent||[]).length+")</button></div>";
-      h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
-      shownActs.forEach(function(a){ h+=castPickRow(a,{sel:WZ.cast.some(c=>c.id===a.id), attr:"data-cast='"+a.id+"'"}); });
-      h+="</div>";
-      /* v14: agent packages (§29) — stars with 4★+ will trade fee for backend */
-      const dealStars=(WZ.cast||[]).filter(c=>(c.power||0)>=4);
-      if(dealStars.length){
-        WZ.deals=WZ.deals||{};
-        h+="<div class='small muted' style='margin:10px 0 6px'>Agent packages <span class='tiny'>(4★+ stars will trade fee for a cut — tap to negotiate)</span></div><div class='plan-pick'>";
-        dealStars.forEach(c=>{
-          const on=WZ.deals[c.id]==="backend";
-          h+="<div class='plan-opt"+(on?" sel":"")+"' data-deal='"+c.id+"'><div class='spread'><h5>"+esc(c.name)+"</h5><span class='tag "+(on?"gold":"")+"'>"+(on?"fee −30% · +2% backend":"flat fee "+fmtM(actorFee(c)))+"</span></div>"+
-            "<div class='p-sub'>"+(on?"They take 2% of domestic+intl rentals when the run ends. Cheaper now, costlier on a hit.":"Pay the full quote in fees. No points owed later.")+"</div></div>";
-        });
-        h+="</div>";
-      }
-    }
-    /* v28.15: cameo — one superstar in a single scene, 30% of their fee, +6% opening buzz */
-    if(!WZ.aiCast){
-      h+="<div class='small muted' style='margin:10px 0 6px'>Cameo <span class='tiny'>(one scene, one superstar — 30% of their fee, +6% opening buzz)</span></div>"+
-        "<div class='plan-pick'>"+
-        (WZ.cameo? "<div class='plan-opt sel' data-cameoclear><h5>"+esc(WZ.cameo.name)+" · "+fmtM(Math.round(actorFee(WZ.cameo)*0.3*10)/10)+"</h5><div class='p-sub'>Tap to remove the cameo.</div></div>"
-                 : "<div class='plan-opt' id='wzCameo'><h5>＋ Cast a cameo…</h5><div class='p-sub'>Pick a superstar for a single scene.</div></div>")+
-        "</div>";
-    }
-    h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzBackDir'>← Director</button><button class='btn btn-primary' id='wzNext'>Continue with "+(WZ.aiCast?"AI cast":WZ.cast.length)+" →</button></div>";
-  }else if(step===5){
-    const prods=freeTalent("producer").sort((a,b)=>b.skill-a.skill||b.power-a.power);
-    h+="<p class='small muted'>A producer runs the floor: they cut the odds and the size of <b>cost overruns</b>, squeeze extra production value out of the same budget, and a great one shaves a week off the shoot. Skip it and every overrun lands on you.</p>";
-    if(WZ.producer) h+=decisionCard([["Cost","+"+fmtM(actorFee(WZ.producer))+" fee"],["Overrun risk","~"+overrunRisk(WZ.producer.skill)+"%/wk, smaller hits"],["Quality impact",(WZ.producer.skill>=80?"+schedule shave, +value":"+"+clamp(Math.round((WZ.producer.skill-55)/6),-3,7)+" production value")],["Risk","None — protection"]]);
-    else h+=decisionCard([["Cost","$0"],["Overrun risk","~"+overrunRisk(45)+"%/wk, full-size hits"],["Quality impact","No producer value"],["Risk","Every overrun lands on you"]]);
-    if(!prods.length) h+="<div class='card muted small'>No producers free this week — you'll be running the floor yourself.</div>";
-    h+="<div class='row' style='gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center'>"+
-      "<button class='btn btn-xs subtab-btn "+(WZ._pFilter==='all'||!WZ._pFilter?'btn-primary':'btn-alt')+"' onclick='WZ._pFilter=\"all\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>All Producers ("+prods.length+")</span></button>"+
-      "<button class='btn btn-xs subtab-btn "+(WZ._pFilter==='stars'?'btn-primary':'btn-alt')+"' onclick='WZ._pFilter=\"stars\";wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_09.png' alt='' /><span>Veterans (Skill 75+)</span></button>"+
-      "<button class='btn btn-xs subtab-btn btn-alt' style='color:#f5c518;border-color:#f5c518' onclick='if(typeof unlockAllCast===\"function\")unlockAllCast();wizardModal("+step+")'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_07.png' alt='' /><span>UNLOCK ALL CAST</span></button>"+
-    "</div>";
-    const filtProds = (WZ._pFilter==='stars') ? prods.filter(p=>activePicturePact(p)||p.skill>=75||p.power>=4) : prods;
-    h+="<div class='pick-list' style='max-height:360px;overflow-y:auto'>";
-    filtProds.forEach(function(p){ h+=crewCard(p,{sel:!!(WZ.producer&&WZ.producer.id===p.id), attr:"data-prod='"+p.id+"'"}); });
-    h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='wzBackCast'>← Cast</button><button class='btn btn-primary' id='wzNext'>To Budget →</button></div>";
-  }else{
-    const crew=[WZ.writer,WZ.director,WZ.producer].filter(Boolean);
-    let packFee=0, packName="";
-    if(typeof packagingCost==="function"){
-      packFee=packagingCost(WZ.cast, WZ.budget);
-      if(packFee>0){ const pa=packagingFeeOf(WZ.cast); packName=pa.name; }
-    }
-    const fees=crew.reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+packFee
-      +(WZ.cameo? Math.round(actorFee(WZ.cameo)*0.3*10)/10 : 0);
-    const cameoFee=WZ.cameo? Math.round(actorFee(WZ.cameo)*0.3*10)/10 : 0;
-    const dev=devCostOf(WZ.idea);
-    const S2=DATA.SCALES[WZ.idea.scale];
-    const weeks=S2.pre[1]+S2.shoot[1]+S2.post[1];
-    const starP=WZ.cast.reduce((s,c)=>s+c.power,0);
-    const polishCost = WZ.scriptPolish? Math.round(dev*0.4):0;
-    const tl=trendLabel(WZ.idea.genre);
+/* ═══════════ greenlight desk — the development flow for a film ═══════════
+   One shell, five numbered desks and a persistent deal sheet. Every figure is
+   read from live studio state; nothing here is decorative. */
+const GREENLIGHT_STEPS=[["writer","Writer"],["director","Director"],["cast","Cast"],["producer","Producer"],["deal","Deal"]];
 
-    // Production Intelligence: Quality and Opening Weekend Predictors
-    const baseScript = WZ.idea.script + (WZ.scriptPolish ? 6 : 0);
-    const wBonus = WZ.writer ? writerBonus(WZ.writer, WZ.idea.genre) : (WZ.aiScript ? -DATA.AI.scrQualityPenalty : 0);
-    const scrScore = clamp(baseScript + wBonus, 20, 99);
-    const dirSkill = WZ.director ? WZ.director.skill : 50;
-    const castAvg = WZ.cast && WZ.cast.length ? Math.round(WZ.cast.reduce((s,c)=>s+c.skill,0)/WZ.cast.length) : (WZ.aiCast ? 45 : 55);
-    const prodSkill = WZ.producer ? WZ.producer.skill : 45;
-    const neededB = neededBudget(WZ.idea.genre, WZ.idea.scale);
-    const budgetRatio = clamp(WZ.budget / Math.max(1, neededB), 0.7, 1.3);
-    const estQuality = Math.round(clamp(scrScore * 0.30 + dirSkill * 0.25 + castAvg * 0.25 + prodSkill * 0.10 + (budgetRatio - 1) * 20, 25, 98));
-    const mktRec = recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre});
-    let projOpening = 15;
-    try {
-      projOpening = expectedOpening({
-        scale: WZ.idea.scale,
-        genre: WZ.idea.genre,
-        budget: WZ.budget,
-        marketing: mktRec,
-        cast: WZ.cast,
-        producer: WZ.producer,
-        director: WZ.director,
-        quality: { overall: estQuality },
-        rating: WZ.rating
-      }, G ? G.week : 1);
-    } catch(e){}
-
-    h+="<div class='card' style='background:linear-gradient(135deg,rgba(108,92,231,0.15),rgba(0,206,201,0.1));border:1px solid rgba(108,92,231,0.3);margin-bottom:8px'>"+
-      "<div class='spread'>"+
-        "<div><span class='tiny muted'>EST. PROJECT QUALITY</span><div style='font-size:18px;font-weight:700;color:var(--pos)' id='wzEstQ'>"+estQuality+"/100</div></div>"+
-        "<div><span class='tiny muted'>PROJECTED OPENING</span><div style='font-size:18px;font-weight:700;color:var(--gold)' id='wzProjOp'>"+fmtG(projOpening)+"</div></div>"+
-        "<div><span class='tiny muted'>GENRE HEAT</span><div style='font-size:16px;font-weight:600'>"+DATA.GENRES[WZ.idea.genre].emoji+" "+tl.tag+" ("+trendOf(WZ.idea.genre).toFixed(2)+"×)</div></div>"+
-      "</div></div>";
-
-    const crewLine = crew.length? crew.map(c=>({writer:"✍️",director:"🎬",producer:"🎫"}[c.kind]+" "+esc(c.name))).join(" · ") : "<span class='muted'>no crew attached</span>";
-    h+="<div class='tiny' style='margin-bottom:8px'>"+crewLine+((WZ.aiCast||WZ.aiScript)?" · <span class='tag purple'>🤖 synthetic</span>":"")+"</div>";
-    if(packFee>0){
-      h+="<div class='tiny gold' style='margin-bottom:8px'>🧾 Agency packaging fee: stacking "+WZ.cast.length+" "+packName+" clients triggers a "+fmtM(packFee)+" fee line item.</div>";
-    }
-    h+="<div class='small muted' style='margin:4px 0 6px'><b>Production craft</b> — creative &amp; logistics</div>";
-    h+="<div class='craft-block'>";
-    h+="<div class='tiny muted' style='margin:2px 0 4px'>🎬 MPAA rating</div><div class='row' id='wzRating'>";
-    DATA.RATINGS.forEach(function(rt){ h+="<button class='btn btn-sm "+(WZ.rating===rt.id?"btn-primary":"")+"' data-rate='"+rt.id+"'>"+rt.name+"</button>"; });
-    h+="</div><div class='tiny muted' style='margin-top:2px'>"+DATA.rating(WZ.rating).desc+"</div>";
-    
-    // Shoot location + recommendation
-    const bestLoc = (DATA.LOCATIONS||[]).slice().sort((a,b)=>b.rebate-a.rebate)[0] || DATA.LOCATIONS[0];
-    h+="<div class='tiny muted' style='margin:8px 0 4px'>🌍 Shoot location (filming rebate)</div><div class='row' id='wzLoc'>";
-    DATA.LOCATIONS.forEach(function(lo){ h+="<button class='btn btn-sm "+(WZ.location===lo.id?"btn-primary":"")+"' data-loc='"+lo.id+"'>"+lo.name+" ("+Math.round(lo.rebate*100)+"%)</button>"; });
-    h+="</div><div class='tiny muted' style='margin-top:2px'>"+DATA.location(WZ.location).blurb+"</div>"+
-       "<div class='tiny pos' style='margin-top:2px'>💡 Recommended: <b>"+bestLoc.name+"</b> ("+Math.round(bestLoc.rebate*100)+"% rebate saves up to "+fmtM(Math.round(WZ.budget*bestLoc.rebate))+")</div>";
-    
-    h+="<div class='card' style='margin-top:8px;cursor:pointer' id='wzPolish'><div class='spread'><span class='small'>"+(WZ.scriptPolish?"✅ ":"⬜ ")+"<b>Script polish</b> — +6 script, +1 wk pre-prod</span><span class='tag "+(WZ.scriptPolish?"gold":"")+"'>"+fmtM(polishCost)+"</span></div>"+
-      "<div class='tiny muted'>A fresh-eyes rewrite pass lifts the writing (quality) but adds pre-production time. Worth it on weak scripts.</div></div>";
-    h+="</div>";
-
-    /* v28: theme picker — hidden genre×theme affinities, discovered by shipping */
-    if(DATA.THEMES && DATA.THEMES.length){
-      const gname0=WZ.idea.genre;
-      h+="<div class='small muted' style='margin:10px 0 6px'><b>🎨 Attach a theme</b> <span class='tiny'>(affinity is hidden until you ship a pairing — ⭐ great match, ✖ clash)</span></div><div class='row' id='wzTheme' style='flex-wrap:wrap;gap:4px'>"+
-        "<button class='btn btn-sm "+(!WZ.theme?"btn-primary":"")+"' data-theme='none'>➖ No theme</button>"+
-        DATA.THEMES.map(function(th){
-          const key=DATA.comboKey(gname0,th.id), known=(G.comboKnown||{})[key];
-          const mark = known==="love"? " <span class='gold'>⭐</span>" : known==="clash"? " <span class='neg'>✖</span>" : " <span class='muted'>?</span>";
-          return "<button class='btn btn-sm "+(WZ.theme===th.id?"btn-primary":"")+"' data-theme='"+th.id+"'>"+th.emoji+" "+th.name+mark+"</button>";
-        }).join("")+"</div>"+
-        "<div class='tiny muted' style='margin-top:2px'>A great pairing adds quality and opening heat; a clash quietly hurts. Discover them the Kairosoft way: by shipping.</div>";
-    }
-
-    // Festival Strategy Picker (v28: premiere / competition / market-auction entry modes)
-    const festMode=WZ.festMode||"premiere";
-    h+="<div class='small muted' style='margin:10px 0 6px'><b>🎪 Festival entry strategy</b> <span class='tiny'>(premiere for buzz · competition needs a regional shoot · auction sells the picture)</span></div>"+
-      "<div class='row' id='wzFest' style='flex-wrap:wrap;gap:4px'>"+
-      "<button class='btn btn-sm "+(!WZ.festStrategy?"btn-primary":"")+"' data-fest='none'>🚫 Direct Release</button>"+
-      DATA.FESTIVALS.map(f=>"<button class='btn btn-sm "+(WZ.festStrategy===f.id?"btn-primary":"")+"' data-fest='"+f.id+"'>"+f.emoji+" "+f.name+" · prestige ×"+f.prestige+"</button>").join("")+
-      "</div>";
-    if(WZ.festStrategy){
-      const selF=DATA.FESTIVALS.find(f=>f.id===WZ.festStrategy);
-      const locOk = WZ.location===selF.region;
-      h+="<div class='row' id='wzFestMode' style='flex-wrap:wrap;gap:4px;margin-top:4px'>"+
-        "<button class='btn btn-sm btn-alt "+(festMode==="premiere"?"btn-primary":"")+"' data-festmode='premiere'>🎞 World Premiere</button>"+
-        "<button class='btn btn-sm btn-alt "+(festMode==="competition"?"btn-primary":"")+"' data-festmode='competition' title='"+(locOk? "Shot in-region — full eligibility, ×1.6 prestige":"This festival only accepts films shot in "+(DATA.location(selF.region)||{}).name+" — out-of-competition entries get a reduced bump")+"'>🏆 Competition"+(locOk?"":" ⚠")+"</button>"+
-        "<button class='btn btn-sm btn-alt "+(festMode==="auction"?"btn-primary":"")+"' data-festmode='auction'>🔨 Market Auction <span class='tiny'>(cash now, no theatrical)</span></button>"+
-        "</div>"+
-        "<div class='tiny muted' style='margin-top:2px'>"+esc(selF.blurb)+"</div>";
-    }
-
-    if(DATA.COPROD_PARTNERS && WZ.mode==="film"){
-      h+="<div class='small muted' style='margin:10px 0 6px'><b>Co-production</b> — split budget &amp; risk with a partner</div><div class='plan-pick'>";
-      DATA.COPROD_PARTNERS.forEach(function(cp){
-        h+="<div class='plan-opt"+((WZ.coProd||"none")===cp.id?" sel":"")+"' data-coprod='"+cp.id+"'><h5>"+cp.icon+" "+cp.name+(cp.pct? " · covers "+Math.round(cp.pct*100)+"% / keeps "+Math.round(cp.share*100)+"% of net":"")+"</h5><div class='p-sub'>"+cp.blurb+"</div></div>";
-      });
-      h+="</div>";
-    }
-    h+="<div class='small muted' style='margin:10px 0 6px'><b>Distribution plan</b> — commit now or keep options open</div><div class='plan-pick'>"+
-      "<div class='plan-opt"+(WZ.plan==="theatrical"?" sel":"")+"' data-plan='theatrical'><h5>🎥 Theatrical release</h5><div class='p-sub'>Full box office upside (and risk). You set the date &amp; P&amp;A when it's finished.</div></div>"+
-      "<div class='plan-opt"+(WZ.plan==="streaming"?" sel":"")+"' data-plan='streaming'><h5>📺 Streaming original</h5><div class='p-sub'>Platforms bid on delivery — guaranteed cash ≈ budget × quality, zero box office.</div></div>"+
-      (G.streamer? (function(){ const est=(typeof ownPremiereEstimate==="function")? ownPremiereEstimate({genre:WZ.idea.genre, budget:WZ.budget, marketing:recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}), script:WZ.idea.script, buzzBonus:0}) : {subs:1};
-        return "<div class='plan-opt"+(WZ.plan==="own"?" sel":"")+"' data-plan='own'><h5>▶ Own-streamer premiere — "+esc(G.streamer.name)+"</h5><div class='p-sub'>Direct to your platform: no box office, no license cheque. ≈ +"+est.subs+"M subscribers overnight, then weekly ARPU and a bigger library ceiling.</div></div>"; })() : "")+
-      "<div class='plan-opt"+(WZ.plan==="later"?" sel":"")+"' data-plan='later'><h5>🤔 Decide later</h5><div class='p-sub'>Keep every door open: date it, shop it, or take incoming pre-buy offers.</div></div>"+
-      "</div>";
-    if(WZ.plan!=="streaming" && WZ.plan!=="own"){
-      const pv=Math.round(WZ.budget*0.22);
-      h+="<div class='card' style='margin-top:8px;cursor:pointer' id='wzPresale'><div class='spread'><span class='small'>"+(WZ.presales?"✅ ":"⬜ ")+"<b>International pre-sales</b> — take "+fmtM(pv)+" cash today</span><span class='tag "+(WZ.presales?"gold":"")+"'>"+(WZ.presales?"sold":"available")+"</span></div>"+
-        "<div class='tiny muted'>Buyers take the international box office (~"+Math.round(DATA.GENRES[WZ.idea.genre].intlShare*100)+"% of gross). Great for cash flow; costs you upside on hits.</div></div>";
-    }
-    if(!WZ.producer) h+="<div class='tiny neg' style='margin-top:8px'>⚠ No producer attached — expect cost overruns during the shoot.</div>";
-    if(starP>=8) h+="<div class='tiny' style='margin-top:8px'>🌟 A-list ensemble: the stars demand <b>5% of rentals</b> as backend points.</div>";
-    h+="<div class='card' style='margin-top:10px'><label class='field-label' for='wzTitle'>🎬 Film name</label>"+
-      "<input id='wzTitle' type='text' maxlength='60' placeholder='Leave blank — the studio will name it' value='"+esc(WZ.title||"")+"' style='width:100%;background:#0b0f18;border:1px solid var(--line2);color:var(--text);border-radius:11px;padding:10px 12px;font-size:15px;outline:none'>"+
-      "<div class='tiny muted' style='margin-top:4px'>Name it yourself, or let the machine generate a title.</div></div>";
-    
-    /* v9: budget allocation with donut chart */
-    if(!WZ.alloc) WZ.alloc={vfx:20, stunts:20, cast:20, music:20, design:20};
-    const AL=[["vfx","VFX & spectacle"],["stunts","Stunts & action"],["cast","Cast & performances"],["music","Music & score"],["design","Production design"]];
-    const donutSlices = [
-      { label:"VFX", value:WZ.alloc.vfx, color:"#6c5ce7" },
-      { label:"Stunts", value:WZ.alloc.stunts, color:"#e17055" },
-      { label:"Cast", value:WZ.alloc.cast, color:"#ffd166" },
-      { label:"Music", value:WZ.alloc.music, color:"#00cec9" },
-      { label:"Design", value:WZ.alloc.design, color:"#a29bfe" }
-    ];
-    h+="<div class='card'><div class='spread'><b class='small'>🎚 Budget emphasis</b>"+renderDonutSVG(donutSlices, 70, 10)+"</div>";
-    AL.forEach(([k,label])=>{
-      h+="<div class='slider-row'><span class='small muted' style='min-width:96px'>"+label+"</span>"+
-        "<input type='range' class='alSlider' data-al='"+k+"' min='0' max='50' step='5' value='"+WZ.alloc[k]+"'>"+
-        "<span class='slider-val' id='al-"+k+"'>"+WZ.alloc[k]+"%</span></div>";
-    });
-    h+="<div class='tiny muted' style='margin-top:4px'>VFX lifts spectacle genres · stunts lift action · cast lifts audience · score & design lift critics.</div></div>";
-    h+="<div class='card'><div class='slider-row'><span class='small muted'>Production budget</span>"+
-      "<input type='range' id='wzBudget' min='"+S2.bMin+"' max='"+(S2.bMax*1.4)+"' step='"+(S2.bMin>=100?5:2)+"' value='"+WZ.budget+"'><span class='slider-val' id='wzBudgetV'>"+fmtM(WZ.budget)+"</span></div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Typical "+S2.name+" range: "+fmtM(S2.bMin)+"–"+fmtM(S2.bMax)+" · genre needs ≈ "+fmtM(neededBudget(WZ.idea.genre,WZ.idea.scale))+" (underfunding hurts quality)</div></div>";
-    h+="<div class='card'><div class='cost-line'><span>Rights + development"+(WZ.scriptPolish?" (+script polish)":"")+"</span><b>"+fmtM(dev+polishCost)+"</b></div>"+
-      "<div class='cost-line'><span>Crew &amp; cast fees (upfront)</span><b>"+fmtM(fees-cameoFee)+"</b></div>"+
-      (WZ.cameo? "<div class='cost-line'><span>🌟 Cameo — "+esc(WZ.cameo.name)+" (30% fee, +6% buzz)</span><b>"+fmtM(cameoFee)+"</b></div>":"")+
-      (packFee>0? "<div class='cost-line'><span>Agency packaging fee ("+packName+")</span><b class='gold'>+"+fmtM(packFee)+"</b></div>":"")+
-      "<div class='cost-line'><span>Production (paid weekly over ~"+weeks+" wks)</span><b>"+fmtM(WZ.budget)+"</b></div>"+
-      (WZ.presales&&WZ.plan!=="streaming"&&WZ.plan!=="own"? "<div class='cost-line'><span>Intl pre-sales (cash now)</span><b class='pos'>+"+fmtM(Math.round(WZ.budget*0.22))+"</b></div>":"")+
-      "<div class='cost-line'><span>Suggested marketing (at release)</span><b id='wzMkt'>"+fmtM(recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre}))+"</b></div>"+
-      "<div class='cost-total'><span>Total commitment</span><span class='gold' id='wzTot'>"+fmtM(dev+polishCost+fees+WZ.budget)+"</span></div></div>";
-    h+="<div class='tiny muted'>💡 Rule of thumb: a film needs ≈ <b id='wzBe'>"+fmtM(breakevenWW({budget:WZ.budget, marketing:recMarketing({budget:WZ.budget,scale:WZ.idea.scale,genre:WZ.idea.genre})}))+"</b> worldwide gross to break even (theaters keep ~half).</div>";
-    { const mkt0=recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre});
-      const be0=breakevenWW({budget:WZ.budget, marketing:mkt0});
-      let legsEst="—"; try{ legsEst=(+legsOf({genre:WZ.idea.genre, quality:{overall:70,critic:65,aud:65}, releaseWeek:G.week, pattern:"wide", rollout:"day"})).toFixed(2)+"×"; }catch(e){}
-      h+=decisionCard([["Cost",fmtM(dev+polishCost+fees+WZ.budget)+" total"],["Expected benefit","P&A ≈ "+fmtM(mkt0)+" → opening mass"],["Risk",(WZ.producer?"Overruns ~"+overrunRisk(WZ.producer.skill)+"%/wk":"No producer — overruns full")+(WZ.presales?"; presales cap intl upside":"")],["Quality",(WZ.writer?"Writer +"+writerBonus(WZ.writer,WZ.idea.genre):"No writer bonus")+" · trend "+trendOf(WZ.idea.genre).toFixed(2)+"×"],["Audience",((DATA.GENRES[WZ.idea.genre].aud>=0?"+":"")+DATA.GENRES[WZ.idea.genre].aud+" genre lean")],["Critics",(DATA.GENRES[WZ.idea.genre].critic>=0?"+":"")+DATA.GENRES[WZ.idea.genre].critic+" genre lean"+(WZ.rating==="R"?", R +edge":"")],["Box office","BE ≈ "+fmtM(be0)+" WW · legs ~"+legsEst]]); }
-    h+="<div class='modal-actions'><button class='btn btn-ghost' id='wzBack'>← Producer</button><button class='btn btn-primary' id='wzGo'>🎥 Greenlight</button></div>";
+function greenlightRead(){
+  const idea=WZ.idea, S=(DATA.SCALES&&DATA.SCALES[idea.scale])||DATA.SCALES.mid;
+  const base=idea.script+(WZ.scriptPolish?6:0);
+  const wBonus=WZ.writer?writerBonus(WZ.writer,idea.genre):(WZ.aiScript?-(DATA.AI?DATA.AI.scrQualityPenalty:5):0);
+  const script=Math.round(clamp(base+wBonus,20,99));
+  const dirSkill=WZ.director?WZ.director.skill:50;
+  const leads=WZ.aiCast?[]:(WZ.cast||[]);
+  const castAvg=leads.length?Math.round(leads.reduce((s,c)=>s+(c.skill||0),0)/leads.length):(WZ.aiCast?45:55);
+  const prodSkill=WZ.producer?WZ.producer.skill:45;
+  const budget=WZ.budget||Math.round(neededBudget(idea.genre,idea.scale));
+  const mkt=recMarketing({budget,scale:idea.scale,genre:idea.genre});
+  const quality=Math.round(clamp(script*0.30+dirSkill*0.25+castAvg*0.25+prodSkill*0.10,25,98));
+  const dev=devCostOf(idea)+(WZ.scriptPolish?Math.round(devCostOf(idea)*0.4):0);
+  const fees=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+leads.reduce((s,c)=>s+actorFee(c),0);
+  const cameoFee=WZ.cameo?Math.round(actorFee(WZ.cameo)*0.3*10)/10:0;
+  let packFee=0, packName="";
+  if(typeof packagingCost==="function"){
+    packFee=packagingCost(leads,budget)||0;
+    if(packFee>0 && typeof packagingFeeOf==="function"){ const pa=packagingFeeOf(leads); packName=pa?pa.name:""; }
   }
-  const v=openModal(h, {onClose:()=>{WZ=null;}});
+  return {S,base,script,dirSkill,castAvg,prodSkill,budget,mkt,quality,dev,fees,cameoFee,packFee,packName,
+    allIn:dev+fees+cameoFee+packFee+budget};
+}
+function greenlightAside(r){
+  const name=t=>t?esc(t.name):"—";
+  const leads=WZ.aiCast?[]:(WZ.cast||[]);
+  return `<div class="pitch-side-block"><span class="command-eyebrow">THE PICTURE</span>
+      ${pitchMoneyRow("Genre",esc((DATA.GENRES[WZ.idea.genre]||{}).name||"—"))}
+      ${pitchMoneyRow("Scale",esc(r.S.name))}
+      ${pitchMoneyRow("Spec script",String(WZ.idea.script))}
+      ${pitchMoneyRow("After the rewrite",String(r.script),r.script>WZ.idea.script?"pos":(r.script<WZ.idea.script?"neg":""))}
+      ${pitchMoneyRow("Projected quality",r.quality+"/100")}
+      ${pitchMoneyRow("Market heat",(typeof trendOf==="function"?trendOf(WZ.idea.genre):1).toFixed(2)+"×")}
+    </div>
+    <div class="pitch-side-block"><span class="command-eyebrow">THE ROOM</span>
+      ${pitchMoneyRow("Writer",WZ.aiScript?"SynthScribe":name(WZ.writer))}
+      ${pitchMoneyRow("Director",name(WZ.director))}
+      ${pitchMoneyRow("Producer",name(WZ.producer))}
+      ${pitchMoneyRow("Leads",WZ.aiCast?"AI cast":(leads.length?leads.map(c=>esc(String(c.name||"").split(" (")[0])).join(" · "):"none"))}
+      ${pitchMoneyRow("Cameo",WZ.cameo?esc(WZ.cameo.name):"none")}
+    </div>
+    <div class="pitch-side-block"><span class="command-eyebrow">THE MONEY</span>
+      ${pitchMoneyRow("Rights + development",fmtM(r.dev))}
+      ${pitchMoneyRow("Talent fees",fmtM(r.fees))}
+      ${WZ.cameo?pitchMoneyRow("Cameo (30%)",fmtM(r.cameoFee)):""}
+      ${r.packFee>0?pitchMoneyRow("Agency packaging",fmtM(r.packFee)):""}
+      ${pitchMoneyRow("Negative cost",fmtM(r.budget))}
+      ${pitchMoneyRow("Marketing (P&A)",fmtM(r.mkt))}
+      ${pitchMoneyRow("All-in",fmtM(r.allIn))}
+      ${pitchMoneyRow("Studio cash",fmtM(G.studio.cash))}
+    </div>
+    <div class="pitch-side-block"><span class="command-eyebrow">WATCH OUT</span>
+      ${WZ.producer?pitchMoneyRow("Overrun risk","~"+overrunRisk(WZ.producer.skill)+"%/wk"):pitchMoneyRow("Overrun risk","unprotected","neg")}
+      ${WZ.presales?pitchMoneyRow("Pre-sales","international sold"):""}
+      ${(WZ.cast||[]).some(c=>c.scandal>0)?pitchMoneyRow("Scandal","on the call sheet","neg"):""}
+      ${WZ.aiScript||WZ.aiCast?pitchMoneyRow("Guilds","synthetic work flagged","neg"):""}
+    </div>`;
+}
+
+function wizardModal(){
+  if(!WZ || !WZ.idea) return;
+  WZ.sub=Math.max(2,Math.min(6,Number(WZ.sub)||2));
+  const step=WZ.sub, r=greenlightRead();
+  const S=r.S, genre=WZ.idea.genre;
+  const title=WZ.idea.title==="(sequel)"? sequelTitle0(WZ) : WZ.idea.title;
+  let main="", actions="";
+
+  const held=(owner,role,label,extra)=>owner
+    ? `<div class="pitch-held"><div class="pitch-held-main"><small>${label}</small><b>${esc(owner.name)}</b><em>${esc(String(castRoleLabel(owner)))} · skill ${owner.skill||0} · ${fmtM(actorFee(owner))}${extra||""}</em></div><div class="pitch-held-actions"><button class="develop-ghost" data-clearrole="${role}">Remove</button><button class="develop-link" data-pickrole="${role}">Change</button></div></div>`
+    : "";
+  const browse=(role,count,label)=>`<div class="pitch-inline-note"><span>${count} free ${label} this week</span><button class="develop-link" data-pickrole="${role}">Open the directory →</button></div>`;
+
+  if(step===2){
+    const ws=freeTalent("writer").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(writerBonus(b,genre)-writerBonus(a,genre))||b.skill-a.skill);
+    main=pitchGroup("THE PAGE",`Skill plus genre fit is worth up to <b>+11 script</b>. This spec reads <b>${r.base}</b>${WZ.writer?` → <b class="pos">${Math.round(clamp(r.base+writerBonus(WZ.writer,genre),20,99))}</b>`:""}.`,
+        held(WZ.writer,"writer","WRITER ATTACHED")
+        +`<div class="pitch-toggles"><button class="pitch-toggle${WZ.aiScript?" on":""}" id="wzAIw" aria-pressed="${!!WZ.aiScript}"><span>${WZ.aiScript?"✓ SynthScribe is writing it":"Let SynthScribe write it"}</span><small>free · flat ${DATA.AI?DATA.AI.scriptScore:65} page</small></button></div>`
+        +(WZ.aiScript
+          ? `<div class="pitch-note">No writer's voice: quality −${DATA.AI?DATA.AI.scrQualityPenalty:5}, the guilds heat up (strike risk), and the internet may revolt.</div>`
+          : (ws.length
+            ? `<div class="pitch-pick-list">${ws.filter(w=>!(WZ.writer&&WZ.writer.id===w.id)).slice(0,8).map(w=>castPickRow(w,{sel:!!(WZ.writer&&WZ.writer.id===w.id),attr:`data-writer="${w.id}"`})).join("")}</div>`+browse("writer",ws.length,"writers")
+            : `<div class="command-empty"><b>Every writer in town is booked.</b><small>Shoot the spec as-is, or let SynthScribe take it.</small></div>`)));
+    actions=`<button class="develop-ghost" id="wzSkipWriter">Shoot the spec as-is →</button>`
+      +((WZ.writer||WZ.aiScript)?`<button class="develop-action" id="wzNext">To director →</button>`:`<span class="pitch-actions-hint">Attach a writer to move on</span>`);
+  }
+
+  if(step===3){
+    const dirs=freeTalent("director").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(b.power*20+b.skill)-(a.power*20+a.skill));
+    main=pitchGroup("THE DIRECTOR",`A director shapes about a quarter of the picture and most of how critics read it.`,
+        held(WZ.director,"director","DIRECTOR ATTACHED")
+        +(dirs.length
+          ? `<div class="pitch-pick-list">${dirs.filter(d=>!(WZ.director&&WZ.director.id===d.id)).slice(0,8).map(d=>castPickRow(d,{sel:!!(WZ.director&&WZ.director.id===d.id),attr:`data-dir="${d.id}"`})).join("")}</div>`+browse("director",dirs.length,"directors")
+          : `<div class="command-empty"><b>No director is free.</b><small>Advance a week — the market restocks.</small></div>`))
+      +pitchGroup("THE READ",`What this chair does to the picture.`,
+        `<div class="pitch-grid4">${pitchStat("DIRECTOR SKILL",(WZ.director?WZ.director.skill:50)+"/100","25% of quality")}${pitchStat("CRITICS","×"+(WZ.director&&WZ.director.genreFit===genre?"1.1 fit":"1.0"),"genre fit")}${pitchStat("OPENING","buzz",(WZ.director&&WZ.director.power>=4?"star director":"standard"))}${pitchStat("FEE",WZ.director?fmtM(actorFee(WZ.director)):"—","upfront")}</div>`);
+    actions=`<button class="develop-ghost" id="wzBackWriter">← Writer</button><button class="develop-action" id="wzNext" ${WZ.director?"":"disabled"}>${WZ.director?"Cast the picture →":"Attach a director first"}</button>`;
+  }
+
+  if(step===4){
+    const allActs=freeTalent("actor").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(b.power*30+b.skill)-(a.power*30+a.skill));
+    const f=WZ._cFilter||"all";
+    const filt=f==="stars"?allActs.filter(a=>a.power>=5):f==="animals"?allActs.filter(a=>a.isAnimal):allActs;
+    const cast=WZ.cast||[];
+    const head=filt.slice(0,30);
+    const shown=cast.filter(c=>c&&!head.some(t=>t.id===c.id)).concat(filt).slice(0,30);
+    const sp=cast.reduce((s,c)=>s+(c.power||0),0);
+    main=pitchGroup("THE CALL SHEET",`Three leads carry a picture. Star power drives the opening; skill drives the reviews. Animal stars cast exactly like human leads.`,
+        (cast.length?`<div class="pitch-grid4">${pitchStat("LEADS",cast.length+" attached",cast.map(c=>esc(String(c.name||"").split(" (")[0])).join(", "))}${pitchStat("STAR POWER",sp+"★","opening ×"+starOpenMult(sp))}${pitchStat("FEES",fmtM(cast.reduce((s,c)=>s+actorFee(c),0)),"upfront")}${pitchStat("SKILL AVG",Math.round(cast.reduce((s,c)=>s+(c.skill||0),0)/Math.max(1,cast.length))+"/100","quality read")}</div>`:"")
+        +`<div class="pitch-filter-row">
+            <button class="pitch-filter${f==="all"?" on":""}" data-glcast="all">All <b>${allActs.length}</b></button>
+            <button class="pitch-filter${f==="stars"?" on":""}" data-glcast="stars">5★ <b>${allActs.filter(a=>a.power>=5).length}</b></button>
+            <button class="pitch-filter${f==="animals"?" on":""}" data-glcast="animals">Animal stars <b>${allActs.filter(a=>a.isAnimal).length}</b></button>
+            <button class="pitch-filter" data-pickcast="greenlight">Cast directory <b>${(G.talent||[]).length}</b></button>
+          </div>`
+        +(WZ.aiCast
+          ? `<div class="pitch-note">Synthetic cast attached: no fees, no star opening, audience −${DATA.AI?DATA.AI.audPenalty:6}, and the guilds take note.</div>`
+          : `<div class="pitch-pick-list">${shown.map(a=>castPickRow(a,{sel:cast.some(c=>c.id===a.id),attr:`data-cast="${a.id}"`})).join("")||`<div class="command-empty"><b>No performers free.</b><small>Advance a week.</small></div>`}</div>`
+            +`<div class="pitch-inline-note"><span>Showing ${shown.length} of ${filt.length} free performers</span><button class="develop-link" data-pickcast="greenlight">Search all ${(G.talent||[]).length} on the books →</button></div>`))
+      +pitchGroup("SYNTHETIC CAST",`Fully licensed digital doubles. Cheap, fast, radioactive.`,
+        `<button class="pitch-toggle${WZ.aiCast?" on":""}" id="wzAIc" aria-pressed="${!!WZ.aiCast}"><span>${WZ.aiCast?"✓ Synthetic cast attached":"Attach a synthetic cast"}</span><small>fees $0 · audience −${DATA.AI?DATA.AI.audPenalty:6}</small></button>`)
+      +pitchGroup("CAMEO",`One superstar in a single scene: 30% of their fee, +6% opening buzz.`,
+        WZ.cameo
+          ? `<div class="pitch-held"><div class="pitch-held-main"><small>CAMEO BOOKED</small><b>${esc(WZ.cameo.name)}</b><em>${fmtM(Math.round(actorFee(WZ.cameo)*0.3*10)/10)} · +6% opening buzz</em></div><div class="pitch-held-actions"><button class="develop-ghost" data-cameoclear>Remove</button><button class="develop-link" data-pickcameo="greenlight">Change</button></div></div>`
+          : `<button class="pitch-toggle" id="wzCameo" aria-pressed="false"><span>Choose a cameo star</span><small>one scene · 30% fee · +6% buzz</small></button>`)
+      +(function(){
+        const dealStars=(WZ.cast||[]).filter(c=>(c.power||0)>=4);
+        if(!dealStars.length) return "";
+        WZ.deals=WZ.deals||{};
+        return pitchGroup("AGENT PACKAGES",`4★+ stars will trade fee for a slice of the rentals.`,
+          `<div class="pitch-toggles">${dealStars.map(c=>{
+            const on=WZ.deals[c.id]==="backend";
+            return `<button class="pitch-toggle${on?" on":""}" data-deal="${c.id}" aria-pressed="${on}"><span>${esc(c.name)}</span><small>${on?"fee −30% · +2% backend":"flat fee "+fmtM(actorFee(c))}</small></button>`;
+          }).join("")}</div>`);
+      })();
+    actions=`<button class="develop-ghost" id="wzBackDir">← Director</button><button class="develop-action" id="wzNext">${WZ.aiCast?"Continue with AI cast":"Continue with "+((WZ.cast||[]).length)+" lead(s)"} →</button>`;
+  }
+
+  if(step===5){
+    const prods=freeTalent("producer").sort((a,b)=>(b.skill-a.skill)||(b.power-a.power));
+    main=pitchGroup("THE FLOOR",`A producer cuts the odds and the size of <b>cost overruns</b>, squeezes extra production value out of the same budget, and a great one shaves a week off the shoot.`,
+        held(WZ.producer,"producer","PRODUCER ATTACHED")
+        +(prods.length
+          ? `<div class="pitch-pick-list">${prods.filter(p=>!(WZ.producer&&WZ.producer.id===p.id)).slice(0,8).map(p=>castPickRow(p,{sel:!!(WZ.producer&&WZ.producer.id===p.id),attr:`data-prod="${p.id}"`})).join("")}</div>`+browse("producer",prods.length,"producers")
+          : `<div class="command-empty"><b>No producers free this week.</b><small>You will be running the floor yourself — overruns land on you.</small></div>`))
+      +pitchGroup("THE READ",`What this chair does to the shoot.`,
+        `<div class="pitch-grid4">${pitchStat("OVERRUN RISK",(WZ.producer?"~"+overrunRisk(WZ.producer.skill):"~"+overrunRisk(45))+"%/wk",WZ.producer?"smaller hits":"full-size hits",WZ.producer?"good":"bad")}${pitchStat("PRODUCTION VALUE",WZ.producer?(WZ.producer.skill>=80?"+schedule shave":"+"+clamp(Math.round((WZ.producer.skill-55)/6),-3,7)):"none","quality read")}${pitchStat("FEE",WZ.producer?fmtM(actorFee(WZ.producer)):"—","upfront")}${pitchStat("SAVES",WZ.producer?"~"+(WZ.producer.skill>=80?"1 wk":"0 wk"):"0 wk","shoot schedule")}</div>`);
+    actions=`<button class="develop-ghost" id="wzBackCast">← Cast</button><button class="develop-action" id="wzNext">Budget &amp; deal →</button>`;
+  }
+
+  if(step===6){
+    const weeks=S.pre[1]+S.shoot[1]+S.post[1];
+    const planned=(WZ.plan||"theatrical");
+    const alloc=WZ.alloc||(WZ.alloc={vfx:20,stunts:20,cast:20,music:20,design:20});
+    const slices=[{label:"VFX",val:alloc.vfx,color:"#6c5ce7"},{label:"Stunts",val:alloc.stunts,color:"#e17055"},
+      {label:"Cast",val:alloc.cast,color:"#ffd166"},{label:"Music",val:alloc.music,color:"#00cec9"},{label:"Design",val:alloc.design,color:"#a29bfe"}];
+    const warnings=[];
+    if(!WZ.producer) warnings.push("No producer attached — every cost overrun lands on you.");
+    if(G.studio.cash<r.dev+r.fees+r.budget*0.2) warnings.push("Cash on hand may not cover the upfront commitment — Finance can arrange a loan.");
+    if((WZ.cast||[]).reduce((s,c)=>s+(c.power||0),0)>=8) warnings.push("A-list ensemble: the stars demand 5% of rentals as backend points.");
+    main=pitchGroup("NAME &amp; RATING",`Name it now, or let the studio name it on delivery.`,
+        `<input id="wzTitle" class="pitch-input" type="text" maxlength="60" placeholder="Untitled picture" value="${esc(WZ.title||"")}" aria-label="Film name">
+         <div class="pitch-filter-row" role="group" aria-label="MPAA rating">${DATA.RATINGS.map(rt=>`<button class="pitch-filter${WZ.rating===rt.id?" on":""}" data-rate="${rt.id}" aria-pressed="${WZ.rating===rt.id}">${esc(rt.name)}</button>`).join("")}</div>
+         <div class="pitch-note">${esc((DATA.rating(WZ.rating)||{}).desc||"")}</div>`)
+      +pitchGroup("THE BUDGET",`Negative cost and where it goes. Marketing is calculated from it at release.`,
+        `<div class="pitch-slider"><input type="range" id="wzBudget" min="${S.bMin}" max="${Math.round(S.bMax*1.4)}" step="${S.bMin>=100?5:2}" value="${r.budget}" aria-label="Production budget"><span><b id="wzBudgetV">${fmtM(r.budget)}</b><small>negative cost</small></span></div>
+         <div class="pitch-note">Typical ${esc(S.name)} range: ${fmtM(S.bMin)}–${fmtM(S.bMax)}. Genre need ≈ <b>${fmtM(neededBudget(genre,WZ.idea.scale))}</b>; underfunding hurts quality.</div>
+         <div class="pitch-alloc"><div class="pitch-alloc-donut">${(typeof renderDonutSVG==="function")?renderDonutSVG(slices,78,10):""}</div>
+         <div class="pitch-alloc-sliders">${[["vfx","VFX & spectacle"],["stunts","Stunts & action"],["cast","Cast & performances"],["music","Music & score"],["design","Production design"]].map(([k,label])=>
+            `<div class="pitch-slider al-row"><input type="range" class="alSlider" data-al="${k}" min="0" max="50" step="5" value="${alloc[k]}" aria-label="${esc(label)}"><span><b id="al-${k}">${alloc[k]}%</b><small>${esc(label)}</small></span></div>`).join("")}</div></div>
+         <div class="pitch-note">VFX lifts spectacle genres · stunts lift action · cast lifts audience · score and design lift critics.</div>`)
+      +pitchGroup("THE SHOOT",`Where you shoot decides the rebate, the weather and the festival circuit.`,
+        `<div class="pitch-chips">${DATA.LOCATIONS.map(l=>`<button type="button" class="pitch-chip${WZ.location===l.id?" on":""}" data-loc="${l.id}" aria-pressed="${WZ.location===l.id}"><span>${esc(l.name)}</span><small>${Math.round((l.rebate||0)*100)}% rebate${l.cap?" · cap "+fmtM(l.cap):""}</small></button>`).join("")}</div>
+         <div class="pitch-note">${esc((DATA.location(WZ.location)||{}).blurb||"")}</div>
+         <div class="pitch-toggles"><button class="pitch-toggle${WZ.scriptPolish?" on":""}" id="wzPolish" aria-pressed="${!!WZ.scriptPolish}"><span>${WZ.scriptPolish?"✓ Script polish booked":"Book a script polish"}</span><small>+6 script · +1 wk pre-production</small></button></div>`)
+      +pitchGroup("THEME",`Affinity is hidden until you ship a pairing. A great match adds quality and heat; a clash quietly hurts.`,
+        `<div class="pitch-chips"><button type="button" class="pitch-chip${!WZ.theme?" on":""}" data-theme="none" aria-pressed="${!WZ.theme}"><span>No theme</span><small>straight genre read</small></button>${(DATA.THEMES||[]).map(th=>{
+          const key=DATA.comboKey(genre,th.id), known=(G.comboKnown||{})[key];
+          const mark=known==="love"?"⭐":known==="clash"?"✖":"?";
+          return `<button type="button" class="pitch-chip${WZ.theme===th.id?" on":""}" data-theme="${th.id}" aria-pressed="${WZ.theme===th.id}"><i>${th.emoji}</i><span>${esc(th.name)}</span><small>affinity ${mark}</small></button>`;
+        }).join("")}</div>`)
+      +pitchGroup("FESTIVAL ENTRY",`Premiere for buzz · competition needs a regional shoot · auction sells the picture.`,
+        `<div class="pitch-chips"><button type="button" class="pitch-chip${!WZ.festStrategy?" on":""}" data-fest="none" aria-pressed="${!WZ.festStrategy}"><span>Direct release</span><small>no festival run</small></button>${(DATA.FESTIVALS||[]).map(f=>`<button type="button" class="pitch-chip${WZ.festStrategy===f.id?" on":""}" data-fest="${f.id}" aria-pressed="${WZ.festStrategy===f.id}"><i>${f.emoji}</i><span>${esc(f.name)}</span><small>prestige ×${f.prestige}</small></button>`).join("")}</div>`
+        +(WZ.festStrategy?`<div class="pitch-filter-row">${[["premiere","World premiere"],["competition","Competition"],["auction","Market auction"]].map(([k,label])=>
+            `<button class="pitch-filter${(WZ.festMode||"premiere")===k?" on":""}" data-festmode="${k}" aria-pressed="${(WZ.festMode||"premiere")===k}">${label}</button>`).join("")}</div>
+          <div class="pitch-note">${esc(((DATA.FESTIVALS||[]).find(f=>f.id===WZ.festStrategy)||{}).blurb||"")}${WZ.location===(((DATA.FESTIVALS||[]).find(f=>f.id===WZ.festStrategy)||{}).region)?"":" Out-of-region entries earn a reduced bump."}</div>`:`<div class="pitch-note">Straight to market — no festival spend, no prestige bump.</div>`))
+      +pitchGroup("THE DEAL",`Commit now or keep every door open until the picture is finished.`,
+        `<div class="pitch-toggles">
+          <button class="pitch-toggle${WZ.plan==="theatrical"?" on":""}" data-plan="theatrical" aria-pressed="${WZ.plan==="theatrical"}"><span>Theatrical release</span><small>box office upside</small></button>
+          <button class="pitch-toggle${WZ.plan==="streaming"?" on":""}" data-plan="streaming" aria-pressed="${WZ.plan==="streaming"}"><span>Streaming original</span><small>guaranteed license</small></button>
+          ${G.streamer?`<button class="pitch-toggle${WZ.plan==="own"?" on":""}" data-plan="own" aria-pressed="${WZ.plan==="own"}"><span>Own-streamer premiere</span><small>${esc(G.streamer.name)}</small></button>`:""}
+          <button class="pitch-toggle${WZ.plan==="later"?" on":""}" data-plan="later" aria-pressed="${WZ.plan==="later"}"><span>Decide later</span><small>keep every door open</small></button>
+          ${(planned!=="streaming"&&planned!=="own")?`<button class="pitch-toggle${WZ.presales?" on":""}" id="wzPresale" aria-pressed="${!!WZ.presales}"><span>${WZ.presales?"✓ International pre-sales sold":"Sell international pre-sales"}</span><small>+${fmtM(Math.round(r.budget*0.22))} cash now</small></button>`:""}
+        </div>`)
+      +((DATA.COPROD_PARTNERS&&WZ.mode==="film")
+        ? pitchGroup("CO-PRODUCTION",`Split the budget and the risk with a partner.`,
+            `<div class="pitch-toggles"><button class="pitch-toggle${!WZ.coProd||WZ.coProd==="none"?" on":""}" data-coprod="none" aria-pressed="${!WZ.coProd||WZ.coProd==="none"}"><span>No partner</span><small>you keep 100% of net</small></button>${DATA.COPROD_PARTNERS.map(cp=>
+              `<button class="pitch-toggle${WZ.coProd===cp.id?" on":""}" data-coprod="${cp.id}" aria-pressed="${WZ.coProd===cp.id}"><span>${esc(cp.name)}</span><small>${cp.pct?"covers "+Math.round(cp.pct*100)+"% · keeps "+Math.round(cp.share*100)+"% of net":esc(cp.blurb||"partner")}</small></button>`).join("")}</div>`)
+        : "")
+      +pitchGroup("THE COST SHEET",`Every line is live: change the budget or the team and it re-adds.`,
+        `${pitchMoneyRow("Rights + development"+(WZ.scriptPolish?" (incl. polish)":""),fmtM(r.dev))}
+         ${pitchMoneyRow("Crew & cast fees (upfront)",fmtM(r.fees))}
+         ${WZ.cameo?pitchMoneyRow("🌟 Cameo — "+esc(WZ.cameo.name)+" (30% fee, +6% buzz)",fmtM(r.cameoFee)):""}
+         ${r.packFee>0?pitchMoneyRow("Agency packaging fee"+(r.packName?" ("+esc(r.packName)+")":""),fmtM(r.packFee)):""}
+         ${pitchMoneyRow("Production (paid weekly over ~"+weeks+" wks)",fmtM(r.budget))}
+         ${(WZ.presales&&planned!=="streaming"&&planned!=="own")?pitchMoneyRow("Intl pre-sales (cash now)","+"+fmtM(Math.round(r.budget*0.22)),"pos"):""}
+         ${pitchMoneyRow("Suggested marketing (at release)",`<span id="wzMkt">${fmtM(r.mkt)}</span>`)}
+         <div class="pitch-line pitch-line-total"><span>Total commitment</span><b id="wzTot">${fmtM(r.allIn)}</b></div>
+         <div class="pitch-note">A picture needs ≈ <b id="wzBe">${fmtM(breakevenWW({budget:r.budget,marketing:r.mkt}))}</b> worldwide gross to break even (theatres keep about half).</div>`)
+      +(warnings.length?`<div class="pitch-warnings">${warnings.map(w=>`<div>⚠ ${esc(w)}</div>`).join("")}</div>`:"");
+    actions=`<button class="develop-ghost" id="wzBack">← Producer</button><button class="develop-action" id="wzGo">Greenlight the picture</button>`;
+  }
+
+  const v=openModal(pitchShell({
+    eyebrow:"STORY DEPARTMENT / GREENLIGHT DESK",
+    title:"Greenlight: “"+esc(title||"Untitled")+"”",
+    sub:"Spec to call sheet. Every figure is read from your live studio state.",
+    badge:`<div class="pitch-head-score"><small>PROJECTED QUALITY</small><b>${r.quality}</b><span>/100</span></div>`,
+    steps:GREENLIGHT_STEPS, active:step-2, stepAttr:"glstep",
+    main, aside:greenlightAside(r), actions
+  }),{className:"command-pitch-modal command-greenlight-modal",onClose:()=>{WZ=null;}});
+
+  v.querySelectorAll("[data-glstep]").forEach(b=>b.onclick=()=>{
+    const n=+b.dataset.glstep;
+    if(n<=step-2){ WZ.sub=n+2; beep("click"); wizardModal(); }
+  });
+  v.querySelectorAll("[data-pickrole]").forEach(b=>b.onclick=()=>{
+    const role=b.dataset.pickrole;
+    openTalentPicker({ role, all:true, multi:false, selected:WZ[role]?[WZ[role]]:[], cap:120,
+      title:"Choose a "+role, eyebrow:"STORY DEPARTMENT / GREENLIGHT DESK",
+      note:"Every "+role+" on the books, booked or free. The greenlight draft keeps its place.",
+      onPick:list=>{ WZ[role]=list[0]||null; }, after:()=>wizardModal() });
+  });
+  v.querySelectorAll("[data-clearrole]").forEach(b=>b.onclick=()=>{ WZ[b.dataset.clearrole]=null; beep("click"); wizardModal(); });
+  v.querySelectorAll("[data-pickcast]").forEach(b=>b.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:true, max:8, selected:WZ.cast||[], cap:150,
+    title:"Cast directory", eyebrow:"STORY DEPARTMENT / GREENLIGHT DESK · CALL SHEET",
+    note:"Every performer on the books — leads, animal stars and studio partners. Selections land on this call sheet.",
+    onPick:list=>{ WZ.cast=list.slice(0,8); }, after:()=>wizardModal() }));
+  v.querySelectorAll("[data-pickcameo]").forEach(b=>b.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:false, rowAttr:"data-cameo", selected:WZ.cameo?[WZ.cameo]:[], cap:80,
+    title:"Choose a cameo star", eyebrow:"STORY DEPARTMENT / GREENLIGHT DESK · CAMEO",
+    note:"One scene, one star: 30% of their fee and +6% opening buzz.",
+    onPick:list=>{ WZ.cameo=list[0]||null; }, after:()=>wizardModal() }));
+  v.querySelectorAll("[data-glcast]").forEach(b=>b.onclick=()=>{ WZ._cFilter=b.dataset.glcast; beep("click"); wizardModal(); });
   const wtIn=v.querySelector("#wzTitle"); if(wtIn) wtIn.oninput=()=>{ WZ.title=wtIn.value; };
   // v9: budget allocation sliders — others rescale to keep the split at 100%
   v.querySelectorAll(".alSlider").forEach(sl=>sl.oninput=()=>{
@@ -3172,7 +3146,11 @@ function wizardModal(){
     else if(WZ.cast.length<3) WZ.cast.push(t);
     beep("click"); wizardModal();
   });
-  const wzCameo=v.querySelector("#wzCameo"); if(wzCameo) wzCameo.onclick=()=>{ beep("click"); cameoPicker(); };
+  const wzCameo=v.querySelector("#wzCameo"); if(wzCameo) wzCameo.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:false, rowAttr:"data-cameo", selected:WZ.cameo?[WZ.cameo]:[], cap:80,
+    title:"Choose a cameo star", eyebrow:"STORY DEPARTMENT / GREENLIGHT DESK · CAMEO",
+    note:"One scene, one star: 30% of their fee and +6% opening buzz. Pick from every performer on the books.",
+    onPick:list=>{ WZ.cameo=list[0]||null; }, after:()=>wizardModal() });
   v.querySelectorAll("[data-cameoclear]").forEach(el=>el.onclick=()=>{ WZ.cameo=null; WZ.buzzCameo=false; beep("click"); wizardModal(); });
   v.querySelectorAll("[data-deal]").forEach(el=>el.onclick=()=>{   // v14: agent fee+backend packages
     WZ.deals=WZ.deals||{};
@@ -3313,15 +3291,19 @@ function seriesModal(){
          <div class="pitch-slider"><input type="range" id="szPerEp" min="2" max="18" value="${WZ.perEp}" aria-label="Budget per episode"><span><b id="szPerEpV">${fmtM(WZ.perEp)}</b><small>per episode</small></span></div>
          <div class="pitch-note">Season budget <b id="szTotal">${fmtM(WZ.eps*WZ.perEp)}</b> — the service pays roughly 115% of it back as a license if they order.</div>`)
       +pitchGroup("SHOWRUNNER · REQUIRED",`Writers read as prestige TV; directors bring scale. Both run the room.`,
-        `<div class="pitch-pick-list">${dirs.slice(0,40).map(t=>castPickRow(t,{sel:!!(WZ.showrunner&&WZ.showrunner.id===t.id),attr:`data-sr="${t.id}"`})).join("")||`<div class="command-empty"><b>No showrunner free.</b><small>Advance a week.</small></div>`}</div>`);
+        (WZ.showrunner?`<div class="pitch-held"><div class="pitch-held-main"><small>RUNNING THE ROOM</small><b>${esc(WZ.showrunner.name)}</b><em>${esc(castRoleLabel(WZ.showrunner))} · skill ${WZ.showrunner.skill||0} · ${fmtM(actorFee(WZ.showrunner))}</em></div><div class="pitch-held-actions"><button class="develop-ghost" data-srclear>Remove</button><button class="develop-link" data-pickrole="showrunner">Change</button></div></div>`:"")
+        +`<div class="pitch-pick-list">${dirs.slice(0,6).map(t=>castPickRow(t,{sel:!!(WZ.showrunner&&WZ.showrunner.id===t.id),attr:`data-sr="${t.id}"`})).join("")||`<div class="command-empty"><b>No showrunner free.</b><small>Advance a week.</small></div>`}</div>`
+        +`<div class="pitch-inline-note"><span>${dirs.length} free writers &amp; directors</span><button class="develop-link" data-pickrole="showrunner">Open the directory →</button></div>`);
     actions=`<button class="develop-ghost" id="szCancel">Cancel</button><button class="develop-action" id="szToCast" ${WZ.showrunner?"":"disabled"}>${WZ.showrunner?"Cast the leads →":"Choose a showrunner first"}</button>`;
   }
 
   if(step===1){
-    const acts=freeTalent("actor").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(b.power*20+b.skill)-(a.power*20+a.skill));
+    const acts=freeTalent("actor").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(b.power*30+b.skill)-(a.power*30+a.skill));
     const pinned=castPinTalent("series");
     const filt=(WZ.szCastFilter==="stars")?acts.filter(a=>a.power>=5):(WZ.szCastFilter==="animals")?acts.filter(a=>a.isAnimal):acts;
-    const shown=filt.slice(0,80), cast=WZ.cast||[];
+    const cast=WZ.cast||[];
+    const head=filt.slice(0,80);
+    const shown=cast.filter(c=>c&&!head.some(t=>t.id===c.id)).concat(filt).slice(0,80);
     main=pitchGroup("LEADS",`Four leads maximum. Animal stars sit on the same call sheet and lift the same season.`,
         (pinned?`<div class="pitch-note">Pinned from the directory: <b>${esc(pinned.name)}</b></div>`:"")
         +(cast.length?`<div class="pitch-grid4">${pitchStat("LEADS",cast.length+"/4",cast.map(c=>esc(c.name.split(" (")[0])).join(", "))}${pitchStat("STAR POWER",cast.reduce((a,c)=>a+(c.power||0),0)+"★","opening ×"+starOpenMult(cast.reduce((a,c)=>a+(c.power||0),0)))}${pitchStat("FEES",fmtM(cast.reduce((a,c)=>a+actorFee(c),0)),"due at greenlight")}${pitchStat("SKILL AVG",Math.round(cast.reduce((a,c)=>a+(c.skill||0),0)/cast.length)+"/100","quality read")}</div>`:"")
@@ -3329,7 +3311,7 @@ function seriesModal(){
             <button class="pitch-filter${!WZ.szCastFilter||WZ.szCastFilter==="all"?" on":""}" data-szf="all">All <b>${acts.length}</b></button>
             <button class="pitch-filter${WZ.szCastFilter==="stars"?" on":""}" data-szf="stars">5★ <b>${acts.filter(a=>a.power>=5).length}</b></button>
             <button class="pitch-filter${WZ.szCastFilter==="animals"?" on":""}" data-szf="animals">Animal stars <b>${acts.filter(a=>a.isAnimal).length}</b></button>
-            <button class="develop-link" onclick="if(typeof openCastDirectory==='function'){closeModal();openCastDirectory();}">Cast directory (${(G.talent||[]).length})</button>
+            <button class="pitch-filter" data-pickcast="series">Cast directory <b>${(G.talent||[]).length}</b></button>
           </div>`
         +`<div class="pitch-pick-list">${shown.map(a=>castPickRow(a,{sel:cast.some(c=>c&&c.id===a.id),attr:`data-szcast="${a.id}"`})).join("")||`<div class="command-empty"><b>No performers free.</b><small>Advance a week.</small></div>`}</div>`
         +(filt.length>shown.length?`<div class="pitch-inline-note">Showing the ${shown.length} strongest of ${filt.length} free performers.</div>`:""));
@@ -3387,6 +3369,18 @@ function seriesModal(){
   v.querySelectorAll("[data-sr]").forEach(el=>el.onclick=()=>{ const t=talentById(+el.dataset.sr); WZ.showrunner=(WZ.showrunner&&WZ.showrunner.id===t.id)?null:t; beep("click"); seriesModal(); });
   v.querySelectorAll("[data-szcast]").forEach(el=>el.onclick=()=>{ seriesCastToggle(el.dataset.szcast); beep("click"); seriesModal(); });
   v.querySelectorAll("[data-szf]").forEach(b=>b.onclick=()=>{ WZ.szCastFilter=b.dataset.szf; beep("click"); seriesModal(); });
+  v.querySelectorAll("[data-pickrole]").forEach(b=>b.onclick=()=>{
+    openTalentPicker({ role:"showrunner", all:true, multi:false, selected:WZ.showrunner?[WZ.showrunner]:[], cap:120,
+      title:"Choose a showrunner", eyebrow:"TELEVISION / PITCH STUDIO · THE ROOM",
+      note:"Writers read as prestige TV; directors bring scale. Every writer and director on the books is listed here, booked or free.",
+      onPick:list=>{ WZ.showrunner=list[0]||null; }, after:()=>seriesModal() });
+  });
+  v.querySelectorAll("[data-srclear]").forEach(b=>b.onclick=()=>{ WZ.showrunner=null; beep("click"); seriesModal(); });
+  v.querySelectorAll("[data-pickcast]").forEach(b=>b.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:true, max:4, selected:WZ.cast||[], cap:150,
+    title:"Cast directory", eyebrow:"TELEVISION / PITCH STUDIO · LEADS",
+    note:"Every performer on the books — leads, animal stars and studio partners. Four leads maximum; your pitch keeps its place.",
+    onPick:list=>{ WZ.cast=list.slice(0,4); }, after:()=>seriesModal() }));
   v.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ WZ.platform=b.dataset.p; beep("click"); seriesModal(); });
   const szT=v.querySelector("#szTitle"); if(szT) szT.oninput=()=>{ WZ.title=szT.value; };
   const cancel=v.querySelector("#szCancel"); if(cancel) cancel.onclick=()=>{ beep("click"); WZ=null; closeModal(); };
@@ -3413,6 +3407,123 @@ function seriesModal(){
 }
 
 /* ═══════════ film pitch wizard — like series pitch ═══════════ */
+/* ═══════════ talent picker — one directory, opened from every desk ═══════════
+   The pitch studio and the greenlight desk both need the whole roster: leads,
+   animal stars, directors, writers and producers. This picker layers over the
+   desk (the draft stays in WZ), filters the live roster and writes the choice
+   back before the desk re-renders. */
+let PITCH_PICK=null;
+
+function wzRerender(){
+  if(!WZ) return;
+  if(WZ.mode==="filmPitch") filmPitchModal();
+  else if(WZ.mode==="series") seriesModal();
+  else wizardModal();
+}
+function pickPool(role,all){
+  const T=(typeof G!=="undefined"&&G&&Array.isArray(G.talent))?G.talent:[];
+  const isCast=(role==="cast"||role==="actor");
+  if(all){
+    if(isCast) return T.filter(t=>t.kind==="actor");
+    if(role==="crew") return T.filter(t=>t.kind==="writer"||t.kind==="director"||t.kind==="producer");
+    if(role==="showrunner") return T.filter(t=>t.kind==="writer"||t.kind==="director");
+    return T.filter(t=>t.kind===role);
+  }
+  if(isCast) return (typeof freeTalent==="function")?freeTalent("actor"):[];
+  if(role==="showrunner") return freeTalent("director").concat(freeTalent("writer"));
+  if(role==="crew") return freeTalent("writer").concat(freeTalent("director")).concat(freeTalent("producer"));
+  return (typeof freeTalent==="function")?freeTalent(role):[];
+}
+function pickerFiltered(){
+  const P=PITCH_PICK; if(!P) return [];
+  const cfg=P.cfg||{};
+  let pool=pickPool(cfg.role,cfg.all);
+  const q=String(P.q||"").trim().toLowerCase();
+  if(q) pool=pool.filter(t=>String(t.name||"").toLowerCase().includes(q)
+    ||String(t.species||"").toLowerCase().includes(q)
+    ||String(t.kind||"").toLowerCase().includes(q)
+    ||((typeof castRoleLabel==="function")?castRoleLabel(t).toLowerCase().includes(q):false));
+  if(P.filter==="free") pool=pool.filter(castIsFree);
+  else if(P.filter==="stars") pool=pool.filter(t=>t.power>=5);
+  else if(P.filter==="animal") pool=pool.filter(t=>t.isAnimal);
+  return pool.sort((a,b)=>((b.power||0)*30+(b.skill||0))-((a.power||0)*30+(a.skill||0)));
+}
+function pickerChips(){
+  const P=PITCH_PICK; if(!P) return "";
+  const pool=pickPool(P.cfg.role,P.cfg.all);
+  const defs=[["all","Everyone",pool.length],["free","Free now",pool.filter(castIsFree).length],
+    ["stars","5★",pool.filter(t=>t.power>=5).length]];
+  if(pool.some(t=>t.isAnimal)) defs.push(["animal","Animal stars",pool.filter(t=>t.isAnimal).length]);
+  return defs.map(d=>`<button class="pitch-filter${P.filter===d[0]?" on":""}" data-pickfilter="${d[0]}" aria-pressed="${P.filter===d[0]}">${d[1]} <b>${d[2]}</b></button>`).join("");
+}
+function pickerPaint(){
+  const P=PITCH_PICK; if(!P) return;
+  const list=document.querySelector("#pickList"); if(!list) return;
+  const rows=pickerFiltered(), cap=P.cfg.cap||120, attr=P.cfg.rowAttr||"data-pick";
+  const shown=rows.slice(0,cap);
+  list.innerHTML=shown.length
+    ? shown.map(t=>castPickRow(t,{sel:P.sel.has(t.id),attr:`${attr}="${t.id}"`})).join("")
+    : `<div class="command-empty"><b>Nobody matches that.</b><small>Clear the search or widen the filter.</small></div>`;
+  list.querySelectorAll(`[${attr}]`).forEach(el=>{
+    el.onclick=()=>pickerToggle(el.getAttribute(attr));
+  });
+  const cnt=document.querySelector("#pickCount");
+  if(cnt) cnt.textContent=`${P.sel.size} selected · ${rows.length} match${rows.length===1?"":"es"}${rows.length>shown.length?" · showing "+shown.length:""}`;
+  const filters=document.querySelector("#pickFilters");
+  if(filters){ filters.innerHTML=pickerChips(); pickerBindFilters(); }
+}
+function pickerBindFilters(){
+  document.querySelectorAll("[data-pickfilter]").forEach(b=>{
+    b.onclick=()=>{ if(!PITCH_PICK) return; PITCH_PICK.filter=b.dataset.pickfilter; beep("click"); pickerPaint(); };
+  });
+}
+function pickerToggle(id){
+  const P=PITCH_PICK; if(!P) return;
+  const t=(typeof talentById==="function")?talentById(+id):null;
+  if(!t) return;
+  if(!P.cfg.multi){ P.sel=new Set([t.id]); pickerCommit(); return; }
+  if(P.sel.has(t.id)) P.sel.delete(t.id);
+  else {
+    if(P.cfg.max && P.sel.size>=P.cfg.max){ toast("That is the ceiling — remove someone first.","bad"); return; }
+    P.sel.add(t.id);
+  }
+  beep("click"); pickerPaint();
+}
+function pickerCommit(){
+  const P=PITCH_PICK; if(!P) return;
+  const cfg=P.cfg, picked=[...P.sel].map(id=>talentById(id)).filter(Boolean);
+  PITCH_PICK=null;
+  closeModal();
+  if(typeof beep==="function") beep("gold");
+  if(cfg.onPick) cfg.onPick(picked);
+  if(cfg.after) cfg.after();
+}
+function pickerDismiss(){
+  const P=PITCH_PICK; if(!P) return;
+  const cfg=P.cfg; PITCH_PICK=null; closeModal();
+  if(cfg.after) cfg.after();
+}
+function openTalentPicker(cfg){
+  cfg=cfg||{};
+  PITCH_PICK={cfg, filter:"all", q:"", sel:new Set((cfg.selected||[]).filter(Boolean).map(t=>t.id))};
+  const total=(G&&Array.isArray(G.talent))?G.talent.length:0;
+  const html=`<div class="pitch-shell picker-shell">
+    <header class="pitch-head"><div><span class="command-eyebrow">${esc(cfg.eyebrow||"STORY DEPARTMENT / TALENT DIRECTORY")}</span><h3>${esc(cfg.title||"Cast directory")}</h3><p>${esc(cfg.note||"Every performer on the books — human, animal and crew. Pick here and the desk keeps your draft.")}</p></div><div class="pitch-head-score"><small>ON THE BOOKS</small><b>${total}</b><span>people</span></div></header>
+    <div class="picker-bar"><input id="pickQ" class="pitch-input" type="search" placeholder="Search a name, a role or a species" aria-label="Search the talent directory" autocomplete="off"><div class="pitch-filter-row" id="pickFilters" data-built="all">${pickerChips()}</div></div>
+    <div class="picker-list-wrap"><div class="pitch-pick-list picker-list" id="pickList"></div></div>
+    <footer class="pitch-actions"><button class="develop-ghost" id="pickCancel">Cancel</button><span class="picker-count" id="pickCount"></span><button class="develop-action" id="pickDone">${cfg.multi?"Add to the call sheet":"Choose"}</button></footer>
+  </div>`;
+  const v=openModal(html,{className:"command-pitch-modal command-talent-picker",onClose:()=>{PITCH_PICK=null; if(cfg.after) cfg.after();}});
+  const q=v.querySelector("#pickQ");
+  if(q) q.oninput=()=>{ if(!PITCH_PICK) return; PITCH_PICK.q=q.value; pickerPaint(); };
+  pickerBindFilters();
+  const done=v.querySelector("#pickDone"); if(done) done.onclick=()=>pickerCommit();
+  const cancel=v.querySelector("#pickCancel"); if(cancel) cancel.onclick=()=>pickerDismiss();
+  const first=v.querySelector(".cast-pick");
+  if(first) first.focus({preventScroll:true});
+  pickerPaint();
+}
+
 /* ═══════════ pitch studio — one shell for film & series pitches ═══════════ */
 const PITCH_FILM_STEPS=[["concept","Concept"],["team","Team"],["cast","Cast"],["release","Release"],["review","Review"]];
 const PITCH_SERIES_STEPS=[["format","Format"],["cast","Cast"],["platform","Platform"],["review","Review"]];
@@ -3601,33 +3712,55 @@ function filmPitchModal(){
     const dirs=freeTalent("director").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(b.power*20+b.skill)-(a.power*20+a.skill));
     const ws=freeTalent("writer").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(writerBonus(b,WZ.genre)-writerBonus(a,WZ.genre))||b.skill-a.skill);
     const prods=freeTalent("producer").sort((a,b)=>(b.skill-a.skill)||(b.power-a.power));
-    const pick=(list,sel,attr,cap)=>list.slice(0,cap).map(t=>castPickRow(t,{sel:sel&&sel.id===t.id,attr:`${attr}="${t.id}"`})).join("")||`<div class="command-empty"><b>Nobody free for this chair.</b><small>Advance a week — the market restocks.</small></div>`;
-    main=pitchGroup("DIRECTOR · REQUIRED",`A director shapes about a quarter of the film's quality and its critics read.`,
-        pick(dirs,WZ.director,"data-fpd",40)
-        +`<div class="pitch-inline-note">${dirs.length} free directors · <button class="develop-link" onclick="if(typeof openCastDirectory==='function'){closeModal();openCastDirectory();}">search the full directory</button></div>`)
-      +pitchGroup("WRITER · OPTIONAL",`The page is about 30% of quality. Skill plus genre fit is worth up to +11 script.
-          <button class="develop-link" id="fpAIw">${WZ.aiScript?"✅ SynthScribe writes it":"🤖 Let SynthScribe write it (free, risky)"}</button>`,
-        WZ.aiScript?`<div class="pitch-note">SynthScribe delivers a flat ${DATA.AI?DATA.AI.scriptScore:65} page, −${DATA.AI?DATA.AI.scrQualityPenalty:5} craft, and the guilds notice.</div>`:pick(ws,WZ.writer,"data-fpw",30))
-      +pitchGroup("PRODUCER · RECOMMENDED",`A producer lowers overrun risk and shaves wasted weeks. Without one, every overrun lands on you.`,
-        pick(prods,WZ.producer,"data-fpp",20));
+    const held=(owner,role,label)=>owner
+      ? `<div class="pitch-held"><div class="pitch-held-main"><small>${label}</small><b>${esc(owner.name)}</b><em>skill ${owner.skill||0} · ${fmtM(actorFee(owner))}${owner.isAnimal?" · 🐾":""}</em></div><div class="pitch-held-actions"><button class="develop-ghost" data-clearrole="${role}">Remove</button><button class="develop-link" data-pickrole="${role}">Change</button></div></div>`
+      : "";
+    const short=(list,owner,attr,cap)=>list.filter(t=>!(owner&&owner.id===t.id)).slice(0,cap||4).map(t=>castPickRow(t,{sel:!!(owner&&owner.id===t.id),attr:`${attr}="${t.id}"`})).join("")
+      ||`<div class="command-empty"><b>Nobody else free for this chair.</b><small>Open the directory or advance a week.</small></div>`;
+    const browse=(role,count,label)=>`<div class="pitch-inline-note"><span>${count} free ${label} this week</span><button class="develop-link" data-pickrole="${role}">Open the directory →</button></div>`;
+    const chair=(role,label,owner,list)=>`<div class="pitch-chair"><small>${label}</small><b>${owner?esc(owner.name):"Not attached"}</b><em>${owner?("skill "+(owner.skill||0)+" · "+fmtM(actorFee(owner))):(list.length+" free this week")}</em><button class="develop-ghost" data-pickrole="${role}">${owner?"Change":"Choose"}</button></div>`;
+    main=`<div class="pitch-team-strip">${chair("director","DIRECTOR · REQUIRED",WZ.director,dirs)}${chair("writer","WRITER · OPTIONAL",WZ.aiScript?null:WZ.writer,ws)}${chair("producer","PRODUCER · RECOMMENDED",WZ.producer,prods)}</div>`
+      +pitchGroup("DIRECTOR · REQUIRED",
+        `A director shapes about a quarter of the film's quality and its critics read.`,
+        held(WZ.director,"director","DIRECTOR ATTACHED")
+        +`<div class="pitch-pick-list">${short(dirs,WZ.director,"data-fpd",3)}</div>`+browse("director",dirs.length,"directors"))
+      +pitchGroup("WRITER · OPTIONAL",
+        `The page is about 30% of quality. Skill plus genre fit is worth up to +11 script.`,
+        held(WZ.writer,"writer","WRITER ATTACHED")
+        +`<button class="pitch-toggle${WZ.aiScript?" on":""}" id="fpAIw" aria-pressed="${!!WZ.aiScript}"><span>${WZ.aiScript?"✓ SynthScribe writes it":"Let SynthScribe write it"}</span><small>free · flat page · guild heat</small></button>`
+        +(WZ.aiScript
+          ? `<div class="pitch-note">SynthScribe delivers a flat ${DATA.AI?DATA.AI.scriptScore:65} page, −${DATA.AI?DATA.AI.scrQualityPenalty:5} craft, and the guilds notice.</div>`
+          : `<div class="pitch-pick-list">${short(ws,WZ.writer,"data-fpw",3)}</div>`+browse("writer",ws.length,"writers")))
+      +pitchGroup("PRODUCER · RECOMMENDED",
+        `A producer lowers overrun risk and shaves wasted weeks. Without one, every overrun lands on you.`,
+        held(WZ.producer,"producer","PRODUCER ATTACHED")
+        +`<div class="pitch-pick-list">${short(prods,WZ.producer,"data-fpp",3)}</div>`+browse("producer",prods.length,"producers"));
     actions=`<button class="develop-ghost" id="fpBack">← Concept</button><button class="develop-action" data-fpnext="2" ${WZ.director?"":"disabled"}>${WZ.director?"Cast the film →":"Attach a director first"}</button>`;
   }
 
   if(step===2){
-    const allActs=freeTalent("actor").sort((a,b)=>(b.power*30+b.skill)-(a.power*30+a.skill));
+    const allActs=freeTalent("actor").sort((a,b)=>Number(!!activePicturePact(b))-Number(!!activePicturePact(a))||(b.power*30+b.skill)-(a.power*30+a.skill));
     const filt=(WZ._cFilter==="stars")?allActs.filter(a=>a.power>=5):(WZ._cFilter==="animals")?allActs.filter(a=>a.isAnimal):allActs;
-    const shown=filt.slice(0,80);
-    main=pitchGroup("LEADS",`Up to 8 leads. Star power multiplies the opening; skill carries the reviews. Animal stars cast exactly like human leads.`,
-        `<div class="pitch-filter-row">
+    const cast=WZ.cast||[];
+    const head=filt.slice(0,24);
+    const shown=cast.filter(c=>c&&!head.some(t=>t.id===c.id)).concat(filt).slice(0,24);
+    const cameoFee=WZ.cameo?Math.round(actorFee(WZ.cameo)*0.3*10)/10:0;
+    main=pitchGroup("LEADS",
+        `Up to eight leads. Star power multiplies the opening; skill carries the reviews. Animal stars cast exactly like human leads.`,
+        (cast.length?`<div class="pitch-grid4">${pitchStat("LEADS",cast.length+"/8",cast.map(c=>esc(String(c.name||"").split(" (")[0])).join(", "))}${pitchStat("STAR POWER",cast.reduce((a,c)=>a+(c.power||0),0)+"★","opening ×"+starOpenMult(cast.reduce((a,c)=>a+(c.power||0),0)))}${pitchStat("FEES",fmtM(cast.reduce((a,c)=>a+actorFee(c),0)),"due at greenlight")}${pitchStat("SKILL AVG",Math.round(cast.reduce((a,c)=>a+(c.skill||0),0)/Math.max(1,cast.length))+"/100","quality read")}</div>`:"")
+        +`<div class="pitch-filter-row">
           <button class="pitch-filter${!WZ._cFilter||WZ._cFilter==="all"?" on":""}" data-fpcastfilter="all">All <b>${allActs.length}</b></button>
           <button class="pitch-filter${WZ._cFilter==="stars"?" on":""}" data-fpcastfilter="stars">5★ <b>${allActs.filter(a=>a.power>=5).length}</b></button>
           <button class="pitch-filter${WZ._cFilter==="animals"?" on":""}" data-fpcastfilter="animals">Animal stars <b>${allActs.filter(a=>a.isAnimal).length}</b></button>
-          <button class="develop-link" onclick="if(typeof openCastDirectory==='function'){closeModal();openCastDirectory();}">Cast directory (${(G.talent||[]).length})</button>
+          <button class="pitch-filter" data-pickcast="film">Cast directory <b>${(G.talent||[]).length}</b></button>
         </div>`
-        +`<div class="pitch-pick-list">${shown.map(a=>castPickRow(a,{sel:WZ.cast.some(c=>c.id===a.id),attr:`data-fpc="${a.id}"`})).join("")||`<div class="command-empty"><b>No performers free.</b><small>Advance a week.</small></div>`}</div>`
-        +`<div class="pitch-inline-note">Showing ${shown.length} of ${filt.length} free performers.</div>`)
-      +pitchGroup("CAMEO",`One superstar in a single scene: 30% of their fee, +6% opening buzz.`,
-        `<button class="pitch-toggle${WZ.cameo?" on":""}" id="fpCameo" aria-pressed="${!!WZ.cameo}"><span>${WZ.cameo?"✓ Cameo booked":"Add a cameo"}</span><small>30% fee · +6% buzz</small></button>`);
+        +`<div class="pitch-pick-list">${shown.map(a=>castPickRow(a,{sel:cast.some(c=>c.id===a.id),attr:`data-fpc="${a.id}"`})).join("")||`<div class="command-empty"><b>No performers free.</b><small>Advance a week.</small></div>`}</div>`
+        +`<div class="pitch-inline-note"><span>Showing ${shown.length} of ${filt.length} free performers</span><button class="develop-link" data-pickcast="film">Search all ${(G.talent||[]).length} on the books →</button></div>`)
+      +pitchGroup("CAMEO",
+        `One superstar in a single scene: 30% of their fee, +6% opening buzz.`,
+        WZ.cameo
+          ? `<div class="pitch-held"><div class="pitch-held-main"><small>CAMEO BOOKED</small><b>${esc(WZ.cameo.name)}</b><em>${fmtM(cameoFee)} · +6% opening buzz</em></div><div class="pitch-held-actions"><button class="develop-ghost" id="fpCameoClear">Remove</button><button class="develop-link" data-pickcameo="film">Change</button></div></div>`
+          : `<button class="pitch-toggle" id="fpCameo" aria-pressed="false"><span>Choose a cameo star</span><small>one scene · 30% fee · +6% buzz</small></button>`);
     actions=`<button class="develop-ghost" id="fpBack">← Team</button><button class="develop-action" data-fpnext="3">Distribution →</button>`;
   }
 
@@ -3722,7 +3855,30 @@ function filmPitchModal(){
   });
   v.querySelectorAll("[data-fpcastfilter]").forEach(b=>b.onclick=()=>{ WZ._cFilter=b.dataset.fpcastfilter; beep("click"); filmPitchModal(); });
   const aiw=v.querySelector("#fpAIw"); if(aiw) aiw.onclick=()=>{ WZ.aiScript=!WZ.aiScript; if(WZ.aiScript) WZ.writer=null; beep("click"); filmPitchModal(); };
-  const cm=v.querySelector("#fpCameo"); if(cm) cm.onclick=()=>{ WZ.cameo=!WZ.cameo; beep("click"); filmPitchModal(); };
+  const cm=v.querySelector("#fpCameo"); if(cm) cm.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:false, rowAttr:"data-cameo", selected:WZ.cameo?[WZ.cameo]:[], cap:80,
+    title:"Choose a cameo star", eyebrow:"STORY DEPARTMENT / PITCH STUDIO · CAMEO",
+    note:"One scene, one star: 30% of their fee and +6% opening buzz. Leads already on the call sheet are not offered twice.",
+    onPick:list=>{ WZ.cameo=list[0]||null; }, after:()=>filmPitchModal() });
+  const cmClear=v.querySelector("#fpCameoClear"); if(cmClear) cmClear.onclick=()=>{ WZ.cameo=null; beep("click"); filmPitchModal(); };
+  v.querySelectorAll("[data-pickrole]").forEach(b=>b.onclick=()=>{
+    const role=b.dataset.pickrole;
+    openTalentPicker({ role, all:true, multi:false, selected:WZ[role]?[WZ[role]]:[], cap:120,
+      title:"Choose a "+role, eyebrow:"STORY DEPARTMENT / PITCH STUDIO",
+      note:"The whole roster, not just this week's shortlist. Booked people can be attached — the schedule absorbs it.",
+      onPick:list=>{ WZ[role]=list[0]||null; }, after:()=>filmPitchModal() });
+  });
+  v.querySelectorAll("[data-clearrole]").forEach(b=>b.onclick=()=>{ WZ[b.dataset.clearrole]=null; beep("click"); filmPitchModal(); });
+  v.querySelectorAll("[data-pickcast]").forEach(b=>b.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:true, max:8, selected:WZ.cast||[], cap:150,
+    title:"Cast directory", eyebrow:"STORY DEPARTMENT / PITCH STUDIO · LEADS",
+    note:"Every performer on the books — leads, animal stars and studio partners. Selections go straight onto this call sheet; your pitch keeps its place.",
+    onPick:list=>{ WZ.cast=list.slice(0,8); }, after:()=>filmPitchModal() }));
+  v.querySelectorAll("[data-pickcameo]").forEach(b=>b.onclick=()=>openTalentPicker({
+    role:"cast", all:true, multi:false, rowAttr:"data-cameo", selected:WZ.cameo?[WZ.cameo]:[], cap:80,
+    title:"Choose a cameo star", eyebrow:"STORY DEPARTMENT / PITCH STUDIO · CAMEO",
+    note:"One scene, one star: 30% of their fee and +6% opening buzz.",
+    onPick:list=>{ WZ.cameo=list[0]||null; }, after:()=>filmPitchModal() }));
   const fpT=v.querySelector("#fpTitle"); if(fpT) fpT.oninput=()=>{ WZ.title=fpT.value; };
   v.querySelectorAll("[data-fpnext]").forEach(b=>b.onclick=()=>{ WZ.fpStep=+b.dataset.fpnext; beep("click"); filmPitchModal(); });
   const back=v.querySelector("#fpBack"); if(back) back.onclick=()=>{ WZ.fpStep=Math.max(0,step-1); beep("click"); filmPitchModal(); };
@@ -3734,7 +3890,7 @@ function filmPitchModal(){
       rating:WZ.rating, location:WZ.location, pattern:WZ.pattern, rollout:WZ.rollout, window:WZ.window,
       imax:WZ.imax, premium:WZ.premium, soundtrack:WZ.soundtrack, dayAndDate:WZ.dayAndDate,
       scriptPolish:WZ.scriptPolish, director:WZ.director, writer:WZ.aiScript?null:WZ.writer, producer:WZ.producer, cast:WZ.cast,
-      coProduction:WZ.coProduction, coProdPartner:WZ.coProdPartner, cameo:WZ.cameo};
+      coProduction:WZ.coProduction, coProdPartner:WZ.coProdPartner, cameo:WZ.cameo||null};
     const label=cfg.titleOverride||((DATA.GENRES[cfg.genre]||{}).name||"Untitled")+" · "+((DATA.SCALES[cfg.scale]||{}).name||"Picture");
     const res=pitchFilm(cfg);
     if(res.ok) clearUsedCastPin("film",WZ.cast);
@@ -7536,22 +7692,6 @@ function buildStartOptions(){
     el.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } };
   });
   $$("[data-leg]").forEach(el=>el.onclick=()=>{ SEL.legacy=el.dataset.leg; beep("click"); buildStartOptions(); });
-}
-
-function cameoPicker(){
-  const sups=G.talent.filter(t=>t.kind==="actor"&&t.power>=4&&!t.bookedUntil&&!(WZ.cast||[]).some(c=>c.id===t.id)).sort((a,b)=>b.power-a.power);
-  let h="<h3>🌟 Cast a cameo</h3><p class='small muted'>One scene, one superstar. You pay 30% of their fee, the trailer gets +6% buzz.</p><div class='pick-list'>";
-  if(!sups.length) h+="<div class='muted small'>No power-4+ stars free right now.</div>";
-  sups.slice(0,8).forEach(a=>{
-    h+="<div class='card talent-card' data-cameo='"+a.id+"'><div class='t-avatar'>"+(typeof talentAvatarSVG==="function"?talentAvatarSVG(a):"🌟")+"</div><div style='flex:1'><div class='t-name'>"+esc(a.name)+"</div>"+stars(a.power)+
-      "<div class='row' style='margin-top:6px'><span class='tag gold'>💰 "+fmtM(Math.round(actorFee(a)*0.3))+"</span><span class='tag green'>+6% buzz</span></div></div></div>";
-  });
-  h+="</div><div class='modal-actions'><button class='btn btn-ghost' id='camBack'>← Back</button></div>";
-  const v=openModal(h);
-  v.querySelectorAll("[data-cameo]").forEach(el=>el.onclick=()=>{
-    WZ.cameo=talentById(+el.dataset.cameo); WZ.buzzCameo=true; beep("gold"); wizardModal();
-  });
-  v.querySelector("#camBack").onclick=()=>wizardModal();
 }
 
 function forecastCard(){

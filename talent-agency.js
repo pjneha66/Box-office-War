@@ -284,7 +284,21 @@
 
   global.BOW_AGENCY = BOW_AGENCY;
 
-  // Dedicated Talent Agency Packaging Modal (Box Office Inc parity)
+  /* Story Department tools share the command shell: a header, numbered
+     groups and flat controls. No legacy cards, no inline styles. */
+  function deskEsc(v){ return (typeof esc === "function") ? esc(String(v==null?"":v)) : String(v==null?"":v); }
+  function deskShell(opts){
+    return `<div class="pitch-shell desk-shell">
+      <header class="pitch-head"><div><span class="command-eyebrow">${opts.eyebrow}</span><h3>${opts.title}</h3><p>${opts.sub}</p></div>${opts.badge||""}</header>
+      <div class="pitch-body solo"><section class="pitch-main">${opts.body}</section></div>
+      <footer class="pitch-actions">${opts.actions||""}</footer>
+    </div>`;
+  }
+  function deskGroup(label,desc,body){ return `<section class="pitch-group"><header><span class="command-eyebrow">${label}</span>${desc?`<p>${desc}</p>`:""}</header>${body}</section>`; }
+  function deskStat(label,value,note,cls){ return `<div class="pitch-stat${cls?" "+cls:""}"><small>${label}</small><b>${value}</b>${note?`<em>${note}</em>`:""}</div>`; }
+  function deskLine(label,value,cls){ return `<div class="pitch-line"><span>${label}</span><b class="${cls||""}">${value}</b></div>`; }
+
+  // Talent Agency Packaging desk (Box Office Inc parity)
   global.openAgencyPackagingModal = function(){
     const g = BOW_AGENCY._getG();
     if(!g) return;
@@ -292,50 +306,45 @@
     const fmtMFn = (typeof fmtM === "function") ? fmtM : (x => "$" + x + "M");
     const devProjects = (g.projects || []).filter(p => p.phase === "dev" || p.phase === "pre");
 
-    let h = "<h3>💼 Hollywood Talent Agency Packaging & Relations</h3>";
-    h += "<p class='tiny muted'>Partner with Hollywood's premier talent agencies (CAA, WME, UTA, Gersh) to sign pre-bundled packages of Directors, Marquee Stars, and Screenwriters at volume discounts.</p>";
-
-    // Agency Standing Dashboard
-    h += "<div class='small' style='margin-bottom:6px'><b>Agency Relationship Standing:</b></div>";
-    h += "<div class='grid g2' style='gap:8px;margin-bottom:14px'>";
-    BOW_AGENCY.AGENCIES.forEach(ag => {
+    const standing = BOW_AGENCY.AGENCIES.map(ag => {
       const score = (g.agencyRelations && g.agencyRelations[ag.id]) || 50;
       const tier = BOW_AGENCY.getAgencyTier(ag.id, g);
-      h += "<div class='card' style='padding:10px'>";
-      h += "<div class='row' style='justify-content:space-between;align-items:center'><b>" + ag.name + "</b><span class='tag " + tier.cls + "'>" + tier.badge + "</span></div>";
-      h += "<div class='tiny muted' style='margin:4px 0'>" + ag.specialty + "</div>";
-      h += "<div class='cost-line'><span>Relationship Score</span><b>" + score + "/100</b></div>";
-      h += "<button class='btn btn-xs btn-alt' data-retainer='" + ag.id + "' style='margin-top:6px;width:100%'>Send Retainer (-$2.0M for +15 Standing)</button>";
-      h += "</div>";
-    });
-    h += "</div>";
+      return `<div class="pitch-side-block">
+        <span class="command-eyebrow">${deskEsc(ag.name)}</span>
+        ${deskLine("Specialty", deskEsc(ag.specialty))}
+        ${deskLine("Standing", score + "/100", score >= 70 ? "pos" : score < 40 ? "neg" : "")}
+        ${deskLine("Access tier", deskEsc(tier.badge))}
+        <button class="develop-ghost desk-wide" data-retainer="${ag.id}">Retainer · −$2.0M → +15 standing</button>
+      </div>`;
+    }).join("");
 
-    // Pre-packaged Bundles
-    h += "<div class='small' style='margin-bottom:6px'><b>Available Pre-Packaged Bundles:</b></div>";
-    h += "<div class='grid g3' style='gap:8px'>";
-    BOW_AGENCY.PACKAGES.forEach(pkg => {
+    const bundles = BOW_AGENCY.PACKAGES.map(pkg => {
       const ag = BOW_AGENCY.AGENCIES.find(a => a.id === pkg.agency);
       const tier = BOW_AGENCY.getAgencyTier(pkg.agency, g);
       const cost = Math.round((pkg.baseCost * (1 - tier.discount)) * 10) / 10;
       const canAfford = (g.studio.cash || 0) >= cost;
+      return `<button class="pitch-chip${canAfford ? "" : " off"}" data-pkg="${pkg.id}" aria-pressed="false" ${canAfford ? "" : "disabled"}>
+        <i>▤</i><span>${deskEsc(pkg.name)}</span>
+        <small>${deskEsc(ag ? ag.name : "Agency")} · ${fmtMFn(cost)} · quality +${pkg.qualityBoost} · chemistry +${pkg.chemistryBonus}%</small>
+      </button>`;
+    }).join("");
 
-      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>";
-      h += "<div>";
-      h += "<b>" + pkg.name + "</b>";
-      h += "<div class='tiny gold' style='margin:2px 0'>" + (ag ? ag.name : "Agency") + " · " + tier.badge + "</div>";
-      h += "<div class='tiny muted' style='margin:6px 0'>" + pkg.desc + "</div>";
-      h += "<div class='tiny green'>Quality +" + pkg.qualityBoost + " · Chemistry +" + pkg.chemistryBonus + "% · Rep +" + pkg.repBoost + "</div>";
-      h += "</div>";
-      h += "<div style='margin-top:10px'>";
-      h += "<div class='cost-line'><span>Package Fee</span><b class='gold'>" + fmtMFn(cost) + "</b></div>";
-      h += "<button class='btn btn-sm " + (canAfford ? "btn-primary" : "btn-disabled") + "' data-pkg='" + pkg.id + "' style='width:100%;margin-top:6px'>" +
-           (canAfford ? "Contract Package" : "Insufficient Cash") + "</button>";
-      h += "</div></div>";
+    const html = deskShell({
+      eyebrow:"STORY DEPARTMENT / TOOL · TALENT",
+      title:"Agency packaging",
+      sub:"Sign pre-bundled packages of directors, marquee stars and writers. A warmer agency relationship buys a bigger discount.",
+      badge:`<div class="pitch-head-score"><small>BUNDLES</small><b>${BOW_AGENCY.PACKAGES.length}</b><span>on the desk</span></div>`,
+      body: deskGroup("RELATIONSHIP STANDING","Standing sets the discount tier. A retainer costs $2.0M and buys +15 standing.",
+          `<div class="desk-grid">${standing}</div>`)
+        + deskGroup("PRE-PACKAGED BUNDLES","Each package attaches to a picture already in development and lifts quality, chemistry and reputation.",
+          `<div class="pitch-chips">${bundles}</div>`
+          + `<div class="pitch-note">${devProjects.length ? devProjects.length + " picture(s) in development can take a package now." : "Nothing is in development — greenlight a picture first, then package it."}</div>`),
+      actions:`<button class="develop-ghost" id="pkgClose">Close</button>`
     });
-    h += "</div>";
 
-    const v = (typeof global.openModal === "function") ? global.openModal(h) : null;
+    const v = (typeof global.openModal === "function") ? global.openModal(html,{className:"command-pitch-modal command-agency-modal"}) : null;
     if(!v) return;
+    const close = v.querySelector("#pkgClose"); if(close) close.onclick = () => { if(typeof global.closeModal === "function") global.closeModal(); };
 
     v.querySelectorAll("[data-retainer]").forEach(btn => {
       btn.onclick = function(){
@@ -355,11 +364,8 @@
         if(devProjects.length){
           const pick = prompt("Attach package to which in-development project?\n" +
             devProjects.map((p, idx) => (idx+1) + ". " + p.title + " (" + p.phase + ")").join("\n") + "\n(Or press OK/Enter to attach to first ready)");
-          if(pick && devProjects[parseInt(pick,10)-1]){
-            projId = devProjects[parseInt(pick,10)-1].id;
-          } else {
-            projId = devProjects[0].id;
-          }
+          if(pick && devProjects[parseInt(pick,10)-1]) projId = devProjects[parseInt(pick,10)-1].id;
+          else projId = devProjects[0].id;
         }
         if(BOW_AGENCY.signAgencyPackage(pkgId, projId)){
           if(typeof global.beep === "function") global.beep("gold");
@@ -370,66 +376,65 @@
     });
   };
 
-  // Legacy Talent Agency Ownership modal
+  // Talent Agency ownership desk
   global.openTalentAgencyModal = function(){
     const g = BOW_AGENCY._getG();
     if(!g) return;
     BOW_AGENCY.init(g);
     const ag = g.myAgency;
     const fmtMFn = (typeof fmtM === "function") ? fmtM : (x => "$" + x + "M");
-
-    let h = "<h3>🎭 Talent Agency Ownership & Roster</h3>";
-    h += "<p class='tiny muted'>Manage your in-house talent agency branch, represent A-list talent, and earn recurring 10% packaging commissions on external and studio productions.</p>";
-
-    h += "<div style='margin-bottom:12px'><button class='btn btn-sm btn-alt' id='btnGoPackagingDesk'>Go to Agency Packaging System (CAA/WME/UTA/Gersh)</button></div>";
+    let body = "";
 
     if(!ag.founded){
-      h += "<div class='card' style='text-align:center;padding:24px 16px'>";
-      h += "<b>Found Your Studio's Talent Agency</b>";
-      h += "<p class='tiny muted' style='margin:8px 0'>Establish an internal talent representation branch to sign exclusive clients and collect lucrative 10% packaging commissions.</p>";
-      h += "<div class='cost-line'><span>Founding Capital Required</span><b>$" + BOW_AGENCY.FOUNDING_COST + "M</b></div>";
-      h += "<div class='cost-line'><span>Minimum Studio Prestige</span><b>" + BOW_AGENCY.REQUIRED_REP + "/100</b></div>";
       const canFound = BOW_AGENCY.canFoundAgency(g);
-      h += "<button class='btn btn-sm " + (canFound ? "btn-primary" : "btn-disabled") + "' id='btnFoundAgency' style='margin-top:12px'>" +
-           (canFound ? "Found Talent Agency" : "Requirements Not Met") + "</button>";
-      h += "</div>";
+      body = deskGroup("FOUND THE AGENCY","An in-house branch represents your clients and collects a 10% packaging commission on every picture they board.",
+          `<div class="pitch-grid4" data-kpi="founding">
+             ${deskStat("FOUNDING CAPITAL","$"+BOW_AGENCY.FOUNDING_COST+"M","one-off")}
+             ${deskStat("MINIMUM STANDING",BOW_AGENCY.REQUIRED_REP+"/100",(g.studio.rep||0)+"/100 today",(g.studio.rep||0)>=BOW_AGENCY.REQUIRED_REP?"good":"bad")}
+             ${deskStat("COMMISSION","10%","of every package")}
+             ${deskStat("STATUS",canFound?"READY":"LOCKED",canFound?"requirements met":"meet the standing first",canFound?"good":"bad")}
+           </div>
+           <input id="agencyName" class="pitch-input" type="text" maxlength="40" value="${deskEsc((g.studio.name||"Studio")+" Talent Agency")}" aria-label="Agency name">
+           <div class="pitch-inline-note"><span>Name the branch, then found it.</span></div>`)
+        + `<div class="pitch-warnings" hidden></div>`;
     } else {
-      h += "<div class='card' style='margin-bottom:12px'>";
-      h += "<div class='row' style='justify-content:space-between'><b>" + ag.name + "</b><span class='gold'>Level " + ag.level + "</span></div>";
-      h += "<div class='row' style='margin-top:8px'>";
-      h += "<div class='stat-card'><span>Signed Roster</span><b>" + ag.roster.length + " clients</b></div>";
-      h += "<div class='stat-card'><span>Weekly Commissions</span><b>" + fmtMFn(ag.weeklyCommission || 0) + "/wk</b></div>";
-      h += "<div class='stat-card'><span>Total Commissions Banked</span><b>" + fmtMFn(ag.totalCommissions || 0) + "</b></div>";
-      h += "</div></div>";
-
-      if(ag.roster.length){
-        h += "<div class='small' style='margin:12px 0 6px'><b>Your Client Roster:</b></div>";
-        const myClients = (g.talent || []).filter(t => ag.roster.includes(t.id));
-        h += "<div class='card' style='max-height:140px;overflow-y:auto'>";
-        myClients.forEach(t => {
-          h += "<div class='spread' style='font-size:12px;padding:3px 0'>";
-          h += "<span><b>" + t.name + "</b> (" + t.kind + ")</span>";
-          h += "<span class='tiny muted'>" + (t.bookedUntil > g.week ? "On shoot until W" + t.bookedUntil : "Available") + "</span>";
-          h += "</div>";
-        });
-        h += "</div>";
-      }
+      const clients = (g.talent || []).filter(t => ag.roster.includes(t.id));
+      body = deskGroup("THE AGENCY","Your in-house representation branch and what it earns.",
+          `<div class="pitch-grid4">
+             ${deskStat("AGENCY",deskEsc(ag.name),"level "+ag.level)}
+             ${deskStat("SIGNED ROSTER",ag.roster.length,"clients")}
+             ${deskStat("WEEKLY COMMISSION",fmtMFn(ag.weeklyCommission||0),"per week")}
+             ${deskStat("TOTAL BANKED",fmtMFn(ag.totalCommissions||0),"to date")}
+           </div>`)
+        + deskGroup("CLIENT ROSTER",clients.length?"Everyone the agency represents right now.":"No clients signed yet — packages and deals add them.",
+          clients.length
+            ? `<div class="pitch-pick-list desk-roster">${clients.map(t=>`<div class="pitch-pick desk-roster-row"><span class="cast-pick-main"><b>${deskEsc(t.name)}</b><small>${deskEsc(t.kind||"talent")}</small></span><span class="cast-pick-state">${t.bookedUntil>g.week?"ON SHOOT · W"+t.bookedUntil:"AVAILABLE"}</span></div>`).join("")}</div>`
+            : `<div class="command-empty"><b>No clients on the books.</b><small>Sign a package at the packaging desk to seed the roster.</small></div>`);
     }
 
-    const v = (typeof global.openModal === "function") ? global.openModal(h) : null;
+    const html = deskShell({
+      eyebrow:"STORY DEPARTMENT / TOOL · AGENCY",
+      title:"Talent agency",
+      sub:"Represent your own clients and take a packaging commission on the pictures they board.",
+      badge:`<div class="pitch-head-score"><small>${ag.founded?"CLIENTS":"STATUS"}</small><b>${ag.founded?ag.roster.length:"—"}</b><span>${ag.founded?"signed":"not founded"}</span></div>`,
+      body,
+      actions:`<button class="develop-ghost" id="btnGoPackagingDesk">Agency packaging desk →</button>`
+        + (ag.founded ? "" : `<button class="develop-action" id="btnFoundAgency" ${BOW_AGENCY.canFoundAgency(g)?"":"disabled"}>Found the agency</button>`)
+        + `<button class="develop-ghost" id="agencyClose">Close</button>`
+    });
+
+    const v = (typeof global.openModal === "function") ? global.openModal(html,{className:"command-pitch-modal command-agency-modal"}) : null;
     if(!v) return;
+    const close = v.querySelector("#agencyClose"); if(close) close.onclick = () => { if(typeof global.closeModal === "function") global.closeModal(); };
 
     const bPack = v.querySelector("#btnGoPackagingDesk");
-    if(bPack){
-      bPack.onclick = function(){
-        global.openAgencyPackagingModal();
-      };
-    }
+    if(bPack) bPack.onclick = function(){ global.openAgencyPackagingModal(); };
 
     const bFound = v.querySelector("#btnFoundAgency");
     if(bFound) bFound.onclick = function(){
-      const agName = prompt("Name your talent agency:", (global.G.studio.name || "Studio") + " Talent Agency");
-      if(agName && BOW_AGENCY.foundAgency(agName)){
+      const input = v.querySelector("#agencyName");
+      const agName = (input && input.value.trim()) || ((global.G && global.G.studio && global.G.studio.name) || "Studio") + " Talent Agency";
+      if(BOW_AGENCY.foundAgency(agName)){
         if(typeof global.beep === "function") global.beep("gold");
         if(typeof global.render === "function") global.render();
         global.openTalentAgencyModal();
