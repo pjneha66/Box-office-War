@@ -289,17 +289,18 @@ try{
 
   /* Release plumbing moves as one versioned unit (35.0 Empire Desk is the
      current release; the 34.9 Live Desk stays shipped beneath it). */
-  assert.equal($('meta[name="app-version"]').content,'35.0','app-version is 35.0');
+  assert.equal($('meta[name="app-version"]').content,'36.0','app-version is 36.0');
   const rawIndex=fs.readFileSync('index.html','utf8');
-  assert(rawIndex.includes('ui.js?v=51.0')&&rawIndex.includes('command-deck.css?v=51.0'),'UI and deck assets use v51.0');
+  assert(rawIndex.includes('ui.js?v=51.2')&&rawIndex.includes('command-deck.css?v=51.2'),'UI and deck assets use v51.2');
   assert(!rawIndex.includes('50.9'),'old asset version is gone');
-  assert(fs.readFileSync('sw.js','utf8').includes('bow-v95-cache'),'service-worker cache is bow-v95');
+  assert(fs.readFileSync('sw.js','utf8').includes('bow-v96-cache'),'service-worker cache is bow-v96');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.7').status`),'shipped','34.7 streamer sub-tabs are marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.9').status`),'shipped','34.9 Live Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='35.0').status`),'shipped','35.0 Empire Desk is marked shipped');
+  assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='36.0').status`),'shipped','36.0 Library Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.8').status`),'planned','34.8 board verdicts are queued next');
   assert(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.8').label`).includes('§45'),'34.8 names the real board-verdicts item');
-  console.log('PASS release: 35.0 / 51.0 / bow-v95 and roadmap statuses');
+  console.log('PASS release: 36.0 / 51.2 / bow-v96 and roadmap statuses');
 
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');

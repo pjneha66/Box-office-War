@@ -1229,7 +1229,7 @@ function _renderImpl(){
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "library", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1267,6 +1267,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"36.0", label:"LIBRARY DESK — the studio catalogue (Library rebuilt: overview, films, series, rights & windows, catalogue & licensing, physical 4K, restoration vault; one persisted nav, real catalogue value breakdown, one rights rule shared with the OTT desk)", status:"shipped" },
   { version:"35.0", label:"EMPIRE DESK — the empire command desk (Franchises rebuilt: portfolio, dossier, sequel timing planner, merch & parks, universes, music label, IP market & sell, divisions ledger, endgame crown tracker)", status:"shipped" },
   { version:"34.9", label:"Live Desk — the broadcast command desk + Develop-a-Show lab (Live TV rebuilt: home, channels, shows, grid, stream, events, hosts)", status:"shipped" },
   { version:"34.8", label:"🟡 §45 Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
@@ -1925,7 +1926,7 @@ let STUDIO_SUB = "lot";
 let DEVELOP_SUB = "scripts";   // v28.9: Develop sub-tab state
 let BOXOFFICE_SUB = "chart";
 let OTT_SUB = "home";          // v28.9 §15: streamer sub-tab state
-let LIBRARY_SUB = "films";
+let LIBRARY_SUB = "overview";   // v36.0: mirror of G.libState.sub
 let GAMES_SUB = "dev";
 
 /* ═══════════ Central Pixel Art Icons for Subtabs ═══════════ */
@@ -2044,7 +2045,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire" || TAB === "library"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -6906,9 +6907,9 @@ function bindView(){
   $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
   $$("[data-ott-history]").forEach(b=>b.onclick=()=>{ OTT_HISTORY_MODE=b.dataset.ottHistory==="revenue"?"revenue":"subs"; beep("click"); render(); });
   const ottRd=$("#ottOpenRd"); if(ottRd) ottRd.onclick=()=>{ beep("click"); switchTab("finance"); };
-  $$("[data-libsub]").forEach(b=>b.onclick=()=>{ LIBRARY_SUB=b.dataset.libsub; beep("click"); render(); });
   $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ GAMES_SUB=b.dataset.gamestab; beep("click"); render(); });
 
+  if(TAB==="library") bindLibraryDesk();   // v36.0 LIBRARY DESK
   const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); LOC_DESK.focus=null; openLocationDesk(); };
   const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.renderProductPlacementModal === "function") StudioOperationsSuite.renderProductPlacementModal(); };
   const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderBlindBoxModal === "function") LiveOpsCoPro.renderBlindBoxModal(); };
@@ -7327,155 +7328,530 @@ function testScreenModal(pid){
   };
 }
 
-/* ═══════════ VIEW: library (v23) — released films & series vault ═══════════ */
-function viewLibrary(){
-  if(typeof LIBRARY_SUB === "undefined") LIBRARY_SUB = "films";
-  const libTabs = [
-    ["films", "Released Films"],
-    ["series", "Television Series"],
-    ["physical", "Physical 4K Media &amp; Box Sets"],
-    ["vault", "Restoration Vault"]
-  ];
-  let h = "<div class='subnav-pills'>"+
-    libTabs.map(([key, label]) => {
-      const ic = getSubTabPixelIcon("library", key);
-      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
-      return `<button class='subnav-pill ${LIBRARY_SUB===key?"active":""}' data-libsub='${key}'>${img}<span>${label}</span></button>`;
-    }).join("")+
-  "</div>";
+/* ═══════════ VIEW: library (v36.0) — LIBRARY DESK ═══════════
+   The studio catalogue as a command desk. One navigation, one persisted
+   state object (G.libState), and every figure read from the engine's
+   library layer (libraryCatalogue / catalogValueBreakdown / libraryRightsOf).
+   Nothing here computes an economy of its own. */
+const LIBRARY_SECTIONS = [
+  ["overview", "Overview"],
+  ["films", "Films"],
+  ["series", "Series"],
+  ["rights", "Rights & windows"],
+  ["catalogue", "Catalogue & licensing"],
+  ["physical", "Physical 4K &amp; box sets"],
+  ["restoration", "Restoration vault"]
+];
+const LIBRARY_SORTS = [["recent","Recently added"],["name","A–Z"],["year","Year"],["gross","WW gross"],["quality","Quality"]];
+const LIBRARY_PAGE = 30;
 
-  if(LIBRARY_SUB === "physical"){
-    if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.renderPhysicalMediaSection === "function") return h + StudioOperationsSuite.renderPhysicalMediaSection();
-  }
-  if(LIBRARY_SUB === "vault"){
-    return h + "<div class='card'><b>Film Restoration Vault</b><div class='tiny muted' style='margin:4px 0 8px'>Digitize and remaster aged film prints to 4K Ultra HD.</div><button class='btn btn-primary' id='btnRestorationVault'>Open Restoration Vault</button></div>";
-  }
-
-  const releasedFilms = (G.films||[]).filter(f=>f.ww && f.ww>0);
-  const releasedSeries = (G.series||[]).filter(s=>s.seasons?.length>0);
-  
-  // Filter state
-  const filter = G.libFilter || { genre:"all", type:(LIBRARY_SUB==="series"?"series":"all"), year:"all", profit:"all", franchise:"all" };
-  const genres = ["all", ...Object.keys(DATA.GENRES)];
-  const types = ["all", "film", "series"];
-  const years = ["all", ...[...new Set([
-    ...releasedFilms.map(f=>yearOf(f.releaseWeek||G.week)),
-    ...releasedSeries.flatMap(s=>s.seasons.map(se=>yearOf(se.when||G.week)))
-  ])].sort((a,b)=>b-a)];
-  const franchises = ["all", ...new Set([
-    ...releasedFilms.map(f=>f.franchiseName).filter(Boolean),
-    ...releasedSeries.map(s=>s.franchiseName).filter(Boolean)
-  ])];
-  
-  // Apply filters
-  let films = releasedFilms;
-  let series = releasedSeries;
-  if(LIBRARY_SUB==="series" || filter.type==="series") films = [];
-  if(LIBRARY_SUB==="films" && filter.type==="film") series = [];
-  if(filter.genre!=="all"){ films = films.filter(f=>f.genre===filter.genre); series = series.filter(s=>s.genre===filter.genre); }
-  if(filter.year!=="all"){ 
-    films = films.filter(f=>yearOf(f.releaseWeek||G.week)===filter.year);
-    series = series.filter(s=>s.seasons.some(se=>yearOf(se.when||G.week)===filter.year));
-  }
-  if(filter.franchise!=="all"){
-    films = films.filter(f=>f.franchiseName===filter.franchise);
-    series = series.filter(s=>s.franchiseName===filter.franchise);
-  }
-  
-  h+="<div class='spread'><div class='section-title' style='margin:0'>Library — "+(films.length+series.length)+" titles</div>"+
-    "<div class='row' style='gap:6px'><button class='btn btn-sm btn-alt' id='btnRestorationVault'>Film Restoration</button>"+
-    "<button class='btn btn-sm btn-ghost' onclick='openLibraryFilters()'>Filters</button></div></div>";
-  
-  // Filters bar
-  h+="<div class='card' style='margin-bottom:8px'><div class='row' style='gap:6px;flex-wrap:wrap'>"+
-    "<span class='small muted'>Type:</span>"+types.map(t=>"<button class='btn btn-xs "+(filter.type===t?"btn-primary":"btn-ghost")+"' data-lib-type='"+t+"'>"+({film:"🎬 Film",series:"📺 Series",all:"All"})[t]+"</button>").join("")+
-    "<span class='small muted'>Genre:</span>"+genres.map(g=>"<button class='btn btn-xs "+(filter.genre===g?"btn-primary":"btn-ghost")+"' data-lib-genre='"+g+"' style='max-width:100px'>"+(g==="all"?"All":DATA.GENRES[g]?.emoji+" "+DATA.GENRES[g]?.name||g)+"</button>").join("")+
-    "<span class='small muted'>Year:</span>"+years.map(y=>"<button class='btn btn-xs "+(filter.year===y?"btn-primary":"btn-ghost")+"' data-lib-year='"+y+"'>"+y+"</button>").join("")+
-    "<span class='small muted'>Franchise:</span>"+franchises.map(f=>"<button class='btn btn-xs "+(filter.franchise===f?"btn-primary":"btn-ghost")+"' data-lib-franchise='"+esc(f)+"' style='max-width:120px'>"+(f==="all"?"All":esc(f))+"</button>").join("")+
-  "</div></div>";
-  
-  // Films grid
-  if(films.length){
-    h+="<div class='section-title'>🎬 Films ("+films.length+")</div><div class='grid g3' style='margin-top:8px'>";
-    films.sort((a,b)=>(b.ww||0)-(a.ww||0)).forEach(f=>{
-      const be = breakevenWW(f);
-      const profit = Math.round((f.ww||0) - be);
-      const sp = boSplit(f);
-      h+="<div class='card'><div class='spread'><b>"+(DATA.GENRES[f.genre]?DATA.GENRES[f.genre].emoji:"🎬")+" "+esc(f.title)+"</b>"+
-        "<span class='tag "+(profit>=0?"pos":"neg")+"'>"+fmtG(sp.ww)+" WW</span></div>"+
-        "<div class='tiny muted'>Y"+yearOf(f.releaseWeek)+" · "+DATA.GENRES[f.genre]?.name+" · "+fmtM(f.budget)+"M budget · "+
-        (f.franchiseName?"🏰 "+esc(f.franchiseName)+" · ":"")+
-        (profit>=0?"<span class='pos'>+"+fmtM(profit)+" profit</span>":"<span class='neg'>"+fmtM(profit)+" loss</span>")+"</div>"+
-        "<div class='film-breakdown-badge'>"+
-          "<span>DOM: <b class='gold'>"+fmtG(sp.dom)+"</b></span>"+
-          "<span>INTL: <b style='color:var(--cyan)'>"+fmtG(sp.intl)+"</b></span>"+
-          "<span>WW: <b class='pos'>"+fmtG(sp.ww)+"</b></span>"+
-        "</div>"+
-        "<div class='row' style='margin-top:6px;gap:4px'>"+
-          "<button class='btn btn-xs btn-primary' data-dossier='"+f.id+"'>📊 Breakdown</button>"+
-          "<button class='btn btn-xs btn-alt' data-re='"+f.id+"'>🎞 Re-release</button>"+
-          (f.streamingOriginal||f.soldTo ? "<button class='btn btn-xs btn-alt' data-stream='"+f.id+"'>📺 Streaming</button>" : "")+
-          (f.franchiseName ? "<button class='btn btn-xs btn-alt' data-fr='"+esc(f.franchiseName)+"'>🏰 Franchise</button>" : "")+
-          "<button class='btn btn-xs btn-alt' data-dc='"+f.id+"'>🎬 Director's Cut</button>"+
-        "</div></div>";
-    });
-    h+="</div>";
-  }
-  
-  // Series grid
-  if(series.length){
-    h+="<div class='section-title'>📺 Series ("+series.length+")</div><div class='grid g3' style='margin-top:8px'>";
-    series.sort((a,b)=>(b.totalViewers||0)-(a.totalViewers||0)).forEach(s=>{
-      const totalEps = s.seasons.reduce((a,se)=>a+(se.episodes||0),0);
-      h+="<div class='card'><div class='spread'><b>📺 "+esc(s.title)+"</b>"+
-        "<span class='tag'>"+s.seasons.length+" seasons, "+totalEps+" eps</span></div>"+
-        "<div class='tiny muted'>Y"+yearOf(s.seasons[0]?.when)+" · "+DATA.GENRES[s.genre]?.name+" · "+
-        (s.franchiseName?"🏰 "+esc(s.franchiseName)+" · ":"")+
-        fmtM(s.budget||0)+"M budget · "+fmtM(s.totalViewers||0)+"M peak viewers</div>"+
-        "<div class='row' style='margin-top:6px;gap:4px'>"+
-          "<button class='btn btn-xs btn-alt' data-seq='"+s.id+"'>🎬 New Season</button>"+
-          "<button class='btn btn-xs btn-alt' data-spin='"+s.id+"'>📺 Spin-off</button>"+
-          (s.franchiseName ? "<button class='btn btn-xs btn-alt' data-fr='"+esc(s.franchiseName)+"'>🏰 Franchise</button>" : "")+
-        "</div></div>";
-    });
-    h+="</div>";
-  }
-  
-  if(!films.length && !series.length){
-    h+="<div class='card muted small' style='margin-top:16px;text-align:center'>Your vault is empty. Release a film or series to fill the shelves.</div>";
-  }
-  
-  return h;
+/* One state object. Old saves (and a save that never opened the desk) get a
+   complete object on first read — no lazy writes, no undefined. */
+function libraryState(){
+  const base = { sub:"overview", genre:"all", year:"all", franchise:"all", q:"", sort:"recent", limit:LIBRARY_PAGE };
+  if(typeof G==="undefined" || !G) return base;
+  if(!G.libState || typeof G.libState!=="object") G.libState={};
+  const st=G.libState;
+  if(!LIBRARY_SECTIONS.some(s=>s[0]===st.sub)) st.sub="overview";
+  if(typeof st.genre!=="string" || !st.genre) st.genre="all";
+  if(typeof st.year!=="string" || !st.year) st.year="all";
+  if(typeof st.franchise!=="string" || !st.franchise) st.franchise="all";
+  if(typeof st.q!=="string") st.q="";
+  if(!LIBRARY_SORTS.some(s=>s[0]===st.sort)) st.sort="recent";
+  if(!Number.isFinite(st.limit) || st.limit<LIBRARY_PAGE) st.limit=LIBRARY_PAGE;
+  LIBRARY_SUB=st.sub;   // keep the v31 sub-tab mirror in sync
+  return st;
+}
+function librarySub(){ return libraryState().sub; }
+/* patch + persist + repaint. `live` patches (typing, "load more") skip the
+   whole-view repaint so the search field keeps its caret. */
+function librarySet(patch, live){
+  const st=libraryState();
+  Object.assign(st, patch||{});
+  LIBRARY_SUB=st.sub;
+  if(typeof saveGame==="function") saveGame();
+  if(live){ refreshLibraryRows(); return; }
+  render();
+}
+function libraryReset(){
+  const st=libraryState();
+  st.genre="all"; st.year="all"; st.franchise="all"; st.q=""; st.sort="recent"; st.limit=LIBRARY_PAGE;
+  librarySet({});
 }
 
-/* Filter modal */
-function openLibraryFilters(){
-  const filter = G.libFilter || { genre:"all", type:"all", year:"all", profit:"all", franchise:"all" };
-  let h="<h3>🔍 Library Filters</h3>"+
-    "<div class='card'><div class='small muted'>Genre</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
-    ["all",...Object.keys(DATA.GENRES)].map(g=>"<button class='btn btn-sm "+(filter.genre===g?"btn-primary":"btn-ghost")+"' data-lib-genre='"+g+"'>"+(g==="all"?"All":DATA.GENRES[g]?.emoji+" "+DATA.GENRES[g]?.name||g)+"</button>").join("")+
-    "</div></div>"+
-    "<div class='card' style='margin-top:8px'><div class='small muted'>Type</div><div class='row' style='gap:4px'>"+
-    ["all","film","series"].map(t=>"<button class='btn btn-sm "+(filter.type===t?"btn-primary":"btn-ghost")+"' data-lib-type='"+t+"'>"+({film:"🎬 Film",series:"📺 Series",all:"All"})[t]+"</button>").join("")+
-    "</div></div>"+
-    "<div class='card' style='margin-top:8px'><div class='small muted'>Year</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
-    ["all",...[...new Set([
-      ...(G.films||[]).map(f=>yearOf(f.releaseWeek||G.week)),
-      ...(G.series||[]).flatMap(s=>s.seasons.map(se=>yearOf(se.when||G.week)))
-    ])].sort((a,b)=>b-a)].map(y=>"<button class='btn btn-sm "+(filter.year===y?"btn-primary":"btn-ghost")+"' data-lib-year='"+y+"'>"+y+"</button>").join("")+
-    "</div></div>"+
-    "<div class='card' style='margin-top:8px'><div class='small muted'>Franchise</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
-    ["all",...new Set([
-      ...(G.films||[]).map(f=>f.franchiseName).filter(Boolean),
-      ...(G.series||[]).map(s=>s.franchiseName).filter(Boolean)
-    ])].map(f=>"<button class='btn btn-sm "+(filter.franchise===f?"btn-primary":"btn-ghost")+"' data-lib-franchise='"+esc(f)+"'>"+(f==="all"?"All":esc(f))+"</button>").join("")+
-    "</div></div>"+
-    "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Done</button></div>";
-  const v=openModal(h);
-  v.querySelectorAll("[data-lib-genre]").forEach(b=>b.onclick=()=>{ G.libFilter.genre=b.dataset.libGenre; beep("click"); openLibraryFilters(); });
-  v.querySelectorAll("[data-lib-type]").forEach(b=>b.onclick=()=>{ G.libFilter.type=b.dataset.libType; beep("click"); openLibraryFilters(); });
-  v.querySelectorAll("[data-lib-year]").forEach(b=>b.onclick=()=>{ G.libFilter.year=b.dataset.libYear; beep("click"); openLibraryFilters(); });
-  v.querySelectorAll("[data-lib-franchise]").forEach(b=>b.onclick=()=>{ G.libFilter.franchise=b.dataset.libFranchise; beep("click"); openLibraryFilters(); });
+/* ── small honest formatters ── */
+function libraryGenre(g){
+  const m=(typeof DATA!=="undefined" && DATA && DATA.GENRES)?DATA.GENRES[g]:null;
+  if(m && m.name) return (m.emoji?m.emoji+" ":"")+m.name;
+  return g ? String(g).charAt(0).toUpperCase()+String(g).slice(1) : "Unclassified";
+}
+function libraryYearLabel(y){ return (y===null||y===undefined||y==="") ? "—" : "Y"+y; }
+function libraryQuality(f){
+  const q=(f && f.quality && Number.isFinite(f.quality.overall)) ? Math.round(f.quality.overall) : null;
+  return q;
+}
+/* Net: the studio profit the engine recorded; if the run is still open we say
+   "vs breakeven" and compute on the gross basis, explicitly labelled. */
+function libraryNet(f){
+  if(f && Number.isFinite(f.profit)) return { value:f.profit, label:"Net" };
+  try{ return { value:Math.round(((f.ww||0)-breakevenWW(f))*10)/10, label:"vs breakeven" }; }
+  catch(e){ return { value:null, label:"vs breakeven" }; }
+}
+
+/* ── filters / sorting, shared by the shelf and the counters ── */
+function libraryYearOptions(){
+  const cat=libraryCatalogue();
+  const years=new Set();
+  let unknown=false;
+  cat.films.forEach(f=>{ const y=filmYear(f); if(y) years.add(y); else unknown=true; });
+  cat.series.forEach(s=>{ const y=seriesYear(s); if(y) years.add(y); else unknown=true; });
+  const list=[...years].sort((a,b)=>b-a).map(String);
+  if(unknown) list.push("unknown");
+  return list;
+}
+function libraryFranchiseOptions(){
+  const cat=libraryCatalogue();
+  const set=new Set();
+  cat.films.forEach(f=>{ if(f.franchiseName) set.add(f.franchiseName); });
+  cat.series.forEach(s=>{ if(s.franchiseName) set.add(s.franchiseName); });
+  return [...set].sort((a,b)=>String(a).localeCompare(String(b)));
+}
+function libraryGenresPresent(){
+  const cat=libraryCatalogue();
+  const set=new Set();
+  cat.films.forEach(f=>{ if(f.genre) set.add(f.genre); });
+  cat.series.forEach(s=>{ if(s.genre) set.add(s.genre); });
+  return [...set].sort((a,b)=>libraryGenre(a).localeCompare(libraryGenre(b)));
+}
+function libraryMatchesQuery(text, q){
+  if(!q) return true;
+  return String(text||"").toLowerCase().includes(q);
+}
+function libraryFilteredFilms(){
+  const st=libraryState(), cat=libraryCatalogue(), q=st.q.trim().toLowerCase();
+  let list=cat.films.slice();
+  if(st.genre!=="all") list=list.filter(f=>f.genre===st.genre);
+  if(st.franchise!=="all") list=list.filter(f=>String(f.franchiseName||"")===st.franchise);
+  if(st.year!=="all"){
+    list=list.filter(f=>{
+      const y=filmYear(f);
+      return st.year==="unknown" ? !y : String(y)===String(st.year);
+    });
+  }
+  if(q) list=list.filter(f=>libraryMatchesQuery(f.title,q)||libraryMatchesQuery(f.genre,q)||libraryMatchesQuery(f.franchiseName,q)||libraryMatchesQuery(libraryGenre(f.genre),q));
+  const s=st.sort;
+  list.sort((a,b)=>{
+    if(s==="name") return String(a.title).localeCompare(String(b.title));
+    if(s==="year") return (filmYear(b)||0)-(filmYear(a)||0) || String(a.title).localeCompare(String(b.title));
+    if(s==="gross") return (b.ww||0)-(a.ww||0);
+    if(s==="quality") return (libraryQuality(b)||0)-(libraryQuality(a)||0);
+    return (b.releaseWeek||0)-(a.releaseWeek||0);
+  });
+  return list;
+}
+function libraryFilteredSeries(){
+  const st=libraryState(), cat=libraryCatalogue(), q=st.q.trim().toLowerCase();
+  let list=cat.series.slice();
+  if(st.genre!=="all") list=list.filter(s=>s.genre===st.genre);
+  if(st.franchise!=="all") list=list.filter(s=>String(s.franchiseName||"")===st.franchise);
+  if(st.year!=="all"){
+    list=list.filter(s=>{
+      const y=seriesYear(s);
+      return st.year==="unknown" ? !y : String(y)===String(st.year);
+    });
+  }
+  if(q) list=list.filter(s=>libraryMatchesQuery(s.title,q)||libraryMatchesQuery(s.franchiseName,q)||libraryMatchesQuery(libraryGenre(s.genre),q));
+  const s=st.sort;
+  list.sort((a,b)=>{
+    if(s==="name") return String(a.title).localeCompare(String(b.title));
+    if(s==="year") return (seriesYear(b)||0)-(seriesYear(a)||0) || String(a.title).localeCompare(String(b.title));
+    if(s==="gross") return (b.budget||0)-(a.budget||0);
+    if(s==="quality") return (b.viewership||0)-(a.viewership||0);
+    const bw=(b.seasons||[]).filter(x=>x&&x.when).map(x=>x.when).pop()||0;
+    const aw=(a.seasons||[]).filter(x=>x&&x.when).map(x=>x.when).pop()||0;
+    return bw-aw;
+  });
+  return list;
+}
+
+/* ── shell ── */
+function libraryHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return `<header class="command-heading"><div><span class="command-edition">LIBRARY DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">CATALOGUE / RIGHTS / RESTORATION / ARCHIVE</span><h1>The studio catalogue.</h1><p>Every title you own and where it lives — theatrical runs, licences, your own platform, the physical line and the restoration lab. A title enters the catalogue once it has played somewhere.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function libraryNav(){
+  const active=librarySub();
+  return `<nav class="command-section-nav command-library-nav" aria-label="Library desk sections"><div class="command-nav-brand"><span>LIBRARY DESK</span><small>CATALOGUE / RIGHTS / RESTORATION</small></div><div class="command-nav-items">${LIBRARY_SECTIONS.map(([key,label],i)=>`<button data-libsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}" aria-pressed="${active===key?"true":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div></nav>`;
+}
+function libraryTelemetry(){
+  const cat=libraryCatalogue();
+  const ready=cat.films.filter(f=>libraryMovable(f).ok).length;
+  const inCinemas=cat.films.filter(f=>f.inTheaters).length;
+  return `<div class="command-telemetry">${commandMetric("TITLES IN CATALOGUE",String(cat.titles),cat.films.length+" films · "+cat.series.length+" series")}${commandMetric("CATALOGUE VALUE",fmtM(cat.catalogValue),"Itemised under Catalogue & licensing")}${commandMetric("LIBRARY INCOME / WEEK","+"+fmtM(cat.weeklyIncome),fmtM(cat.catalogValue)+" × "+(libraryWeeklyRate()*100).toFixed(2)+"% · paid in tickFinance()")}${commandMetric("READY TO PLACE",String(ready),inCinemas?inCinemas+" still in theaters":"No title tied up in a theatrical window")}</div>`;
+}
+function libraryPanel(eyebrow,title,description,content,aside){
+  return `<section class="produce-panel library-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${aside?`<div class="library-panel-aside">${aside}</div>`:""}</div><div class="library-panel-body">${content}</div></section>`;
+}
+function libraryShell(content){ return `<section class="command-deck command-produce command-library">${libraryHead()}${libraryNav()}${libraryTelemetry()}${content}</section>`; }
+function libraryEmpty(title,copy,action){
+  return `<div class="command-empty"><b>${title}</b><span>${copy}</span>${action||""}</div>`;
+}
+
+/* ── rows ── */
+function libraryFilmRow(f){
+  const sp=boSplit(f);
+  const rights=libraryRightsOf(f);
+  const net=libraryNet(f);
+  const q=libraryQuality(f);
+  const yr=filmYear(f);
+  const movable=libraryMovable(f);
+  const canRe = !f.inTheaters;
+  const canStream = typeof viewStreamingDeal==="function" && (f.soldTo||f.streamingOriginal||f.onOwn||f.onOwnPlatform) ? true : false;
+  const restore = (typeof BOW_RESTORATION!=="undefined");
+  return `<article class="library-row" data-lib-film="${f.id}">
+    <div class="library-row-main">
+      <div class="library-row-title"><b>${(DATA.GENRES[f.genre]&&DATA.GENRES[f.genre].emoji)||"🎬"} ${esc(f.title)}</b>${f.franchiseName?` <span class="library-tag">🏰 ${esc(f.franchiseName)}</span>`:""}${f.restored?` <span class="library-tag gold">restored</span>`:""}${f.inTheaters?` <span class="library-tag live">in theaters</span>`:""}</div>
+      <div class="library-row-meta">${libraryYearLabel(yr)} · ${esc(libraryGenre(f.genre))} · ${fmtM(f.budget||0)} budget${q!==null?" · quality "+q:""}${f.awards&&f.awards.length?" · "+f.awards.length+" award"+(f.awards.length===1?"":"s"):""}</div>
+      <div class="library-row-figures"><span>DOM <b>${fmtG(sp.dom)}</b></span><span>INTL <b>${fmtG(sp.intl)}</b></span><span>WW <b class="pos">${fmtG(sp.ww)}</b></span>${net.value!==null?`<span title="${net.label==="Net"?"Studio profit recorded by the engine":"Gross minus the worldwide breakeven from breakevenWW()"}">${net.label} <b class="${net.value>=0?"pos":"neg"}">${net.value>=0?"+":""}${fmtM(net.value)}</b></span>`:""}</div>
+    </div>
+    <div class="library-row-side">
+      <span class="library-chip lib-${rights.key}">${esc(rights.label)}</span>
+      <div class="library-row-actions">
+        <button class="produce-ghost" data-dossier="${f.id}">📊 Breakdown</button>
+        ${movable.ok?`<button class="produce-ghost" data-movestr="${f.id}">📱 To your platform</button>`:`<button class="produce-ghost" data-lib-why="${f.id}" title="${esc(rights.reason)}" disabled>📱 To your platform</button>`}
+        <button class="produce-ghost" data-re="${f.id}"${canRe?"":` disabled title="Still in theaters"`}>🎞 Re-release</button>
+        ${canStream?`<button class="produce-ghost" data-stream="${f.id}">📺 Streaming deal</button>`:""}
+        ${f.franchiseName?`<button class="produce-ghost" data-fr="${esc(f.franchiseName)}">🏰 Franchise</button>`:""}
+        <button class="produce-ghost" data-dc="${f.id}"${restore?"":` disabled title="Restoration module not loaded"`}>🎬 Director's cut</button>
+      </div>
+    </div>
+  </article>`;
+}
+function librarySeriesRow(s){
+  const seasons=(s.seasons||[]);
+  const last=seasons[seasons.length-1]||null;
+  const episodes=seriesEpisodeCount(s);
+  const yr=seriesYear(s);
+  const ended=String(s.status||"")==="ended";
+  return `<article class="library-row" data-lib-series="${s.id}">
+    <div class="library-row-main">
+      <div class="library-row-title"><b>📺 ${esc(s.title)}</b>${s.franchiseName?` <span class="library-tag">🏰 ${esc(s.franchiseName)}</span>`:""}${ended?` <span class="library-tag">ended</span>`:` <span class="library-tag live">${esc(String(s.status||"active").replace(/_/g," "))}</span>`}</div>
+      <div class="library-row-meta">${libraryYearLabel(yr)} · ${esc(libraryGenre(s.genre))} · ${seasons.length} season${seasons.length===1?"":"s"}${episodes?" · "+episodes+" eps":""} · ${fmtM(s.budget||0)} budget</div>
+      <div class="library-row-figures"><span>Last season buzz <b>${last&&Number.isFinite(last.viewership)?Math.round(last.viewership)+"/100":"—"}</b></span><span>Peak viewers <b>${s.totalViewers?fmtM(s.totalViewers):"—"}</b></span><span>Platform <b>${esc(s.platform==="own"&&G.streamer?G.streamer.name:(s.platform||"—"))}</b></span></div>
+    </div>
+    <div class="library-row-side">
+      <span class="library-chip lib-${s.platform==="own"?"own":"licensed"}">${s.platform==="own"?"Own platform":"Licensed"}</span>
+      <div class="library-row-actions">
+        <button class="produce-ghost" data-seq="${s.id}"${ended?` disabled title="The platform cancelled this series"`:""}>🎬 New season</button>
+        <button class="produce-ghost" data-spin="${s.id}">📺 Spin-off</button>
+        ${s.franchiseName?`<button class="produce-ghost" data-fr="${esc(s.franchiseName)}">🏰 Franchise</button>`:""}
+      </div>
+    </div>
+  </article>`;
+}
+function libraryVaultRow(v){
+  const premiere=v.week?`W${woyOf(v.week)} Y${yearOf(v.week)}`:"undated";
+  const due=(v.week||0)<=G.week;
+  return `<article class="library-row" data-lib-vault="${v.id}">
+    <div class="library-row-main">
+      <div class="library-row-title"><b>📚 ${esc(v.title)}</b> <span class="library-tag">acquired catalogue</span></div>
+      <div class="library-row-meta">${esc(libraryGenre(v.genre))} · quality ${v.quality!==undefined?Math.round(v.quality):"—"} · ${v.soldTo?"licensed to "+esc(v.soldTo):"unlicensed"}</div>
+      <div class="library-row-figures"><span>Premiere <b>${premiere}</b></span><span>Status <b>${due?"ready to date":"scheduled"}</b></span></div>
+    </div>
+    <div class="library-row-side">
+      <span class="library-chip lib-${v.soldTo?"licensed":"unsold"}">${due?"Ready":"Scheduled"}</span>
+      <div class="library-row-actions"><button class="produce-ghost" data-libvaultbrowse="1">🔄 Re-date / license</button></div>
+    </div>
+  </article>`;
+}
+
+/* ── filter bar + shelf（rebuilt in place while typing）── */
+function libraryFilterBar(){
+  const st=libraryState();
+  const genres=libraryGenresPresent(), years=libraryYearOptions(), franchises=libraryFranchiseOptions();
+  const chip=(attr,val,label,active)=>`<button class="library-chipbtn ${active?"active":""}" ${attr}="${esc(val)}" aria-pressed="${active?"true":"false"}">${label}</button>`;
+  let h=`<div class="library-filters" role="group" aria-label="Catalogue filters">`;
+  h+=`<div class="library-filter-row"><span class="library-filter-label">SEARCH</span><input id="libSearch" class="library-search" type="search" value="${esc(st.q)}" placeholder="Title, genre or franchise" aria-label="Search the catalogue" /></div>`;
+  h+=`<div class="library-filter-row"><span class="library-filter-label">SORT</span>${LIBRARY_SORTS.map(([k,l])=>chip("data-lib-sort",k,l,st.sort===k)).join("")}</div>`;
+  if(genres.length) h+=`<div class="library-filter-row"><span class="library-filter-label">GENRE</span>${chip("data-lib-genre","all","All",st.genre==="all")}${genres.map(g=>chip("data-lib-genre",g,esc(libraryGenre(g)),st.genre===g)).join("")}</div>`;
+  if(years.length) h+=`<div class="library-filter-row"><span class="library-filter-label">YEAR</span>${chip("data-lib-year","all","All",st.year==="all")}${years.map(y=>chip("data-lib-year",y,y==="unknown"?"No date":"Y"+y,st.year===y)).join("")}</div>`;
+  if(franchises.length) h+=`<div class="library-filter-row"><span class="library-filter-label">FRANCHISE</span>${chip("data-lib-franchise","all","All",st.franchise==="all")}${franchises.map(f=>chip("data-lib-franchise",f,esc(f),st.franchise===f)).join("")}</div>`;
+  h+=`<div class="library-filter-foot"><span id="libCount" class="library-count"></span><button class="produce-ghost" id="libReset">Reset filters</button></div>`;
+  h+=`</div>`;
+  return h;
+}
+function libraryShelfRows(){
+  const st=libraryState();
+  /* the section decides the shelf — one axis, no contradictory type filter */
+  const films=(st.sub==="series")?[]:libraryFilteredFilms();
+  const series=(st.sub==="series")?libraryFilteredSeries():[];
+  const shownF=films.slice(0,st.limit);
+  const shownS=series.slice(0,st.limit);
+  let h="";
+  if(shownF.length) h+=`<div class="library-shelf">${shownF.map(libraryFilmRow).join("")}</div>`;
+  if(shownS.length) h+=`<div class="library-shelf">${shownS.map(librarySeriesRow).join("")}</div>`;
+  if(!h){
+    h=libraryEmpty("Nothing matches these filters.", st.q?`No title contains “${esc(st.q)}”.`:"Clear a filter to see the whole catalogue.", `<button class="produce-ghost" id="libReset2">Reset filters</button>`);
+  }
+  const total=films.length||series.length, shown=films.length?shownF.length:shownS.length;
+  if(total>shown) h+=`<div class="library-more"><button class="produce-ghost" id="libMore">Load ${Math.min(LIBRARY_PAGE, total-shown)} more · ${shown}/${total} ${films.length?"films":"series"}</button></div>`;
+  return h;
+}
+function refreshLibraryRows(){
+  const box=$("#libRows"); if(!box) return;
+  box.innerHTML=libraryShelfRows();
+  const count=$("#libCount");
+  if(count){
+    const st=libraryState();
+    const films=libraryFilteredFilms(), series=libraryFilteredSeries();
+    count.textContent=(st.sub==="series")
+      ? `${libraryFilteredSeries().length} series match these filters`
+      : `${libraryFilteredFilms().length} film${libraryFilteredFilms().length===1?"":"s"} match these filters`;
+  }
+  bindLibraryRowActions(box);
+  const more=$("#libMore"); if(more) more.onclick=()=>{ beep("click"); librarySet({limit:libraryState().limit+LIBRARY_PAGE}, true); };
+  const r2=$("#libReset2"); if(r2) r2.onclick=(e)=>{ e.preventDefault(); beep("click"); libraryReset(); };
+}
+
+/* ── panels ── */
+function libraryOverviewPanel(){
+  const cat=libraryCatalogue();
+  const ready=cat.films.filter(f=>libraryMovable(f).ok);
+  const inCinemas=cat.films.filter(f=>f.inTheaters);
+  const vault=cat.vault.slice().sort((a,b)=>(a.week||0)-(b.week||0));
+  const recon=libraryRestorationState();
+  const restCandidates=recon?cat.films.filter(f=>!f.inTheaters && !recon.restoredFilms[f.id] && !recon.inProgress.some(p=>String(p.filmId)===String(f.id))):[];
+
+  let needs=`<div class="library-needs">`;
+  if(ready.length){
+    needs+=`<div class="library-need"><span class="library-need-ico">📱</span><div><b>${ready.length} title${ready.length===1?"":"s"} ready to place</b><span>Unsold and out of theaters — move ${ready.length===1?"it":"them"} onto your platform to feed the content ceiling.</span></div><button class="produce-ghost" data-lib-lane="rights">Open rights</button></div>`;
+  }
+  if(inCinemas.length){
+    needs+=`<div class="library-need"><span class="library-need-ico">🎬</span><div><b>${inCinemas.length} still in theaters</b><span>Locked until the theatrical run closes — then the window opens.</span></div><button class="produce-ghost" data-lib-lane="rights">Open rights</button></div>`;
+  }
+  if(restCandidates.length){
+    needs+=`<div class="library-need"><span class="library-need-ico">🎞</span><div><b>${restCandidates.length} title${restCandidates.length===1?"":"s"} could be restored</b><span>4K remasters permanently raise catalogue value; Director's Editions add quality and unlock roadshows.</span></div><button class="produce-ghost" data-lib-lane="restoration">Open lab</button></div>`;
+  }
+  if(!needs.length || (!ready.length && !inCinemas.length && !restCandidates.length)){
+    needs+=`<div class="library-need quiet"><span class="library-need-ico">✅</span><div><b>Nothing needs you this week</b><span>Every title is placed, and nothing is waiting on a window.</span></div></div>`;
+  }
+  needs+=`</div>`;
+
+  const recent=cat.films.slice().sort((a,b)=>(b.releaseWeek||0)-(a.releaseWeek||0)).slice(0,4);
+  const recentHtml=recent.length?`<div class="library-shelf">${recent.map(libraryFilmRow).join("")}</div>`:"";
+
+  const vaultHtml=vault.length?`<div class="library-mini">${vault.slice(0,5).map(v=>`<div class="library-mini-row"><span>📚 <b>${esc(v.title)}</b> · ${esc(libraryGenre(v.genre))}</span><span>${v.week?("premieres Y"+yearOf(v.week)+" W"+woyOf(v.week)):"undated"}${v.soldTo?" · licensed":""}</span></div>`).join("")}</div>`:"";
+  const split=()=>`<div class="library-mini">${cat.films.slice(0,6).map(f=>{ const r=libraryRightsOf(f); return `<div class="library-mini-row"><span>${esc(f.title)}</span><span class="library-chip lib-${r.key}">${esc(r.label)}</span></div>`; }).join("")}</div>`;
+
+  if(!cat.films.length && !cat.series.length){
+    return libraryPanel("LIBRARY / OVERVIEW","An empty catalogue",
+      "A title enters the catalogue when it has played somewhere: a theatrical run, a licence, or a placement on your platform.",
+      libraryEmpty("No titles yet.","Greenlight a film in Develop, or acquire an indie library at the M&amp;A desk to seed the shelves.",
+        `<div class="library-empty-actions"><button class="produce-action" data-lib-lane="catalogue">Acquire a library</button><button class="produce-ghost" data-libgoto="develop">Open Develop ↗</button></div>`));
+  }
+  const body=`<div class="library-grid2">
+      <div><span class="command-eyebrow">SHELVES</span>
+        <div class="library-stats"><div><small>FILMS</small><b>${cat.films.length}</b></div><div><small>SERIES</small><b>${cat.series.length}</b></div><div><small>ACQUIRED VAULT</small><b>${cat.vault.length}</b></div><div><small>IN THEATERS</small><b>${inCinemas.length}</b></div></div>
+        ${vaultHtml||`<p class="library-note">No acquired catalogue yet — the M&amp;A desk sells indie libraries that arrive as real, releasable films.</p>`}
+      </div>
+      <div><span class="command-eyebrow">WHAT NEEDS YOU</span>${needs}</div>
+    </div>
+    <span class="command-eyebrow">WHERE THE CATALOGUE LIVES</span>
+    ${split()}
+    <span class="command-eyebrow">RECENTLY ADDED</span>
+    ${recentHtml||`<p class="library-note">Nothing has been released yet.</p>`}`;
+  return libraryPanel("LIBRARY / OVERVIEW","Catalogue at a glance","Holdings, the rights picture and the three things that usually need a decision.",body,`<button class="btn btn-sm btn-alt" data-lib-lane="films">All films ↗</button>`);
+}
+function libraryFilmsPanel(){
+  const st=libraryState();
+  const body=libraryFilterBar()+`<div id="libRows">${libraryShelfRows()}</div>`;
+  return libraryPanel("LIBRARY / FILMS","Films",`Every released film. Inclusion rule: a film joins the catalogue when it has a release week — theatrical, day-and-date, or a straight-to-platform delivery. ${st.limit>LIBRARY_PAGE?"Showing up to "+st.limit+" per shelf.":"The shelf loads "+LIBRARY_PAGE+" at a time."}`,body);
+}
+function librarySeriesPanel(){
+  const st=libraryState();
+  const body=libraryFilterBar()+`<div id="libRows">${libraryShelfRows()}</div>`;
+  return libraryPanel("LIBRARY / SERIES","Series",`A series joins the catalogue after its first season airs. Buzz is the last completed season's score out of 100 — the same number the renewal desk reads. ${st.limit>LIBRARY_PAGE?"Showing up to "+st.limit+" per shelf.":"The shelf loads "+LIBRARY_PAGE+" at a time."}`,body);
+}
+function libraryRightsPanel(){
+  const cat=libraryCatalogue();
+  if(!cat.films.length) return libraryPanel("LIBRARY / RIGHTS","Rights &amp; windows","Where each title currently lives.",libraryEmpty("No rights to manage yet.","Release a film and its window will appear here."));
+  const rows=cat.films.slice().sort((a,b)=>{
+    const ra=libraryRightsOf(a), rb=libraryRightsOf(b);
+    const oa=ra.key==="unsold"?1:(ra.key==="theaters"?0:2), ob=rb.key==="unsold"?1:(rb.key==="theaters"?0:2);
+    return oa-ob || (b.ww||0)-(a.ww||0);
+  });
+  const movable=rows.filter(f=>libraryMovable(f).ok);
+  const body=`<div class="library-kpis"><div><small>READY TO PLACE</small><b>${movable.length}</b></div><div><small>IN THEATERS</small><b>${rows.filter(f=>f.inTheaters).length}</b></div><div><small>LICENSED OUT</small><b>${rows.filter(f=>f.soldTo&&!f.onOwn&&!f.streamingOriginal).length}</b></div><div><small>ON YOUR PLATFORM</small><b>${rows.filter(f=>f.onOwn||f.onOwnPlatform||f.streamingOriginal).length}</b></div></div>
+    <div class="library-table"><div class="library-tr library-th"><span>TITLE</span><span>WINDOW</span><span>HOME</span><span>ACTION</span></div>
+    ${rows.map(f=>{
+      const r=libraryRightsOf(f);
+      const win=(typeof DATA.window==="function"&&f.window)?f.window+" days":"—";
+      return `<div class="library-tr"><span><b>${esc(f.title)}</b><small>${libraryYearLabel(filmYear(f))} · ${esc(libraryGenre(f.genre))}</small></span><span>${win}</span><span><span class="library-chip lib-${r.key}">${esc(r.label)}</span></span><span>${r.movable?`<button class="produce-ghost" data-movestr="${f.id}">Move to platform</button>`:`<button class="produce-ghost" disabled title="${esc(r.reason)}">${r.key==="theaters"?"After the run":(r.key==="licensed"?"Licensed":"Placed")}</button>`}</span></div>`;
+    }).join("")}</div>
+    <p class="library-note">Window length is the deal you signed at release. A title can move onto your own platform as soon as its theatrical run closes and it is not already licensed elsewhere — the same rule the OTT desk uses (libraryRightsOf).</p>`;
+  return libraryPanel("LIBRARY / RIGHTS","Rights &amp; windows","Where each title lives now, and what can move today.",body,`<button class="btn btn-sm btn-alt" data-libgoto="ott">OTT desk ↗</button>`);
+}
+function libraryCataloguePanel(){
+  const cat=libraryCatalogue();
+  const bd=(typeof catalogValueBreakdown==="function")?catalogValueBreakdown():{films:0,franchises:0,libraries:0,total:cat.catalogValue};
+  const deals=(G.maDeals||[]).slice().reverse();
+  const offers=(G.maOffers||[]).filter(o=>o.expires>G.week);
+  const libOffers=offers.filter(o=>o.kind==="library");
+  const otherOffers=offers.filter(o=>o.kind!=="library");
+  const dealRow=o=>{
+    const can=G.studio.cash>=o.price;
+    return `<div class="library-deal"><div><b>${o.icon||"🏦"} ${esc(o.name)}</b><span>${esc(o.blurb||"")}</span><small>Expires in ${Math.max(1,o.expires-G.week)} week${(o.expires-G.week)===1?"":"s"} · cash ${fmtM(G.studio.cash)}</small></div>
+      <div class="library-deal-side"><b>${fmtM(o.price)}</b><button class="produce-ghost" data-libma="${o.id}"${can?"":` disabled title="Needs ${fmtM(o.price)} cash"`}>${can?"Acquire":"Can't cover"}</button></div></div>`;
+  };
+  const body=`
+    <div class="library-grid2">
+      <div><span class="command-eyebrow">WHAT THE VALUE IS MADE OF</span>
+        <div class="library-table library-table-3"><div class="library-tr library-th"><span>COMPONENT</span><span>RULE</span><span>VALUE</span></div>
+          <div class="library-tr"><span>Films</span><span>20% of budget + 2.5% of WW, ×45% once licensed, +$8M per award</span><span><b>${fmtM(bd.films)}</b></span></div>
+          <div class="library-tr"><span>Franchises</span><span>franchiseValue(): tier, merch and park levels</span><span><b>${fmtM(bd.franchises)}</b></span></div>
+          <div class="library-tr"><span>Acquired libraries</span><span>${G.maLibraries||0} × ${fmtM((DATA.MA&&DATA.MA.library)?DATA.MA.library.catalogEach:42)}</span><span><b>${fmtM(bd.libraries)}</b></span></div>
+          <div class="library-tr library-tr-total"><span>TOTAL CATALOGUE VALUE</span><span>catalogValue()</span><span><b class="gold">${fmtM(bd.total)}</b></span></div>
+        </div>
+        <p class="library-note">Library licensing pays <b>${fmtM(cat.weeklyIncome)}/week</b> = catalogue value × <b>${(libraryWeeklyRate()*100).toFixed(2)}%</b>, credited in the weekly finance tick. It is not a per-title royalty: the whole catalogue feeds one cheque.</p>
+      </div>
+      <div><span class="command-eyebrow">ACQUISITION DESK</span>
+        ${libOffers.length?libOffers.map(dealRow).join(""):`<p class="library-note">No indie library on the book right now. The deal book rotates every 13 weeks (weeks 1 / 14 / 27 / 40) in the finance tick — the offer lands with the weekly report.</p>`}
+        ${otherOffers.length?`<details class="library-details"><summary>Other M&amp;A deals on the book (${otherOffers.length})</summary>${otherOffers.map(dealRow).join("")}</details>`:""}
+        <div class="library-deal-foot"><button class="produce-ghost" data-libvaultbrowse="1">🎞 Vault browser — license acquired films</button><button class="produce-ghost" data-libgoto="finance">M&amp;A desk ↗</button></div>
+      </div>
+    </div>
+    <span class="command-eyebrow">DEAL HISTORY</span>
+    ${deals.length?`<div class="library-mini">${deals.slice(0,8).map(d=>`<div class="library-mini-row"><span>${esc(d.kind||"deal")} · <b>${esc(d.name||"—")}</b></span><span>${fmtM(d.price||0)} · Y${yearOf(d.week||G.week)} W${woyOf(d.week||G.week)}</span></div>`).join("")}</div>`:`<p class="library-note">No acquisitions yet.</p>`}
+    ${cat.vault.length?`<span class="command-eyebrow">ACQUIRED VAULT FILMS (${cat.vault.length})</span><div class="library-shelf">${cat.vault.slice(0,8).map(libraryVaultRow).join("")}</div>`:""}`;
+  return libraryPanel("LIBRARY / CATALOGUE","Catalogue &amp; licensing","What the catalogue is worth, what it pays, and where it can grow — every figure itemised.",body);
+}
+function libraryPhysicalPanel(){
+  const mod=(typeof StudioOperationsSuite!=="undefined")?StudioOperationsSuite:null;
+  if(!mod || typeof mod.renderPhysicalMediaSection!=="function"){
+    return libraryPanel("LIBRARY / PHYSICAL","Physical 4K &amp; box sets","Collector editions and the manufacturing line.",libraryEmpty("The physical media module isn't loaded.","studio-operations-suite.js provides the 4K and box-set economics; reload the app to restore it."));
+  }
+  /* The module keeps its own markup and economics; the desk swaps its legacy
+     classes for desk classes so no .card / .section-title survives inside the
+     Library screen (A9/zero-legacy rule). */
+  let inner=String(mod.renderPhysicalMediaSection()||"");
+  inner=inner
+    .replace(/class='card'/g,'class="library-legacy-block"')
+    .replace(/class="card"/g,'class="library-legacy-block"')
+    .replace(/class='section-title'/g,'class="library-legacy-title"')
+    .replace(/class="section-title"/g,'class="library-legacy-title"');
+  return libraryPanel("LIBRARY / PHYSICAL","Physical 4K &amp; box sets","Manufacturing runs, retail price and the margin per unit — the collector line that sits beside the catalogue.",`<div class="library-legacy-wrap">${inner}</div>`, `<button class="btn btn-sm btn-alt" data-lib-restoration="modal">Restoration vault ↗</button>`);
+}
+function libraryRestorationPanel(){
+  const recon=libraryRestorationState();
+  const mod=(typeof BOW_RESTORATION!=="undefined")?BOW_RESTORATION:null;
+  if(!recon || !mod || !mod.TIERS){
+    return libraryPanel("LIBRARY / RESTORATION","Restoration vault","Archive remastering.",libraryEmpty("The restoration module isn't loaded.","film-restoration.js provides the lab, the tiers and the anniversary roadshow. Reload the app to restore it."));
+  }
+  const cat=libraryCatalogue();
+  const tiers=Object.keys(mod.TIERS);
+  const inProg=recon.inProgress||[];
+  const restoredIds=Object.keys(recon.restoredFilms||{});
+  const candidates=cat.films.filter(f=>!f.inTheaters && !recon.restoredFilms[f.id] && !inProg.some(p=>String(p.filmId)===String(f.id)));
+  const restoredFilms=cat.films.filter(f=>recon.restoredFilms[f.id]);
+  const tierRow=t=>{
+    const T=mod.TIERS[t];
+    return `<span class="library-tier"><b>${esc(T.name)}</b><small>${fmtM(T.cost)} · ${T.weeksNeeded} wks · +${Math.round(T.catalogBoost*100)}% catalogue${T.qualityBonus?" · +"+T.qualityBonus+" quality":""}${T.anniversaryMultiplier?" · roadshow ×"+T.anniversaryMultiplier:""}</small></span>`;
+  };
+  const body=`<div class="library-grid2">
+      <div><span class="command-eyebrow">IN THE LAB (${inProg.length})</span>
+        ${inProg.length?`<div class="library-mini">${inProg.map(p=>{ const T=mod.TIERS[p.tierId]||{name:p.tierId}; const left=Math.max(0,(p.dueWeek||G.week)-G.week); return `<div class="library-mini-row"><span>🎞 <b>${esc(p.title||"title")}</b> · ${esc(T.name)}</span><span>ready in ${left} wk${left===1?"":"s"} (W${p.dueWeek})</span></div>`; }).join("")}</div>`:`<p class="library-note">The lab is free. A remaster takes 4–8 weeks and costs the tier price up front — the catalogue boost lands permanently on completion.</p>`}
+        <span class="command-eyebrow">RESTORED (${restoredIds.length})</span>
+        ${restoredFilms.length?`<div class="library-mini">${restoredFilms.map(f=>`<div class="library-mini-row"><span>✅ <b>${esc(f.title)}</b></span><span><button class="produce-ghost" data-libroadshow="${f.id}">Roadshow release (${fmtM(5)})</button></span></div>`).join("")}</div>`:`<p class="library-note">Nothing restored yet.</p>`}
+      </div>
+      <div><span class="command-eyebrow">TIERS</span>${tiers.map(tierRow).join("")}
+        <div class="library-deal-foot"><button class="produce-ghost" data-lib-restoration="modal">Open the full lab modal</button></div>
+      </div>
+    </div>
+    <span class="command-eyebrow">CANDIDATES (${candidates.length})</span>
+    ${candidates.length?`<div class="library-table library-table-3"><div class="library-tr library-th"><span>TITLE</span><span>CATALOGUE NOW</span><span>RESTORE</span></div>
+      ${candidates.slice(0,20).map(f=>`<div class="library-tr"><span><b>${esc(f.title)}</b><small>${libraryYearLabel(filmYear(f))} · ${esc(libraryGenre(f.genre))}</small></span><span>${fmtG(f.ww||0)} WW${f.restored?" · restored":""}</span><span class="library-tier-actions">${tiers.slice(0,2).map(t=>`<button class="produce-ghost" data-librestore="${f.id}:${t}"${G.studio.cash>=(mod.TIERS[t].cost||0)?"":` disabled title="Needs ${fmtM(mod.TIERS[t].cost)}"`}>${esc(mod.TIERS[t].name.split(" ")[0])} ${fmtM(mod.TIERS[t].cost)}</button>`).join("")}</span></div>`).join("")}
+      </div>`:`<p class="library-note">Every catalogued title is already restored or in the lab.</p>`}
+    <p class="library-note">A restored title permanently raises catalogue value (and therefore the weekly licensing cheque), unlocks the anniversary roadshow, and — for a Director's Edition — adds quality.</p>`;
+  return libraryPanel("LIBRARY / RESTORATION","Restoration vault","Remaster the back catalogue — catalog value, quality and roadshows.",body);
+}
+
+/* ── entry point ── */
+function viewLibrary(){
+  const st=libraryState();
+  let content;
+  if(st.sub==="films") content=libraryFilmsPanel();
+  else if(st.sub==="series") content=librarySeriesPanel();
+  else if(st.sub==="rights") content=libraryRightsPanel();
+  else if(st.sub==="catalogue") content=libraryCataloguePanel();
+  else if(st.sub==="physical") content=libraryPhysicalPanel();
+  else if(st.sub==="restoration") content=libraryRestorationPanel();
+  else content=libraryOverviewPanel();
+  return libraryShell(content);
+}
+
+/* ── bindings (called from bindView via bindLibraryDesk) ── */
+function bindLibraryRowActions(scope){
+  const root=scope||document;
+  const q=(sel)=>[...root.querySelectorAll(sel)];
+  q("[data-dossier]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); beep("click"); openFilmDetailsModal(+b.dataset.dossier); });
+  q("[data-re]").forEach(b=>b.onclick=()=>{ const f=findFilmById(b.dataset.re); if(!f) return toast("That title is no longer in the catalogue.","bad"); if(f.inTheaters) return toast("Still in theaters — re-releases open after the run closes.","bad"); beep("click"); reReleaseFilm(f.id); });
+  q("[data-stream]").forEach(b=>b.onclick=()=>{ const f=findFilmById(b.dataset.stream); if(!f) return toast("That title is no longer in the catalogue.","bad"); beep("click"); viewStreamingDeal(f.id); });
+  q("[data-dc]").forEach(b=>b.onclick=()=>{ const f=findFilmById(b.dataset.dc); if(!f) return toast("That title is no longer in the catalogue.","bad"); if(typeof releaseDirectorsCut!=="function") return toast("The director's cut is unavailable in this build.","bad"); beep("click"); releaseDirectorsCut(f.id); });
+  q("[data-movestr]").forEach(b=>b.onclick=()=>{
+    const res=(typeof libraryMoveResult==="function")?libraryMoveResult(b.dataset.movestr):{ok:false,reason:"Not available."};
+    if(res.ok){ beep("gold"); flashes(G.flash); toast("Moved to "+(G.streamer?G.streamer.name:"your platform")+" (+"+res.bump.toFixed(2)+"M subs).","good"); render(); }
+    else { beep("bad"); toast(res.reason||"That title can't move to your platform.","bad"); }
+  });
+  q("[data-seq]").forEach(b=>b.onclick=()=>{
+    const s=findSeriesById(b.dataset.seq);
+    if(!s) return toast("That series is no longer in the catalogue.","bad");
+    if(String(s.status||"")==="ended") return toast("The platform cancelled this series — it can't take a new season.","bad");
+    beep("click"); startSequel(s);
+  });
+  q("[data-spin]").forEach(b=>b.onclick=()=>{ const s=findSeriesById(b.dataset.spin); if(!s) return toast("That series is no longer in the catalogue.","bad"); beep("click"); startSpinoff(s); });
+  q("[data-fr]").forEach(b=>b.onclick=()=>{ beep("click"); viewFranchiseDetail(b.dataset.fr); });
+  q("[data-lib-why]").forEach(b=>b.onclick=()=>{ const f=findFilmById(b.dataset.libWhy); const r=libraryRightsOf(f); toast(r.reason||"Not available.","bad"); });
+  q("[data-libma]").forEach(b=>b.onclick=()=>{
+    const res=(typeof maBuyResult==="function")?maBuyResult(+b.dataset.libma):{ok:false,reason:"Not available."};
+    if(res.ok){ beep("gold"); flashes(G.flash); toast("Acquired "+(res.deal&&res.deal.name?res.deal.name:"the deal")+" for "+fmtM(res.deal?res.deal.price:0)+".","good"); render(); }
+    else { beep("bad"); toast(res.reason||"That deal can't be completed.","bad"); render(); }
+  });
+  q("[data-librestore]").forEach(b=>b.onclick=()=>{
+    const [fid,tid]=String(b.dataset.librestore).split(":");
+    if(typeof BOW_RESTORATION==="undefined" || typeof BOW_RESTORATION.startRestoration!=="function") return toast("The restoration module isn't loaded.","bad");
+    if(BOW_RESTORATION.startRestoration(+fid,tid)){ beep("gold"); toast("In the lab — the remaster is running.","good"); render(); }
+    else { beep("bad"); toast("Can't start that restoration — check the tier cost and that the title is out of theaters.","bad"); }
+  });
+  q("[data-libroadshow]").forEach(b=>b.onclick=()=>{
+    if(typeof BOW_RESTORATION==="undefined" || typeof BOW_RESTORATION.launchAnniversaryRoadshow!=="function") return toast("The restoration module isn't loaded.","bad");
+    if(BOW_RESTORATION.launchAnniversaryRoadshow(+b.dataset.libroadshow)){ beep("cash"); render(); }
+    else { beep("bad"); toast("A roadshow campaign needs $5M cash and a restored print.","bad"); }
+  });
+  q("[data-libvaultbrowse]").forEach(b=>b.onclick=()=>{ beep("click"); if(typeof maVaultBrowser==="function") maVaultBrowser(); else toast("The vault browser is unavailable in this build.","bad"); });
+  q("[data-lib-restoration]").forEach(b=>b.onclick=()=>{ beep("click"); if(typeof openRestorationModal==="function") openRestorationModal(); else toast("The restoration module isn't loaded.","bad"); });
+}
+function bindLibraryDesk(){
+  const st=libraryState();
+  $$("[data-libsub]").forEach(b=>b.onclick=()=>{ beep("click"); librarySet({ sub:b.dataset.libsub, limit:LIBRARY_PAGE }); });
+  $$("[data-lib-lane]").forEach(b=>b.onclick=()=>{ beep("click"); librarySet({ sub:b.dataset.libLane, limit:LIBRARY_PAGE }); });
+  $$("[data-libgoto]").forEach(b=>b.onclick=()=>{ beep("click"); switchTab(b.dataset.libgoto); });
+  $$("[data-lib-genre]").forEach(b=>b.onclick=()=>{ beep("click"); librarySet({ genre:b.dataset.libGenre, limit:LIBRARY_PAGE }); });
+  $$("[data-lib-year]").forEach(b=>b.onclick=()=>{ beep("click"); librarySet({ year:b.dataset.libYear, limit:LIBRARY_PAGE }); });
+  $$("[data-lib-franchise]").forEach(b=>b.onclick=()=>{ beep("click"); librarySet({ franchise:b.dataset.libFranchise, limit:LIBRARY_PAGE }); });
+  $$("[data-lib-sort]").forEach(b=>b.onclick=()=>{ beep("click"); librarySet({ sort:b.dataset.libSort, limit:LIBRARY_PAGE }); });
+  const reset=$("#libReset"); if(reset) reset.onclick=()=>{ beep("click"); libraryReset(); };
+  const more=$("#libMore"); if(more) more.onclick=()=>{ beep("click"); librarySet({ limit:st.limit+LIBRARY_PAGE }, true); };
+  const search=$("#libSearch");
+  if(search){
+    let timer=null;
+    search.oninput=()=>{
+      const st2=libraryState(); st2.q=search.value;
+      if(timer) clearTimeout(timer);
+      timer=setTimeout(()=>{ refreshLibraryRows(); }, 160);
+    };
+    search.onkeydown=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); if(timer) clearTimeout(timer); refreshLibraryRows(); } };
+  }
+  bindLibraryRowActions(document);
 }
 
 /* ═══════════ Cross-Media Timeline ── */
