@@ -8048,11 +8048,12 @@ function endgameBoard(){
   try{ goals=endgameGoals(); inf=endgameInfluence(); }catch(e){ return ""; }
   const done=goals.filter(g=>g.prog>=1).length;
   let h="<div class='empire-sub'>👑 Endgame — industry empire ("+done+"/6, optional)</div><div class='empire-block empire-endgame'>"+
-    "<div class='spread'><div><b>Industry influence</b><div class='tiny muted'>"+inf.share+"% market share · "+inf.talent+"★ talent network · "+fmtM(Math.round(inf.intl))+" intl WW</div></div>"+
+    "<div class='empire-row'><span><b>Industry influence</b> <span class='tiny muted'>"+inf.share+"% market share · "+inf.talent+"★ talent network · "+fmtM(Math.round(inf.intl))+" intl WW</span></span>"+
     "<b class='gold'>"+done+"/6</b></div>";
   goals.forEach(g=>{
-    h+="<div class='spread' style='margin-top:4px'><span class='small'>"+g.icon+" "+g.name+" <span class='tiny muted'>"+g.label+"</span></span>"+
-      "<b class='tiny "+(g.prog>=1?"pos":"")+"'>"+(g.prog>=1?"✓":Math.round(g.prog*100)+"%")+"</b></div>"+meter(g.prog,1);
+    h+="<div class='empire-progress'><div><span>"+g.icon+" <b>"+g.name+"</b> <span class='tiny muted'>"+g.label+"</span></span>"+
+      "<b class='tiny "+(g.prog>=1?"pos":"")+"'>"+(g.prog>=1?"✓":Math.round(g.prog*100)+"%")+"</b></div>"+
+      "<i><b style='width:"+clamp(g.prog*100,2,100)+"%'></b></i></div>";
   });
   if((G.endgame||{}).crowned) h+="<div class='tiny gold' style='margin-top:4px'>👑 CROWNED Entertainment Empire.</div>";
   return h+"</div>";

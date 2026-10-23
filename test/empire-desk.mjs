@@ -837,6 +837,9 @@ try{
   w.eval(`G.empire.subTab='endgame';G.empire.activeSub='endgame';render();`);
   const eg=w.eval('endgameGoals()'), egi=w.eval('endgameInfluence()');
   assert($('#view .empire-endgame'),'endgame tracker renders');
+  assert($('#view .empire-endgame .empire-row'),'influence summary renders as a desk empire-row');
+  assert.equal($$('#view .empire-endgame .empire-progress').length,6,'six goal meters render as desk empire-progress tracks');
+  assert.equal($$('#view .empire-endgame .bar, #view .empire-endgame .spread').length,0,'legacy .bar meters and .spread goal rows are gone from the tracker');
   for(const g of eg.slice(0,3)) assert(viewText().includes(g.name.replace(/<[^>]*>/g,''))||viewText().includes(g.label),'tracker lists real goals');
   assert(viewText().includes(egi.share+'% market share'),'tracker shows the real influence share');
   w.eval('G.endgame={crowned:true}; render();');
@@ -857,7 +860,7 @@ try{
   console.log('PASS C11: custom & purchased onboarding — badges, guidance and safe empty states');
 
   /* Zero legacy chrome across every desk panel (populated + empty) */
-  const LEGACY_CHROME='#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter, #view .divisions-grid, #view .div-card, #view .div-icon, #view .div-main, #view .div-sub, #view .div-side, #view .div-row';
+  const LEGACY_CHROME='#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter, #view .divisions-grid, #view .div-card, #view .div-icon, #view .div-main, #view .div-sub, #view .div-side, #view .div-row, #view .bar';
   for(const sub of allSubs){
     popDesk();
     w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
