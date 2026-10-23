@@ -2626,3 +2626,16 @@
 @media(max-width:900px){#app #view[data-screen="live"] .command-live .live-show-lab{grid-template-columns:1fr}}
 @media(max-width:640px){#app #view[data-screen="live"] .command-live .live-show-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){#app #view[data-screen="live"] .command-live .live-shows{grid-template-columns:1fr}#app #view[data-screen="live"] .command-live .live-show-form{grid-template-columns:1fr}}
+
+/* ── v35.0 EMPIRE DESK — shell chrome scoped to .command-empire + .produce-panel.
+   No global overflow masking, no broad .view rules, and no restyling of legacy
+   content classes — the desk vocabulary is its own (empire-panel-*). ── */
+#app #view[data-screen="empire"] .command-empire .command-edition{display:block;margin-bottom:8px;color:var(--cd-gold)}
+#app #view[data-screen="empire"] .command-empire .produce-panel:last-child{margin-bottom:0}
+#app #view[data-screen="empire"] .command-empire .empire-panel-aside{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+#app #view[data-screen="empire"] .command-empire .empire-panel-aside .btn{white-space:nowrap}
+#app #view[data-screen="empire"] .command-empire .empire-panel-body{padding:18px 22px;min-width:0}
+#app #view[data-screen="empire"] .command-empire .empire-panel-body>*:last-child{margin-bottom:0}
+@media(max-width:740px){#app #view[data-screen="empire"] .command-empire .empire-panel-head{padding:16px 14px 12px}#app #view[data-screen="empire"] .command-empire .empire-panel-body{padding:14px}#app #view[data-screen="empire"] .command-empire .empire-panel-aside{justify-content:flex-start}}
+/* mobile: keep the desk's last content clear of the fixed .bottomnav */
+@media(max-width:820px){#app #view[data-screen="empire"] .command-empire{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}}

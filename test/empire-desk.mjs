@@ -585,6 +585,136 @@ try{
   assert(customPrices.every(p=>p>=15&&p<=45),`custom IP listings price in the $15M–$45M band (never $0): got ${JSON.stringify(customPrices)}`);
   console.log('PASS A11: unified valuation, tickFatigue-derived rest, honest park data, +15% universe bonus, persisted UNIPICKS, spinFr tagging, $40M merch gate, licensing/fan-con/IP-market contract fixes');
 
+  /* ═══ PART B — EMPIRE DESK command shell ═══ */
+  const allSubs=['home','franchises','universes','divisions','endgame'];
+  for(const sub of allSubs){
+    fresh(sub);
+    assert($('#view .command-empire'),`${sub}: .command-empire shell missing`);
+    assert.equal($$('#view .command-empire > .produce-panel').length,1,`${sub}: exactly one active panel`);
+    assert(/EMPIRE DESK \/ YEAR \d+/.test(viewText()),`${sub}: EMPIRE DESK / YEAR n eyebrow`);
+    assert(viewText().includes('The empire command desk.'),`${sub}: command heading`);
+    const subLine=$('#view .command-heading p').textContent.toLowerCase();
+    for(const word of ['franchises','universes','divisions','endgame crown'])
+      assert(subLine.includes(word),`${sub}: subtitle names ${word}`);
+    assert.equal($$('#view .command-telemetry .command-metric').length,4,`${sub}: four telemetry metrics`);
+    const head=$('#view .command-heading'), nav=$('#view .command-empire-nav'),
+      tel=$('#view .command-telemetry'), panel=$('#view .command-empire > .produce-panel');
+    const after=(a,b)=>Boolean(a.compareDocumentPosition(b)&w.Node.DOCUMENT_POSITION_FOLLOWING);
+    assert(head&&nav&&tel&&panel,`${sub}: shell parts render`);
+    assert(after(head,nav)&&after(nav,tel)&&after(tel,panel),`${sub}: order is header → nav → telemetry → panel`);
+    for(const c of $$('#view .command-heading, #view .command-empire-nav, #view .command-telemetry, #view .produce-panel-head')){
+      assert(!c.matches('.card,.section-title,.cost-line,.stat-hero,.fr-meter'),`${sub}: chrome element carries no legacy class`);
+      assert(!c.querySelector('.card,.section-title,.cost-line,.stat-hero,.fr-meter'),`${sub}: chrome interior free of legacy classes`);
+    }
+  }
+  console.log('PASS B1: EMPIRE DESK shell — heading, subtitle, 5-chip nav, four telemetry metrics, header → nav → telemetry → panel');
+
+  /* Telemetry reads real state and never invents a second income formula */
+  fresh('franchises');
+  w.eval(`
+    G.studio.cash=600;
+    G.films=[{id:1201,title:'Shelf Titan',ww:220,budget:80,profit:60,criticAvg:80,quality:{critic:80,overall:78},releaseWeek:1}];
+    G.franchises=[
+      {id:1201,name:'Titan Verse',tier:3,entries:[{filmId:1201,title:'Shelf Titan',ww:220,week:1,opening:70,criticAvg:80,profit:60}],ww:220,merch:1,park:1,gameSold:0,decay:1,genre:'action',earned:12.5,built:1,fatigue:0.2},
+      {id:1202,name:'Titan Ally',tier:3,entries:[{filmId:1202,title:'Ally One',ww:180,week:2}],ww:180,merch:1,park:0,gameSold:0,decay:1,genre:'action',earned:4,built:2,fatigue:0}
+    ];
+    render();
+  `);
+  const metric=n=>$('#view .command-telemetry .command-metric:nth-child('+(n+1)+')');
+  assert.equal(metric(0).querySelector('strong').textContent,'2','telemetry counts owned franchises');
+  assert(metric(0).querySelector('small').textContent.includes('tier 2+'),'owned metric names the tier-2+ count');
+  const telIncome=metric(1).querySelector('strong').textContent;
+  assert.equal(telIncome,'+'+w.fmtM(w.eval('empireWeeklyBreakdown().total')),'telemetry income equals empireWeeklyBreakdown().total');
+  assert(metric(1).querySelector('small').textContent.includes('tickEmpire()'),'income metric states the weekly settlement source');
+  assert.equal(metric(2).querySelector('strong').textContent,w.fmtM(16.5),'franchise earnings metric is sum(fr.earned)');
+  assert(metric(2).querySelector('span').textContent.includes('FRANCHISE EARNINGS'),'earnings metric labelled franchise earnings');
+  assert(metric(2).querySelector('small').textContent.includes('Lifetime'),'earnings metric honestly labelled as lifetime');
+  assert(!/empire earnings/i.test(metric(2).textContent),'old dishonest Empire-earnings label is gone');
+  assert.equal(metric(3).querySelector('strong').textContent,w.fmtG(400),'WW metric is the real franchise WW sum');
+  const cashPre=w.eval('G.studio.cash');
+  w.eval('G.weekTx={}; tickEmpire();');
+  assert.equal(Math.round((w.eval('G.studio.cash')-cashPre)*10)/10, w.eval('empireWeeklyBreakdown()').total,
+    'displayed empire income/wk equals the actual tickEmpire() credit');
+  console.log('PASS B2: telemetry metrics read live state — owned + tier-2 count, tickEmpire income, lifetime franchise earnings, WW gross');
+
+  /* Panel heads carry the modal openers; chrome wiring survives */
+  for(const [sub,sel] of [['home','#btnOpenFanClub'],['universes','#btnOpenUniverses'],['divisions','#btnOpenMerch']]){
+    fresh(sub);
+    const btn=$('#view .produce-panel-head '+sel);
+    assert(btn,`${sub}: ${sel} lives in the panel head`);
+    assert.equal(typeof btn.onclick,'function',`${sub}: ${sel} is wired`);
+  }
+  fresh('franchises');
+  assert($('#view .produce-panel-head #btnOpenFanClub'),'franchises head carries Fan Conventions opener');
+  console.log('PASS B3: #btnOpenUniverses / #btnOpenMerch / #btnOpenFanClub sit in panel heads and stay wired');
+
+  /* Kairo banner stays off the Empire desk */
+  w.eval(`
+    window.__kairoCalls=0;
+    window.__kairoOrig=KairoTheme.renderBanner;
+    KairoTheme.renderBanner=function(){ window.__kairoCalls++; return window.__kairoOrig.apply(this,arguments); };
+  `);
+  for(const sub of allSubs) w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
+  assert.equal(w.eval('window.__kairoCalls'),0,'empire renders no Kairo banner on any sub-tab');
+  w.eval(`TAB='games'; render();`);
+  assert(w.eval('window.__kairoCalls')>0,'Kairo banner still renders on non-excluded tabs');
+  w.eval(`KairoTheme.renderBanner=window.__kairoOrig; TAB='empire'; G.empire.subTab='franchises'; G.empire.activeSub='franchises'; render();`);
+  console.log('PASS B4: empire excluded from the Kairo banner everywhere, other tabs unaffected');
+
+  /* Every preserved selector survives the shell rebuild */
+  fresh('franchises');
+  w.eval(`
+    G.studio.cash=600;
+    G.films=[{id:1201,title:'Shelf Titan',ww:220,budget:80,profit:60,criticAvg:80,quality:{critic:80,overall:78},releaseWeek:1}];
+    G.franchises=[
+      {id:1201,name:'Titan Verse',tier:3,entries:[{filmId:1201,title:'Shelf Titan',ww:220,week:1,opening:70,criticAvg:80,profit:60}],ww:220,merch:1,park:1,gameSold:0,decay:1,genre:'action',earned:12.5,built:1,fatigue:0.2},
+      {id:1202,name:'Titan Ally',tier:3,entries:[{filmId:1202,title:'Ally One',ww:180,week:2}],ww:180,merch:1,park:0,gameSold:0,decay:1,genre:'action',earned:4,built:2,fatigue:0}
+    ];
+    render();
+  `);
+  const need=['[data-fr-seq]','[data-fr-spin]','[data-fr-tv]','[data-fr-merch]','[data-fr-park]','[data-fr-game]','[data-fr-toys]','[data-fr-reboot]','[data-fr-podcast]','[data-fr-sell]','[data-fr-more]'];
+  for(const sel of need) assert($('#view '+sel),`preserved selector missing on franchise cards: ${sel}`);
+  w.eval(`G.empire.subTab='divisions';G.empire.activeSub='divisions';render();`);
+  assert($('#view [data-merchline]'),'preserved selector missing: [data-merchline]');
+  assert($('#view [data-label]'),'preserved selector missing: [data-label] (launch label)');
+  w.eval('unlockLabel(); signArtist("nova"); render();');
+  for(const sel of ['[data-sign]','[data-tour]','[data-dropartist]']) assert($('#view '+sel),`preserved selector missing: ${sel}`);
+  w.eval(`G.empire.subTab='universes';G.empire.activeSub='universes';render();`);
+  assert($('#view [data-unipick]'),'preserved selector missing: [data-unipick]');
+  assert($('#view #uniGo'),'preserved selector missing: #uniGo');
+  for(const [sub,sel] of [['home','#btnOpenFanClub'],['universes','#btnOpenUniverses'],['divisions','#btnOpenMerch'],['franchises','#btnOpenFanClub']]){
+    w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
+    assert(typeof $(sel).onclick==='function',`preserved id stays wired: ${sel} on ${sub}`);
+  }
+  w.eval('empireModal(1201);');
+  for(const id of ['#emCollab','#emDtv','#emPub','#emResort','#emLicFilm','#emLicGoods'])
+    assert($('.modal-veil '+id),`preserved selector missing in empireModal(): ${id}`);
+  assert($('.modal-veil [data-em-cross]'),'preserved selector missing in empireModal(): [data-em-cross]');
+  assert($('.modal-veil [data-em-merge]'),'preserved selector missing in empireModal(): [data-em-merge]');
+  w.eval('closeModal(); G.empire.subTab="franchises"; G.empire.activeSub="franchises"; render();');
+  $('[data-fr-sell]').click();
+  assert($('.modal-veil [data-froff]'),'preserved selector missing in franchiseSaleModal(): [data-froff]');
+  w.eval('closeModal();');
+  console.log('PASS B5: every preserved selector survives the command-desk shell');
+
+  /* Scoped CSS discipline */
+  const css=fs.readFileSync('command-deck.css','utf8');
+  const block=(css.split('EMPIRE DESK — shell chrome')[1]||'').replace(/^[^]*?\*\//,'').replace(/\/\*[^]*?\*\//g,'');
+  assert(block.length>200,'empire shell CSS block exists');
+  assert(!/\.(card|section-title|cost-line|stat-hero|fr-meter)\b/.test(block),'empire CSS never restyles legacy content classes');
+  assert(!/overflow\s*:/.test(block),'empire CSS adds no overflow masking');
+  assert(!/(^|[}\s])\.view[\s,{]/.test(block)&&!/(^|[}\s])#view[\s,{]/.test(block),'empire CSS adds no broad .view rules');
+  for(const rule of block.split('}')){
+    const brace=rule.indexOf('{');
+    if(brace<0) continue;
+    const sel=rule.slice(rule.lastIndexOf('}',brace)+1,brace).trim();
+    if(!sel||sel.startsWith('@')||sel.includes('@media')) continue;
+    assert(sel.includes('.command-empire')||sel.includes('command-empire'),`empire CSS rule not scoped to .command-empire: ${sel}`);
+  }
+  assert(/@media\(max-width:820px\)/.test(block)&&/padding-bottom:calc\(\d+px \+ env\(safe-area-inset-bottom/.test(block),
+    'empire CSS reserves .bottomnav clearance on mobile widths (incl. 390px)');
+  console.log('PASS B6: command-deck.css scoped to .command-empire + .produce-panel — no overflow masking, no broad .view rules, no legacy restyling, mobile .bottomnav clearance');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

@@ -1229,7 +1229,7 @@ function _renderImpl(){
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -7682,52 +7682,60 @@ function empireNav(){
     return `<button data-empiresub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
   }).join("")}</div></nav>`;
 }
+/* ── v35.0 EMPIRE DESK shell — head, telemetry and produce-panel surfaces ── */
+function empireHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return `<header class="command-heading"><div><span class="command-edition">EMPIRE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">FRANCHISES / UNIVERSES / DIVISIONS / ENDGAME CROWN</span><h1>The empire command desk.</h1><p>Franchises, shared universes, divisions and the endgame crown — the global entertainment conglomerate, every empire decision in one place.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function empireTelemetry(){
+  const ewb=(typeof empireWeeklyBreakdown==="function")?empireWeeklyBreakdown():{total:G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0)};
+  const owned=(G.franchises||[]).length;
+  const tier2=(G.franchises||[]).filter(f=>(f.tier||0)>=2).length;
+  const earned=(G.franchises||[]).reduce((a,f)=>a+(f.earned||0),0);
+  const ww=(G.franchises||[]).reduce((a,f)=>a+(f.ww||0),0);
+  return `<div class="command-telemetry">${commandMetric("FRANCHISES OWNED",String(owned),tier2+" at tier 2+")}${commandMetric("EMPIRE INCOME / WEEK","+"+fmtM(ewb.total),"Settles weekly in tickEmpire()")}${commandMetric("FRANCHISE EARNINGS",fmtM(earned),"Lifetime, credited per brand")}${commandMetric("FRANCHISE WW GROSS",fmtG(ww),"Cumulative worldwide gross")}</div>`;
+}
+function empirePanel(eyebrow,title,description,content,aside,cls){
+  return `<section class="produce-panel ${cls||""}"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${aside?`<div class="empire-panel-aside">${aside}</div>`:""}</div><div class="empire-panel-body">${content}</div></section>`;
+}
+function empireShell(panelHtml){
+  return `<section class="command-deck command-produce command-empire">${empireHead()}${empireNav()}${empireTelemetry()}${panelHtml}</section>`;
+}
+function empireAsideFan(){ return `<button class="btn btn-sm btn-alt" id="btnOpenFanClub">Fan Conventions ↗</button>`; }
+function empireAsideUni(){ return `<button class="btn btn-sm btn-alt" id="btnOpenUniverses">Cinematic Universes Charter ↗</button>`; }
+function empireAsideMerch(){ return `<button class="btn btn-sm btn-alt" id="btnOpenMerch">Merch &amp; Licensing Deals ↗</button>`; }
 function viewEmpire(){
   if(typeof ensureEmpireState==="function") ensureEmpireState(G);
   const active=empireSub();
-  let h=empireNav();
-  const ewb=(typeof empireWeeklyBreakdown==="function")?empireWeeklyBreakdown():{total:G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0)};
-  const weekly=ewb.total;
-  const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
-  const ww=G.franchises.reduce((a,f)=>a+(f.ww||0),0);
-  h+="<div class='stat-hero'>"+
-    statCard(G.franchises.length,"Franchises")+
-    statCard("+"+fmtM(weekly)+"/wk","Empire income","var(--green)")+
-    statCard(fmtM(earned),"Empire earnings")+
-    statCard(fmtG(ww),"Franchise WW gross")+
-  "</div>";
+  let h="";
 
   if(active==="home"){
     let goalsDone=0;
     try{ goalsDone=(endgameGoals()||[]).filter(g=>g.prog>=1).length; }catch(e){}
     const L=G.label||{unlocked:false, artists:[]};
-    h+="<div class='section-title'>🏰 Empire home</div>"+
-      "<div class='card'><div class='spread'><b>Empire overview</b><span class='tag gold'>"+goalsDone+"/6 endgame</span></div>"+
+    h+="<div class='card'><div class='spread'><b>Empire overview</b><span class='tag gold'>"+goalsDone+"/6 endgame</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>"+G.franchises.length+" franchise(s) · "+(G.universes||[]).length+" shared universe(s) · Music label "+(L.unlocked?"live ("+(L.artists||[]).length+"/3 acts)":"locked")+"</div>"+
       "<div class='row' style='margin-top:8px;gap:6px;flex-wrap:wrap'>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='franchises'>Franchises</button>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='universes'>Universes</button>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='divisions'>Divisions</button>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='endgame'>Endgame</button>"+
-        "<button class='btn btn-sm btn-alt' id='btnOpenFanClub'>Fan Conventions ↗</button>"+
         "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
       "</div></div>";
     if(!G.franchises.length){
       h+="<div class='card muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
     }
     try{ h+=crossMediaTimeline(); }catch(e){}
-    return h;
+    return empireShell(empirePanel("EMPIRE / HOME","Empire home","Where the conglomerate stands today — holdings, the cross-media timeline and what needs you.",h,empireAsideFan()));
   }
 
   if(active==="universes"){
-    h+="<div class='row' style='margin-bottom:8px;gap:6px'><button class='btn btn-sm btn-alt' id='btnOpenUniverses'>Cinematic Universes Charter ↗</button></div>";
     try{ if(typeof uniBoard==="function") h+=uniBoard(); }catch(e){}
-    return h;
+    return empireShell(empirePanel("EMPIRE / UNIVERSES","Universes","Shared-universe overlays — continuity rewards rested, coherent brands (±5% openings).",h,empireAsideUni()));
   }
 
   if(active==="divisions"){
     h+="<div class='row' style='margin-bottom:8px;gap:6px;flex-wrap:wrap'>"+
-      "<button class='btn btn-sm btn-alt' id='btnOpenMerch'>Merch &amp; Licensing Deals ↗</button>"+
       "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
     "</div>";
     /* v14: music label division (§32) */
@@ -7773,16 +7781,14 @@ function viewEmpire(){
     }catch(e){}
     try{ h+=merchBoard(); }catch(e){}
     try{ h+=divisionsPanel(); }catch(e){}
-    return h;
+    return empireShell(empirePanel("EMPIRE / DIVISIONS","Divisions","Music label, film merchandising, publishing, comics and direct retail.",h,empireAsideMerch()));
   }
 
   if(active==="endgame"){
     try{ if(typeof endgameBoard==="function") h+=endgameBoard(); }catch(e){}
-    return h;
+    return empireShell(empirePanel("EMPIRE / ENDGAME","Endgame","Six optional milestones toward the industry crown — the sandbox stays untouched.",h,""));
   }
 
-  h+="<div class='spread' style='margin-bottom:8px'><div class='section-title' style='margin:0'>🏰 Franchises</div>"+
-    "<button class='btn btn-sm btn-alt' id='btnOpenFanClub'>Fan Conventions ↗</button></div>";
   if(!G.franchises.length){
     h+="<div class='card muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
   }
@@ -7859,7 +7865,7 @@ function viewEmpire(){
     });
     h+="</div>";
   }
-  return h;
+  return empireShell(empirePanel("EMPIRE / FRANCHISES","Franchises","Every brand in the stable — sequels, merch, parks, game rights and top sale bids.",h,empireAsideFan()));
 }
 /* Per-film merchandising dashboard: demand/cost/revenue/profit/brand per line.
    Weak films lose money on the shelf — check demand before manufacturing. */
