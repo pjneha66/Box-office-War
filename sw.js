@@ -2,7 +2,7 @@
    network-first so a fresh deploy is picked up on the next visit instead of
    serving a stale page from cache; everything else stays cache-first. */
 "use strict";
-const CACHE = "bow-v96-cache";
+const CACHE = "bow-v97-cache";
 const ASSETS = [
   "welcome.css",
   "command-deck.css",
@@ -107,6 +107,7 @@ const ASSETS = [
   "bow-restyle.css",
   "box-office-sim-2-cast.js",
   "gamestudio-gdd-engine.js",
+  "gamestudio-desk.js",
   "social-viral-network.js",
   "sports-stadium-deals.js",
   "kairo-theme-suite.js",

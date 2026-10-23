@@ -350,7 +350,7 @@ const TAB_META = {
   live:        [["linear","Linear Channels"],["stream","Live Stream Hub"],["events","Live Events"],["studio","Host Studio"]],
   library:     [["overview","Overview"],["films","Films"],["series","Series"],["rights","Rights & windows"],["catalogue","Catalogue & licensing"],["physical","Physical 4K"],["restoration","Restoration vault"]],
   empire:      [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]],
-  games:       [["dev","In Dev"],["released","Released"],["hardware","Hardware Platforms"],["greenlight","Greenlight"]],
+  games:       [["overview","Overview"],["develop","Development"],["catalog","Catalog"],["studio","Studio & Staff"],["contracts","Contracts"],["awards","Awards"],["hardware","Hardware"]],
 };
 /* which live filter var holds the active sub-tab per section — read as
    functions so the strip always highlights what the view is showing */
@@ -379,7 +379,7 @@ const TAB_SUB_ATTR = {
   live:        "data-livesub",
   library:     "data-libsub",
   empire:      "data-empiresub",
-  games:       "data-gamestab",
+  games:       "data-gamessub",
 };
 const TAB_SUB_DEFAULT = {
   dashboard:   "overview",
@@ -392,7 +392,7 @@ const TAB_SUB_DEFAULT = {
   live:        "linear",
   library:     "overview",
   empire:      "franchises",
-  games:       "dev",
+  games:       "overview",
 };
 const TAB_SUB_GHOST = { productions:1, fans:1 }; /* inactive chips used btn-ghost here */
 

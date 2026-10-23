@@ -1983,7 +1983,7 @@ function gameSources(){
   });
   return out.filter(s=>!inDev.includes(s.key));
 }
-function startGameDev(srcKey, devId){
+function startGameDev(srcKey, devId, platformId){
   if(!G.gamesDiv || !G.gamesDiv.unlocked) return false;
   if((G.gamesDiv.projects||[]).length>=3){ log("🕹 The dev floor is full (3 projects) — ship one first.","bad"); return false; }
   const dev=(DATA.GAME_DEVS||[]).find(d=>d.id===devId); if(!dev) return false;
@@ -1993,8 +1993,12 @@ function startGameDev(srcKey, devId){
   spend("games", dev.cost);
   const weeks=rint(dev.weeks[0], dev.weeks[1]);
   const title=src.kind==="franchise"? src.name+": "+pick(["The Game","Next Level","Legacy Mode","Open World","Rivals"]) : src.name+" — The Game";
+  /* v37 fix: persist the chosen target platform (data-gplat) onto the project
+     so it survives to release and the platform tag is truthful. Balance is left
+     unchanged — the platform is cosmetic for the legacy adaptation pipeline. */
+  const platId = ((DATA.GAME_PLATFORMS||[]).find(p=>p.id===platformId) || {}).id || "console";
   G.gamesDiv.projects.push({id:nid(), title, srcKey, srcKind:src.kind, srcId:src.id, srcName:src.name,
-    dev:dev.id, devName:dev.name, weeksLeft:weeks, weeks0:weeks, weekly:dev.weekly, base:dev.quality, power:src.power, spent:dev.cost});
+    platform:platId, dev:dev.id, devName:dev.name, weeksLeft:weeks, weeks0:weeks, weekly:dev.weekly, base:dev.quality, power:src.power, spent:dev.cost});
   log("🕹 Greenlit: \""+title+"\" — "+dev.name+", ~"+weeks+" wks at "+fmtM(dev.weekly)+"/wk.","gold");
   saveGame(); return true;
 }
@@ -2019,7 +2023,9 @@ function releaseGame(pr){
   const launch=Math.round(total*0.35*10)/10;
   const weekly=Math.round((total-launch)/12*10)/10;
   earn("games", launch);
-  D.released.unshift({id:pr.id, title:pr.title, score, total, earned:launch, weekly, weeksLeft:12, when:G.week});
+  /* v37 fix: carry the project's chosen platform through to release so the tag
+     is truthful; seed sequel/port flags used by the desk buttons. */
+  D.released.unshift({id:pr.id, title:pr.title, platform:pr.platform||"console", score, total, earned:launch, weekly, weeksLeft:12, when:G.week, isSequel: typeof pr.srcKey==="string" && pr.srcKey.indexOf("sequel:")===0, ported:false});
   if(D.released.length>12) D.released.length=12;
   if(fr && score>=70){
     fr.decay=clamp((fr.decay||0)+0.1,0,1);
@@ -5801,6 +5807,7 @@ function advanceWeek(){
   if(typeof tickGameStudio==="function") tickGameStudio();   // v16: game dev burns weekly, ships at gold master
   if(typeof tickGameSales==="function") tickGameSales();     // v16: released games' sales tail
   if(typeof GameStudioGdd !== "undefined" && typeof GameStudioGdd.tickGddEngine === "function") GameStudioGdd.tickGddEngine();
+  if(typeof GameStudioDesk !== "undefined" && typeof GameStudioDesk.tick === "function") GameStudioDesk.tick(G);  // v37: Kairo-style Game Studio loop
   if(typeof SportsStadiumDeals !== "undefined" && typeof SportsStadiumDeals.tickStadiumEngine === "function") SportsStadiumDeals.tickStadiumEngine();
   if(typeof tickFanMail==="function") tickFanMail();         // v15: the audience writes back
   if(typeof HollywoodCrises !== "undefined" && typeof HollywoodCrises.processWeeklyCrises === "function") HollywoodCrises.processWeeklyCrises();
