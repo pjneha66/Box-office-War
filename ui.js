@@ -10066,11 +10066,12 @@ function viewLiveEvents(){
     { id: "awards", title: "Academy & Guild Awards", icon: "Awards" },
     { id: "festival", title: "A-List International Film Festivals", icon: "Festivals" },
     { id: "sports", title: "Major Live Sports Finals", icon: "Sports" },
-    { id: "culture", title: "Cultural & Comic Galas", icon: "Culture" }
+    { id: "cultural", title: "Cultural & Comic Galas", icon: "Culture" },
+    { id: "premiere", title: "Red Carpet Premiere Cities", icon: "Premieres" }
   ];
 
   for(const cat of cats){
-    const list = events.filter(e => e.category === cat.id);
+    const list = events.filter(e => e.type === cat.id);
     if(!list.length) continue;
 
     h += "<div class='card' style='margin-bottom:14px'>";
@@ -10084,13 +10085,13 @@ function viewLiveEvents(){
 
       h += "<div class='card' style='padding:10px 12px;background:var(--bg2);border:1px solid " + (isNow ? "var(--gold)" : "var(--line)") + "'>"+
         "<div class='spread'><b>" + esc(ev.name) + "</b>" + statusTag + "</div>"+
-        "<div class='tiny muted' style='margin:4px 0'>" + esc(ev.description || "") + "</div>"+
+        "<div class='tiny muted' style='margin:4px 0'>" + esc(ev.desc || "") + "</div>"+
         "<div class='row' style='margin-top:8px;justify-content:space-between;align-items:center;font-size:11px'>"+
-        "<span class='muted'>Prestige: <b>" + (ev.prestigeMultiplier || 1.0) + "x</b></span>";
+        "<span class='muted'>Prestige: <b>" + (ev.prestige || 0) + "</b> · " + (ev.viewers || 0) + "M viewers · " + (ev.dur || 1) + "d</span>";
 
-      if(ev.category === "festival"){
+      if(ev.type === "festival"){
         h += "<button class='btn btn-xs btn-alt' data-live-fest-submit='" + ev.id + "'>Submit Film ($" + (ev.entryFee || 0.5) + "M)</button>";
-      } else if(ev.category === "awards"){
+      } else if(ev.type === "awards"){
         h += "<span class='tag' style='font-size:9px'>FYC Campaign Ready</span>";
       } else {
         h += "<span class='tag' style='font-size:9px'>Ad Surge Window</span>";
