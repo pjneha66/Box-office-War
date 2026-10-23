@@ -1220,8 +1220,8 @@ function _renderImpl(){
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "notifications"].includes(TAB))
-      ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : (TAB === "productions" ? (typeof PROD_FILTER !== "undefined" ? PROD_FILTER : null) : null)))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "notifications"].includes(TAB))
+      ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
     const commandNav = ["dashboard", "studio"].includes(TAB) ? commandSectionNav(TAB) : (TAB === "develop" ? commandDevelopNav() : "");
@@ -2888,8 +2888,9 @@ function greenlightRead(){
     packFee=packagingCost(leads,budget)||0;
     if(packFee>0 && typeof packagingFeeOf==="function"){ const pa=packagingFeeOf(leads); packName=pa?pa.name:""; }
   }
+  const allIn=dev+fees+cameoFee+packFee+budget;
   return {S,base,script,dirSkill,castAvg,prodSkill,budget,mkt,quality,dev,fees,cameoFee,packFee,packName,
-    allIn:dev+fees+cameoFee+packFee+budget};
+    allIn, allInWithMkt:allIn+mkt, fullBreakeven:(allIn+mkt)/0.48, theatricalBreakeven:breakevenWW({budget,marketing:mkt})};
 }
 function greenlightAside(r){
   const name=t=>t?esc(t.name):"—";
@@ -3066,7 +3067,7 @@ function wizardModal(){
             `<div class="pitch-toggles"><button class="pitch-toggle${!WZ.coProd||WZ.coProd==="none"?" on":""}" data-coprod="none" aria-pressed="${!WZ.coProd||WZ.coProd==="none"}"><span>No partner</span><small>you keep 100% of net</small></button>${DATA.COPROD_PARTNERS.map(cp=>
               `<button class="pitch-toggle${WZ.coProd===cp.id?" on":""}" data-coprod="${cp.id}" aria-pressed="${WZ.coProd===cp.id}"><span>${esc(cp.name)}</span><small>${cp.pct?"covers "+Math.round(cp.pct*100)+"% · keeps "+Math.round(cp.share*100)+"% of net":esc(cp.blurb||"partner")}</small></button>`).join("")}</div>`)
         : "")
-      +pitchGroup("THE COST SHEET",`Every line is live: change the budget or the team and it re-adds.`,
+      +pitchGroup("THE COST SHEET",`Every line is live: change the budget or the team and it re-adds — totals and breakeven update as you slide.`,
         `${pitchMoneyRow("Rights + development"+(WZ.scriptPolish?" (incl. polish)":""),fmtM(r.dev))}
          ${pitchMoneyRow("Crew & cast fees (upfront)",fmtM(r.fees))}
          ${WZ.cameo?pitchMoneyRow("🌟 Cameo — "+esc(WZ.cameo.name)+" (30% fee, +6% buzz)",fmtM(r.cameoFee)):""}
@@ -3074,8 +3075,9 @@ function wizardModal(){
          ${pitchMoneyRow("Production (paid weekly over ~"+weeks+" wks)",fmtM(r.budget))}
          ${(WZ.presales&&planned!=="streaming"&&planned!=="own")?pitchMoneyRow("Intl pre-sales (cash now)","+"+fmtM(Math.round(r.budget*0.22)),"pos"):""}
          ${pitchMoneyRow("Suggested marketing (at release)",`<span id="wzMkt">${fmtM(r.mkt)}</span>`)}
-         <div class="pitch-line pitch-line-total"><span>Total commitment</span><b id="wzTot">${fmtM(r.allIn)}</b></div>
-         <div class="pitch-note">A picture needs ≈ <b id="wzBe">${fmtM(breakevenWW({budget:r.budget,marketing:r.mkt}))}</b> worldwide gross to break even (theatres keep about half).</div>`)
+         <div class="pitch-line pitch-line-total"><span>Upfront commitment (ex-P&A)</span><b id="wzTot">${fmtM(r.allIn)}</b></div>
+         <div class="pitch-line"><span>All-in with P&A</span><b id="wzTotMkt">${fmtM(r.allInWithMkt)}</b></div>
+         <div class="pitch-note">Theatrical breakeven (budget+P&A only) ≈ <b>${fmtM(r.theatricalBreakeven)}</b> WW. To recoup the <em>full</em> investment — development, fees, production and P&A — the film needs ≈ <b id="wzBe">${fmtM(r.fullBreakeven)}</b> worldwide gross (exhibitors keep ~52%, studio sees ~48%).</div>`)
       +(warnings.length?`<div class="pitch-warnings">${warnings.map(w=>`<div>⚠ ${esc(w)}</div>`).join("")}</div>`:"");
     actions=`<button class="develop-ghost" id="wzBack">← Producer</button><button class="develop-action" id="wzGo">Greenlight the picture</button>`;
   }
@@ -3187,12 +3189,16 @@ function wizardModal(){
   if(rg){ rg.oninput=()=>{
     WZ.budget=+rg.value; $("#wzBudgetV").textContent=fmtM(WZ.budget);
     const mkt=recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre});
-    const mEl=$("#wzMkt"), tEl=$("#wzTot"), bEl=$("#wzBe");
+    const mEl=$("#wzMkt"), tEl=$("#wzTot"), tMktEl=$("#wzTotMkt"), bEl=$("#wzBe");
     let pf=0; if(typeof packagingCost==="function") pf=packagingCost(WZ.cast, WZ.budget);
-    const feeSum=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+pf;
+    const cameoFee=WZ.cameo?Math.round(actorFee(WZ.cameo)*0.3*10)/10:0;
+    const feeSum=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+pf+cameoFee;
+    const dev=devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0);
+    const allIn=dev+feeSum+WZ.budget;
     if(mEl) mEl.textContent=fmtM(mkt);
-    if(tEl) tEl.textContent=fmtM(devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0)+feeSum+WZ.budget);
-    if(bEl) bEl.textContent=fmtM(breakevenWW({budget:WZ.budget, marketing:mkt}));
+    if(tEl) tEl.textContent=fmtM(allIn);
+    if(tMktEl) tMktEl.textContent=fmtM(allIn+mkt);
+    if(bEl) bEl.textContent=fmtM((allIn+mkt)/0.48);
   }; }
   const go=v.querySelector("#wzGo");
   if(go) go.onclick=()=>{
@@ -4258,6 +4264,7 @@ let PROD_FILTER = "all";
 
 function pipelineGantt(projs){
   if(!projs || !projs.length) return "";
+  // Legacy Gantt kept for calendar compatibility; the Production Office renders its own produce-gantt.
   return "<div class='card gantt-chart' style='margin-bottom:12px'><div class='spread'><b class='small'>📊 Production Pipeline Gantt</b><span class='tiny muted'>"+projs.length+" active project(s)</span></div>"+
     "<div class='tiny muted' style='margin-bottom:8px'>Side-by-side timeline of projects moving through Pre, Shoot, and Post.</div>" +
     projs.map(p => {
@@ -4276,6 +4283,47 @@ function pipelineGantt(projs){
           "<div style='width:" + postW + "%;background:" + (curIdx===2?"var(--gold)":"#8b5cf6") + ";opacity:" + (curIdx<2?"0.2":"1") + "' title='Post'></div>" +
         "</div></div>";
     }).join("") + "</div>";
+}
+function produceGantt(projs){
+  if(!projs || !projs.length) return "<div class='produce-gantt'><div class='produce-gantt-head'><b>Pipeline</b><small>No active shoots</small></div><div class='produce-empty'><b>The lot is quiet.</b><p>Greenlight a film in Develop and it appears here as a living timeline.</p></div></div>";
+  return "<div class='produce-gantt'><div class='produce-gantt-head'><b>Pipeline — "+projs.length+" active</b><small>Pre · Shoot · Post</small></div>"+
+    projs.map(p=>{
+      const L=p.phaseLen||{pre:2,shoot:4,post:3};
+      const totalW=Math.max(1,L.pre+L.shoot+L.post);
+      const preW=Math.round(L.pre/totalW*100), shootW=Math.round(L.shoot/totalW*100), postW=100-preW-shootW;
+      const curIdx={pre:0,shoot:1,post:2,reshoot:1}[p.phase]||0;
+      const doneWk=(curIdx>0?L.pre:0)+(curIdx>1?L.shoot:0)+(p.phaseWeek||0);
+      const wksLeft=Math.max(1,totalW-doneWk);
+      const curCls=["pre","shoot","post"][curIdx]||"pre";
+      return "<div class='produce-gantt-row'><div class='produce-gantt-label'><b>"+(DATA.GENRES[p.genre]?DATA.GENRES[p.genre].emoji:"🎬")+" "+esc(p.title)+"</b><span>~"+wksLeft+" wks to ready</span></div><div class='produce-gantt-bar'>"+
+        "<i class='"+(curIdx>0?"done-pre":curIdx===0?"cur-pre":"pre")+"' style='width:"+preW+"%'></i>"+
+        "<i class='"+(curIdx>1?"done-shoot":curIdx===1?"cur-shoot":"shoot")+"' style='width:"+shootW+"%'></i>"+
+        "<i class='"+(curIdx===2?"cur-post":curIdx>2?"done-post":"post")+"' style='width:"+postW+"%'></i>"+
+      "</div></div>";
+    }).join("")+"</div>";
+}
+function produceBacklot(projs){
+  const rolling=(projs||[]).filter(p=>p.phase==="shoot"||p.phase==="reshoot");
+  const caption=rolling.length?"🎥 Rolling — "+rolling.map(p=>esc(p.title)).join(" · "):"🎬 Backlot on standby — greenlight a film to roll cameras";
+  // Use animated pixel sprites if available, else fallback emoji crew
+  let crewHtml="";
+  try{
+    if(typeof BK_ROWS!=="undefined" && typeof BK_PALS!=="undefined" && typeof bkSprite==="function"){
+      const labels=["DIRECTOR","CAMERA","LEAD","CLAPPER"];
+      const acts=["Blocking","Rolling","On set","Take 1"];
+      crewHtml=labels.map((label,i)=>`<div class="produce-crew"><span class="produce-sprite">${bkSprite(BK_ROWS[i]||BK_ROWS[0], BK_PALS[i% BK_PALS.length])}</span><small>${label}</small><b>${acts[i]}</b></div>`).join("");
+    } else throw new Error("no sprites");
+  }catch(e){
+    crewHtml="<div class='produce-crew'><i>🎬</i><small>DIRECTOR</small><b>Blocking</b></div>"+
+    "<div class='produce-crew'><i>📷</i><small>CAMERA</small><b>Rolling</b></div>"+
+    "<div class='produce-crew'><i>🎭</i><small>LEAD</small><b>On set</b></div>"+
+    "<div class='produce-crew'><i>🎬</i><small>CLAPPER</small><b>Take 1</b></div>";
+  }
+  const isRolling = rolling.length>0;
+  return "<div class='produce-backlot"+(isRolling?" rolling":" idle")+"' role='img' aria-label='Studio backlot with four departments at work'><div class='produce-backlot-hero'>"+
+    crewHtml+
+    "<div class='produce-backlot-rec"+(isRolling?"":" idle")+"'>"+(isRolling?"REC":"STANDBY")+"</div><div class='produce-track'><span></span><span></span><span></span></div></div>"+
+    "<div class='produce-backlot-foot'><b>"+caption+"</b><span>"+(isRolling?rolling.length+" shooting":"lot dark")+"</span></div></div>";
 }
 
 /* ── v28.17: animated backlot set — four crew characters (director, camera
@@ -4325,121 +4373,149 @@ function backlotScene(){
   return h;
 }
 
+function produceHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  const dateBadge=`<div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div>`;
+  return `<header class="command-heading"><div><span class="command-edition">PRODUCTION OFFICE / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">02 / THE LOT</span><h1>From set to screen</h1><p>Physical production, post, and the handoff to distribution. Every dollar burns weekly; every week moves a film closer to the marquee.</p></div>${dateBadge}</header>`;
+}
+function produceTelemetry(){
+  const inProd=inProdProjects(), ready=readyProjects();
+  const datedReady=ready.filter(p=>!!p.releaseWeek).length;
+  const fr=(G.films||[]).filter(f=>f.franchiseable).length;
+  return `<div class="command-telemetry">${commandMetric("IN PRODUCTION",String(inProd.length),"On the floor")}${commandMetric("READY",String(ready.length),"In the can")}${commandMetric("DATED",String(datedReady),"With a date")}${commandMetric("FRANCHISES",String(fr),"Sequel-ready")}</div>`;
+}
+function produceBrief(){
+  const inProd=inProdProjects(), ready=readyProjects();
+  const total=inProd.length+ready.length;
+  const headline=total===0?"Your lot is quiet.":total===1?`One picture is in motion — “${esc((inProd[0]||ready[0]).title)}” is moving.`:`${total} pictures are in motion.`;
+  const cashNote=G.studio.cash<15?"Cash is tight — burns are real.":G.studio.cash<40?"Capital is workable. Watch the weekly burn.":"Capital is healthy for the slate.";
+  return `<div class="produce-lead"><section class="produce-brief"><span class="command-eyebrow">THE LOT TODAY</span><h2>${headline}</h2><p>Shooting burns 70% of the negative cost, post finishes it, and pre-production buys you a clean script. Producer cover, location rebates, and insurance decide how painful the overruns are.</p><div class="produce-brief-actions"><button class="produce-ghost" onclick="if(typeof openLocationDesk==='function')openLocationDesk()">Location desk</button><button class="produce-action" onclick="calendarModal()">Release calendar</button></div><footer><span>STUDIO CASH</span><b>${fmtM(G.studio.cash)}</b><small>${cashNote} Overruns, rewrites and BTL lifts are paid from this balance.</small></footer></section><section class="produce-snapshot"><header><span class="command-eyebrow">HEALTH CHECK</span><h2>Where the slate stands</h2><p>Weekly spend, pipeline, and what needs your eyes before next Monday.</p></header>${produceSnapshotRows()}<footer><small>${inProd.length?inProd.length+" shooting or finishing · "+ready.length+" awaiting a date":"No active productions — develop a film first."}</small><button class="produce-link" onclick="switchTab('develop')">Develop a film →</button></footer></section></div>`;
+}
+function produceSnapshotRows(){
+  const inProd=inProdProjects();
+  const pre=inProd.filter(p=>p.phase==="pre").length, shoot=inProd.filter(p=>p.phase==="shoot").length, post=inProd.filter(p=>p.phase==="post").length, reshoot=inProd.filter(p=>p.phase==="reshoot").length;
+  const total=Math.max(1,inProd.length);
+  const rows=[
+    ["Pre",pre,pre/total],
+    ["Shoot",shoot,shoot/total],
+    ["Post",post,post/total]
+  ];
+  if(reshoot) rows.push(["Reshoot",reshoot,reshoot/total]);
+  if(!inProd.length) return `<div class="produce-snapshot-empty">Nothing is moving through the pipeline. The lot earns nothing while it idles.</div>`;
+  return rows.map(([label,n,ratio])=>`<div class="produce-snapshot-row"><span>${label} — ${n}</span><i><b style="width:${Math.round(ratio*100)}%"></b></i><strong>${Math.round(ratio*100)}%</strong></div>`).join("")+
+    `<div class="produce-snapshot-row"><span>Ready — ${readyProjects().length}</span><i><b style="width:${readyProjects().length?100:4}%"></b></i><strong>${readyProjects().length}</strong></div>`;
+}
+function produceTools(){
+  return `<nav class="produce-tools" aria-label="Production tools"><button onclick="calendarModal()"><small>01 / RELEASE</small><span>Release Calendar</span></button><button onclick="if(typeof openLocationDesk==='function')openLocationDesk()"><small>02 / LOCATIONS</small><span>Location Scouting</span></button><button onclick="if(typeof openInsuranceModal==='function')openInsuranceModal()"><small>03 / GUARANTOR</small><span>Completion Insurance</span></button><button onclick="if(typeof openTestScreeningModal==='function')openTestScreeningModal();else if(typeof screeningModal==='function'){const r=readyProjects()[0];if(r)screeningModal(r.id)}"><small>04 / AUDIENCE</small><span>Test Screenings</span></button><button onclick="if(typeof StudioOperationsSuite!=='undefined'&&StudioOperationsSuite.renderProductPlacementModal)StudioOperationsSuite.renderProductPlacementModal()"><small>05 / BRANDS</small><span>Sponsors Desk</span></button></nav>`;
+}
+function producePanel(eyebrow,title,desc,content){
+  return `<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2><p>${desc}</p></div></div>${content}</section>`;
+}
+function produceFilterBar(){
+  const chips=[["all","All"],["pre","Pre"],["shoot","Shoot"],["post","Post"],["ready","Ready"],["dated","Dated"]];
+  return `<div class="produce-filters" role="group" aria-label="Filter productions">${chips.map(([k,label])=>`<button data-filter-prod="${k}" class="${PROD_FILTER===k?"active":""}" aria-pressed="${PROD_FILTER===k}">${label}</button>`).join("")}</div>`;
+}
 function viewProductions(){
-  let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Active Slate</span></button>"+
-    "<button class='subnav-pill' onclick='calendarModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-new-ticket-100.png' alt='' /><span>Release Calendar</span></button>"+
-    "<button class='subnav-pill' onclick='if(typeof openLocationDesk===\"function\")openLocationDesk()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-map-marker-90.png' alt='' /><span>Location Scouting</span></button>"+
-    "<button class='subnav-pill' onclick='if(typeof openInsuranceModal===\"function\")openInsuranceModal()'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_05.png' alt='' /><span>Completion Insurance</span></button>"+
-    "<button class='subnav-pill' onclick='if(typeof openTestScreeningModal===\"function\")openTestScreeningModal()'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_03.png' alt='' /><span>Test Screenings</span></button>"+
-  "</div>";
-  const ready=readyProjects(), allProd=inProdProjects();
-  h+=filmFlowStrip("Production")+"<div class='tiny muted' style='margin:-4px 0 8px'>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release → Box office → Streaming. Cards below show stage + next action.</div>";
-  h+="<div class='row' style='margin-bottom:8px'><button class='btn btn-alt' onclick='calendarModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-new-ticket-100.png' alt='' /><span>Release calendar — move dates, dodge rivals</span></button></div>";
-  
-  // Pipeline Gantt
-  h+=pipelineGantt(allProd);
-
-  // Active Project Filter Chips
-  h+="<div class='row' style='margin-bottom:10px;flex-wrap:wrap;gap:4px'>"+
-    [["all","All Projects"],["pre","Pre-production"],["shoot","Shooting"],["post","Post-production"],["ready","Ready"],["dated","Dated"]].map(([k,label])=>{
-      const ico = getSubTabPixelIcon("productions", k);
-      const icoHtml = ico ? "<img class='subtab-pixel-icon' src='"+ico+"' alt='' />" : "";
-      return "<button class='btn btn-sm subtab-btn "+(PROD_FILTER===k?"btn-primary active":"btn-ghost")+"' data-filter-prod='"+k+"'>"+icoHtml+"<span>"+label+"</span></button>";
-    }).join("")+
-  "</div>";
-
-  const prod = allProd.filter(p => {
+  const readyAll=readyProjects(), allProd=inProdProjects();
+  // Fix filter: ready belongs to ready list; prod list only has pre/shoot/post/reshoot
+  const prod = allProd.filter(p=>{
     if(PROD_FILTER==="all") return true;
-    if(PROD_FILTER==="pre" || PROD_FILTER==="shoot" || PROD_FILTER==="post") return p.phase===PROD_FILTER;
+    if(PROD_FILTER==="pre"||PROD_FILTER==="shoot"||PROD_FILTER==="post"||PROD_FILTER==="reshoot") return p.phase===PROD_FILTER;
     if(PROD_FILTER==="dated") return !!p.releaseWeek;
+    if(PROD_FILTER==="ready") return false;
     return true;
   });
+  let readyFiltered=readyAll;
+  if(PROD_FILTER==="dated") readyFiltered=readyAll.filter(p=>!!p.releaseWeek);
+  else if(PROD_FILTER==="ready") readyFiltered=readyAll.filter(p=>!p.releaseWeek);
+  else if(["pre","shoot","post","reshoot"].includes(PROD_FILTER)) readyFiltered=[];
 
-  h+=backlotScene();
-  h+=acquiredMediaSection();
-  h+="<div class='section-title'>In production ("+prod.length+")</div>";
-  if(!prod.length) h+="<div class='card muted small'>No films matching current filter. Visit 📝 Develop to greenlight one.</div>";
-  for(const p of prod){
-    const S=DATA.SCALES[p.scale];
-    const ph=p.phase; const L=p.phaseLen;
-    let phaseLabel = {pre:"Pre-production",shoot:"Shooting",post:"Post-production",reshoot:"🎬 Reshooting"}[ph]||ph;
-    let progress;
-    if(ph==="reshoot"){
-      const weeks=L.reshoot||3, done=(p.phaseWeek*L.pre)||0;
-      const pc=clamp(Math.round(p.phaseWeek/weeks*100),0,100);
-      progress="<div class='phases'><div class='ph cur'><i style='width:"+pc+"%'></i></div></div><div class='ph-labels'><span>Reshoot</span></div>";
-      const burn = p.budget*0.08/Math.max(1,weeks);
-      h+="<div class='card prod-card'><div class='spread'><div><b>"+DATA.GENRES[p.genre].emoji+" "+esc(p.title)+"</b>"+(p.franchiseName?" <span class='tag purple'>franchise</span>":"")+
-        "<div class='tiny muted'>"+gTag(p.genre)+" <span class='tag'>"+S.emoji+" "+S.name+"</span> · budget "+fmtM(p.budget)+" · dir "+(p.director?esc(p.director.name):"—")+"</div></div>"+
-        "<div style='text-align:right'><div class='tag gold'>"+phaseLabel+"</div></div></div>"+
-        progress+
-        "<div class='spread small' style='margin-top:8px'><span class='muted'>Reshoot week "+Math.min(p.phaseWeek+1,weeks)+" of ~"+weeks+" · burn "+fmtM(burn)+"/wk</span>"+
-        "<span class='muted'>spent "+fmtM(p.spent)+"</span></div>"+
-        "<button class='btn btn-sm btn-danger' style='margin-top:8px' data-cancel='"+p.id+"'>✕ Shelve (lose spend)</button></div>";
-      continue;
+  let h=`<section class="command-deck command-produce">${produceHead()}${produceTelemetry()}${produceBrief()}${produceTools()}`;
+  // Pipeline overview (gantt + backlot + lifecycle) as one panel
+  h+=producePanel("PIPELINE","On the lot right now","How every active picture moves through the three phases — and who is actually on set today.",`<div class="produce-gantt">${produceGantt(allProd).replace(/^<div class='produce-gantt'>/,"").replace(/<\/div>$/,"")}</div>${produceBacklot(allProd)}<div class="produce-pipeline"><span>${allProd.length} IN MOTION</span> Pre ${allProd.filter(p=>p.phase==="pre").length} · Shoot ${allProd.filter(p=>p.phase==="shoot").length} · Post ${allProd.filter(p=>p.phase==="post").length}${allProd.filter(p=>p.phase==="reshoot").length?" · Reshoot "+allProd.filter(p=>p.phase==="reshoot").length:""} · Ready ${readyAll.length} <b>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release</b></div>`);
+  // Acquired media vault (if any) lives inside the same deck, not as legacy cards
+  const vaultHtml=acquiredMediaSection();
+  if(vaultHtml){
+    // Convert legacy vault markup to produce panel: strip outer card wrappers and inject into produce-vault
+    // We keep engine's vault logic but wrap it in our panel skin.
+    // Extract vault Films list for redesigned list if available, else show legacy as fallback inside produce panel.
+    try{
+      const vaultItems=typeof maSlateFilms==="function"?maSlateFilms():[];
+      if(vaultItems.length){
+        const vaultVal=typeof maVaultValue==="function"?maVaultValue():0;
+        const vaultFilms=typeof maVaultActive==="function"?maVaultActive():[];
+        let vaultList=vaultItems.map(m=>{
+          const genreName=(DATA.GENRES[m.genre]?DATA.GENRES[m.genre].name:m.genre);
+          return `<div class="produce-vault-item"><div><b>${esc(m.title)}</b><small>${genreName} · quality ${Math.round(m.quality)} · est. open ${fmtG(m.weight||0)}</small></div><div style="text-align:right"><strong>${fmtM((typeof maLicenseBids==="function"?Math.max(0,...maLicenseBids(m.ref).map(b=>b.value)):0))||0}</strong><small>${m.src==="rival"?"firesale":"library"}</small></div><button class="produce-ghost" data-masell="${m.src}:${m.id}">License</button>${m.week>G.week?`<button class="produce-ghost" data-madate="${m.src}:${m.id}">Re-date</button>`:""}</div>`;
+        }).join("");
+        const buyout= vaultFilms.length>=2? `<div class="produce-vault-hero"><div><h3>Vault portfolio — ${vaultFilms.length} titles</h3><p>Catalog value ${fmtM(vaultVal)} · bulk actions are one tap away.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="produce-ghost" id="btnMaBrowse">Browse vault</button><button class="produce-action" id="btnMaBulkSell">Sell vault</button><button class="produce-ghost" id="btnMaBulkLicense">Bulk license</button><button class="produce-ghost" id="btnMaFlipRival">Flip to rival</button></div></div>` : "";
+        h+=producePanel("ACQUIRED","Acquired media — catalogue you own","Re-date a pickup, license it to a streamer, or sell the vault outright.",`<div class="produce-vault">${buyout}<div class="produce-vault-list">${vaultList}</div></div>`);
+      } else {
+        h+=producePanel("ACQUIRED","Acquired media","Films picked up through M&A — license them or fold them into your slate.",`<div style="padding:0 20px 18px">${vaultHtml}</div>`);
+      }
+    }catch(e){
+      h+=producePanel("ACQUIRED","Acquired media","Catalogue holdings.",`<div style="padding:0 20px 18px">${vaultHtml}</div>`);
     }
-    const curIdx={pre:0,shoot:1,post:2}[ph];
-    const totalWk=L.pre+L.shoot+L.post, doneWk=(curIdx>0?L.pre:0)+(curIdx>1?L.shoot:0)+p.phaseWeek;
-    const wksLeft = Math.max(1, totalWk - doneWk);
-    const burn = ph==="pre"? p.budget*0.10/L.pre : ph==="shoot"? p.budget*0.70/L.shoot*(G.upgrades.backlot?0.88:1) : p.budget*0.20/L.post*(G.upgrades.vfx?0.75:1);
-    progress="<div class='phases'>"+["pre","shoot","post"].map((x,i)=>{
-      const st= i<curIdx? "done": i===curIdx? "cur":"";
-      const w = i<curIdx? 100 : i===curIdx? Math.round(p.phaseWeek/L[x]*100):0;
-      return "<div class='ph "+st+"'><i style='width:"+w+"%'></i></div>"; }).join("")+
-      "</div><div class='ph-labels'><span>Pre</span><span>Shoot</span><span>Post</span></div>";
-    h+="<div class='card prod-card'><div class='spread'><div><b>"+DATA.GENRES[p.genre].emoji+" "+esc(p.title)+"</b>"+(p.franchiseName?" <span class='tag purple'>franchise</span>":"")+
-      "<div class='tiny muted'>"+gTag(p.genre)+" <span class='tag'>"+S.emoji+" "+S.name+"</span> · budget "+fmtM(p.budget)+(p.overrun>0? " <span class='neg'>(+"+fmtM(p.overrun)+" overrun)</span>":"")+" · 🎬 "+(p.director?esc(p.director.name):"—")+" · ✍️ "+(p.writer?esc(p.writer.name):"—")+" · 🎫 "+(p.producer?esc(p.producer.name):"<span class='neg'>none</span>")+" · "+(p.cast?p.cast.length:0)+" leads</div></div>"+
-      "<div style='text-align:right'><div class='tag "+(ph==="shoot"?"gold":"blue")+"'>"+phaseLabel+"</div>"+
-      (p.strikePause>0?"<div class='tag red' style='margin-top:4px'>✊ strike "+p.strikePause+"wks</div>":"")+
-      (p.btlAssigned?"<div class='tag green' style='margin-top:4px'>👷 BTL assigned</div>":"")+"</div></div>"+
-      progress+
-      "<div class='spread small' style='margin-top:8px'><span class='muted'>Week "+(doneWk+1)+" of ~"+totalWk+" (<b>~"+wksLeft+" wks to ready</b>) · burn "+fmtM(burn)+"/wk</span>"+
-      "<span class='muted'>spent "+fmtM(p.spent)+" of "+fmtM(p.budget)+"</span></div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Next: "+(ph==="pre"?(p.rewritten?"finish pre, then shoot":"rewrite for +6 script, then shoot"):ph==="shoot"?(p.producer?"ride the shoot — producer caps overruns":"watch overruns — no producer"):"finish post → test screening")+".</div>"+
-      "<div class='row' style='margin-top:8px;gap:6px'>"+
-      (ph==="pre" && !p.rewritten? "<button class='btn btn-sm btn-alt' data-rewrite='"+p.id+"'>✍️ Rewrite ("+fmtM(Math.max(2,Math.round(p.budget*0.05)))+")</button>":"")+
-      (!p.btlAssigned? "<button class='btn btn-sm btn-alt' data-btl='"+p.id+"'>👷 Assign BTL Crew ($2M)</button>":"")+
-      "<button class='btn btn-sm btn-danger' data-cancel='"+p.id+"'>✕ Shelve</button></div></div>";
   }
-  h+="<div class='section-title'>Ready for release ("+ready.length+")</div>";
-  if(!ready.length) h+="<div class='card muted small'>Nothing in the can yet.</div>";
-  for(const p of ready){
-    const rl=DATA.rating(p.rating), lo=DATA.location(p.location);
-    h+="<div class='card'><div class='spread'><div><b>🎞 "+esc(p.title)+"</b> "+scoreBadge(p.quality.overall)+
-      (p.prebuyAccepted?"<div class='tiny gold'>Sold to "+DATA.platform(p.prebuyPlatform).name+" — payable on delivery</div>":"")+"</div></div>"+
-      "<div class='tiny muted' style='margin-top:6px'>Critics "+p.quality.critic+" · Audience "+p.quality.aud+" · budget "+fmtM(p.budget)+(p.overrun>0? " (incl. "+fmtM(p.overrun)+" overrun)":"")+" · breakeven "+fmtM(breakevenWW(p))+" WW</div>"+
-      (function(){ let legs="—"; try{ legs=legsOf({genre:p.genre, quality:p.quality, releaseWeek:G.week, pattern:p.pattern, rollout:p.rollout, imax:p.imax})+"×"; }catch(e){}
-        const steps=[p.tested?"Test ✓":"Test — screen it", "P&A ≈ "+fmtM(recMarketing(p)), p.releaseWeek?"Dated "+dateLabel(p.releaseWeek):"Undated"];
-        return "<div class='tiny muted' style='margin-top:4px'>Release readiness: "+steps.join(" · ")+" · legs ~"+legs+".</div>"; })()+
-      (p.releaseWeek && p.advanceTotal? "<div class='tiny muted' style='margin-top:4px'>🎟 Advance sales: <b class='gold'>"+fmtM(p.advanceTotal)+"</b> banked over "+((p.advance||[]).length)+" wk — the curve builds toward opening day.</div>":"")+
-      (p.releaseWeek && (p.promoOwed||0)>0? "<div class='tiny muted' style='margin-top:4px'>🎤 Promo duties: "+(p.promoDone||0)+" of "+p.promoOwed+" appearances"+((p.promoEvents||[]).some(e=>e.kind==="backfire")?" · <span class='neg'>one backfired</span>":"")+".</div>":"")+
-      (p.releaseWeek && (p.dropEvents||[]).length? "<div class='tiny muted' style='margin-top:4px'>🎞 Campaign drops so far: "+(p.dropEvents||[]).slice(-4).map(e=>{const c=campaignDef(e.camp); return (c?c.icon+" "+c.name:e.camp)+" "+(e.kind==="viral"?"<span class='pos'>viral</span>":e.kind==="whiff"?"<span class='neg'>whiff</span>":"landed");}).join(" · ")+".</div>":"")+
-      (p.writer||p.producer? "<div class='tiny muted'>"+(p.writer? "✍️ "+esc(p.writer.name)+" ("+(p.writerBonus>=0?"+":"")+p.writerBonus+" script)":"")+(p.producer? " · 🎫 "+esc(p.producer.name):"")+"</div>":"")+
-      "<div class='row' style='margin-top:6px'><span class='tag "+(p.rating==="R"?"red":"blue")+"'>"+p.rating+"</span><span class='tag'>"+lo.name+" ("+Math.round(lo.rebate*100)+"%)</span>"+
-        (p.premium?"<span class='tag gold'>🍿 IMAX/Premium</span>":"")+
-        (p.scriptPolish?"<span class='tag green'>✍️ polish</span>":"")+"</div>"+
-      (p.prebuyAccepted?"":"<div class='row' style='margin-top:10px'><button class='btn btn-primary' data-sched='"+p.id+"'>📅 Theatrical Release</button><button class='btn btn-alt' data-shop='"+p.id+"'>📺 Shop to Streamers</button>"+
-        (G.streamer? "<button class='btn btn-alt' data-ownprem='"+p.id+"'>▶ Premiere on "+esc(G.streamer.name)+"</button>":"")+
-        "<button class='btn btn-ghost' data-test='"+p.id+"'>🎬 Test screen &amp; reshoot</button>"+
-        (p.releaseWeek? "<button class='btn btn-ghost' data-whatif='"+p.id+"'>🔮 What-if</button>":"")+
-        "<button class='btn btn-ghost' data-screen='"+p.id+"'>🧪 Screening report</button>"+
-        (!p.reshoot && p.quality.overall<62? "<button class='btn btn-ghost' data-reshoot='"+p.id+"'>🎞 Quick reshoot ("+fmtM(Math.max(3,Math.round(p.budget*0.08)))+")</button>":"")+
-        "</div>"+
-      (p.tested && !p.altEnding? "<div class='tiny muted' style='margin-top:8px'>🎞 Two endings survive the edit — pick one:</div><div class='row' style='margin-top:4px'>"+
-        "<button class='btn btn-sm btn-alt' data-ending='critic' data-eid='"+p.id+"'>🎭 Critics' cut (+critic −aud)</button>"+
-        "<button class='btn btn-sm btn-alt' data-ending='aud' data-eid='"+p.id+"'>🎉 Crowd-pleaser (+aud −critic)</button></div>" :
-        (p.altEnding? "<div class='tiny muted' style='margin-top:6px'>🎞 Ending locked: "+(p.altEnding==="critic"?"critics' cut":"crowd-pleaser")+".</div>":"")))+"</div>";
+  // In Production
+  h+=`<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">ACTIVE SLATE</span><h2>In production — ${prod.length} ${PROD_FILTER!=="all"?`· ${PROD_FILTER}`:""}</h2><p>${prod.length?`Watch the weekly burn and give the crew what they need before the next phase rolls.`:`No films match “${PROD_FILTER}”. Switch the filter or greenlight a new picture.`}</p></div><span class="produce-stamp">${allProd.length} ACTIVE</span></div>${produceFilterBar()}`;
+  if(!prod.length){
+    h+=`<div class="produce-cards"><div class="produce-empty"><b>${PROD_FILTER==="ready"?"Ready films live below.":"Nothing is in that phase right now."}</b><p>${PROD_FILTER==="ready"?"The “Ready” slate is one panel down — those films are already in the can and waiting for a date.":PROD_FILTER==="dated"?"No in-production film is dated yet. Date a ready film in the next panel.":"Visit Develop to greenlight a film, then it appears here the next week."}</p>${!allProd.length?`<button class="produce-action" onclick="switchTab('develop')">Develop a film →</button>`:""}</div></div></section>`;
+  } else {
+    h+=`<div class="produce-cards">`;
+    for(const p of prod){
+      const S=DATA.SCALES[p.scale]||DATA.SCALES.mid;
+      const ph=p.phase, L=p.phaseLen||{pre:2,shoot:4,post:3,reshoot:3};
+      const genreName=DATA.GENRES[p.genre]?DATA.GENRES[p.genre].emoji+" "+DATA.GENRES[p.genre].name:esc(p.genre||"Feature");
+      if(ph==="reshoot"){
+        const weeks=L.reshoot||3, pc=clamp(Math.round((p.phaseWeek||0)/weeks*100),0,100);
+        const burn=p.budget*0.08/Math.max(1,weeks);
+        h+=`<article class="produce-card reshooting"><header><div><h3>${esc(p.title)}${p.franchiseName?` <small>FRANCHISE</small>`:""}</h3><div class="produce-card-meta">${genreName} · <span>${S.emoji} ${S.name}</span> · ${fmtM(p.budget)} · dir ${p.director?esc(p.director.name):"—"}</div></div><div class="produce-phase"><b>RESHOOT</b><small>Week ${Math.min((p.phaseWeek||0)+1,weeks)} of ${weeks}</small></div></header><div class="produce-progress"><i class="cur" style="width:${pc}%"></i></div><div class="produce-progress-labels"><span>Reshoot ${pc}%</span><span>burn ${fmtM(burn)}/wk · spent ${fmtM(p.spent||0)}</span></div><div class="produce-card-actions"><button class="produce-ghost" data-cancel="${p.id}" style="border-color:#8a5b52;color:#e9a99a">✕ Shelve</button></div></article>`;
+        continue;
+      }
+      const curIdx={pre:0,shoot:1,post:2}[ph] ?? 0;
+      const totalWk=(L.pre||2)+(L.shoot||4)+(L.post||3);
+      const doneWk=(curIdx>0?(L.pre||2):0)+(curIdx>1?(L.shoot||4):0)+(p.phaseWeek||0);
+      const wksLeft=Math.max(1,totalWk-doneWk);
+      const burn=ph==="pre"?p.budget*0.10/Math.max(1,L.pre||2):ph==="shoot"?p.budget*0.70/Math.max(1,L.shoot||4)*(G.upgrades&&G.upgrades.backlot?0.88:1):p.budget*0.20/Math.max(1,L.post||3)*(G.upgrades&&G.upgrades.vfx?0.75:1);
+      const phaseLabel={pre:"PRE",shoot:"SHOOT",post:"POST"}[ph]||ph.toUpperCase();
+      const stageClass=ph==="shoot"?"shooting":ph==="post"?"posting":"";
+      const nextText=ph==="pre"? (p.rewritten?"Finishing pre — shoot starts next.":"Rewrite for +6 script, then shoot."):ph==="shoot"?(p.producer?"Shooting — producer caps overruns.":"Shooting — no producer, watch overruns."): "Post — test screening next.";
+      const canRewrite=ph==="pre"&&!p.rewritten;
+      const canBtl=!p.btlAssigned;
+      const btlCost=2, btlDisabled=G.studio.cash<btlCost;
+      h+=`<article class="produce-card ${stageClass}"><header><div><h3>${esc(p.title)}${p.franchiseName?` <small>FRANCHISE</small>`:""}</h3><div class="produce-card-meta">${genreName} · <span>${S.emoji} ${S.name}</span> · ${fmtM(p.budget)}${p.overrun>0?` · <span style="color:#e9a99a">+${fmtM(p.overrun)} overrun</span>`:""} · 🎬 ${p.director?esc(p.director.name):"—"} · ✍️ ${p.writer?esc(p.writer.name):"—"} · 🎫 ${p.producer?esc(p.producer.name):`<span style="color:#e9a99a">none</span>`} · ${p.cast?p.cast.length:0} leads</div></div><div class="produce-phase"><b class="${ph==="shoot"?"gold":""}">${phaseLabel}</b>${p.strikePause>0?`<small style="color:#e9a99a">✊ strike ${p.strikePause}wks</small>`:""}${p.btlAssigned?`<small style="color:#b6dba8">👷 BTL on set</small>`:""}<small>Week ${doneWk+1} of ~${totalWk} · ~${wksLeft}wks left</small></div></header><div class="produce-progress">${["pre","shoot","post"].map((x,i)=>{const st=i<curIdx?"done":i===curIdx?"cur":"todo";return `<i class="${st}"></i>`}).join("")}</div><div class="produce-progress-labels"><span>Pre</span><span>Shoot</span><span>Post</span></div><div class="produce-stats"><span>Burn <b>${fmtM(burn)}/wk</b></span><span>Spent <b>${fmtM(p.spent||0)} of ${fmtM(p.budget)}</b></span><span>Cash <b>${fmtM(G.studio.cash)}</b></span><em>${p.shootingLocationName||p.location||"home lot"}</em></div><div class="produce-next">${nextText}</div><div class="produce-card-actions">${canRewrite?`<button class="produce-ghost" data-rewrite="${p.id}">✍️ Rewrite (${fmtM(Math.max(2,Math.round(p.budget*0.05)) )})</button>`:""}${canBtl?`<button class="produce-ghost" data-btl="${p.id}" ${btlDisabled?"disabled title='Need $2M cash'":""}>👷 BTL crew ($2M)</button>`:""}<button class="produce-ghost" data-cancel="${p.id}" style="border-color:#6f5a52;color:#d2b1a6">✕ Shelve</button></div></article>`;
+    }
+    h+=`</div></section>`;
   }
-  h+="<div class='section-title'>Franchise opportunities</div>";
-  const fr=G.films.filter(f=>f.franchiseable);
-  if(!fr.length) h+="<div class='card muted small'>Land a big hit (2× breakeven + good reviews) and sequels unlock here.</div>";
-  for(const f of fr.slice(0,4)){
-    h+="<div class='card'><div class='spread'><div><b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b><div class='tiny muted'>"+fmtG(f.ww)+" WW · "+scoreBadge(f.quality.overall)+"</div></div>"+
-      "<button class='btn btn-sm btn-primary' data-seq='"+f.id+"'>⚡ Greenlight Sequel</button></div></div>";
+  // Ready for release
+  h+=`<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">DISTRIBUTION</span><h2>Ready for release — ${readyFiltered.length}${readyFiltered.length!==readyAll.length?` of ${readyAll.length}`:""}</h2><p>Test it, date it, and get it to screens. P&A, window, and corridors decide the opening.</p></div><span class="produce-stamp">${readyAll.length} IN THE CAN</span></div>`;
+  if(!readyFiltered.length){
+    h+=`<div class="produce-cards"><div class="produce-empty"><b>${readyAll.length?`No ready film matches “${PROD_FILTER}”.`:"Nothing in the can yet."}</b><p>${readyAll.length?"Switch the filter to “All” or “Ready” to see every finished picture.":"Finish a shoot and the film lands here — test screening, then theatrical or streaming."}</p></div></div></section>`;
+  } else {
+    h+=`<div class="produce-cards">`;
+    for(const p of readyFiltered){
+      let lo={name:"—",rebate:0}; try{ lo=DATA.location(p.location)||lo; }catch(e){}
+      let breakeven="—"; try{ breakeven=fmtM(breakevenWW(p))+" WW"; }catch(e){}
+      let legs="—"; try{ legs=legsOf({genre:p.genre, quality:p.quality, releaseWeek:G.week, pattern:p.pattern, rollout:p.rollout, imax:p.imax})+"×"; }catch(e){}
+      const testedNote=p.tested?`<span>Test ✓</span>`:``;
+      const readinessRows=`<div class="produce-release-readiness"><div><span>Release readiness</span><b>${p.tested?"Test ✓":"Test — screen it"} · P&A ≈ ${fmtM(recMarketing(p))} · ${p.releaseWeek?`Dated ${dateLabel(p.releaseWeek)}`:"Undated"} · legs ~${legs}</b></div>${p.releaseWeek&&p.advanceTotal?`<div><span>Advance sales</span><b style="color:#edc47c">${fmtM(p.advanceTotal)} over ${(p.advance||[]).length}w</b></div>`:""}${p.releaseWeek&&(p.promoOwed||0)>0?`<div><span>Promo</span><b>${p.promoDone||0} of ${p.promoOwed}${(p.promoEvents||[]).some(e=>e.kind==="backfire")?` <span style="color:#e9a99a">· backfire</span>`:""}</b></div>`:""}${p.releaseWeek&&(p.dropEvents||[]).length?`<div><span>Drops</span><b>${(p.dropEvents||[]).slice(-4).map(e=>{const c=typeof campaignDef==="function"?campaignDef(e.camp):null;return (c?c.icon+" "+c.name:e.camp)+(e.kind==="viral"?` <span style="color:#b6dba8">viral</span>`:e.kind==="whiff"?` <span style="color:#e9a99a">whiff</span>`:"");}).join(" · ")}</b></div>`:""}</div>`;
+      const flags=`<div class="produce-release-flags"><span class="${p.rating==="R"?"flag-r":""}">${p.rating||"PG-13"}</span><span>${esc(lo.name)} (${Math.round((lo.rebate||0)*100)}%)</span>${p.premium?`<span class="flag-premium">🍿 IMAX/Premium</span>`:""}${p.scriptPolish?`<span style="color:#b6dba8;border-color:#5c7f57">✍️ polish</span>`:""}${p.franchiseName?`<span style="color:#c3b4e6;border-color:#6a5c8a">FRANCHISE</span>`:""}</div>`;
+      const crewLine=(p.writer||p.producer)?`<div class="produce-card-meta">${p.writer?`✍️ ${esc(p.writer.name)} (${(p.writerBonus||0)>=0?"+":""}${p.writerBonus||0} script)`:""}${p.producer?` · 🎫 ${esc(p.producer.name)}`:""}</div>`:"";
+      const soldBanner=p.prebuyAccepted?`<div class="produce-next" style="border-left-color:#8a7748">Sold to ${DATA.platform(p.prebuyPlatform)?DATA.platform(p.prebuyPlatform).name:"streamer"} — payable on delivery.</div>`:"";
+      h+=`<article class="produce-release ${p.prebuyAccepted?"sold":"ready"}"><header><div><h3>🎞 ${esc(p.title)} <small>${p.quality?scoreBadge(p.quality.overall):""}</small></h3>${soldBanner}<div class="produce-card-meta">Critics ${p.quality?p.quality.critic:"—"} · Audience ${p.quality?p.quality.aud:"—"} · ${fmtM(p.budget)}${p.overrun>0?` (incl. ${fmtM(p.overrun)} overrun)`:""} · breakeven ${breakeven}</div>${crewLine}${flags}</div></header>${readinessRows}${p.prebuyAccepted?"":`<div class="produce-release-actions"><button class="produce-action" data-sched="${p.id}">📅 Theatrical Release</button><button class="produce-ghost" data-shop="${p.id}">📺 Shop to Streamers</button>${G.streamer?`<button class="produce-ghost" data-ownprem="${p.id}">▶ Premiere on ${esc(G.streamer.name)}</button>`:""}<button class="produce-ghost" data-test="${p.id}">🎬 Test screening</button>${p.releaseWeek?`<button class="produce-ghost" data-whatif="${p.id}">🔮 What-if</button>`:""}<button class="produce-ghost" data-screen="${p.id}">🧪 Report</button>${!p.reshoot&&p.quality&&p.quality.overall<62?`<button class="produce-ghost" data-reshoot="${p.id}">🎞 Reshoot (${fmtM(Math.max(3,Math.round(p.budget*0.08)) )})</button>`:""}</div>`}${p.tested&&!p.altEnding?`<div class="produce-alt"><small>Two endings survive the edit — pick one:</small><button class="produce-ghost" data-ending="critic" data-eid="${p.id}">🎭 Critics' cut</button><button class="produce-ghost" data-ending="aud" data-eid="${p.id}">🎉 Crowd-pleaser</button></div>`:p.altEnding?`<div class="produce-next">Ending locked: ${p.altEnding==="critic"?"critics' cut":"crowd-pleaser"}.</div>`:""}</article>`;
+    }
+    h+=`</div></section>`;
   }
-  return h;
+  // Franchise opps
+  const fr=(G.films||[]).filter(f=>f.franchiseable);
+  h+=`<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">FRANCHISE</span><h2>Sequel desk</h2><p>Land a big hit (2× breakeven + good reviews) and the follow-up greenlight lives here.</p></div><span class="produce-stamp">${fr.length} ELIGIBLE</span></div>`;
+  if(!fr.length) h+=`<div class="produce-cards"><div class="produce-empty"><b>No sequel window open.</b><p>A theatrical smash that doubles its breakeven and scores with critics unlocks the next chapter.</p></div></div></section>`;
+  else h+=`<div class="produce-franchise">${fr.slice(0,6).map(f=>`<div class="produce-franchise-card"><div><b>${DATA.GENRES[f.genre]?DATA.GENRES[f.genre].emoji:"🎬"} ${esc(f.title)}</b><small>${fmtG(f.ww||0)} WW · ${f.quality?scoreBadge(f.quality.overall):""}</small></div><button class="produce-action" data-seq="${f.id}">⚡ Sequel</button></div>`).join("")}</div></section>`;
+  return h+`</section>`;
 }
+
+
 
 /* ── strategic release calendar: every weekend, everybody's films, warnings ── */
 let CAL=null; // {filmId}
@@ -4448,32 +4524,34 @@ function calendarModal(){
   if(!CAL) CAL={filmId:dated.length?dated[0].id:null};
   if(CAL.filmId&&!dated.some(p=>p.id===CAL.filmId)) CAL.filmId=dated.length?dated[0].id:null;
   const film=dated.find(p=>p.id===CAL.filmId)||null;
-  let h="<h3>📅 Release calendar</h3>"+
-    "<div class='tiny muted'>Player + rival films, holidays, corridors, theater caps, sports weeks, expiring deals. Pick a dated film, tap a weekend to move it — rivals may blink.</div>";
-  h+="<div class='small muted' style='margin:10px 0 6px'><b>Move</b></div><div class='row'>";
-  if(!dated.length) h+="<span class='tiny muted'>No dated films — date one from Productions first.</span>";
-  dated.forEach(p=>{ h+="<button class='btn btn-sm "+(CAL.filmId===p.id?"btn-primary":"")+"' data-calfilm='"+p.id+"'>"+esc(p.title)+" ("+dateLabel(p.releaseWeek)+")</button>"; });
-  h+="</div><div style='max-height:320px;overflow-y:auto;display:grid;gap:6px;margin-top:8px'>";
+  let head=`<div class='produce-modal-head'><span class='command-eyebrow'>PRODUCTION OFFICE / RELEASE CALENDAR</span><h3>Release calendar — where you open decides the opening.</h3><p>Player + rival films, holidays, corridors, theatre caps and sports weeks. Pick a dated film, tap a weekend to move it — rivals may blink and corridors change the legs.</p></div>`;
+  let body=`<div class='produce-modal-body'>`;
+  body+=`<div class='produce-modal-card'><span class='command-eyebrow'>YOUR DATED FILMS</span><p class='tiny muted' style='margin:0 0 8px'>Tap a title, then a weekend below. Only dated pictures can be moved here — date one from Productions first.</p><div class='produce-filters' style='margin:0'>`;
+  if(!dated.length) body+=`<span class='tiny muted'>No dated films — date one from Productions first.</span>`;
+  else dated.forEach(p=>{ body+=`<button class='produce-ghost' style='min-height:32px;padding:6px 10px;${CAL.filmId===p.id?'background:#edc47c!important;color:#24332e!important;border-color:#edc47c!important':''}' data-calfilm='${p.id}'>${esc(p.title)} <small>· ${dateLabel(p.releaseWeek)}</small></button>`; });
+  body+=`</div></div>`;
+  body+=`<div class='produce-modal-card' style='padding:0;overflow:hidden'>`;
+  body+=`<div style='max-height:360px;overflow-y:auto;display:grid;gap:0'>`;
   for(let w=G.week+2; w<=G.week+30; w++){
     const s=DATA.seasonOf(woyOf(w));
-    const mine=(G.projects||[]).filter(o=>o.releaseWeek===w).map(o=>"“"+esc(o.title)+"”").join(" · ");
-    const rvs=[]; (G.rivals||[]).forEach(r=>{ (r.slate||[]).forEach(f=>{ if(f.week===w&&!f.dead) rvs.push(r.name.split(" ")[0]+": "+f.title+" ("+f.scale+")"); }); });
+    const mine=(G.projects||[]).filter(o=>o.releaseWeek===w).map(o=>esc(o.title)).join(' · ');
+    const rvs=[]; (G.rivals||[]).forEach(r=>{ (r.slate||[]).forEach(f=>{ if(f.week===w&&!f.dead) rvs.push(r.name.split(' ')[0]+': '+f.title+' ('+f.scale+')'); }); });
     const warns=weekWarnings(w, film);
-    const tags=(s.holiday?"<span class='tag gold'>🎄 holiday ×"+s.season.toFixed(2)+"</span> ":"")+
-      (s.season>=1.15?"<span class='tag gold'>corridor ×"+s.season.toFixed(2)+"</span>":s.season<=0.9?"<span class='tag red'>dead ×"+s.season.toFixed(2)+"</span>":"<span class='tag'>×"+s.season.toFixed(2)+"</span>");
-    h+="<div class='calendar-row"+(film&&film.releaseWeek===w?" sel":"")+"' data-calw='"+w+"'>"+
-      "<div class='cal-when'><b>"+s.month+" W"+woyOf(w)+"</b><span>Year "+yearOf(w)+"</span></div>"+
-      "<div class='cal-note'>"+tags+" "+(mine?"<br><span class='mine-f'>"+mine+"</span>":"")+(rvs.length?"<br><span class='rival-f'>"+rvs.slice(0,2).join(" · ")+"</span>":"")+
-      (warns.length?"<br>"+warns.map(x=>"<span class='tag "+x.cls+"'>"+x.t+"</span>").join(" "):"")+"</div>"+
-      "<div class='tiny muted'>"+(film?"opens ≈ "+fmtG(previewOpen(film,w)):"")+"</div></div>";
+    const tags=(s.holiday?`<span class='tag gold'>holiday ×${s.season.toFixed(2)}</span> `:``)+(s.season>=1.15?`<span class='tag gold'>corridor ×${s.season.toFixed(2)}</span>`:s.season<=0.9?`<span class='tag'>dead ×${s.season.toFixed(2)}</span>`:`<span class='tag'>×${s.season.toFixed(2)}</span>`);
+    body+=`<div class='calendar-row${film&&film.releaseWeek===w?' sel':''}' data-calw='${w}' style='margin:0;border:0;border-bottom:1px solid #2c4038;border-radius:0;padding:10px 14px;background:${film&&film.releaseWeek===w?'#1f3a32':'transparent'}'>`+
+      `<div class='cal-when'><b>${s.month} W${woyOf(w)}</b><span>Year ${yearOf(w)}</span></div>`+
+      `<div class='cal-note'>${tags} ${mine?`<br><span class='mine-f'>${mine}</span>`:``}${rvs.length?`<br><span class='rival-f'>${rvs.slice(0,2).join(' · ')}</span>`:``}${warns.length?`<br>${warns.map(x=>`<span class='tag ${x.cls}'>${x.t}</span>`).join(' ')}`:``}</div>`+
+      `<div class='tiny muted'>${film?`opens ≈ ${fmtG(previewOpen(film,w))}`:``}</div></div>`;
   }
-  h+="</div><div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";
-  const v=openModal(h,{onClose:()=>{CAL=null;}});
-  v.querySelectorAll("[data-calfilm]").forEach(b=>b.onclick=()=>{ CAL.filmId=+b.dataset.calfilm; beep("click"); calendarModal(); });
-  v.querySelectorAll("[data-calw]").forEach(el=>el.onclick=()=>{
-    if(!film){ toast("Pick a dated film first.","bad"); return; }
-    if(moveReleaseDate(film.id,+el.dataset.calw)){ beep("gold"); flashes(G.flash); calendarModal(); }
-    else toast("That weekend is too soon.","bad");
+  body+=`</div></div>`;
+  body+=`</div>`;
+  const html=head+body;
+  const v=openModal(html,{className:'command-produce-modal',onClose:()=>{CAL=null;}});
+  v.querySelectorAll('[data-calfilm]').forEach(b=>b.onclick=()=>{ CAL.filmId=+b.dataset.calfilm; beep('click'); calendarModal(); });
+  v.querySelectorAll('[data-calw]').forEach(el=>el.onclick=()=>{
+    if(!film){ toast('Pick a dated film first.','bad'); return; }
+    if(moveReleaseDate(film.id,+el.dataset.calw)){ beep('gold'); flashes(G.flash); calendarModal(); }
+    else toast('That weekend is too soon.','bad');
   });
 }
 

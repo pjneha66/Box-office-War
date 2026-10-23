@@ -164,56 +164,54 @@
     const unreleasedFilms = (S.films || []).filter(f => !f.inTheaters && (f.gross === 0 || f.gross === undefined));
     const film = unreleasedFilms.find(f => f.id === filmId || f.title === filmId) || unreleasedFilms[0];
 
-    let h = "<h3>Post-Production Test Screenings &amp; Reshoots</h3>";
-    h += "<div class='tiny muted' style='margin-bottom:12px'>Screen early cuts before focus groups to forecast critic &amp; audience reaction. If reception is flawed, execute emergency reshoots to fix pacing and boost quality.</div>";
+    let head = `<div class='produce-modal-head'><span class='command-eyebrow'>PRODUCTION OFFICE / AUDIENCE</span><h3>Test screenings &amp; emergency reshoots</h3><p>Screen early cuts before focus groups to forecast critic &amp; audience reaction. Tier fixes the accuracy — if the third act sags, emergency reshoots can still save it.</p></div>`;
+    let body = `<div class='produce-modal-body'>`;
 
     if(!film){
-      h += "<div class='card tiny muted'>No unreleased productions currently available for test screening. Greenlight a project first.</div>";
-      if(typeof openModal === "function") openModal(h);
+      body += `<div class='produce-modal-card tiny muted'>No unreleased productions currently available for test screening. Greenlight a project first.</div>`;
+      let html = head+body+`</div>`; if(typeof openModal === "function") openModal(html,{className:'command-produce-modal'});
       return;
     }
 
-    h += "<div class='card' style='margin-bottom:12px'>"+
-      "<div class='spread'><b>" + film.title + "</b><span class='tag'>" + (film.genre || "Drama").toUpperCase() + "</span></div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Budget: $" + (film.budget || 20) + "M | Status: " + (film.status || "In Production") + "</div>"+
-    "</div>";
+    body += `<div class='produce-modal-card'><div class='spread'><b>${esc(film.title)}</b><span class='tag'>${esc((film.genre||'Drama').toUpperCase())}</span></div><div class='tiny muted' style='margin-top:4px'>Budget: ${fmtM(film.budget||20)} · Status: ${esc(film.status||'In Production')}</div></div>`;
 
     if(film.testScreeningResult){
       const res = film.testScreeningResult;
-      const scoreColor = res.projectedScore >= 75 ? "var(--good)" : res.projectedScore >= 50 ? "var(--gold)" : "var(--bad)";
-      h += "<div class='card' style='margin-bottom:14px;border-left:4px solid " + scoreColor + "'>"+
+      const scoreColor = res.projectedScore >= 75 ? "#7ee787" : res.projectedScore >= 50 ? "#edc47c" : "#e9a99a";
+      body += `<div class='produce-modal-card' style='border-left:4px solid ${scoreColor}'>`+
         "<div class='spread'><b>Screening Diagnosis (" + res.tierName + ")</b><span class='tag' style='color:" + scoreColor + "'>Score: " + res.projectedScore + "/100</span></div>"+
         "<div class='tiny' style='margin:6px 0;font-style:italic'>\"" + res.feedback + "\"</div>"+
         (res.reshootExecuted ? (
-          "<div class='tiny' style='color:var(--good);font-weight:bold'>Emergency Reshoots Executed: Quality buffed by +" + res.qualityBuff + " pts!</div>"
+          `<div class='tiny' style='color:#7ee787;font-weight:bold'>Emergency Reshoots Executed: Quality buffed by +${res.qualityBuff} pts!</div>`
         ) : res.reshootOpportunity ? (
-          "<div style='margin-top:10px'>"+
-            "<button class='btn btn-sm btn-primary' id='btnExecReshoot' data-filmid='" + film.id + "'>Greenlight Emergency Reshoots (15% Budget)</button>"+
+          `<div style='margin-top:10px'><button class='produce-action' id='btnExecReshoot' data-filmid='${film.id}'>Greenlight Emergency Reshoots (15% Budget)</button></div>`+
           "</div>"
         ) : (
-          "<div class='tiny' style='color:var(--good)'>No reshoots necessary. Audience feedback indicates hit potential!</div>"
+          `<div class='tiny' style='color:#7ee787'>No reshoots necessary. Audience feedback indicates hit potential!</div>`
         ))+
       "</div>";
     }
 
-    h += "<div class='section-title'>Conduct Test Screening</div><div class='grid g1' style='gap:8px'>";
+    body += `<div style='font:14px Georgia,serif;color:#edc47c;margin:12px 0 8px'>Conduct Test Screening</div><div style='display:grid;gap:8px'>`;
     for(const key in SCREENING_TIERS){
       const tier = SCREENING_TIERS[key];
-      h += "<div class='card spread'>"+
+      body += `<div class='produce-modal-card spread'>`+
         "<div>"+
-          "<b>" + tier.name + "</b>"+
-          "<div class='tiny muted' style='margin:4px 0'>" + tier.desc + "</div>"+
-          "<div class='tiny' style='color:var(--gold)'>Accuracy Margin: &plusmn;" + tier.accuracyMargin + " pts</div>"+
+          `<b>${esc(tier.name)}</b>`+
+          `<div class='tiny muted' style='margin:4px 0'>${esc(tier.desc)}</div>`+
+          `<div class='tiny' style='color:#edc47c'>Accuracy Margin: ±${tier.accuracyMargin} pts</div>`+
         "</div>"+
         "<div>"+
-          "<button class='btn btn-sm btn-primary' data-screening='" + tier.id + "' data-filmid='" + film.id + "'>Screen ($" + (tier.cost * 1000).toFixed(0) + "k)</button>"+
+          `<button class='produce-action' data-screening='${tier.id}' data-filmid='${film.id}'>Screen ($${(tier.cost*1000).toFixed(0)}k)</button>`+
         "</div>"+
       "</div>";
     }
-    h += "</div>";
+    body += `</div>`;
 
+    body += `</div>`;
+    let foot = `<div class='produce-modal-actions'><span class='tiny muted'>Tiers charge ${fmtM(0.15)}–${fmtM(0.95)} · accuracy ±1–8 pts · reshoots 15% of budget</span><button class='produce-ghost' onclick='closeModal()'>Close</button></div>`;
     if(typeof openModal === "function"){
-      const v = openModal(h);
+      const v = openModal(head+body+foot,{className:'command-produce-modal'});
       if(v){
         v.querySelectorAll("[data-screening]").forEach(btn => {
           btn.onclick = () => {

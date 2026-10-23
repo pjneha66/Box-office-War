@@ -301,33 +301,30 @@
     const inProd = (S.projects || []).filter(p => p.phase === "prod" || p.phase === "pre" || p.phase === "post");
 
     function renderInner(){
-      let h = "<h3>Commercial Product Placement &amp; Brand Sponsorship Desk</h3>";
-      h += "<p class='tiny muted' style='margin-bottom:12px'>Integrate corporate brand placement slots into your in-production films for guaranteed upfront financing (Box Office Inc parity).</p>";
-
-      h += "<div class='stat-hero' style='margin-bottom:12px'>"+
-        "<div class='stat'><div class='s-v' style='color:var(--gold)'>$" + (S.studioOps.totalSponsorCash || 0).toFixed(1) + "M</div><div class='s-l'>Total Sponsorship Cash</div></div>"+
-        "<div class='stat'><div class='s-v'>" + inProd.length + "</div><div class='s-l'>In-Production Pictures</div></div>"+
-      "</div>";
-
-      h += "<div class='section-title'>Available Corporate Brand Sponsorships</div><div class='grid g2' style='gap:8px'>";
+      let head = `<div class="produce-modal-head"><span class="command-eyebrow">PRODUCTION OFFICE / BRANDS</span><h3>Product placement &amp; brand sponsorship desk</h3><p>Integrate corporate placement slots into in-production films for guaranteed upfront financing. Cash now, creative note later.</p></div>`;
+      let body = `<div class="produce-modal-body"><div style="display:flex;gap:12px;margin-bottom:12px">`+
+        `<div class="produce-modal-card" style="flex:1;text-align:center"><div style="font:600 22px Georgia,serif;color:#edc47c">${fmtM(S.studioOps.totalSponsorCash||0)}</div><div style="font:8px ui-monospace,monospace;letter-spacing:1px;color:#93a692">TOTAL SPONSORSHIP CASH</div></div>`+
+        `<div class="produce-modal-card" style="flex:1;text-align:center"><div style="font:600 22px Georgia,serif;color:#f2edda">${inProd.length}</div><div style="font:8px ui-monospace,monospace;letter-spacing:1px;color:#93a692">IN-PRODUCTION PICTURES</div></div>`+
+      `</div>`;
+      body += `<div style="font:14px Georgia,serif;color:#edc47c;margin:10px 0 8px">Available Corporate Brand Sponsorships</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">`;
       SPONSOR_TIERS.forEach(sp => {
-        h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
-          "<div>"+
-            "<div class='spread'><b>" + sp.name + "</b><span class='tag gold'>+$" + sp.cashAdvance + "M Advance</span></div>"+
-            "<div class='tiny muted' style='margin:4px 0'>" + sp.desc + "</div>"+
-            "<div class='tiny' style='color:var(--blue)'>Category: " + sp.category + " | Penalty Risk: " + Math.round(sp.criticPenaltyRisk*100) + "%</div>"+
-          "</div>"+
-          "<div style='margin-top:10px'>";
+        body += `<div class='produce-modal-card' style='display:flex;flex-direction:column;justify-content:space-between'>`+
+          `<div>`+
+            `<div class='spread'><b>${esc(sp.name)}</b><span class='tag gold'>+${fmtM(sp.cashAdvance)} Advance</span></div>`+
+            `<div class='tiny muted' style='margin:4px 0'>${esc(sp.desc)}</div>`+
+            `<div class='tiny' style='color:#7fb4d6'>Category: ${esc(sp.category)} · Penalty Risk: ${Math.round(sp.criticPenaltyRisk*100)}%</div>`+
+          `</div>`+
+          `<div style='margin-top:10px'>`;
         if(inProd.length){
-          h += "<button class='btn btn-xs btn-primary' style='width:100%' data-sponsor-id='" + sp.id + "'>Sign Placement Deal</button>";
+          body += `<button class='produce-action' style='width:100%' data-sponsor-id='${sp.id}'>Sign Placement Deal</button>`;
         } else {
-          h += "<button class='btn btn-xs' style='width:100%' disabled>Need In-Production Film</button>";
+          body += `<button class='produce-ghost' style='width:100%' disabled>Need In-Production Film</button>`;
         }
-        h += "</div></div>";
+        body += `</div></div>`;
       });
-      h += "</div>";
-
-      return h;
+      body += `</div></div>`;
+      let foot = `<div class='produce-modal-actions'><span class='tiny muted'>Brand cash is upfront — critic penalty is on release</span><button class='produce-ghost' onclick='closeModal()'>Close</button></div>`;
+      return head+body+foot;
     }
 
     function wireEvents(container){
@@ -351,7 +348,7 @@
 
     const initialHtml = "<div id='sponsorsModalInner'>" + renderInner() + "</div>";
     if(typeof openModal === "function"){
-      const v = openModal(initialHtml);
+      const v = openModal(initialHtml,{className:'command-produce-modal command-dialog'});
       if(v){
         const inner = v.querySelector("#sponsorsModalInner") || v;
         wireEvents(inner);

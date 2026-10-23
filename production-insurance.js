@@ -126,37 +126,26 @@
       return;
     }
 
-    let h = "<h3>Production Completion Guarantor &amp; Risk Insurance</h3>";
-    h += "<div class='tiny muted' style='margin-bottom:12px'>Underwrite budget protection policies for \"" + esc(target.title) + "\" (Budget: $" + target.budget + "M). Prevent catastrophic production cost spikes.</div>";
-
-    h += "<div class='grid g3'>";
+    let head = `<div class='produce-modal-head'><span class='command-eyebrow'>PRODUCTION OFFICE / GUARANTOR</span><h3>Completion guarantor &amp; risk insurance</h3><p>Underwrite budget protection for &quot;${esc(target.title)}&quot; — budget ${fmtM(target.budget)}. Prevent catastrophic overruns, star claims and weather delays. Premium is paid up front; claims are settled from the same desk.</p></div>`;
+    let body = `<div class='produce-modal-body'><div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px'>`;
     for(const k in INSURANCE_TIERS){
       const tier = INSURANCE_TIERS[k];
       const prem = Math.max(0.2, Math.round(target.budget * tier.premiumRate * 10) / 10);
       const isBound = (target.insurancePolicy || {}).tierId === tier.id;
-
-      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
-        "<div>"+
-          "<div class='spread'><b>" + esc(tier.name) + "</b><span class='tag " + (tier.id === "full_completion" ? "gold" : "") + "'>" + Math.round(tier.coverage * 100) + "% Covered</span></div>"+
-          "<div class='tiny muted' style='margin:6px 0'>" + esc(tier.desc) + "</div>"+
-          "<div class='tiny' style='margin:4px 0'>Upfront Premium: <b>$" + prem + "M</b></div>"+
-        "</div>"+
-        "<div style='margin-top:10px'>"+
-          (isBound ? (
-            "<button class='btn btn-sm btn-alt' style='width:100%' disabled>Policy Active</button>"
-          ) : (
-            "<button class='btn btn-sm btn-primary' style='width:100%' data-buyins='" + target.id + ":" + tier.id + "'>Bind ($" + prem + "M)</button>"
-          ))+
-        "</div>"+
-      "</div>";
+      body += `<div class='produce-modal-card' style='display:flex;flex-direction:column;justify-content:space-between'>`+
+        `<div>`+
+          `<div class='spread'><b>${esc(tier.name)}</b><span class='tag ${tier.id === "full_completion" ? "gold" : ""}'>${Math.round(tier.coverage * 100)}% Covered</span></div>`+
+          `<div class='tiny muted' style='margin:6px 0'>${esc(tier.desc)}</div>`+
+          `<div class='tiny' style='margin:4px 0'>Upfront Premium: <b>${fmtM(prem)}</b></div>`+
+        `</div>`+
+        `<div style='margin-top:10px'>`+
+          (isBound ? `<button class='produce-ghost' style='width:100%' disabled>Policy Active</button>` : `<button class='produce-action' style='width:100%' data-buyins='${target.id}:${tier.id}'>Bind (${fmtM(prem)})</button>`)+
+        `</div>`+
+      `</div>`;
     }
-    h += "</div>";
-
-    h += "<div class='modal-actions' style='margin-top:14px'>"+
-      "<button class='btn btn-primary' onclick='closeModal()'>Close</button>"+
-    "</div>";
-
-    const v = openModal(h);
+    body += `</div></div>`;
+    let foot = `<div class='produce-modal-actions'><span class='tiny muted'>${target.insurancePolicy ? `Active: ${esc(target.insurancePolicy.tierName)} — ${Math.round(target.insurancePolicy.coverageRate*100)}% covered` : `Choose a tier — the premium is debited from ${fmtM(S.studio.cash)} cash on hand`}</span><button class='produce-ghost' onclick='closeModal()'>Close</button></div>`;
+    const v = openModal(head+body+foot,{className:'command-produce-modal'});
     v.querySelectorAll("[data-buyins]").forEach(b => {
       b.onclick = () => {
         const parts = b.dataset.buyins.split(":");
