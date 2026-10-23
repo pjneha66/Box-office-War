@@ -134,5 +134,31 @@ w.eval(`BOXOFFICE_SUB='awards';render();`);
 assert.equal($$('.command-boxoffice .bo-campaign').length>=4,true,'award circuit cards');
 console.log('PASS all seven readings: no legacy cards, charts and module panels intact');
 
+/* 7 — the dialogs that open from this desk are all produce shells */
+w.eval(`rivalProfileModal(G.rivals[0]);`);
+assert($('#modalRoot .command-produce-modal'),'rival dossier opens the produce shell');
+assert($('#modalRoot .produce-modal-head h3').textContent.includes(w.eval('G.rivals[0].name')),'rival name in the head');
+assert.equal($$('#modalRoot .bo-kpi').length,4,'rival KPI strip');
+assert($('#modalRoot .bo-split'),'head-to-head split');
+assert.equal($$('#modalRoot .card').length,0,'no legacy cards in the rival dossier');
+w.eval(`closeModal();`);
+
+w.eval(`G.news=G.news||[];G.news.push({w:G.week,t:'Praise for the new slate.'});WKSNAP={cash:G.studio.cash-4.8,weeks:1};try{localStorage.setItem('bow_wksum','1')}catch(e){};weekSummaryModal();`);
+assert($('#modalRoot .command-produce-modal'),'weekly report opens the produce shell');
+assert($('#modalRoot .produce-modal-head'),'weekly report head with the cash delta');
+assert.equal($$('#modalRoot .bo-track-row').length>=1,true,'weekly report lists the week facts');
+assert($('#modalRoot #wkGo'),'Onward button preserved');
+assert.equal($$('#modalRoot [data-wk-tab]').length,4,'all four jump buttons preserved');
+assert.equal($$('#modalRoot .card').length,0,'no legacy cards in the weekly report');
+w.eval(`closeModal();`);
+
+w.eval(`MarketingBlitz.openMarketingBlitzModal(G);`);
+assert($('#modalRoot .command-produce-modal'),'blitz command opens the produce shell');
+assert($('#modalRoot #mktgModalInner'),'re-render hook preserved');
+assert($('#modalRoot .produce-modal-head h3').textContent.toLowerCase().includes('marketing blitz'),'blitz head');
+assert.equal($$('#modalRoot .card').length,0,'no legacy cards in the blitz command');
+w.eval(`closeModal();`);
+console.log('PASS dialogs: rival dossier, weekly report and blitz command are produce shells');
+
 assert.deepEqual(errors,[]);
 console.log('BOX OFFICE FIGURES PASSED ✅');
