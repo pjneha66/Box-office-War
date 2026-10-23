@@ -1961,7 +1961,7 @@ DATA.LIVE_DEFAULTS = {
   channels: [],           // owned channels {id, schedule[24], adSold[24]}
   activeChannel: "bow_movies",
   activeHost: "rex",
-  subTab: "linear",
+  subTab: "home",
   streaming: {            // streaming service state
     live: false,
     topic: "feature_premiere",

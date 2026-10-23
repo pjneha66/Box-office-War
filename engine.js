@@ -8498,7 +8498,7 @@ function initLiveDefaults(s){
     channels: channels,
     activeChannel: "bow_movies",
     activeHost: "rex",
-    subTab: "linear",
+    subTab: "home",
     streaming: {
       live: false,
       topic: "feature_premiere",
@@ -8552,7 +8552,8 @@ function ensureLiveState(g){
   }
   if(!g.live.activeChannel) g.live.activeChannel = "bow_movies";
   if(!g.live.activeHost) g.live.activeHost = "rex";
-  if(!g.live.subTab) g.live.subTab = "linear";
+  if(["home","linear","stream","events","studio"].indexOf(g.live.subTab) < 0) g.live.subTab = "home";
+  if(g.live.activeSub && ["home","linear","stream","events","studio"].indexOf(g.live.activeSub) < 0) g.live.activeSub = g.live.subTab;
   if(!g.live.streaming) g.live.streaming = initLiveDefaults(g).streaming;
   if(!g.live.events) g.live.events = initLiveDefaults(g).events;
   if(!g.live.hosts) g.live.hosts = initLiveDefaults(g).hosts;

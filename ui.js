@@ -2041,7 +2041,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -9790,10 +9790,11 @@ function viewLive(){
 
   // Sub-tabs
   const subs = [
-    ["linear", "Linear TV Channels & Schedule"],
-    ["stream", "Live Streaming Hub"],
-    ["events", "Live Events & Festivals"],
-    ["studio", "On-Air Host Studio"]
+    ["home", "Home"],
+    ["linear", "Channels"],
+    ["stream", "Live Stream"],
+    ["events", "Events"],
+    ["studio", "Hosts"]
   ];
   h += "<div class='subnav-pills'>"+
     subs.map(s => {
@@ -9807,8 +9808,16 @@ function viewLive(){
   else if(activeSub === "stream") h += viewLiveStream();
   else if(activeSub === "events") h += viewLiveEvents();
   else if(activeSub === "studio") h += viewLiveStudio();
+  else h += viewLiveHome();
 
   return h;
+}
+
+function viewLiveHome(){
+  const live = G.live || {};
+  const unlocked = (live.channels || []).filter(c => c.unlocked);
+  return "<div class='section-title'>Broadcast home</div>"+
+    "<div class='card small muted'>"+unlocked.length+" of "+((live.channels||[]).length)+" channels unlocked. Pick Channels to run the 24-hour grid, Live Stream to go on air, Events for the festival calendar, or Hosts to pick your on-air lead.</div>";
 }
 
 function viewLiveLinear(){

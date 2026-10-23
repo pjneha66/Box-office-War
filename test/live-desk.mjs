@@ -11,7 +11,7 @@ const html=fs.readFileSync('index.html','utf8')
   .replace(/<script>\s*\/\* PWA[^]*?<\/script>/,'');
 const vc=new VirtualConsole(),errors=[];
 vc.on('error',(...a)=>errors.push(a.join(' ')));
-vc.on('jsdomError',e=>{ if(!/Could not load|Not implemented: navigation/.test(String(e&&e.message))) errors.push(String(e&&e.message)); });
+vc.on('jsdomError',e=>{ if(!/Could not load|Not implemented: (navigation|HTMLCanvasElement|Window's scrollTo)/.test(String(e&&e.message))) errors.push(String(e&&e.message)); });
 const dom=new JSDOM(html,{runScripts:'dangerously',url:'http://localhost/',pretendToBeVisual:true,virtualConsole:vc});
 const w=dom.window;
 const $=s=>w.document.querySelector(s), $$=s=>[...w.document.querySelectorAll(s)];
