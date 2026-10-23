@@ -8832,7 +8832,7 @@ function tickLiveEvents(){
 
 function submitFilmToFestival(filmId, festivalId){
   ensureLiveState(G);
-  const cost = 0.25;
+  const cost = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.festivalFee) || 0.25;
   if(G.studio.cash < cost) return { ok:false, reason:"Insufficient funds ($0.25M entry fee needed)" };
   spend("marketing", cost);
   G.live.events.submissions[festivalId] = filmId;
@@ -8843,7 +8843,7 @@ function submitFilmToFestival(filmId, festivalId){
 
 function hostRedCarpetPremiere(filmId, cityId){
   ensureLiveState(G);
-  const cost = 1.5;
+  const cost = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.premiere) || 1.5;
   if(G.studio.cash < cost) return { ok:false, reason:"Insufficient funds ($1.5M premiere budget required)" };
   spend("marketing", cost);
   G.live.events.premieres.push({
@@ -8899,7 +8899,7 @@ function selectActiveHost(hostId){
 
 function trainLiveHost(hostId){
   ensureLiveState(G);
-  const cost = 1.0;
+  const cost = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.hostTrain) || 1.0;
   if(G.studio.cash < cost) return { ok:false, reason:"Need $1.0M for media coaching" };
   const host = G.live.hosts[hostId];
   if(!host) return { ok:false, reason:"Host not found" };

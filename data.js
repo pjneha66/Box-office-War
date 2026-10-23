@@ -1952,6 +1952,10 @@ DATA.LIVE_HOSTS = [
   }
 ];
 
+/* One source of truth for Live TV action fees: the engine charges these and
+   the UI displays these, so a button can never quote a stale price again. */
+DATA.LIVE_COSTS = { festivalFee: 0.25, premiere: 1.5, hostTrain: 1.0 };
+
 DATA.liveChannel = (id) => (DATA.LIVE_CHANNELS || []).find(c => c.id === id);
 DATA.liveEvent = (id) => (DATA.LIVE_EVENTS || []).find(e => e.id === id);
 DATA.liveHost = (id) => (DATA.LIVE_HOSTS || []).find(h => h.id === id);

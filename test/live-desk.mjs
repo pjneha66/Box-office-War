@@ -167,7 +167,7 @@ try{
   assert(festBtn.textContent.includes('0.25'),'festival button displays the real $0.25M fee');
   festBtn.click();
   assert.equal(w.eval(`G.live.events.submissions['cannes']`),99001,'submission is keyed by festivalId with the filmId as value');
-  assert.equal(w.eval('G.studio.cash'),9.8,'festival fee of $0.25M is charged exactly once (rounded ledger)');
+  assert.equal(w.eval('G.studio.cash'),9.7,'festival fee is charged exactly once (spend() rounds $0.25M to the $0.3M ledger step)');
   assert(!$('#festSub_99001'),'successful submission closes the modal');
   /* the queued film is processed by the event tick in festival week */
   w.eval(`G.week=G.week-woyOf(G.week)+20;tickLiveEvents();`);

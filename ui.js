@@ -9845,9 +9845,9 @@ function viewLiveLinear(){
     const def = DATA.liveChannel(c.id) || {};
     h += "<div class='channel-pill " + (isSel ? "active" : "") + "' data-live-ch='" + c.id + "' style='cursor:pointer;min-width:140px;padding:8px 12px;border-radius:var(--radius-sm);background:" + (isSel ? "var(--card-hover)" : "var(--card)") + ";border:1px solid " + (isSel ? "var(--gold)" : "var(--line)") + "'>"+
       "<div class='spread'><b class='small' style='color:" + (isSel ? "var(--gold)" : "var(--text)") + "'>" + esc(def.name || c.id) + "</b>"+
-      "<span class='tiny tag' style='font-size:9px'>" + esc(def.category || "General") + "</span></div>"+
+      "<span class='tiny tag' style='font-size:9px'>" + esc(def.type || "general") + "</span></div>"+
       "<div class='tiny muted' style='margin-top:4px'>" +
-      (c.unlocked ? (isAct ? "<span style='color:var(--green)'>● Active</span> · " + ((c.weeklyViewers || 0)).toFixed(1) + "M" : "<span class='muted'>○ Off-Air</span>") : "<span style='color:var(--dim)'>Locked ($" + (def.unlockCost || 5) + "M)</span>") +
+      (c.unlocked ? (isAct ? "<span style='color:var(--green)'>● Active</span> · " + ((c.weeklyViewers || 0)).toFixed(1) + "M" : "<span class='muted'>○ Off-Air</span>") : "<span style='color:var(--dim)'>Locked (" + fmtM(def.cost || 0) + ")</span>") +
       "</div></div>";
   }
   h += "</div>";
@@ -9857,13 +9857,13 @@ function viewLiveLinear(){
 
   // Selected Channel Detail Card
   h += "<div class='card' style='margin-bottom:14px;border-left:3px solid var(--gold)'>";
-  h += "<div class='spread'><div><h3 style='margin:0 0 4px 0'>" + esc(chDef.name || ch.id) + " <span class='tag gold'>" + esc(chDef.category || "General") + "</span></h3>"+
-    "<div class='small muted'>" + esc(chDef.description || "") + "</div></div>";
+  h += "<div class='spread'><div><h3 style='margin:0 0 4px 0'>" + esc(chDef.name || ch.id) + " <span class='tag gold'>" + esc(chDef.type || "general") + "</span></h3>"+
+    "<div class='small muted'>" + esc(chDef.desc || "") + "</div></div>";
 
   if(!ch.unlocked){
-    const canUnlock = G.studio.cash >= (chDef.unlockCost || 5) && G.studio.rep >= (chDef.minRep || 0);
-    h += "<div><button class='btn btn-primary btn-sm' data-live-unlock='" + ch.id + "' " + (canUnlock ? "" : "disabled") + ">Unlock Network ($" + (chDef.unlockCost || 5) + "M)</button>"+
-      "<div class='tiny muted' style='text-align:right;margin-top:4px'>Requires Rep " + (chDef.minRep || 0) + "+</div></div>";
+    const canUnlock = G.studio.cash >= (chDef.cost || 0);
+    h += "<div><button class='btn btn-primary btn-sm' data-live-unlock='" + ch.id + "' " + (canUnlock ? "" : "disabled") + ">Unlock Network (" + fmtM(chDef.cost || 0) + ")</button>"+
+      "<div class='tiny muted' style='text-align:right;margin-top:4px'>" + (canUnlock ? "Cash available" : "Need " + fmtM(chDef.cost || 0)) + "</div></div>";
   } else {
     h += "<div style='display:flex;gap:6px;align-items:center'>"+
       "<button class='btn btn-sm " + (ch.active ? "btn-alt" : "btn-primary") + "' data-live-toggle='" + ch.id + "'>" + (ch.active ? "Pause Broadcast" : "Resume Broadcast") + "</button>"+
@@ -9880,9 +9880,7 @@ function viewLiveLinear(){
     h += "<div class='row' style='margin-top:10px;gap:16px;font-size:12px;border-top:1px solid var(--line);padding-top:8px'>"+
       "<div>Audience: <b class='gold'>" + ((ch.weeklyViewers || 0)).toFixed(1) + "M/wk</b></div>"+
       "<div>Est. Ad Gross: <b style='color:var(--green)'>+" + fmtM(ch.weeklyAdRev || 0) + "/wk</b></div>"+
-      "<div>Transmission Overhead: <b style='color:var(--red)'>-$" + (ch.operatingCost || chDef.overhead || 0.1) + "M/wk</b></div>"+
-      "<div>Net Margin: <b>" + fmtM((ch.weeklyAdRev || 0) - (ch.operatingCost || chDef.overhead || 0.1)) + "/wk</b></div>"+
-      "<div>Network Prestige: <b>" + (ch.reputation || 50) + "/100</b></div>"+
+      "<div>Operating Cost: <b style='color:var(--red)'>-" + fmtM(ch.operatingCost || 0) + "/wk</b></div>"+
       "</div>";
   }
   h += "</div>";
@@ -10057,7 +10055,7 @@ function viewLiveEvents(){
 
   let h = "";
   h += "<div class='section-title spread'><span>Major Live Events, Festivals & Red Carpets</span>"+
-    "<button class='btn btn-sm btn-primary' data-live-premiere='1'>Host Red Carpet Premiere ($1M)</button>"+
+    "<button class='btn btn-sm btn-primary' data-live-premiere='1'>Host Red Carpet Premiere (" + fmtM((DATA.LIVE_COSTS||{}).premiere || 1.5) + ")</button>"+
     "</div>";
 
   h += "<div class='tiny muted' style='margin-bottom:12px'>"+
@@ -10093,7 +10091,7 @@ function viewLiveEvents(){
         "<span class='muted'>Prestige: <b>" + (ev.prestige || 0) + "</b> · " + (ev.viewers || 0) + "M viewers · " + (ev.dur || 1) + "d</span>";
 
       if(ev.type === "festival"){
-        h += "<button class='btn btn-xs btn-alt' data-live-fest-submit='" + ev.id + "'>Submit Film ($" + (ev.entryFee || 0.5) + "M)</button>";
+        h += "<button class='btn btn-xs btn-alt' data-live-fest-submit='" + ev.id + "'>Submit Film (" + fmtM((DATA.LIVE_COSTS||{}).festivalFee || 0.25) + ")</button>";
       } else if(ev.type === "awards"){
         h += "<span class='tag' style='font-size:9px'>FYC Campaign Ready</span>";
       } else {
@@ -10162,7 +10160,7 @@ function viewLiveStudio(){
     // Action Buttons
     h += "<div class='row' style='gap:6px'>"+
       (isActive ? "<button class='btn btn-xs btn-ghost' disabled style='flex:1'>Active on Air</button>" : "<button class='btn btn-xs btn-primary' data-live-host-select='" + host.id + "' style='flex:1'>Set Active Host</button>")+
-      "<button class='btn btn-xs btn-alt' data-live-host-train='" + host.id + "' title='Media Training: +XP & Charisma'>Train ($0.5M)</button>"+
+      "<button class='btn btn-xs btn-alt' data-live-host-train='" + host.id + "' title='Media Training: Charisma +4, Energy +5' " + (G.studio.cash >= ((DATA.LIVE_COSTS||{}).hostTrain || 1.0) ? "" : "disabled") + ">Train (" + fmtM((DATA.LIVE_COSTS||{}).hostTrain || 1.0) + ")</button>"+
       "</div>";
 
     h += "</div>";
@@ -10255,8 +10253,9 @@ function liveFestSubmitModal(eventId){
 
   const eligibleFilms = (G.films || []).filter(f => !f.unreleased && (f.quality && f.quality.overall >= 45));
 
+  const festFee = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.festivalFee) || 0.25;
   let h = "<h3>Festival Competition: " + esc(ev.name) + "</h3>"+
-    "<div class='tiny muted' style='margin-bottom:12px'>" + esc(ev.description || "") + " · Entry Fee: $" + (ev.entryFee || 0.5) + "M · Min Studio Rep: " + (ev.minRep || 0) + "</div>";
+    "<div class='tiny muted' style='margin-bottom:12px'>" + esc(ev.desc || "") + " · Entry Fee: $" + festFee + "M · Week " + ev.week + " · Prestige " + (ev.prestige || 0) + "</div>";
 
   if(!eligibleFilms.length){
     h += "<div class='card muted small'>No films meet the minimum festival submission quality standard (Quality >= 45). Produce higher quality pictures to enter competition.</div>";
@@ -10266,7 +10265,7 @@ function liveFestSubmitModal(eventId){
       const qual = f.quality && f.quality.overall || 50;
       h += "<div class='row spread' style='padding:6px 10px;background:var(--bg2);border-radius:var(--radius-sm)'>"+
         "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + " · Score: " + qual + "</span></div>"+
-        "<button class='btn btn-xs btn-primary' id='festSub_" + f.id + "'>Submit ($" + (ev.entryFee || 0.5) + "M)</button>"+
+        "<button class='btn btn-xs btn-primary' id='festSub_" + f.id + "' " + (G.studio.cash >= festFee ? "" : "disabled") + ">Submit ($" + festFee + "M)</button>"+
         "</div>";
     }
     h += "</div>";
@@ -10296,8 +10295,9 @@ function liveFestSubmitModal(eventId){
 function livePremiereModal(){
   const upcomingFilms = (G.projects || []).concat((G.films || []).filter(f => !f.archived)).slice(0, 15);
 
+  const premCost = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.premiere) || 1.5;
   let h = "<h3>Host Red Carpet Star Gala Premiere</h3>"+
-    "<div class='tiny muted' style='margin-bottom:12px'>Gala premieres cost $1.0M cash and provide an immediate +15 buzz boost and opening box office uplift.</div>";
+    "<div class='tiny muted' style='margin-bottom:12px'>Gala premieres cost " + fmtM(premCost) + " cash. The premiere is queued now and broadcasts on the next weekly tick, applying +0.25 buzzBonus to the film exactly once.</div>";
 
   if(!upcomingFilms.length){
     h += "<div class='card muted small'>No active projects or theatrical titles available for a premiere gala.</div>";
@@ -10306,7 +10306,7 @@ function livePremiereModal(){
     for(const f of upcomingFilms){
       h += "<div class='row spread' style='padding:6px 10px;background:var(--bg2);border-radius:var(--radius-sm)'>"+
         "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + "</span></div>"+
-        "<button class='btn btn-xs btn-primary' id='premGo_" + f.id + "'>Host Gala ($1M)</button>"+
+        "<button class='btn btn-xs btn-primary' id='premGo_" + f.id + "' " + (G.studio.cash >= premCost ? "" : "disabled") + ">Host Gala (" + fmtM(premCost) + ")</button>"+
         "</div>";
     }
     h += "</div>";
