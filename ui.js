@@ -11073,33 +11073,23 @@ function deepfakeModal(){
   };
 }
 
-/* ── divisions panel ── */
+/* ── divisions ledger (v35.0 desk rows — no legacy div-card chrome) ── */
 function divisionsPanel(){
-  let h="<div class='divisions-grid'>";
-  // Game Studio
   const gs=G.gameStudio;
-  h+="<div class='div-card'><div class='div-icon'>🎮</div><div class='div-main'><b>Game Studio</b>";
-  h+="<div class='div-sub'>"+(gs? (gs.title||"In development") : "No active project")+"</div>";
-  h+="</div><div class='div-side'>"+(gs? fmtMoney(gs.weekly||0)+"/wk" : "—")+"</div></div>";
-  // Store
   const sl=storeLevel();
-  h+="<div class='div-card'><div class='div-icon'>🏪</div><div class='div-main'><b>Merchandise</b>";
-  h+="<div class='div-sub'>Level "+sl+" — direct retail stream</div>";
-  h+="</div><div class='div-side'>"+fmtMoney(storeDirectIncome())+"/wk</div></div>";
-  // Publishing
   const pub=(G.franchises||[]).filter(f=>f.publishing).length;
   const pubInc=(G.franchises||[]).reduce((s,f)=>s+publishingIncome(f),0);
-  h+="<div class='div-card'><div class='div-icon'>📚</div><div class='div-main'><b>Publishing</b>";
-  h+="<div class='div-sub'>"+pub+" franchise"+(pub!==1?"s":"")+" licensed</div>";
-  h+="</div><div class='div-side'>"+fmtMoney(pubInc)+"/wk</div></div>";
-  // Comics
   const com=(G.franchises||[]).reduce((s,f)=>s+(f.comics||0),0);
   const comInc=(G.franchises||[]).reduce((s,f)=>s+comicsIncome(f),0);
-  h+="<div class='div-card'><div class='div-icon'>💬</div><div class='div-main'><b>Comics</b>";
-  h+="<div class='div-sub'>"+com+" line"+(com!==1?"s":"")+" running</div>";
-  h+="</div><div class='div-side'>"+fmtMoney(comInc)+"/wk</div></div>";
-  h+="</div>";
-  return h;
+  const drow=(icon,name,sub,side)=>
+    "<div class='empire-row'><span>"+icon+" <b>"+name+"</b> <span class='tiny muted'>"+sub+"</span></span>"+
+    "<b class='gold'>"+side+"</b></div>";
+  return "<div class='empire-block empire-divisions'>"+
+    drow("🎮","Game Studio",gs?(gs.title||"In development"):"No active project",gs?fmtMoney(gs.weekly||0)+"/wk":"—")+
+    drow("🏪","Merchandise","Level "+sl+" — direct retail stream",fmtMoney(storeDirectIncome())+"/wk")+
+    drow("📚","Publishing",pub+" franchise"+(pub!==1?"s":"")+" licensed",fmtMoney(pubInc)+"/wk")+
+    drow("💬","Comics",com+" line"+(com!==1?"s":"")+" running",fmtMoney(comInc)+"/wk")+
+    "</div>";
 }
 
 /* ── board vote modal ── */

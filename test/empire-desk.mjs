@@ -824,12 +824,14 @@ try{
   assert.equal(w.eval('G.franchises.some(f=>f.name==="Market Pick")'),true,'buy action routes through buyIp()');
   console.log('PASS C8: IP market & sell — real listings, persisted bids, working buy action');
 
-  /* C9 — Divisions ledger lists the live division cards */
+  /* C9 — Divisions ledger lists the live divisions as desk rows, no legacy chrome */
   w.eval(`G.empire.subTab='divisions';G.empire.activeSub='divisions';render();`);
-  assert($$('#view .div-card').length>=3,'divisions ledger lists the operating divisions');
+  assert.equal($$('#view .empire-divisions .empire-row').length,4,'divisions ledger lists the four operating divisions as desk rows');
+  assert(viewText().includes('Game Studio')&&viewText().includes('Merchandise')&&viewText().includes('Publishing')&&viewText().includes('Comics'),'division rows name the operating divisions');
+  assert.equal($$('#view .divisions-grid, #view .div-card, #view .div-icon, #view .div-main, #view .div-sub, #view .div-side').length,0,'legacy .div-card icon-tile ledger chrome is gone');
   const wb=w.eval('empireWeeklyBreakdown()');
   assert(viewText().includes(w.fmtM(wb.publishing))||viewText().includes(w.fmtM(wb.total)),'ledger reads the live weekly breakdown');
-  console.log('PASS C9: divisions ledger — live division cards and weekly breakdown');
+  console.log('PASS C9: divisions ledger — four desk rows reading the live weekly breakdown');
 
   /* C10 — Endgame crown tracker reads endgameGoals()/endgameInfluence() */
   w.eval(`G.empire.subTab='endgame';G.empire.activeSub='endgame';render();`);
@@ -855,13 +857,14 @@ try{
   console.log('PASS C11: custom & purchased onboarding — badges, guidance and safe empty states');
 
   /* Zero legacy chrome across every desk panel (populated + empty) */
+  const LEGACY_CHROME='#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter, #view .divisions-grid, #view .div-card, #view .div-icon, #view .div-main, #view .div-sub, #view .div-side, #view .div-row';
   for(const sub of allSubs){
     popDesk();
     w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
-    assert.equal($$('#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter').length,0,
-      `${sub}: zero legacy .card/.section-title/.cost-line/.stat-hero/.fr-meter in the desk`);
+    assert.equal($$(LEGACY_CHROME).length,0,
+      `${sub}: zero legacy .card/.section-title/.cost-line/.stat-hero/.fr-meter/.div-card chrome in the desk`);
     fresh(sub);
-    assert.equal($$('#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter').length,0,
+    assert.equal($$(LEGACY_CHROME).length,0,
       `${sub}: zero legacy classes on an empty career too`);
   }
   console.log('PASS C-DESK: zero legacy chrome on every Empire panel — populated and empty');
