@@ -242,6 +242,14 @@ npm run validate:slots  # Save slot structural validation (validate-slots.js)
 
 ---
 
+## Working Docs
+
+- `docs/UPDATE-BRIEF.md` — standing brief for the next redesign pass: design direction,
+  everything shipped through v33.4, legacy-CSS traps, and the verification gate.
+- `docs/MANAGEMENT-AUDIT.md` — dashboard/studio command-deck audit and fixed defects.
+
+---
+
 ## Architecture & Design Principles
 
 - **Zero Framework Overhead**: Written in standard, high-performance vanilla JavaScript (ES6+), semantic HTML5, and pure CSS custom properties (`design-tokens.css`).

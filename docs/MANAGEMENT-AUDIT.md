@@ -1,5 +1,9 @@
 # Dashboard / Studio command-deck audit
 
+> Standing handoff brief for the next pass: [`docs/UPDATE-BRIEF.md`](UPDATE-BRIEF.md).
+> It records the design direction, everything shipped since this audit (PR #12 / v33.4),
+> the legacy-CSS traps, and the verification gate.
+
 ## Coverage
 
 `npm run test:management` boots the real app scripts in JSDOM. It covers all four
