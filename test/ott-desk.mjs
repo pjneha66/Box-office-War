@@ -60,6 +60,29 @@ try{
   assert(floor>=0,'sports power remains clamped at zero');
   console.log('PASS A3: one 1.5%/wk sports decay, non-negative floor');
 
+  /* A4 — expose the two already-implemented streamer actions. */
+  w.eval(`G.streamer={name:'Action Test',subs:12.5,peak:12.5,income:6,totalRev:60,sportsPower:2,churn:.008,lastContent:G.week,tier:'premium',crackdown:0,history:[],subHistory:[]};G.studio.cash=500;G.studio.rep=60;OTT_SUB='home';render();window.__crackdownCalls=0;window.__originalCrackdown=crackdownPasswordSharing;crackdownPasswordSharing=function(){window.__crackdownCalls++;return {ok:true,boost:2.5,crackdownWeeks:8};};window.confirm=function(){return true;};`);
+  const crackdown=$('#ottCrackdown');
+  assert(crackdown,'Home exposes a password-crackdown button');
+  assert.equal(typeof crackdown.onclick,'function','password-crackdown button is wired');
+  assert.equal(crackdown.disabled,false,'crackdown is available with a streamer and enough cash');
+  assert(crackdown.closest('#view').textContent.includes('rep −8'),'crackdown copy discloses the reputation cost');
+  assert(crackdown.closest('#view').textContent.includes('churn ×2 for 8 weeks'),'crackdown copy discloses the churn side effect');
+  crackdown.click();
+  assert.equal(w.eval('window.__crackdownCalls'),1,'the Home button calls crackdownPasswordSharing');
+  w.eval(`crackdownPasswordSharing=window.__originalCrackdown;G.streamer.crackdown=3;render();`);
+  assert.equal($('#ottCrackdown').disabled,true,'crackdown is disabled while already active');
+  w.eval(`OTT_SUB='sports';render();window.__liveEventCalls=[];window.__originalLiveEvent=licenseLiveEvent;licenseLiveEvent=function(type){window.__liveEventCalls.push(type);return {ok:true,ppvRevenue:10,subBoost:1};};`);
+  const liveButtons=$$('#view [data-live-event]');
+  assert.equal(liveButtons.length,3,'Sports exposes all three existing live-event licenses');
+  liveButtons.forEach(b=>assert.equal(typeof b.onclick,'function',`${b.dataset.liveEvent} live-event button is wired`));
+  const concert=$('#view [data-live-event="concert"]');
+  concert.click();
+  assert.equal(w.eval('window.__liveEventCalls.join(",")'),'concert','the live-event button calls licenseLiveEvent with its event type');
+  w.eval(`licenseLiveEvent=window.__originalLiveEvent;G.streamer=null;render();`);
+  assert($$('#view [data-live-event]').every(b=>b.disabled),'live-event licenses are disabled without a streamer');
+  console.log('PASS A4: crackdown and live-event buttons call their engine actions with disabled states');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');
 }catch(e){

@@ -5962,6 +5962,10 @@ function viewOTT(){
         return "<div class='tiny " + (ok?"pos":"neg") + "' style='margin-top:6px'>🇪🇺 EU content quota: "+Math.round(r.share*100)+"% European works (need "+Math.round(DATA.GLOBAL.eu.quota*100)+"%"+note+"). London/Toronto/Queensland shoots &amp; foreign-language films count.</div>";
       })()+
       "<div class='tiny muted' style='margin-top:6px'>Feed it: move finished films onto the platform, or win live sports rights.</div></div>";
+    h+="<div class='card ott-crackdown'><b>🔐 Password-sharing crackdown</b>"+
+      "<p class='small muted'>Convert shared accounts into paid subscriptions. Cost $20M · rep −8 · churn ×2 for 8 weeks.</p>"+
+      "<button class='btn btn-sm btn-alt' id='ottCrackdown' "+((st.crackdown>0||G.studio.cash<20)?"disabled":"")+">"+
+      (st.crackdown>0? "Crackdown active · "+st.crackdown+" weeks left" : G.studio.cash<20? "Needs $20M cash" : "Start crackdown — $20M")+"</button></div>";
     h+="<div class='section-title'>💸 Subscription tiers</div><div class='grid g2'>";
     DATA.TIERS.forEach(function(t){
       const on=(st.tier||"premium")===t.id;
@@ -5990,6 +5994,12 @@ function viewOTT(){
     else h+="<div class='tiny muted'>No sports rights yet. An auction will arrive near week 13, 26, 39 or 52.</div></div>";
     if(held.length) h+="</div>";
   }
+  h+="<div class='section-title'>🎪 Live event licensing</div><div class='card ott-live-events'>"+
+    "<p class='small muted'>License one-off PPV events through the existing live-event desk. Each purchase settles immediately.</p><div class='row'>"+
+    [["awardshow","Award show",25],["concert","Concert",40],["boxing","Boxing match",60]].map(function(e){
+      const disabled=!G.streamer||G.studio.cash<e[2];
+      return "<button class='btn btn-sm btn-alt' data-live-event='"+e[0]+"' "+(disabled?"disabled":"")+">"+e[1]+" — "+fmtM(e[2])+"</button>";
+    }).join("")+"</div>"+(!G.streamer?"<div class='tiny muted'>Launch a streamer to license live events.</div>":"")+"</div>";
   }
   if(OTT_SUB==="market"){
   h+="<div class='section-title'>The platforms</div><div class='grid g3'>";
@@ -6430,6 +6440,20 @@ function bindView(){
   const btnUni=$("#btnOpenUniverses"); if(btnUni) btnUni.onclick=()=>{ beep("click"); if(typeof openUniverseModal==="function") openUniverseModal(); };
   const btnFyc=$("#btnOpenAwardsCampaign"); if(btnFyc) btnFyc.onclick=()=>{ beep("click"); if(typeof openAwardsCampaignModal==="function") openAwardsCampaignModal(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥35 and $140M to launch.","bad"); };
+  const crackdown=$("#ottCrackdown");
+  if(crackdown) crackdown.onclick=()=>{
+    if(!confirm("Start a password-sharing crackdown for $20M? Reputation −8 and churn ×2 for 8 weeks.")) return;
+    const result=crackdownPasswordSharing();
+    if(result&&result.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast(result&&result.err?result.err:"The crackdown is unavailable right now.","bad");
+  };
+  $$("[data-live-event]").forEach(b=>b.onclick=()=>{
+    const fee={awardshow:25,concert:40,boxing:60}[b.dataset.liveEvent];
+    if(!confirm("License this live event for "+fmtM(fee)+"? PPV revenue and subscriber effects settle immediately.")) return;
+    const result=licenseLiveEvent(b.dataset.liveEvent);
+    if(result&&result.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast(result&&result.err?result.err:"That live event is unavailable right now.","bad");
+  });
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
   $$("[data-ownprem]").forEach(b=>b.onclick=()=>{ beep("click"); ownPremiereModal(+b.dataset.ownprem); });
   $$("[data-ending]").forEach(b=>b.onclick=()=>{ if(applyAltEnding(+b.dataset.eid, b.dataset.ending)){ beep("gold"); flashes(G.flash); render(); } });
