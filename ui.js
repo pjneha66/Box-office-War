@@ -1267,6 +1267,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"35.0", label:"EMPIRE DESK — the empire command desk (Franchises rebuilt: portfolio, dossier, sequel timing planner, merch & parks, universes, music label, IP market & sell, divisions ledger, endgame crown tracker)", status:"shipped" },
   { version:"34.9", label:"Live Desk — the broadcast command desk + Develop-a-Show lab (Live TV rebuilt: home, channels, shows, grid, stream, events, hosts)", status:"shipped" },
   { version:"34.8", label:"🟡 §45 Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
   { version:"34.7", label:"Streamer sub-tabs — originals, library, finance, sports, deals", status:"shipped" },
