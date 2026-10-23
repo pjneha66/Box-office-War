@@ -27,7 +27,7 @@ try{
   console.log('PASS A1: one OTT nav, five chips, one active state');
 
   /* A2 — navigation leads the reading and Home does not clone Market. */
-  const firstSection=$('#view .section-title');
+  const firstSection=$('#view .command-ott > .produce-panel')||$('#view .section-title');
   const nav=ottChips()[0].closest('.subnav-pills')||ottChips()[0].closest('nav');
   assert(firstSection&&nav,'OTT navigation and a body section both render');
   assert(Boolean(nav.compareDocumentPosition(firstSection)&w.Node.DOCUMENT_POSITION_FOLLOWING),'OTT nav appears before the first body section');
@@ -91,6 +91,25 @@ try{
   w.eval(`G.streamer=null;`);
   assert(w.eval('viewStreamerCard()')!==null,'empty streamer dashboard card remains safe');
   console.log('PASS A5: no legacy G.sportsPower reads remain');
+
+  /* B — every reading wears the command shell and none leaks legacy cards. */
+  w.eval(`SEL={scenario:'standard',difficulty:'normal',sandbox:false,slot:1,legacy:''};newGame(DATA.ARCHETYPES[1].id,'OTT Shell Audit',SEL);enterApp(false);closeModal();switchTab('ott');`);
+  for(const key of Object.keys(destinations)){
+    w.eval(`OTT_SUB='${key}';render();`);
+    assert($('#view .command-ott'),`${key}: command shell missing`);
+    assert.equal($$('#view .command-ott > .command-heading').length,1,`${key}: one command header`);
+    assert.equal($$('#view .command-ott .command-telemetry .command-metric').length,4,`${key}: four telemetry metrics`);
+    assert($$('#view .command-ott > .produce-panel').length>=1,`${key}: produce panels render`);
+    assert.equal($$('#view .card').length,0,`${key}: no legacy .card`);
+    assert.equal($$('#view .section-title').length,0,`${key}: no legacy .section-title`);
+    assert.equal($('#view .cost-line'),null,`${key}: no legacy .cost-line`);
+    assert.equal($('#view .kairo-dept-banner'),null,`${key}: Kairo banner is excluded`);
+    const ottNav=$('#view .command-ott-nav');
+    assert(ottNav,`${key}: branded OTT nav exists`);
+    assert.equal($('#view .command-ott > .command-heading').nextElementSibling,ottNav,`${key}: nav sits directly under the header`);
+    assert(Boolean(ottNav.compareDocumentPosition($('#view .command-ott > .produce-panel'))&w.Node.DOCUMENT_POSITION_FOLLOWING),`${key}: nav precedes the first panel`);
+  }
+  console.log('PASS B: command shell, four metrics, nav order and zero legacy OTT markup');
 
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');
