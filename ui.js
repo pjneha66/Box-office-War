@@ -5889,8 +5889,6 @@ function ownStreamerBoard(){
 }
 function viewOTT(){
   let h="";
-  try{ h+=ownStreamerBoard(); }catch(e){}
-  try{ h+=streamMarketBoard(); }catch(e){}
   /* ── v28.9 §15: streamer sub-tabs (Home/Originals/Deals/Sports/Market) ── */
   if(!OTT_SUB) OTT_SUB="home";
   const OTT_TABS=[["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]];

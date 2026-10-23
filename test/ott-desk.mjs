@@ -26,6 +26,26 @@ try{
   assert.equal(ottChips().filter(b=>b.classList.contains('active')).length,1,'exactly one OTT chip is active');
   console.log('PASS A1: one OTT nav, five chips, one active state');
 
+  /* A2 — navigation leads the reading and Home does not clone Market. */
+  const firstSection=$('#view .section-title');
+  const nav=ottChips()[0].closest('.subnav-pills')||ottChips()[0].closest('nav');
+  assert(firstSection&&nav,'OTT navigation and a body section both render');
+  assert(Boolean(nav.compareDocumentPosition(firstSection)&w.Node.DOCUMENT_POSITION_FOLLOWING),'OTT nav appears before the first body section');
+  assert(!$('#view').textContent.includes('Streaming market'),'Home must not repeat the Market platform board');
+  assert(!$('#view').textContent.includes('The platforms'),'the platform list belongs only to Market');
+  const destinations={home:'Your platform',originals:'Your series',deals:'Deal offers',sports:'Live sports rights',market:'The platforms'};
+  for(const [key,copy] of Object.entries(destinations)){
+    const chip=$(`[data-ottsub="${key}"]`);
+    assert(chip,`missing ${key} chip`);
+    chip.click();
+    assert.equal(w.eval('OTT_SUB'),key,`${key} chip changes sub-tab state`);
+    assert($('#view').textContent.includes(copy),`${key} chip switches its panel`);
+    assert.equal(ottChips().filter(b=>b.classList.contains('active')).length,1,`${key} leaves one active chip`);
+    assert.equal($(`[data-ottsub="${key}"]`).classList.contains('active'),true,`${key} chip owns the active state`);
+  }
+  $('[data-ottsub="home"]').click();
+  console.log('PASS A2: nav leads content, all chips switch panels, Market is not duplicated');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');
 }catch(e){
