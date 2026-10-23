@@ -2888,8 +2888,9 @@ function greenlightRead(){
     packFee=packagingCost(leads,budget)||0;
     if(packFee>0 && typeof packagingFeeOf==="function"){ const pa=packagingFeeOf(leads); packName=pa?pa.name:""; }
   }
+  const allIn=dev+fees+cameoFee+packFee+budget;
   return {S,base,script,dirSkill,castAvg,prodSkill,budget,mkt,quality,dev,fees,cameoFee,packFee,packName,
-    allIn:dev+fees+cameoFee+packFee+budget};
+    allIn, allInWithMkt:allIn+mkt, fullBreakeven:(allIn+mkt)/0.48, theatricalBreakeven:breakevenWW({budget,marketing:mkt})};
 }
 function greenlightAside(r){
   const name=t=>t?esc(t.name):"—";
@@ -3066,7 +3067,7 @@ function wizardModal(){
             `<div class="pitch-toggles"><button class="pitch-toggle${!WZ.coProd||WZ.coProd==="none"?" on":""}" data-coprod="none" aria-pressed="${!WZ.coProd||WZ.coProd==="none"}"><span>No partner</span><small>you keep 100% of net</small></button>${DATA.COPROD_PARTNERS.map(cp=>
               `<button class="pitch-toggle${WZ.coProd===cp.id?" on":""}" data-coprod="${cp.id}" aria-pressed="${WZ.coProd===cp.id}"><span>${esc(cp.name)}</span><small>${cp.pct?"covers "+Math.round(cp.pct*100)+"% · keeps "+Math.round(cp.share*100)+"% of net":esc(cp.blurb||"partner")}</small></button>`).join("")}</div>`)
         : "")
-      +pitchGroup("THE COST SHEET",`Every line is live: change the budget or the team and it re-adds.`,
+      +pitchGroup("THE COST SHEET",`Every line is live: change the budget or the team and it re-adds — totals and breakeven update as you slide.`,
         `${pitchMoneyRow("Rights + development"+(WZ.scriptPolish?" (incl. polish)":""),fmtM(r.dev))}
          ${pitchMoneyRow("Crew & cast fees (upfront)",fmtM(r.fees))}
          ${WZ.cameo?pitchMoneyRow("🌟 Cameo — "+esc(WZ.cameo.name)+" (30% fee, +6% buzz)",fmtM(r.cameoFee)):""}
@@ -3074,8 +3075,9 @@ function wizardModal(){
          ${pitchMoneyRow("Production (paid weekly over ~"+weeks+" wks)",fmtM(r.budget))}
          ${(WZ.presales&&planned!=="streaming"&&planned!=="own")?pitchMoneyRow("Intl pre-sales (cash now)","+"+fmtM(Math.round(r.budget*0.22)),"pos"):""}
          ${pitchMoneyRow("Suggested marketing (at release)",`<span id="wzMkt">${fmtM(r.mkt)}</span>`)}
-         <div class="pitch-line pitch-line-total"><span>Total commitment</span><b id="wzTot">${fmtM(r.allIn)}</b></div>
-         <div class="pitch-note">A picture needs ≈ <b id="wzBe">${fmtM(breakevenWW({budget:r.budget,marketing:r.mkt}))}</b> worldwide gross to break even (theatres keep about half).</div>`)
+         <div class="pitch-line pitch-line-total"><span>Upfront commitment (ex-P&A)</span><b id="wzTot">${fmtM(r.allIn)}</b></div>
+         <div class="pitch-line"><span>All-in with P&A</span><b id="wzTotMkt">${fmtM(r.allInWithMkt)}</b></div>
+         <div class="pitch-note">Theatrical breakeven (budget+P&A only) ≈ <b>${fmtM(r.theatricalBreakeven)}</b> WW. To recoup the <em>full</em> investment — development, fees, production and P&A — the film needs ≈ <b id="wzBe">${fmtM(r.fullBreakeven)}</b> worldwide gross (exhibitors keep ~52%, studio sees ~48%).</div>`)
       +(warnings.length?`<div class="pitch-warnings">${warnings.map(w=>`<div>⚠ ${esc(w)}</div>`).join("")}</div>`:"");
     actions=`<button class="develop-ghost" id="wzBack">← Producer</button><button class="develop-action" id="wzGo">Greenlight the picture</button>`;
   }
@@ -3187,12 +3189,16 @@ function wizardModal(){
   if(rg){ rg.oninput=()=>{
     WZ.budget=+rg.value; $("#wzBudgetV").textContent=fmtM(WZ.budget);
     const mkt=recMarketing({budget:WZ.budget, scale:WZ.idea.scale, genre:WZ.idea.genre});
-    const mEl=$("#wzMkt"), tEl=$("#wzTot"), bEl=$("#wzBe");
+    const mEl=$("#wzMkt"), tEl=$("#wzTot"), tMktEl=$("#wzTotMkt"), bEl=$("#wzBe");
     let pf=0; if(typeof packagingCost==="function") pf=packagingCost(WZ.cast, WZ.budget);
-    const feeSum=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+pf;
+    const cameoFee=WZ.cameo?Math.round(actorFee(WZ.cameo)*0.3*10)/10:0;
+    const feeSum=[WZ.writer,WZ.director,WZ.producer].filter(Boolean).reduce((s,c)=>s+actorFee(c),0)+WZ.cast.reduce((s,c)=>s+actorFee(c),0)+pf+cameoFee;
+    const dev=devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0);
+    const allIn=dev+feeSum+WZ.budget;
     if(mEl) mEl.textContent=fmtM(mkt);
-    if(tEl) tEl.textContent=fmtM(devCostOf(WZ.idea)+(WZ.scriptPolish? Math.round(devCostOf(WZ.idea)*0.4):0)+feeSum+WZ.budget);
-    if(bEl) bEl.textContent=fmtM(breakevenWW({budget:WZ.budget, marketing:mkt}));
+    if(tEl) tEl.textContent=fmtM(allIn);
+    if(tMktEl) tMktEl.textContent=fmtM(allIn+mkt);
+    if(bEl) bEl.textContent=fmtM((allIn+mkt)/0.48);
   }; }
   const go=v.querySelector("#wzGo");
   if(go) go.onclick=()=>{
@@ -4299,13 +4305,63 @@ function produceGantt(projs){
 function produceBacklot(projs){
   const rolling=(projs||[]).filter(p=>p.phase==="shoot"||p.phase==="reshoot");
   const caption=rolling.length?"🎥 Rolling — "+rolling.map(p=>esc(p.title)).join(" · "):"🎬 Backlot on standby — greenlight a film to roll cameras";
-  return "<div class='produce-backlot' role='img' aria-label='Studio backlot with four departments at work'><div class='produce-backlot-hero'>"+
-    "<div class='produce-crew'><i>🎬</i><small>DIRECTOR</small><b>Blocking</b></div>"+
+  // Use animated pixel sprites if available, else fallback emoji crew
+  let crewHtml="";
+  try{
+    if(typeof BK_ROWS!=="undefined" && typeof BK_PALS!=="undefined" && typeof bkSprite==="function"){
+      const labels=["DIRECTOR","CAMERA","LEAD","CLAPPER"];
+      const acts=["Blocking","Rolling","On set","Take 1"];
+      crewHtml=labels.map((label,i)=>`<div class="produce-crew"><span class="produce-sprite">${bkSprite(BK_ROWS[i]||BK_ROWS[0], BK_PALS[i% BK_PALS.length])}</span><small>${label}</small><b>${acts[i]}</b></div>`).join("");
+    } else throw new Error("no sprites");
+  }catch(e){
+    crewHtml="<div class='produce-crew'><i>🎬</i><small>DIRECTOR</small><b>Blocking</b></div>"+
     "<div class='produce-crew'><i>📷</i><small>CAMERA</small><b>Rolling</b></div>"+
     "<div class='produce-crew'><i>🎭</i><small>LEAD</small><b>On set</b></div>"+
-    "<div class='produce-crew'><i>🎬</i><small>CLAPPER</small><b>Take 1</b></div>"+
+    "<div class='produce-crew'><i>🎬</i><small>CLAPPER</small><b>Take 1</b></div>";
+  }
+  return "<div class='produce-backlot' role='img' aria-label='Studio backlot with four departments at work'><div class='produce-backlot-hero'>"+
+    crewHtml+
     "<div class='produce-backlot-rec"+(rolling.length?"":" idle")+"'>"+(rolling.length?"REC":"STANDBY")+"</div></div>"+
     "<div class='produce-backlot-foot'><b>"+caption+"</b><span>"+(rolling.length?rolling.length+" shooting":"lot dark")+"</span></div></div>";
+}
+function produceProcessStrip(){
+  const stages=[
+    {id:"concept", icon:"💡", label:"Concept", desc:"Idea locked"},
+    {id:"script", icon:"✍️", label:"Script", desc:"Writer room"},
+    {id:"cast", icon:"⭐", label:"Cast", desc:"Attach leads"},
+    {id:"prod", icon:"🎬", label:"Production", desc:"Pre/Shoot/Post"},
+    {id:"post", icon:"✂️", label:"Post", desc:"Edit & score"},
+    {id:"test", icon:"👥", label:"Test", desc:"Dial screening"},
+    {id:"marketing", icon:"📣", label:"Marketing", desc:"P&A drops"},
+    {id:"release", icon:"🎟️", label:"Release", desc:"Theatrical"},
+    {id:"boxoffice", icon:"💰", label:"Box Office", desc:"Rentals"},
+    {id:"streaming", icon:"📺", label:"Streaming", desc:"Library"}
+  ];
+  const inProd=inProdProjects(), ready=readyProjects();
+  const counts={
+    concept:(G.ideas||[]).length,
+    script:inProd.filter(p=>p.phase==="pre").length,
+    cast:inProd.filter(p=>p.phase==="pre").length + inProd.filter(p=>p.phase==="shoot").length,
+    prod:inProd.length,
+    post:inProd.filter(p=>p.phase==="post").length,
+    test:ready.filter(p=>!p.tested).length,
+    marketing:ready.filter(p=>!!p.releaseWeek).length,
+    release:(G.films||[]).filter(f=>f.inTheaters).length,
+    boxoffice:(G.films||[]).filter(f=>f.weeksOut>=0 && (f.ww||0)>0).length,
+    streaming:(G.films||[]).filter(f=>f.streamingOriginal || f.onOwn).length
+  };
+  const totalMoving=inProd.length+ready.length+(G.films||[]).length;
+  let h=`<div class="produce-process" role="img" aria-label="Film lifecycle from concept to streaming, with animated stage characters">`;
+  stages.forEach((s,i)=>{
+    const n=counts[s.id]||0;
+    const live=n>0;
+    const pulse=!live && totalMoving===0 && i===0;
+    h+=`<div class="produce-step ${live?"live":pulse?"pulse":""}"><i class="produce-step-icon">${s.icon}</i><b>${s.label}</b><small>${s.desc}</small><em>${live?n:"—"}</em></div>`;
+    if(i<stages.length-1) h+=`<span class="produce-step-conn" aria-hidden="true"></span>`;
+  });
+  h+=`</div>`;
+  h+=`<div class="produce-process-foot"><span><b>${totalMoving}</b> titles in motion — Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release → Box office → Streaming</span><span>${inProd.length} shooting · ${ready.length} ready · ${(G.films||[]).length} released</span></div>`;
+  return h;
 }
 
 /* ── v28.17: animated backlot set — four crew characters (director, camera
@@ -4413,8 +4469,8 @@ function viewProductions(){
   else if(["pre","shoot","post","reshoot"].includes(PROD_FILTER)) readyFiltered=[];
 
   let h=`<section class="command-deck command-produce">${produceHead()}${produceTelemetry()}${produceBrief()}${produceTools()}`;
-  // Pipeline overview (gantt + backlot) as one panel
-  h+=producePanel("PIPELINE","On the lot right now","How every active picture moves through the three phases — and who is actually on set today.",`<div class="produce-gantt">${produceGantt(allProd).replace(/^<div class='produce-gantt'>/,"").replace(/<\/div>$/,"")}</div>${produceBacklot(allProd)}<div class="produce-pipeline"><span>${allProd.length} IN MOTION</span> Pre ${allProd.filter(p=>p.phase==="pre").length} · Shoot ${allProd.filter(p=>p.phase==="shoot").length} · Post ${allProd.filter(p=>p.phase==="post").length}${allProd.filter(p=>p.phase==="reshoot").length?" · Reshoot "+allProd.filter(p=>p.phase==="reshoot").length:""} · Ready ${readyAll.length} <b>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release</b></div>`);
+  // Pipeline overview (gantt + backlot + lifecycle) as one panel
+  h+=producePanel("PIPELINE","On the lot right now","How every active picture moves through the three phases — and who is actually on set today.",`<div class="produce-gantt">${produceGantt(allProd).replace(/^<div class='produce-gantt'>/,"").replace(/<\/div>$/,"")}</div>${produceBacklot(allProd)}${produceProcessStrip()}<div class="produce-pipeline"><span>${allProd.length} IN MOTION</span> Pre ${allProd.filter(p=>p.phase==="pre").length} · Shoot ${allProd.filter(p=>p.phase==="shoot").length} · Post ${allProd.filter(p=>p.phase==="post").length}${allProd.filter(p=>p.phase==="reshoot").length?" · Reshoot "+allProd.filter(p=>p.phase==="reshoot").length:""} · Ready ${readyAll.length} <b>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release</b></div>`);
   // Acquired media vault (if any) lives inside the same deck, not as legacy cards
   const vaultHtml=acquiredMediaSection();
   if(vaultHtml){
@@ -4506,32 +4562,34 @@ function calendarModal(){
   if(!CAL) CAL={filmId:dated.length?dated[0].id:null};
   if(CAL.filmId&&!dated.some(p=>p.id===CAL.filmId)) CAL.filmId=dated.length?dated[0].id:null;
   const film=dated.find(p=>p.id===CAL.filmId)||null;
-  let h="<h3>📅 Release calendar</h3>"+
-    "<div class='tiny muted'>Player + rival films, holidays, corridors, theater caps, sports weeks, expiring deals. Pick a dated film, tap a weekend to move it — rivals may blink.</div>";
-  h+="<div class='small muted' style='margin:10px 0 6px'><b>Move</b></div><div class='row'>";
-  if(!dated.length) h+="<span class='tiny muted'>No dated films — date one from Productions first.</span>";
-  dated.forEach(p=>{ h+="<button class='btn btn-sm "+(CAL.filmId===p.id?"btn-primary":"")+"' data-calfilm='"+p.id+"'>"+esc(p.title)+" ("+dateLabel(p.releaseWeek)+")</button>"; });
-  h+="</div><div style='max-height:320px;overflow-y:auto;display:grid;gap:6px;margin-top:8px'>";
+  let head=`<div class='produce-modal-head'><span class='command-eyebrow'>PRODUCTION OFFICE / RELEASE CALENDAR</span><h3>Release calendar — where you open decides the opening.</h3><p>Player + rival films, holidays, corridors, theatre caps and sports weeks. Pick a dated film, tap a weekend to move it — rivals may blink and corridors change the legs.</p></div>`;
+  let body=`<div class='produce-modal-body'>`;
+  body+=`<div class='produce-modal-card'><span class='command-eyebrow'>YOUR DATED FILMS</span><p class='tiny muted' style='margin:0 0 8px'>Tap a title, then a weekend below. Only dated pictures can be moved here — date one from Productions first.</p><div class='produce-filters' style='margin:0'>`;
+  if(!dated.length) body+=`<span class='tiny muted'>No dated films — date one from Productions first.</span>`;
+  else dated.forEach(p=>{ body+=`<button class='produce-ghost' style='min-height:32px;padding:6px 10px;${CAL.filmId===p.id?'background:#edc47c!important;color:#24332e!important;border-color:#edc47c!important':''}' data-calfilm='${p.id}'>${esc(p.title)} <small>· ${dateLabel(p.releaseWeek)}</small></button>`; });
+  body+=`</div></div>`;
+  body+=`<div class='produce-modal-card' style='padding:0;overflow:hidden'>`;
+  body+=`<div style='max-height:360px;overflow-y:auto;display:grid;gap:0'>`;
   for(let w=G.week+2; w<=G.week+30; w++){
     const s=DATA.seasonOf(woyOf(w));
-    const mine=(G.projects||[]).filter(o=>o.releaseWeek===w).map(o=>"“"+esc(o.title)+"”").join(" · ");
-    const rvs=[]; (G.rivals||[]).forEach(r=>{ (r.slate||[]).forEach(f=>{ if(f.week===w&&!f.dead) rvs.push(r.name.split(" ")[0]+": "+f.title+" ("+f.scale+")"); }); });
+    const mine=(G.projects||[]).filter(o=>o.releaseWeek===w).map(o=>esc(o.title)).join(' · ');
+    const rvs=[]; (G.rivals||[]).forEach(r=>{ (r.slate||[]).forEach(f=>{ if(f.week===w&&!f.dead) rvs.push(r.name.split(' ')[0]+': '+f.title+' ('+f.scale+')'); }); });
     const warns=weekWarnings(w, film);
-    const tags=(s.holiday?"<span class='tag gold'>🎄 holiday ×"+s.season.toFixed(2)+"</span> ":"")+
-      (s.season>=1.15?"<span class='tag gold'>corridor ×"+s.season.toFixed(2)+"</span>":s.season<=0.9?"<span class='tag red'>dead ×"+s.season.toFixed(2)+"</span>":"<span class='tag'>×"+s.season.toFixed(2)+"</span>");
-    h+="<div class='calendar-row"+(film&&film.releaseWeek===w?" sel":"")+"' data-calw='"+w+"'>"+
-      "<div class='cal-when'><b>"+s.month+" W"+woyOf(w)+"</b><span>Year "+yearOf(w)+"</span></div>"+
-      "<div class='cal-note'>"+tags+" "+(mine?"<br><span class='mine-f'>"+mine+"</span>":"")+(rvs.length?"<br><span class='rival-f'>"+rvs.slice(0,2).join(" · ")+"</span>":"")+
-      (warns.length?"<br>"+warns.map(x=>"<span class='tag "+x.cls+"'>"+x.t+"</span>").join(" "):"")+"</div>"+
-      "<div class='tiny muted'>"+(film?"opens ≈ "+fmtG(previewOpen(film,w)):"")+"</div></div>";
+    const tags=(s.holiday?`<span class='tag gold'>holiday ×${s.season.toFixed(2)}</span> `:``)+(s.season>=1.15?`<span class='tag gold'>corridor ×${s.season.toFixed(2)}</span>`:s.season<=0.9?`<span class='tag'>dead ×${s.season.toFixed(2)}</span>`:`<span class='tag'>×${s.season.toFixed(2)}</span>`);
+    body+=`<div class='calendar-row${film&&film.releaseWeek===w?' sel':''}' data-calw='${w}' style='margin:0;border:0;border-bottom:1px solid #2c4038;border-radius:0;padding:10px 14px;background:${film&&film.releaseWeek===w?'#1f3a32':'transparent'}'>`+
+      `<div class='cal-when'><b>${s.month} W${woyOf(w)}</b><span>Year ${yearOf(w)}</span></div>`+
+      `<div class='cal-note'>${tags} ${mine?`<br><span class='mine-f'>${mine}</span>`:``}${rvs.length?`<br><span class='rival-f'>${rvs.slice(0,2).join(' · ')}</span>`:``}${warns.length?`<br>${warns.map(x=>`<span class='tag ${x.cls}'>${x.t}</span>`).join(' ')}`:``}</div>`+
+      `<div class='tiny muted'>${film?`opens ≈ ${fmtG(previewOpen(film,w))}`:``}</div></div>`;
   }
-  h+="</div><div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";
-  const v=openModal(h,{onClose:()=>{CAL=null;}});
-  v.querySelectorAll("[data-calfilm]").forEach(b=>b.onclick=()=>{ CAL.filmId=+b.dataset.calfilm; beep("click"); calendarModal(); });
-  v.querySelectorAll("[data-calw]").forEach(el=>el.onclick=()=>{
-    if(!film){ toast("Pick a dated film first.","bad"); return; }
-    if(moveReleaseDate(film.id,+el.dataset.calw)){ beep("gold"); flashes(G.flash); calendarModal(); }
-    else toast("That weekend is too soon.","bad");
+  body+=`</div></div>`;
+  body+=`</div>`;
+  const html=head+body;
+  const v=openModal(html,{className:'command-produce-modal',onClose:()=>{CAL=null;}});
+  v.querySelectorAll('[data-calfilm]').forEach(b=>b.onclick=()=>{ CAL.filmId=+b.dataset.calfilm; beep('click'); calendarModal(); });
+  v.querySelectorAll('[data-calw]').forEach(el=>el.onclick=()=>{
+    if(!film){ toast('Pick a dated film first.','bad'); return; }
+    if(moveReleaseDate(film.id,+el.dataset.calw)){ beep('gold'); flashes(G.flash); calendarModal(); }
+    else toast('That weekend is too soon.','bad');
   });
 }
 

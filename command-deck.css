@@ -1311,6 +1311,42 @@
 @keyframes produceRec{50%{opacity:0}}
 .produce-backlot-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;font-size:11px;color:#acbcb0;border-top:1px solid var(--prod-line)}
 .produce-backlot-foot span{font:9px ui-monospace,monospace;letter-spacing:1px;color:#edc47c}
+/* Animated film-process strip — 10 stages with bobbing pixel characters */
+.produce-process{margin:0 20px 16px;display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding:12px 10px 10px;background:#122823;border:1px solid var(--prod-line);border-radius:3px;scrollbar-width:thin}
+.produce-process::-webkit-scrollbar{height:6px}
+.produce-process::-webkit-scrollbar-thumb{background:#3e5551;border-radius:99px}
+.produce-step{flex:0 0 92px;display:grid;justify-items:center;gap:4px;text-align:center;padding:8px 4px;border:1px solid transparent;border-radius:3px;position:relative}
+.produce-step.live{border-color:#566e5f;background:#1b302c}
+.produce-step.pulse{border-color:#8a7748;background:#2a2a1e;animation:producePulse 1.4s ease-in-out infinite}
+@keyframes producePulse{0%,100%{box-shadow:0 0 0 0 #edc47c20}50%{box-shadow:0 0 0 6px #edc47c18}}
+.produce-step-icon{width:38px;height:38px;display:grid;place-items:center;background:#1b312b;border:1px solid var(--prod-line);border-radius:2px;font-size:18px;animation:produceBob 1.8s ease-in-out infinite;position:relative;overflow:hidden}
+.produce-step.live .produce-step-icon{border-color:#8a7748;background:#243d34}
+.produce-step:nth-child(3n) .produce-step-icon{animation-delay:.3s}
+.produce-step:nth-child(5n) .produce-step-icon{animation-delay:.6s}
+@keyframes produceBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.produce-step b{font:600 9px ui-monospace,monospace;letter-spacing:.7px;color:#f2edda}
+.produce-step small{font:7px ui-monospace,monospace;letter-spacing:.4px;color:#93a692;margin-top:-2px}
+.produce-step em{font:700 8px ui-monospace,monospace;color:#566e5f;background:#0e1a15;border:1px solid #2c4038;padding:1px 5px;border-radius:99px;min-width:22px}
+.produce-step.live em{color:#edc47c;border-color:#8a7748;background:#1a1204}
+.produce-step-conn{flex:0 0 18px;height:2px;margin:22px 2px 0;background:repeating-linear-gradient(90deg,#3e5551 0 6px,transparent 6px 10px);opacity:.9;position:relative}
+.produce-step-conn:after{content:'›';position:absolute;right:-6px;top:50%;transform:translateY(-58%);font:10px monospace;color:#5a6b60;line-height:1}
+.produce-process-foot{margin:-10px 20px 16px;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#1b312b;border:1px solid var(--prod-line);border-top:0;border-radius:0 0 3px 3px;font:9px ui-monospace,monospace;letter-spacing:.6px;color:#93a692}
+.produce-process-foot b{color:#edc47c}
+/* Production modals — override legacy .card/.btn inside #modalRoot */
+#modalRoot .modal.command-produce-modal{width:min(1080px,96vw)!important;max-width:1080px!important;padding:0!important;background:#122823!important;background-image:none!important;border:1px solid #627360!important;border-radius:6px!important;overflow:hidden!important}
+#modalRoot .command-produce-modal>.modal-head{position:absolute;right:6px;top:6px;z-index:8;margin:0!important;padding:0!important;background:transparent!important;border:0!important;min-height:0}
+#modalRoot .command-produce-modal>.modal-head>div{display:none}
+#modalRoot .command-produce-modal .modal-x{color:#acbcb0!important;border:1px solid #3e5551!important;border-radius:2px!important;background:#152b28!important;font-size:13px!important;padding:6px 9px!important;min-height:0!important}
+#modalRoot .command-produce-modal .produce-modal-head{padding:22px 28px 16px;background:#14251e;border-bottom:1px solid #2c4038}
+#modalRoot .command-produce-modal .produce-modal-head h3{font:600 20px Georgia,serif;color:#f2edda;margin:6px 0 4px}
+#modalRoot .command-produce-modal .produce-modal-head p{font-size:11px;line-height:1.6;color:#a9bda9;margin:0;max-width:620px}
+#modalRoot .command-produce-modal .produce-modal-body{padding:16px 28px 20px;display:grid;gap:14px;max-height:68vh;overflow:auto}
+#modalRoot .command-produce-modal .produce-modal-card{background:#1b312b!important;border:1px solid #3e5551!important;border-radius:3px!important;padding:16px!important;box-shadow:none!important}
+#modalRoot .command-produce-modal .produce-modal-card h4{font:600 14px Georgia,serif;color:#f3e8cc;margin:0 0 6px}
+#modalRoot .command-produce-modal .produce-modal-card p{font-size:11px;line-height:1.6;color:#a9bda9;margin:0}
+#modalRoot .command-produce-modal .produce-modal-actions{padding:14px 28px;border-top:1px solid #2c4038;background:#14251e;display:flex;justify-content:space-between;align-items:center;gap:12px}
+#modalRoot .command-produce-modal .produce-action{background:#edc47c!important;color:#24332e!important;border:1px solid #edc47c!important;border-radius:3px!important;min-height:38px;font:700 11px system-ui!important}
+#modalRoot .command-produce-modal .produce-ghost{background:transparent!important;color:#e8e3ca!important;border:1px solid #3e5551!important;border-radius:3px!important;min-height:38px;font:600 11px system-ui!important}
 .produce-cards{display:grid;gap:14px;padding:0 20px 22px}
 .produce-card{display:grid;gap:12px;background:#1b312b;border:1px solid var(--prod-line);border-top:3px solid #7f9470;border-radius:2px;padding:18px}
 .produce-card.shooting{border-top-color:#edc47c}
