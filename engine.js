@@ -8965,7 +8965,7 @@ function tickLiveShows(){
     if(slotDef.prime) rating += 4; else if(show.hour >= 0 && show.hour < 6) rating -= 8;
     rating = clamp(Math.round(rating), 3, 99);
     const viewers = Math.round(chDef.baseViewers * (slotDef.mult || 0.5) * (0.35 + rating / 55) * 100) / 100;
-    const revenue = Math.round(viewers * (chDef.adRate || 1) * 0.22 * 10) / 10;
+    const revenue = Math.round(viewers * (chDef.adRate || 1) * 0.28 * 10) / 10;
     const cost = tier.epCost || 0.4;
     if(revenue > 0) earn("linearTv", revenue);
     spend("production", cost);

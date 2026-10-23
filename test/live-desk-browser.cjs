@@ -38,9 +38,12 @@ const OUT='/tmp/live-shots';
       G.live.events.premieres.push({filmId:99001,city:'london',week:G.week});
       G.live.streaming.live=true;G.live.streaming.ccv=2.4;G.live.streaming.peakCcv=3.1;G.live.streaming.totalHours=504;G.live.streaming.subConversions=1.4;
       G.live.stats.totalBroadcastRev=96.5;G.live.stats.totalViewersReached=412.3;G.live.stats.festivalsWon=1;
+      developLiveShow({format:'talk',theme:'cinema',host:'rex',set:'livingroom',audience:'adults',tier:'standard',sponsor:'none',channel:'bow_movies',hour:20,name:'Harbor Tonight'});
+      developLiveShow({format:'gameshow',theme:'family',host:'reely',set:'neonfloor',audience:'family',tier:'shoestring',sponsor:'local',channel:'bow_family',hour:19,name:'Prize Panic'});
+      tickLiveBroadcasting();tickLiveBroadcasting();tickLiveBroadcasting();
       switchTab('live');render();
     });
-    const subs=['home','linear','stream','events','studio'];
+    const subs=['home','linear','shows','stream','events','studio'];
     const widths=[[320,780],[390,844],[414,896],[844,414],[1024,768],[1440,950]];
     for(const [width,height] of widths){
       await page.setViewport({width,height});
@@ -65,13 +68,13 @@ const OUT='/tmp/live-shots';
           };
         });
         assert(m.hasDeck,`${sub}@${width}: command-live missing`);
-        assert.equal(m.chips,5,`${sub}@${width}: five chips (got ${m.chips})`);
+        assert.equal(m.chips,6,`${sub}@${width}: six chips (got ${m.chips})`);
         assert(m.docOverflow<=1,`${sub}@${width}: document overflow ${m.docOverflow}px`);
         assert(m.viewOverflow<=1,`${sub}@${width}: #view overflow ${m.viewOverflow}px`);
         assert(m.deckOverflow<=1,`${sub}@${width}: command deck overflow ${m.deckOverflow}px`);
         assert.deepEqual(m.clipped,[],`${sub}@${width}: clipped children ${m.clipped.join(',')}`);
       }
-      console.log(`PASS width ${width}: all five sub-tabs, zero overflow/clipping`);
+      console.log(`PASS width ${width}: all six sub-tabs, zero overflow/clipping`);
     }
     /* 390px: final panel clears the fixed bottom navigation */
     await page.setViewport({width:390,height:844});

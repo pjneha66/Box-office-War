@@ -1267,7 +1267,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
-  { version:"34.9", label:"Live Desk — the broadcast command desk (Live TV rebuilt: home, channels, grid, stream, events, hosts)", status:"shipped" },
+  { version:"34.9", label:"Live Desk — the broadcast command desk + Develop-a-Show lab (Live TV rebuilt: home, channels, shows, grid, stream, events, hosts)", status:"shipped" },
   { version:"34.8", label:"🟡 §45 Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
   { version:"34.7", label:"Streamer sub-tabs — originals, library, finance, sports, deals", status:"shipped" },
   { version:"34.6", label:"Fans desk rebrand + what's next roadmap", status:"shipped" },
@@ -9878,7 +9878,7 @@ function livePrimeProgrammed(ch){
 }
 function liveHead(){
   const w=woyOf(G.week), m=DATA.seasonOf(w);
-  return `<header class="command-heading"><div><span class="command-edition">LIVE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">BROADCAST / STREAM / EVENTS / HOSTS</span><h1>The broadcast command desk.</h1><p>Broadcast &amp; Live Entertainment Network — channels, the 24-hour grid, the live stream, the event calendar and your on-air hosts — every broadcast decision in one place.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+  return `<header class="command-heading"><div><span class="command-edition">LIVE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">BROADCAST / SHOWS / STREAM / EVENTS / HOSTS</span><h1>The broadcast command desk.</h1><p>Broadcast &amp; Live Entertainment Network — channels, the 24-hour grid, the live stream, the event calendar and your on-air hosts — every broadcast decision in one place.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
 }
 function liveNav(){
   const active=liveSub();
