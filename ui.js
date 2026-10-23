@@ -7945,7 +7945,12 @@ function frFanbase(fr){
    films list (sold/pruned), and purchased IPs start with no films at all */
 function frResolvableFilm(fr){
   if(!fr) return null;
-  return (fr.entries||[]).map(e=>G.films.find(x=>x.id===e.filmId)).find(Boolean) || null;
+  const ents=(fr.entries||[]).slice().reverse();
+  for(const e of ents){
+    const f=(G.films||[]).find(x=>x.id===e.filmId || String(x.id)===String(e.filmId));
+    if(f) return f;
+  }
+  return null;
 }
 function frSequel(fr){
   if(!frResolvableFilm(fr)) return "New IP — greenlight entry 1";
@@ -7976,13 +7981,18 @@ function frTimeline(fr){
   }else{
     h+="<div class='tl-track'>";
     ents.forEach((e,i)=>{
-      const smash=(e.ww||0)>=300?" <span class='tl-breakout'>BREAKOUT</span>":"";
-      const yrs=Math.floor(e.week/52)+1;
-      const w=e.week%52||52;
+      const r=(typeof frResolveEntry==="function")?frResolveEntry(e):{title:e.title,ww:e.ww||0,week:e.week||1,opening:e.opening,critic:e.criticAvg,profit:e.profit};
+      const smash=(r.ww||0)>=300?" <span class='tl-breakout'>BREAKOUT</span>":"";
+      const yrs=typeof yearOf==="function"?yearOf(r.week||1):(Math.floor((r.week||1)/52)+1);
+      const w=typeof woyOf==="function"?woyOf(r.week||1):((r.week||1)%52||52);
+      const metaParts=["Year "+yrs+", W"+w, fmtG(r.ww||0)+" WW"];
+      if(r.opening!=null) metaParts.push(fmtG(r.opening)+" open");
+      if(r.critic!=null) metaParts.push(Math.round(r.critic)+"% critics");
+      const profitHtml=r.profit!=null ? "<div class='tl-profit'>Profit: <span class='"+(r.profit>=0?"pos":"neg")+"'>"+(r.profit>=0?"+":"")+fmtM(r.profit)+"</span></div>" : "";
       h+="<div class='tl-node'><div class='tl-marker'></div>"+
-        "<div class='tl-content'><div class='tl-title'>"+esc(e.title)+smash+"</div>"+
-        "<div class='tl-meta'>Year "+yrs+", W"+w+" · "+fmtG(e.ww||0)+" WW · "+fmtG(e.opening||0)+" open · "+(e.criticAvg||e.quality?.critic||"?")+"% critics</div>"+
-        "<div class='tl-profit'>Profit: <span class='"+((e.profit||0)>=0?"pos":"neg")+"'>"+((e.profit||0)>=0?"+":"")+fmtM(e.profit||0)+"</span></div></div></div>";
+        "<div class='tl-content'><div class='tl-title'>"+esc(r.title)+smash+"</div>"+
+        "<div class='tl-meta'>"+metaParts.join(" · ")+"</div>"+
+        profitHtml+"</div></div>";
       if(i<ents.length-1) h+="<div class='tl-gap'></div>";
     });
     h+="</div>";

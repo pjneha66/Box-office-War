@@ -346,6 +346,38 @@ try{
   }
   console.log('PASS A8: franchise heat unified across card, timeline, sequel advice, empireModal(), and frHeatMult()');
 
+  /* ── A9 — Franchise timeline resolves G.films via filmId and degrades cleanly when absent ── */
+  fresh('franchises');
+  w.eval(`
+    G.films=[{id:701,title:'Starfall',ww:380,opening:92,profit:145,criticAvg:84,quality:{critic:84,overall:82}}];
+    /* Old save shape: upsertFranchise wrote only filmId, title, ww, week */
+    G.franchises=[{id:701,name:'Starfall',tier:1,entries:[{filmId:701,title:'Starfall',ww:380,week:14}],ww:380,merch:0,park:0,gameSold:0,decay:1,genre:'scifi',earned:0,built:14}];
+    render();
+  `);
+  const tlResolved=viewText();
+  assert(tlResolved.includes('$92.0M open'),'timeline resolves opening gross ($92.0M) from G.films by filmId');
+  assert(tlResolved.includes('84% critics'),'timeline resolves critic score (84%) from G.films by filmId');
+  assert(tlResolved.includes('+$145.0M'),'timeline resolves profit (+$145.0M) from G.films by filmId');
+
+  /* Absent/pruned G.films record degrades cleanly without "$0.0M open", "?% critics", or "+$0.0M" */
+  w.eval(`
+    G.films=[];
+    G.franchises=[{id:702,name:'Lost Reel',tier:1,entries:[{filmId:999,title:'Lost Reel',ww:210,week:8}],ww:210,merch:0,park:0,gameSold:0,decay:1,genre:'drama',earned:0,built:8}];
+    render();
+  `);
+  const tlPruned=viewText();
+  assert(tlPruned.includes('Lost Reel') && tlPruned.includes(w.fmtG(210)+' WW'),'pruned film still shows title and WW gross');
+  assert(!tlPruned.includes('$0.0M open') && !tlPruned.includes('$0 open') && !tlPruned.includes('?% critics') && !tlPruned.includes('Profit: +$0'),
+    `pruned film must omit missing stats instead of fabricating zeros/question marks: "${tlPruned}"`);
+
+  /* Purchased/custom franchise with entries: [] stays safe */
+  w.eval(`
+    G.franchises=[{id:'cust_703',name:'Blank Slate IP',tier:1,entries:[],ww:0,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1,custom:true}];
+    render();
+  `);
+  assert.match(viewText(),/No films yet|first entry/i,'custom/purchased franchise with entries:[] renders safely');
+  console.log('PASS A9: frTimeline() resolves G.films via filmId and degrades cleanly when absent');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

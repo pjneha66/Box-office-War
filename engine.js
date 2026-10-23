@@ -4980,7 +4980,15 @@ function upsertFranchise(f){
     G.franchises.push(fr);
   }
   fr.tier++; fr.ww += f.ww||0;
-  fr.entries.push({ filmId:f.id, title:f.title, ww:f.ww, week:G.week });
+  fr.entries.push({
+    filmId:f.id,
+    title:f.title,
+    ww:f.ww,
+    week:G.week,
+    opening:f.opening!=null?f.opening:undefined,
+    criticAvg:f.criticAvg!=null?f.criticAvg:(f.quality&&f.quality.critic!=null?f.quality.critic:undefined),
+    profit:f.profit!=null?f.profit:undefined
+  });
   fr.decay = 1;
   /* v28: a purchased legacy franchise shows its built-in fanbase on the first entry */
   if(fr.purchased && fr.purchasedLeft>0){
@@ -4993,6 +5001,23 @@ function upsertFranchise(f){
   if(fr.entries.length===1) log("🏰 FRANCHISE ANNOUNCED: \""+fr.name+"\" is now a universe — sequels, merch, parks.","gold");
 }
 function frById(id){ return G.franchises.find(x=>x.id===id || String(x.id)===String(id)); }
+function frResolveEntry(e){
+  if(!e) return null;
+  const f = e.filmId!=null ? (G.films||[]).find(x=>x.id===e.filmId || String(x.id)===String(e.filmId)) : null;
+  const opening = e.opening!=null ? e.opening : (f && f.opening!=null ? f.opening : null);
+  const critic = e.criticAvg!=null ? e.criticAvg : (e.quality && e.quality.critic!=null ? e.quality.critic : (f ? (f.criticAvg!=null ? f.criticAvg : (f.quality && f.quality.critic!=null ? f.quality.critic : null)) : null));
+  const profit = e.profit!=null ? e.profit : (f && f.profit!=null ? f.profit : null);
+  return {
+    filmId: e.filmId,
+    title: e.title || (f && f.title) || "Untitled",
+    ww: e.ww!=null ? e.ww : (f && f.ww) || 0,
+    week: e.week || (f && f.releaseWeek) || 1,
+    opening,
+    critic,
+    profit,
+    film: f || null
+  };
+}
 function merchCost(fr){ return [30+fr.tier*15, 80+fr.tier*20, 160+fr.tier*30][fr.merch] || 0; }
 function parkCost(fr){ return [180+fr.tier*50, 350, 520][fr.park] || 0; }
 function frWeeklyIncome(fr){
