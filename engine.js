@@ -8526,12 +8526,17 @@ function initLiveDefaults(s){
       buck: { level: 1, xp: 0, charisma: 78, energy: 88 },
       reely: { level: 1, xp: 0, charisma: 70, energy: 100 }
     },
+    shows: [],
+    showCraft: { formats: {}, themes: {} },
     stats: {
       totalBroadcastRev: 0,
       totalViewersReached: 0,
       awardsWon: 0,
       festivalsWon: 0,
-      premieresHosted: 0
+      premieresHosted: 0,
+      showsCreated: 0,
+      showFans: 0,
+      showHits: 0
     }
   };
 }
@@ -8552,12 +8557,17 @@ function ensureLiveState(g){
   }
   if(!g.live.activeChannel) g.live.activeChannel = "bow_movies";
   if(!g.live.activeHost) g.live.activeHost = "rex";
-  if(["home","linear","stream","events","studio"].indexOf(g.live.subTab) < 0) g.live.subTab = "home";
-  if(g.live.activeSub && ["home","linear","stream","events","studio"].indexOf(g.live.activeSub) < 0) g.live.activeSub = g.live.subTab;
+  if(["home","linear","shows","stream","events","studio"].indexOf(g.live.subTab) < 0) g.live.subTab = "home";
+  if(g.live.activeSub && ["home","linear","shows","stream","events","studio"].indexOf(g.live.activeSub) < 0) g.live.activeSub = g.live.subTab;
   if(!g.live.streaming) g.live.streaming = initLiveDefaults(g).streaming;
   if(!g.live.events) g.live.events = initLiveDefaults(g).events;
   if(!g.live.hosts) g.live.hosts = initLiveDefaults(g).hosts;
   if(!g.live.stats) g.live.stats = initLiveDefaults(g).stats;
+  if(!Array.isArray(g.live.shows)) g.live.shows = [];
+  if(!g.live.showCraft || typeof g.live.showCraft !== "object") g.live.showCraft = { formats: {}, themes: {} };
+  if(!g.live.showCraft.formats) g.live.showCraft.formats = {};
+  if(!g.live.showCraft.themes) g.live.showCraft.themes = {};
+  ["showsCreated","showFans","showHits"].forEach(k => { if(g.live.stats[k] == null) g.live.stats[k] = 0; });
 }
 
 function getLiveChannel(channelId){
@@ -8769,7 +8779,236 @@ function tickLiveBroadcasting(){
     activeHost.level = (activeHost.level || 1) + 1;
     activeHost.charisma = Math.min(99, (activeHost.charisma || 75) + 2);
     log("Host " + (hostDef ? hostDef.name : "Anchor") + " leveled up to Lv." + activeHost.level + " (+charisma)!", "good");
+  }  if(typeof tickLiveShows === "function") tickLiveShows();
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   DEVELOP-A-SHOW — original programming for your channels.
+   Inspired by TV Studio Story: format × theme compatibility,
+   host casting, studio sets, sponsor deals (cash now, softer
+   ratings), fans and genre/theme mastery that grow per episode,
+   and a rival show fighting you for the same prime-time slot.
+   A show is programmed into a real channel slot (its EPG entry
+   is the show) and airs one episode per broadcast week.
+   ═══════════════════════════════════════════════════════════ */
+const SHOW_SEASON_EPISODES = 12;
+const SHOW_HOST_LIMIT = 2;
+
+function showCraftLevel(kind, id){
+  const craft = (G.live && G.live.showCraft) || {};
+  const xp = ((craft[kind] || {})[id]) || 0;
+  return Math.min(5, Math.floor(xp / 6));
+}
+function showUnlockReason(def){
+  if(def && def.minRep && G.studio.rep < def.minRep) return "requires studio reputation " + def.minRep;
+  return null;
+}
+function generateShowName(cfg){
+  const fmt = DATA.showFormat(cfg.format) || {}, th = DATA.showTheme(cfg.theme) || {};
+  const host = DATA.liveHost(cfg.host) || {};
+  const first = (host.name || "Studio").split(" ")[0];
+  const themeLabel = (th.label || "Studio").replace(" & Gadgets", "");
+  const patterns = [
+    themeLabel + " " + pick(["Tonight", "Live", "Hour", "Club", "Weekly"]),
+    "The " + themeLabel + " " + pick(["Show", "Sessions", "Files", "Table"]),
+    first + " " + pick(["Tonight", "After Dark", "Presents", "Live"])
+  ];
+  if(fmt.id === "cooking") patterns.push(themeLabel + " " + pick(["Wars", "Masters", "Kitchen"]));
+  if(fmt.id === "gameshow") patterns.push(pick(["Prize", "Buzzer", "Jackpot"]) + " " + pick(["Panic", "Fever", "Royale"]));
+  if(fmt.id === "sportsdesk") patterns.push(pick(["Full Time", "The Dugout", "Champions' Table"]));
+  return pick(patterns);
+}
+/* Deterministic preview == creation scoring (single source). */
+function scoreShowConcept(cfg){
+  cfg = cfg || {};
+  const fmt = DATA.showFormat(cfg.format), th = DATA.showTheme(cfg.theme);
+  const set = DATA.showSet(cfg.set), tier = DATA.showTier(cfg.tier);
+  const sponsor = DATA.showSponsor(cfg.sponsor || "none");
+  const hostDef = DATA.liveHost(cfg.host);
+  const hostStats = (((G.live || {}).hosts || {})[cfg.host]) || { level: 1, charisma: 75, energy: 90 };
+  if(!fmt || !th || !set || !tier || !hostDef) return { ok:false, reason:"Pick a format, theme, host, set and tier first." };
+  const lockReason = showUnlockReason(fmt) || showUnlockReason(set) || showUnlockReason(tier) || showUnlockReason(sponsor);
+  let synergy = "Mismatch", concept = 42;
+  if((fmt.loves || []).includes(th.id)){ synergy = "Perfect combo"; concept = 88; }
+  else if((fmt.likes || []).includes(th.id)){ synergy = "Good combo"; concept = 68; }
+  const craftBonus = showCraftLevel("formats", fmt.id) * 2 + showCraftLevel("themes", th.id) * 2;
+  concept = clamp(concept + craftBonus, 5, 99);
+  const bestHost = (fmt.hosts || []).includes(hostDef.id);
+  const cast = clamp(Math.round((hostStats.charisma || 75) * 0.75 + (hostStats.energy || 90) * 0.15 + (hostStats.level || 1) * 2 + (bestHost ? 12 : 0)), 5, 99);
+  let setFit = -6, setLabel = "Set fights the format";
+  if((set.loves || []).includes(fmt.id)){ setFit = 12; setLabel = "Set built for this"; }
+  else if((set.likes || []).includes(fmt.id)){ setFit = 4; setLabel = "Set works"; }
+  const production = clamp(tier.prod + setFit, 5, 99);
+  let audienceFit = 55;
+  if((fmt.audiences || []).includes(cfg.audience)) audienceFit += 22;
+  if((th.audiences || []).includes(cfg.audience)) audienceFit += 13;
+  audienceFit = clamp(audienceFit, 5, 98);
+  const appeal = clamp(Math.round(concept * 0.38 + cast * 0.27 + production * 0.22 + audienceFit * 0.13), 5, 99);
+  return {
+    ok: !lockReason, reason: lockReason || null,
+    synergy, concept, cast, production, audienceFit, appeal, craftBonus, setLabel, bestHost,
+    totalDev: Math.round((tier.dev + (set.cost || 0)) * 10) / 10,
+    epCost: tier.epCost, sponsorBonus: sponsor ? sponsor.bonus || 0 : 0, sponsorPenalty: sponsor ? sponsor.penalty || 0 : 0
+  };
+}
+function developLiveShow(cfg){
+  ensureLiveState(G);
+  cfg = cfg || {};
+  const score = scoreShowConcept(cfg);
+  if(!score.ok && score.reason && score.concept === undefined) return { ok:false, reason:score.reason };
+  if(score.reason) return { ok:false, reason:"Locked: " + score.reason };
+  const fmt = DATA.showFormat(cfg.format), tier = DATA.showTier(cfg.tier), set = DATA.showSet(cfg.set);
+  const sponsor = DATA.showSponsor(cfg.sponsor || "none") || DATA.showSponsor("none");
+  const hour = Math.round(Number(cfg.hour));
+  const chDef = DATA.liveChannel(cfg.channel), ch = getLiveChannel(cfg.channel);
+  if(!chDef || !ch) return { ok:false, reason:"Channel not found" };
+  if(!ch.unlocked) return { ok:false, reason:chDef.name + " is locked — unlock it before scheduling a show on it" };
+  if(!(hour >= 0 && hour <= 23)) return { ok:false, reason:"Pick an hour between 0 and 23" };
+  const hostShows = (G.live.shows || []).filter(s => s.host === cfg.host && ["active", "resting"].includes(s.status)).length;
+  if(hostShows >= SHOW_HOST_LIMIT) return { ok:false, reason:(DATA.liveHost(cfg.host) || {}).name + " already fronts " + SHOW_HOST_LIMIT + " shows" };
+  if(G.studio.cash < score.totalDev) return { ok:false, reason:"Insufficient funds (development needs $" + score.totalDev + "M)" };
+
+  spend("production", score.totalDev);
+  const name = String(cfg.name || "").trim().slice(0, 40) || generateShowName(cfg);
+  const show = {
+    id: nid(), name,
+    format: cfg.format, theme: cfg.theme, host: cfg.host, set: cfg.set,
+    audience: cfg.audience || "adults", tier: cfg.tier, sponsor: sponsor.id,
+    channel: cfg.channel, hour,
+    season: 1, episode: 0, status: "active",
+    scores: { concept: score.concept, cast: score.cast, production: score.production, audienceFit: score.audienceFit, appeal: score.appeal },
+    popularity: Math.round(score.appeal * 0.6), fatigue: 0, fans: 0,
+    lastRating: 0, lastViewers: 0, lastRevenue: 0, lastCost: 0,
+    lifetimeRevenue: 0, lifetimeCost: score.totalDev, history: [],
+    rival: { name: pick(DATA.SHOW_RIVAL_NAMES || ["Rival Show"]), strength: clamp(Math.round(52 + score.appeal * 0.15 + rint(0, 8)), 40, 92), wins: 0, battles: 0 },
+    createdWeek: G.week
+  };
+  G.live.shows.push(show);
+  scheduleChannelSlot(cfg.channel, hour, fmt.block || "series", show.id, show.name);
+  const slot = (ch.schedule || [])[hour];
+  if(slot){ slot.rating = show.scores.appeal; if(sponsor.brand) slot.sponsor = sponsor.brand; }
+  if(sponsor.bonus){ earn("linearTv", sponsor.bonus); }
+  G.live.stats.showsCreated = (G.live.stats.showsCreated || 0) + 1;
+  log("📺 Developed “" + show.name + "” (" + fmt.label + " × " + (DATA.showTheme(cfg.theme) || {}).label + ") for " + chDef.name + " at " + hour + ":00 — appeal " + show.scores.appeal + (sponsor.bonus ? ", sponsor paid $" + sponsor.bonus + "M upfront" : "") + ".", "gold");
+  sfx("hit");
+  return { ok:true, show };
+}
+function getLiveShow(showId){
+  ensureLiveState(G);
+  return (G.live.shows || []).find(s => s.id === showId || String(s.id) === String(showId));
+}
+function cancelLiveShow(showId){
+  const show = getLiveShow(showId);
+  if(!show) return { ok:false, reason:"Show not found" };
+  if(show.status === "cancelled") return { ok:false, reason:"Show is already cancelled" };
+  const ch = getLiveChannel(show.channel);
+  if(ch && (ch.schedule || [])[show.hour] && ch.schedule[show.hour].contentId === show.id){
+    scheduleChannelSlot(show.channel, show.hour, "rerun", null, "Network Off-Air Filler");
   }
+  show.status = "cancelled";
+  log("📺 “" + show.name + "” cancelled after " + ((show.season - 1) * SHOW_SEASON_EPISODES + show.episode) + " episodes.", "");
+  return { ok:true };
+}
+function rescheduleLiveShow(showId){
+  const show = getLiveShow(showId);
+  if(!show) return { ok:false, reason:"Show not found" };
+  if(show.status === "cancelled") return { ok:false, reason:"Cancelled shows cannot be rescheduled" };
+  const ch = getLiveChannel(show.channel);
+  if(!ch || !ch.unlocked) return { ok:false, reason:"Its channel is not available" };
+  const fmt = DATA.showFormat(show.format) || {};
+  scheduleChannelSlot(show.channel, show.hour, fmt.block || "series", show.id, show.name);
+  const slot = (ch.schedule || [])[show.hour];
+  if(slot) slot.rating = show.lastRating || show.scores.appeal;
+  show.status = show.episode >= SHOW_SEASON_EPISODES ? "resting" : "active";
+  log("📺 “" + show.name + "” is back in the grid (" + show.hour + ":00).", "good");
+  return { ok:true };
+}
+function renewLiveShow(showId){
+  const show = getLiveShow(showId);
+  if(!show) return { ok:false, reason:"Show not found" };
+  if(show.status !== "resting") return { ok:false, reason:"Only a show between seasons can be renewed" };
+  const tier = DATA.showTier(show.tier) || { dev: 3 }, set = DATA.showSet(show.set) || { cost: 0 };
+  const cost = Math.round((tier.dev + (set.cost || 0)) * 0.5 * 10) / 10;
+  if(G.studio.cash < cost) return { ok:false, reason:"Insufficient funds (renewal needs $" + cost + "M)" };
+  spend("production", cost);
+  show.season += 1; show.episode = 0; show.fatigue = 0; show.status = "active";
+  show.popularity = clamp(Math.max(show.popularity, Math.round(show.scores.appeal * 0.5)), 5, 99);
+  show.lifetimeCost = Math.round(((show.lifetimeCost || 0) + cost) * 10) / 10;
+  show.rival = { name: pick(DATA.SHOW_RIVAL_NAMES || ["Rival Show"]), strength: clamp((show.rival ? show.rival.strength : 55) + 4 + rint(0, 5), 40, 95), wins: 0, battles: 0 };
+  const ch = getLiveChannel(show.channel);
+  if(!ch || !((ch.schedule || [])[show.hour] || {}).contentId || ch.schedule[show.hour].contentId !== show.id) rescheduleLiveShow(show.id);
+  log("📺 “" + show.name + "” renewed for season " + show.season + " ($" + cost + "M). Rival this season: “" + show.rival.name + "”.", "gold");
+  sfx("hit");
+  return { ok:true, cost };
+}
+function tickLiveShows(){
+  if(!G || !G.live) return;
+  ensureLiveState(G);
+  (G.live.shows || []).forEach(show => {
+    if(show.status === "cancelled" || show.status === "unscheduled") return;
+    const ch = getLiveChannel(show.channel);
+    const slot = ch && (ch.schedule || [])[show.hour];
+    if(!ch || !slot || slot.contentId !== show.id){
+      show.status = "unscheduled";
+      log("📺 “" + show.name + "” lost its slot and is unscheduled — reschedule it from the Shows desk.", "bad");
+      return;
+    }
+    if(show.status !== "active") return;
+    if(!ch.unlocked || !ch.active) return; // channel dark: no episode, no cost
+    const chDef = DATA.liveChannel(show.channel) || { baseViewers: 0.8, adRate: 1 };
+    const slotDef = (DATA.CHANNEL_SLOTS || [])[show.hour] || { mult: 0.5, prime: false };
+    const tier = DATA.showTier(show.tier) || { epCost: 0.4 };
+    const sponsor = DATA.showSponsor(show.sponsor) || { penalty: 0 };
+    const craftBonus = showCraftLevel("formats", show.format) + showCraftLevel("themes", show.theme);
+    let rating = show.scores.appeal * 0.55 + show.popularity * 0.45 + craftBonus - show.fatigue * 1.2 - (sponsor.penalty || 0) + rint(-6, 6);
+    if(slotDef.prime) rating += 4; else if(show.hour >= 0 && show.hour < 6) rating -= 8;
+    rating = clamp(Math.round(rating), 3, 99);
+    const viewers = Math.round(chDef.baseViewers * (slotDef.mult || 0.5) * (0.35 + rating / 55) * 100) / 100;
+    const revenue = Math.round(viewers * (chDef.adRate || 1) * 0.22 * 10) / 10;
+    const cost = tier.epCost || 0.4;
+    if(revenue > 0) earn("linearTv", revenue);
+    spend("production", cost);
+    show.episode += 1;
+    show.lastRating = rating; show.lastViewers = viewers; show.lastRevenue = revenue; show.lastCost = cost;
+    show.lifetimeRevenue = Math.round(((show.lifetimeRevenue || 0) + revenue) * 10) / 10;
+    show.lifetimeCost = Math.round(((show.lifetimeCost || 0) + cost) * 10) / 10;
+    const fanGain = Math.round(viewers * (rating >= 70 ? 0.06 : rating >= 50 ? 0.03 : 0.01) * 100) / 100;
+    show.fans = Math.round(((show.fans || 0) + fanGain) * 100) / 100;
+    G.live.stats.showFans = Math.round((((G.live.stats || {}).showFans || 0) + fanGain) * 100) / 100;
+    show.popularity = clamp(show.popularity + clamp((rating - 58) / 6, -4, 5), 5, 99);
+    if(show.episode > 8) show.fatigue = Math.min(10, (show.fatigue || 0) + 1);
+    show.history = (show.history || []).concat([{ w: G.week, rating, viewers, revenue }]).slice(-16);
+    slot.rating = rating; slot.title = show.name;
+    // mastery: the studio learns its formats and themes by making them
+    G.live.showCraft.formats[show.format] = (G.live.showCraft.formats[show.format] || 0) + 1;
+    G.live.showCraft.themes[show.theme] = (G.live.showCraft.themes[show.theme] || 0) + 1;
+    // the fronting host grows on air, same level rule as the broadcast tick
+    const host = (G.live.hosts || {})[show.host];
+    if(host){
+      host.xp = (host.xp || 0) + 8;
+      while(host.xp > (host.level || 1) * 100 && (host.level || 1) < 10){
+        host.level = (host.level || 1) + 1;
+        host.charisma = Math.min(99, (host.charisma || 75) + 2);
+      }
+    }
+    // prime-time rival clash for the slot
+    if(slotDef.prime && show.rival){
+      show.rival.battles = (show.rival.battles || 0) + 1;
+      if(rating > show.rival.strength){
+        show.rival.wins = (show.rival.wins || 0) + 1;
+        show.fans = Math.round((show.fans + 0.05) * 100) / 100;
+        if(show.rival.wins === 3) log("📺 “" + show.name + "” is beating rival “" + show.rival.name + "” in its slot — fans are piling in!", "gold");
+      }
+    }
+    if(rating >= 85 && show.episode <= 2) log("📺 BREAKOUT: “" + show.name + "” premieres to a " + rating + " rating (" + viewers + "M viewers)!", "gold");
+    if(show.episode >= SHOW_SEASON_EPISODES){
+      show.status = "resting";
+      if(show.popularity >= 70) G.live.stats.showHits = (G.live.stats.showHits || 0) + 1;
+      log("📺 “" + show.name + "” wraps season " + show.season + " (" + show.fans + "M fans). Renew it from the Shows desk.", "good");
+    }
+    updateChannelMetrics(ch);
+  });
 }
 
 function tickLiveEvents(){

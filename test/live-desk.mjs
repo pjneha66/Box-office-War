@@ -34,12 +34,12 @@ try{
 
   /* ── A1 — one navigation, five chips, fresh careers open Home ── */
   fresh();
-  assert.equal(chips().length,5,'exactly five [data-livesub] chips in the document');
+  assert.equal(chips().length,6,'exactly six [data-livesub] chips in the document (Shows added in v34.9)');
   assert.equal($$('#subTabs [data-livesub]').length,0,'global sub-tab strip must not duplicate live navigation');
   assert.equal(new Set(chips().map(b=>b.closest('nav')||b.parentElement)).size,1,'all live chips belong to one navigation');
   assert.equal(chips().filter(b=>b.classList.contains('active')).length,1,'exactly one live chip is active');
   assert.equal($('[data-livesub].active').dataset.livesub,'home','a fresh career opens the Live Desk home');
-  const panels={home:'Broadcast home',linear:'24-Hour Electronic Program Guide',stream:'Live Studio Streaming Broadcast',events:'Major Live Events, Festivals & Red Carpets',studio:'On-Air Personalities & Broadcast Studio'};
+  const panels={home:'Broadcast home',shows:'Develop a show',linear:'24-Hour Electronic Program Guide',stream:'Live Studio Streaming Broadcast',events:'Major Live Events, Festivals & Red Carpets',studio:'On-Air Personalities & Broadcast Studio'};
   for(const [key,copy] of Object.entries(panels)){
     const chip=$(`[data-livesub="${key}"]`); assert(chip,`missing ${key} chip`);
     chip.click();
@@ -50,7 +50,7 @@ try{
   /* an existing selection survives save/load (old saves keep working) */
   w.eval(`G.live.subTab='events';G.live.activeSub='events';saveGame();loadGame();render();`);
   assert.equal($('[data-livesub].active').dataset.livesub,'events','saved sub-tab selection survives a save/load round-trip');
-  console.log('PASS A1: one live nav, five working chips, home default, save-safe selection');
+  console.log('PASS A1: one live nav, six working chips, home default, save-safe selection');
 
   /* ── A2 — EPG reads slot.block/slot.title; films use the “movie” block ── */
   assert(!uiSource.includes('primetime_movie'),'UI must never write the unsupported primetime_movie block');
@@ -357,6 +357,77 @@ try{
   assert(viewText().includes('Gravitas')&&viewText().includes('Good evening, Hollywood'),'trait and quote render');
   assert(/energy does not drain/i.test(viewText()),'no invented energy-drain claim');
   console.log('PASS C9: real XP thresholds, honest perk/energy copy');
+
+
+  /* ── D — Develop a Show (TV Studio Story-inspired show lab) ── */
+  fresh('shows');
+  assert(viewText().includes('Develop a show'),'show lab renders');
+  assert(viewText().includes('Combo codex'),'combo codex renders format/theme compatibility');
+  assert($('#liveShowName'),'show lab offers a name field');
+  for(const f of ['format','theme','host','set','audience','tier','sponsor','channel','hour'])
+    assert($(`[data-show-field="${f}"]`),`show lab field ${f} exists`);
+  /* concept scoring: a loved combo must beat a mismatch, deterministically */
+  const scores=w.eval(`(function(){
+    const good=scoreShowConcept({format:'talk',theme:'cinema',host:'rex',set:'livingroom',audience:'adults',tier:'standard',sponsor:'none',channel:'bow_movies',hour:20});
+    const bad=scoreShowConcept({format:'talk',theme:'sports',host:'reely',set:'kitchen',audience:'kids',tier:'standard',sponsor:'none',channel:'bow_movies',hour:20});
+    return {good,bad};
+  })()`);
+  assert(scores.good.concept>scores.bad.concept,'loved format×theme combo out-scores a mismatch');
+  assert(scores.good.appeal>scores.bad.appeal,'overall appeal follows the combo');
+  /* create through the UI: cash charged once, slot programmed, show tracked */
+  w.eval(`G.studio.cash=50;render();document.querySelector('#liveShowName').value='Harbor Tonight';`);
+  const devCost=scores.good.totalDev;
+  $('[data-live-show-create]').click();
+  assert.equal(w.eval(`G.live.shows.length`),1,'developing creates exactly one show');
+  const showId=w.eval(`G.live.shows[0].id`);
+  assert.equal(w.eval(`G.live.shows[0].name`),'Harbor Tonight','the player name sticks');
+  assert.equal(w.eval('G.studio.cash'),Math.round((50-devCost)*10)/10,'development cost charged exactly once');
+  const airSlot=w.eval(`G.live.channels.find(c=>c.id==='bow_movies').schedule[20]`);
+  assert.equal(airSlot.contentId,showId,'the show is programmed into its channel slot');
+  assert.equal(airSlot.title,'Harbor Tonight','the EPG slot carries the show name');
+  assert(viewText().includes('Harbor Tonight'),'the roster lists the new show');
+  /* a broadcast week airs an episode: ratings, revenue, fans, craft XP */
+  const cashBefore=w.eval('G.studio.cash');
+  w.eval(`tickLiveBroadcasting();`);
+  const aired=w.eval(`(function(){const s=G.live.shows[0];return {ep:s.episode,rating:s.lastRating,viewers:s.lastViewers,rev:s.lifetimeRevenue,fans:s.fans,craft:(G.live.showCraft.formats['talk']||0),hist:s.history.length};})()`);
+  assert.equal(aired.ep,1,'one episode airs per broadcast week');
+  assert(aired.rating>0&&aired.viewers>0,'the episode earns a rating and viewers');
+  assert(aired.rev>0,'the episode books ad/sponsor revenue');
+  assert(aired.fans>=0&&aired.hist===1,'fans and rating history are tracked');
+  assert.equal(aired.craft,1,'genre craft XP accrues per episode (Kairosoft-style mastery)');
+  /* failure paths: insufficient cash creates nothing and charges nothing */
+  w.eval(`G.studio.cash=0.5;render();`);
+  assert($('[data-live-show-create]').disabled,'develop button disables below the development cost');
+  const fail=w.eval(`developLiveShow({format:'talk',theme:'cinema',host:'chloe',set:'livingroom',audience:'adults',tier:'standard',sponsor:'none',channel:'bow_movies',hour:21,name:'Too Poor'})`);
+  assert.equal(fail.ok,false,'engine refuses an unaffordable show');
+  assert.equal(w.eval(`G.live.shows.length`),1,'failed development creates no show');
+  assert.equal(w.eval('G.studio.cash'),0.5,'failed development charges nothing');
+  const locked=w.eval(`(function(){G.studio.cash=100;return developLiveShow({format:'talk',theme:'cinema',host:'chloe',set:'livingroom',audience:'adults',tier:'standard',sponsor:'none',channel:'bow_sports',hour:21,name:'Locked Out'});})()`);
+  assert.equal(locked.ok,false,'shows cannot be scheduled on locked channels');
+  /* season arc: 12 episodes → resting → renew into season 2 → cancel frees the slot */
+  w.eval(`G.live.shows[0].episode=11;tickLiveBroadcasting();`);
+  assert.equal(w.eval(`G.live.shows[0].status`),'resting','season ends after 12 episodes');
+  const cashPreRenew=w.eval('G.studio.cash');
+  w.eval(`render();`);
+  $(`[data-live-show-renew="${showId}"]`).click();
+  assert.equal(w.eval(`G.live.shows[0].season`),2,'renewal starts season 2');
+  assert.equal(w.eval(`G.live.shows[0].episode`),0,'renewal resets the episode count');
+  assert(w.eval('G.studio.cash')<cashPreRenew,'renewal charges its cost');
+  w.eval(`render();`);
+  $(`[data-live-show-cancel="${showId}"]`).click();
+  assert.equal(w.eval(`G.live.shows[0].status`),'cancelled','cancellation takes the show off air');
+  assert.notEqual(w.eval(`G.live.channels.find(c=>c.id==='bow_movies').schedule[20].contentId`),showId,'cancellation frees the program slot');
+  /* reprogramming a slot unschedules (does not delete) its show */
+  const second=w.eval(`(function(){const r=developLiveShow({format:'gameshow',theme:'family',host:'reely',set:'neonfloor',audience:'family',tier:'shoestring',sponsor:'local',channel:'bow_movies',hour:19,name:'Prize Panic'});return r;})()`);
+  assert.equal(second.ok,true,'second show develops with a local sponsor');
+  w.eval(`scheduleChannelSlot('bow_movies',19,'rerun',null,'Filler');tickLiveBroadcasting();`);
+  assert.equal(w.eval(`G.live.shows.find(s=>s.name==='Prize Panic').status`),'unscheduled','overwriting the slot unschedules the show');
+  /* persistence + old-save migration */
+  w.eval(`saveGame();loadGame();`);
+  assert.equal(w.eval(`G.live.shows.length`),2,'shows survive save/load');
+  w.eval(`delete G.live.shows;delete G.live.showCraft;ensureLiveState(G);`);
+  assert(Array.isArray(w.eval(`G.live.shows`))&&w.eval(`!!G.live.showCraft`),'old saves gain show state via ensureLiveState');
+  console.log('PASS D: develop-a-show — combos, casting, sets, sponsors, seasons, rivals, persistence');
 
   assert.equal(errors.length,0,'no console errors during the live-desk suite: '+errors.join(' ; '));
   console.log('PASS live-desk A+B+C suites: navigation, EPG schema, strategies, events, results, fees, premiere-once, stream metrics');
