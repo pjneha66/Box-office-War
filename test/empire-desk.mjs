@@ -193,6 +193,40 @@ try{
   }
   console.log('PASS A3: gameRightsPayout(fr) shared between button copy and sellGameRights()');
 
+  /* ── A4 — Music label World Tour cost ($8M), +6% buzz, 8-wk chart, disabled state ── */
+  fresh('divisions');
+  w.eval(`
+    G.studio.cash=200;
+    unlockLabel();
+    signArtist('nova');
+    G.projects=[{id:901,title:'Broadway Neon',genre:'musical',phase:'prod',buzzBonus:0}];
+    render();
+  `);
+  assert.equal(w.eval('DATA.LABEL_COSTS && DATA.LABEL_COSTS.tourCost'),8,'DATA.LABEL_COSTS.tourCost === 8');
+  assert.equal(w.eval('DATA.LABEL_COSTS && DATA.LABEL_COSTS.tourBuzzBonus'),0.06,'DATA.LABEL_COSTS.tourBuzzBonus === 0.06');
+  const tourBtn=$('[data-tour="nova"]');
+  assert(tourBtn,'[data-tour="nova"] exists on Divisions');
+  assert(!tourBtn.textContent.includes('$5M') && (tourBtn.textContent.includes('$8.0M') || tourBtn.textContent.includes('$8M')),
+    `[data-tour] label "${tourBtn.textContent}" must state $8M / $8.0M, never $5M`);
+  assert(!tourBtn.title.includes('$5M') && !tourBtn.title.includes('15%') && tourBtn.title.includes('6%'),
+    `[data-tour] tooltip "${tourBtn.title}" must state +6% buzz, never $5M/+15%`);
+
+  /* Disabled when cash < $8M, and mid-render cash loss refuses cleanly */
+  w.eval(`G.studio.cash=4; render();`);
+  assert.equal($('[data-tour="nova"]').disabled,true,'[data-tour] disabled when studio cash < $8M');
+  w.eval(`G.studio.cash=50; render(); G.studio.cash=2;`);
+  clearBeeps(); clearToasts();
+  $('[data-tour="nova"]').click();
+  assert(!beeps().includes('gold') && !beeps().includes('cash'),'[data-tour] refusal never plays gold/cash sound');
+  assert.match(toastText(),/\$8|cash|tour/i,'[data-tour] refusal toasts clear reason');
+
+  /* Funded tour charges $8M, credits variable gross, sets 8-wk chart, and adds +0.06 buzz */
+  w.eval(`G.studio.cash=100; render();`);
+  $('[data-tour="nova"]').click();
+  assert.equal(Math.round(w.eval('G.projects[0].buzzBonus')*100)/100, 0.06, 'tourArtist adds +0.06 buzzBonus to musical');
+  assert.equal(w.eval('G.label.artists[0].chartUntil === G.week + 8'), true, 'tourArtist grants 8-week chart window');
+  console.log('PASS A4: World Tour button/tooltip/disabled state match tourArtist() ($8M, +6% buzz, 8-wk chart)');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

@@ -6776,8 +6776,16 @@ function bindView(){
     const cl=v.querySelector("#intelClose"); if(cl) cl.onclick=()=>closeModal();
     v.querySelectorAll("[data-buyintel]").forEach(bb=>bb.onclick=()=>{ if(buyIntel(bb.dataset.buyintel)){ closeModal(); beep("gold"); flashes(G.flash); render(); } });
   });
-  $$("[data-label]").forEach(b=>b.onclick=()=>{ if(unlockLabel()){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
-  $$("[data-sign]").forEach(b=>b.onclick=()=>{ if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
+  $$("button[data-label]").forEach(b=>b.onclick=()=>{
+    const lc=DATA.LABEL_COSTS||{};
+    if(unlockLabel()){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast("Need "+fmtM(lc.unlock||60)+" cash to launch the music label.","bad"); render(); }
+  });
+  $$("[data-sign]").forEach(b=>b.onclick=()=>{
+    const art=(DATA.ARTISTS||[]).find(x=>x.id===b.dataset.sign);
+    if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast(art && G.studio.cash<art.fee ? "Need "+fmtM(art.fee)+" cash to sign "+art.name+"." : "Roster full (max 3 acts) or artist unavailable.","bad"); render(); }
+  });
   $$("[data-dropartist]").forEach(b=>b.onclick=()=>{ if(dropArtist(b.dataset.dropartist)){ beep("click"); flashes(G.flash); render(); } });
   $$("[data-whatif]").forEach(b=>b.onclick=()=>{ beep("click"); whatIfModal(); });
   const mr=$("#btnMailRead"); if(mr) mr.onclick=()=>{ markMailRead(); beep("click"); render(); };
@@ -6909,7 +6917,10 @@ function bindView(){
     box.innerHTML=fnLedgerRows(G.txHistory||[], txs.value);
   };
   $$("[data-tour]").forEach(b=>b.onclick=()=>{
+    const lc=DATA.LABEL_COSTS||{};
+    const tc=lc.tourCost!=null?lc.tourCost:8;
     if(tourArtist(b.dataset.tour)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast("Need "+fmtM(tc)+" cash to stage a world stadium tour.","bad"); render(); }
   });
   $$("button[data-cameo]").forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
@@ -7704,28 +7715,40 @@ function viewEmpire(){
     /* v14: music label division (§32) */
     try{
       const L=G.label||{unlocked:false, artists:[]};
+      const lc=DATA.LABEL_COSTS||{};
+      const unlockCost=lc.unlock!=null?lc.unlock:60;
+      const tourCost=lc.tourCost!=null?lc.tourCost:8;
+      const tourBuzzPct=Math.round((lc.tourBuzzBonus!=null?lc.tourBuzzBonus:0.06)*100);
+      const chartBuzzPct=Math.round((lc.chartBuzzBonus!=null?lc.chartBuzzBonus:0.02)*100);
+      const tourChartWks=lc.tourChartWeeks!=null?lc.tourChartWeeks:8;
+      const ovh=lc.overheadPerWeek!=null?lc.overheadPerWeek:0.3;
+      const maxActs=lc.maxActs||3;
       h+="<div class='section-title'>🎵 Music label</div>";
       if(!L.unlocked){
-        h+="<div class='card'><div class='spread'><div><b>Launch the "+esc(G.studio.name)+" music label</b><div class='tiny muted'>Sign up to 3 acts. Each earns weekly; when one charts, money ×3 for a month and your in-production musicals & concert films get +2% buzz. Charts also feed the trending board's ecosystem.</div></div>"+
-          "<button class='btn btn-primary' data-label='1'>Launch — "+fmtM(60)+"</button></div>"+
-          "<div class='tiny muted' style='margin-top:6px'>+$0.3M/wk overhead once live. Sign artists from the roster below.</div></div>";
+        const canUnlock=G.studio.cash>=unlockCost;
+        h+="<div class='card'><div class='spread'><div><b>Launch the "+esc(G.studio.name)+" music label</b><div class='tiny muted'>Sign up to "+maxActs+" acts. Each earns weekly; when one charts, money ×3 for a month and your in-production musicals & concert films get +"+chartBuzzPct+"% buzz. Charts also feed the trending board's ecosystem.</div></div>"+
+          "<button class='btn btn-primary' data-label='1'"+(canUnlock?"":" disabled title='Requires "+fmtM(unlockCost)+" cash'")+">Launch — "+fmtM(unlockCost)+(canUnlock?"":" (need "+fmtM(unlockCost)+")")+"</button></div>"+
+          "<div class='tiny muted' style='margin-top:6px'>+"+fmtM(ovh)+"/wk overhead once live. Sign artists from the roster below.</div></div>";
       }else{
-        h+="<div class='card'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/3 acts</span></div>";
+        h+="<div class='card'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/"+maxActs+" acts</span></div>";
         (L.artists||[]).forEach(a=>{
           const def=(DATA.ARTISTS||[]).find(x=>x.id===a.id)||{};
           const charting=a.chartUntil>G.week;
           const chartPos = charting? (a.chartPos || ((G.week*7+a.id.charCodeAt(0))%12+1)) : null;
           const scandalRisk = Math.round((a.scandal||0.15)*100);
+          const canTour=G.studio.cash>=tourCost;
+          const tourTip="Concert tour: "+fmtM(tourCost)+" upfront, variable tour gross, +"+tourBuzzPct+"% buzz for in-production musicals & concert films, "+tourChartWks+"-wk chart boost";
           h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+(charting?" · <b class='pos'>#"+chartPos+" ON TOP 50 (×3)</b>":"")+" · scandal risk "+scandalRisk+"%</span></span>"+
             "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10)+"/wk</b>"+
-            "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='Concert tour: $5M upfront, +15% buzz for musicals'>🎤 World Tour ($5M)</button>"+
+            "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='"+tourTip+"'"+(canTour?"":" disabled")+">🎤 World Tour ("+fmtM(tourCost)+")</button>"+
             " <button class='btn btn-sm btn-ghost' data-dropartist='"+a.id+"'>✕</button></div></div>";
         });
         if(!L.artists.length) h+="<div class='tiny muted'>Empty roster — sign your first act below.</div>";
         h+="<div class='tiny muted' style='margin-top:6px'>Available acts:</div>";
         (DATA.ARTISTS||[]).filter(a=>!L.artists.some(x=>x.id===a.id)).forEach(a=>{
+          const canSign=G.studio.cash>=a.fee && L.artists.length<maxActs;
           h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(a.blurb)+"</span></span>"+
-            "<button class='btn btn-sm "+(G.studio.cash>=a.fee?"btn-primary":"")+"' data-sign='"+a.id+"'>Sign — "+fmtM(a.fee)+"</button></div>";
+            "<button class='btn btn-sm "+(canSign?"btn-primary":"")+"' data-sign='"+a.id+"'"+(canSign?"":" disabled")+">Sign — "+fmtM(a.fee)+"</button></div>";
         });
         h+="</div>";
       }

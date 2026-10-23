@@ -1797,16 +1797,21 @@ function tickLegal(){
 /* ── music label division (§32): sign artists, collect weekly, chart spikes ── */
 function unlockLabel(){
   if(G.label&&G.label.unlocked) return false;
-  if(G.studio.cash<60){ log("💸 Launching the label takes "+fmtM(60)+" of up-front investment.","bad"); return false; }
-  spend("studio", 60);
+  const lc=DATA.LABEL_COSTS||{};
+  const cost=lc.unlock!=null?lc.unlock:60;
+  const ovh=lc.overheadPerWeek!=null?lc.overheadPerWeek:0.3;
+  if(G.studio.cash<cost){ log("💸 Launching the label takes "+fmtM(cost)+" of up-front investment.","bad"); return false; }
+  spend("studio", cost);
   G.label={unlocked:true, artists:[]};
-  log("🎵 The "+G.studio.name+" music label is live — sign artists and soundtrack your own pipeline (+$0.3M/wk overhead).","gold");
+  log("🎵 The "+G.studio.name+" music label is live — sign artists and soundtrack your own pipeline (+"+fmtM(ovh)+"/wk overhead).","gold");
   saveGame(); return true;
 }
 function signArtist(id){
   if(!G.label||!G.label.unlocked) return false;
+  const lc=DATA.LABEL_COSTS||{};
+  const maxActs=lc.maxActs||3;
   G.label.artists=G.label.artists||[];
-  if(G.label.artists.length>=3){ log("🎧 The label's roster is full (3 acts) — drop one before signing another.","bad"); return false; }
+  if(G.label.artists.length>=maxActs){ log("🎧 The label's roster is full ("+maxActs+" acts) — drop one before signing another.","bad"); return false; }
   const a=(DATA.ARTISTS||[]).find(x=>x.id===id); if(!a||G.label.artists.some(x=>x.id===id)) return false;
   if(G.studio.cash<a.fee){ log("💸 Signing "+a.name+" takes "+fmtM(a.fee)+" (advance + videos).","bad"); return false; }
   spend("talent", a.fee);
@@ -1823,13 +1828,15 @@ function dropArtist(id){
 }
 function tickLabel(){
   const L=G.label; if(!L||!L.unlocked) return;
+  const lc=DATA.LABEL_COSTS||{};
+  const chartBuzz=lc.chartBuzzBonus!=null?lc.chartBuzzBonus:0.02;
   (L.artists||[]).forEach(a=>{
     let inc=0.08+0.14*(a.heat||1);
     if(a.chartUntil>G.week) inc*=3;
     else if(chance(0.035+0.01*(a.heat||1))){
       a.chartUntil=G.week+4;
       log("🎵 "+a.name+" is CHARTING — streaming and sync money ×3 for a month.","gold");
-      G.projects.forEach(p=>{ if(p.genre==="musical"||p.genre==="concert") p.buzzBonus=Math.round(((p.buzzBonus||0)+0.02)*100)/100; });
+      G.projects.forEach(p=>{ if(p.genre==="musical"||p.genre==="concert") p.buzzBonus=Math.round(((p.buzzBonus||0)+chartBuzz)*100)/100; });
     }
     earn("music", Math.round(inc*10)/10);
   });
@@ -7230,13 +7237,16 @@ function tourArtist(artistId){
   if(!G.label || !G.label.unlocked) return false;
   const a = (G.label.artists||[]).find(x=>x.id===artistId);
   if(!a) return false;
-  const cost = 8;
-  if(G.studio.cash < cost){ log("💸 Staging a world stadium tour requires $8M in stage production and advances.", "bad"); return false; }
+  const lc = DATA.LABEL_COSTS || {};
+  const cost = lc.tourCost != null ? lc.tourCost : 8;
+  const buzzAdd = lc.tourBuzzBonus != null ? lc.tourBuzzBonus : 0.06;
+  const chartWks = lc.tourChartWeeks != null ? lc.tourChartWeeks : 8;
+  if(G.studio.cash < cost){ log("💸 Staging a world stadium tour requires "+fmtM(cost)+" in stage production and advances.", "bad"); return false; }
   spend("talent", cost);
   const gross = Math.round((12 + (a.heat||1)*4 + rnd()*5)*10)/10;
   earn("music", gross);
-  a.chartUntil = G.week + 8;
-  G.projects.forEach(p=>{ if(p.genre==="musical"||p.genre==="concert") p.buzzBonus = (p.buzzBonus||0) + 0.06; });
+  a.chartUntil = G.week + chartWks;
+  G.projects.forEach(p=>{ if(p.genre==="musical"||p.genre==="concert") p.buzzBonus = (p.buzzBonus||0) + buzzAdd; });
   log("🎤 World Tour: "+a.name+" completed a 20-city stadium tour! Earned +"+fmtM(gross)+" gross, musical slate buzz primed.","gold");
   saveGame();
   return true;

@@ -256,6 +256,15 @@ DATA.ARTISTS = [
   {id:"mcd",    name:"MC Delta",      fee:6,  heat:2, vibe:"sports & comedy",   blurb:"Locker-room anthems, every one of them."},
   {id:"aria",   name:"Aria Solene",   fee:7,  heat:3, vibe:"musicals",          blurb:"Trained, towering, awards-season favorite."},
 ];
+DATA.LABEL_COSTS = {
+  unlock: 60,
+  overheadPerWeek: 0.3,
+  tourCost: 8,
+  tourBuzzBonus: 0.06,
+  chartBuzzBonus: 0.02,
+  tourChartWeeks: 8,
+  maxActs: 3,
+};
 
 /* ── v15 fan mail (§18-adjacent flavor): the people who buy the tickets write back ── */
 DATA.FAN_NAMES = [
