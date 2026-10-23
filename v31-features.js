@@ -348,7 +348,7 @@ const TAB_META = {
   fans:        [["all","All"],["mail","Mail"],["trending","Trending"],["viral","Viral"]],
   ott:         [["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]],
   live:        [["linear","Linear Channels"],["stream","Live Stream Hub"],["events","Live Events"],["studio","Host Studio"]],
-  library:     [["films","Films"],["series","Series"],["physical","Physical 4K Media"],["vault","Restoration Vault"]],
+  library:     [["overview","Overview"],["films","Films"],["series","Series"],["rights","Rights & windows"],["catalogue","Catalogue & licensing"],["physical","Physical 4K"],["restoration","Restoration vault"]],
   empire:      [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]],
   games:       [["dev","In Dev"],["released","Released"],["hardware","Hardware Platforms"],["greenlight","Greenlight"]],
 };
@@ -390,7 +390,7 @@ const TAB_SUB_DEFAULT = {
   fans:        "all",
   ott:         "home",
   live:        "linear",
-  library:     "films",
+  library:     "overview",
   empire:      "franchises",
   games:       "dev",
 };

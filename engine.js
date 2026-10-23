@@ -4198,6 +4198,7 @@ function finishSeason(s){
   const plat = s.platform==="own"? ownPlatformStub() : DATA.platform(s.platform);
   const season=s.seasons[s.seasons.length-1];
   season.viewership=s.pendingV; s.viewership=s.pendingV;
+  if(!season.when) season.when=G.week;   // v36.0: the Library desk prints a real season year
   season.audience=clamp(Math.round(s.pendingV*0.6+(season.quality||60)*0.4),5,99);
   const vLabel = season.viewership>=75? "a phenomenon 🔥": season.viewership>=58? "a hit": season.viewership>=45? "so-so": "a flop";
   log("📊 \""+s.title+"\" S"+season.num+" completed its run — "+vLabel+" ("+season.viewership+"/100 buzz).", season.viewership>=58?"good":"bad");
@@ -4480,17 +4481,90 @@ function franchiseValue(fr){
      catalogValue() and the UI franchise desk both read this */
   return (fr.tier||1)*15 + (fr.merch||0)*10 + (fr.park||0)*45;
 }
-function catalogValue(){
-  let v=0;
-  for(const f of G.films){
+/* v36.0: the catalogue value is itemised once, so the Library desk can show
+   exactly where the number comes from instead of re-deriving it. */
+function catalogValueBreakdown(){
+  let films=0, franchises=0, libraries=0;
+  for(const f of (G.films||[])){
     let base=((f.budget||0)*0.2 + (f.ww||0)*0.025);
     if(f.soldTo||f.streamingOriginal) base*=0.45;
     base += (f.awards||[]).length*8;
-    v+=base;
+    films+=base;
   }
-  for(const fr of G.franchises){ v += franchiseValue(fr); }
-  if(G.maLibraries) v += G.maLibraries * (DATA.MA? DATA.MA.library.catalogEach : 42);  // v5 M&A libraries
-  return v;
+  for(const fr of (G.franchises||[])){ franchises += franchiseValue(fr); }
+  if(G.maLibraries) libraries = G.maLibraries * (DATA.MA? DATA.MA.library.catalogEach : 42);  // v5 M&A libraries
+  return { films:Math.round(films*10)/10, franchises:Math.round(franchises*10)/10,
+    libraries:Math.round(libraries*10)/10, total:Math.round((films+franchises+libraries)*10)/10, titles:(G.films||[]).length };
+}
+function catalogValue(){ return catalogValueBreakdown().total; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v36.0 LIBRARY DESK — one catalogue data layer
+   Every number the Library tab prints comes from here, so the desk, the film
+   row, the detail modal and the weekly tick can never disagree with each
+   other. Nothing in this block invents state: it only reads G.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function libraryWeeklyRate(){ return 0.0045; }
+/* Exactly what tickLibrary pays: catalogValue() × 0.45% per week. */
+function libraryWeeklyIncome(){ return Math.round(catalogValue()*libraryWeeklyRate()*10)/10; }
+
+/* String-safe lookups — a save written by an older build can carry string ids. */
+function findFilmById(id){
+  const k=String(id);
+  return (G.films||[]).find(f=>f && String(f.id)===k) || (G.maVault||[]).find(f=>f && String(f.id)===k) || null;
+}
+function findSeriesById(id){
+  const k=String(id);
+  return (G.series||[]).find(s=>s && String(s.id)===k) || null;
+}
+
+/* The year printed on a card is the year every filter and sort uses. */
+function filmYear(f){
+  if(!f) return null;
+  if(f.releaseWeek) return yearOf(f.releaseWeek);
+  return (typeof f.year==="number") ? f.year : null;
+}
+function seriesYear(s){
+  const seasons=(s&&s.seasons)||[];
+  for(let i=seasons.length-1;i>=0;i--){ if(seasons[i] && seasons[i].when) return yearOf(seasons[i].when); }
+  return null;   // pre-v36 saves stored no week for a season: print "—", never guess
+}
+function seasonCount(s){ return ((s&&s.seasons)||[]).length; }
+function seriesEpisodeCount(s){
+  return ((s&&s.seasons)||[]).reduce((a,se)=>a+((se&&se.episodes)||0),0);
+}
+
+/* The catalogue, defined once.
+   Inclusion rule (stated on screen): a title is in the catalogue when it has
+   played somewhere — a theatrical run (releaseWeek), a licence, or a platform
+   placement. In-theater titles are included and tagged as such. */
+function libraryCatalogue(){
+  const films=(G.films||[]).filter(f=>f && f.releaseWeek);
+  const series=(G.series||[]).filter(s=>s && seasonCount(s)>0);
+  const vault=(G.maVault||[]).filter(f=>f && !f.dead);
+  return { films, series, vault, titles: films.length+series.length,
+    catalogValue: catalogValue(), weeklyIncome: libraryWeeklyIncome() };
+}
+
+/* Where a title currently lives, and whether it can move. One rule, used by
+   the Library desk and the OTT desk. */
+function libraryRightsOf(f){
+  if(!f) return { key:"unknown", label:"Unknown", movable:false, reason:"That title is no longer in the catalogue." };
+  if(f.inTheaters) return { key:"theaters", label:"In theaters", movable:false, reason:"Still in theaters — wait for the run to close." };
+  if(f.streamingOriginal) return { key:"exclusive", label:"Platform original", movable:false, reason:"Already an exclusive on your platform." };
+  if(f.onOwn || f.onOwnPlatform) return { key:"own", label:"On your platform", movable:false, reason:"Already on your platform." };
+  if(f.soldTo) return { key:"licensed", label:"Licensed · "+String(f.soldTo), movable:false, reason:"Already licensed to "+String(f.soldTo)+"." };
+  if(!G.streamer) return { key:"unsold", label:"Unsold — available", movable:false, reason:"Launch a streamer to place this title." };
+  return { key:"unsold", label:"Unsold — available", movable:true, reason:"" };
+}
+function libraryMovable(f){ const r=libraryRightsOf(f); return { ok:!!r.movable, reason:r.reason||"" }; }
+
+/* Restoration state, read through the module when it is loaded. */
+function libraryRestorationState(){
+  const mod=(typeof BOW_RESTORATION!=="undefined")?BOW_RESTORATION:null;
+  if(!mod || typeof mod.init!=="function") return null;
+  try{ mod.init(G); }catch(e){ return null; }
+  return G.restorationVault || null;
 }
 function maxDebt(){
   const inProd=G.projects.reduce((a,p)=>a+p.budget*0.55,0) + G.series.reduce((a,s)=>a+(s.phase==="shoot"?s.budget*0.55:0),0);
@@ -4579,7 +4653,7 @@ function tickFinance(){
     G.investorDebt-=pay; spend("financing", pay); G.investorPaid=(G.investorPaid||0)+pay;
     if(G.investorDebt<=0) log("🕴 Investor buyout fully repaid.","good");
   }
-  earn("library", catalogValue()*0.0045);
+  earn("library", libraryWeeklyIncome());   // v36.0: same helper the Library desk prints
   // Modular extensions weekly tick
   try { if(typeof BOW_THEATERS !== "undefined" && typeof BOW_THEATERS.tickWeekly === "function") BOW_THEATERS.tickWeekly(G); } catch(e){}
   try { if(typeof BOW_SOUNDTRACK !== "undefined" && typeof BOW_SOUNDTRACK.tickWeekly === "function") BOW_SOUNDTRACK.tickWeekly(G); } catch(e){}
@@ -4863,16 +4937,9 @@ function tickStreamer(){
   if(st.subs>=25 && typeof unlockAchv==="function") unlockAchv("subs25", "The Empire Hits 25M", "Reach 25M subscribers on your platform.");
 }
 
-function moveToStreamer(fid){
-  if(!G.streamer) return false;
-  const f=G.films.find(x=>x.id===fid);
-  if(!f || f.streamingOriginal || f.soldTo || f.onOwn || f.inTheaters) return false;
-  f.onOwn = true; f.soldTo = G.streamer.name;
-  G.streamer.subs = Math.round((G.streamer.subs + 0.3 + (f.quality?f.quality.overall/60:0))*100)/100;
-  log("📺 \""+f.title+"\" moved to your platform "+G.streamer.name+" — exclusive. Content ceiling +.","gold");
-  saveGame();
-  return true;
-}
+/* v36.0: the duplicate moveToStreamer that lived here was shadowed by the
+   definition below and silently differed from it (different subscriber maths,
+   no onOwnPlatform flag). One implementation remains. */
 
 /* ═══════════ v10 Phase 2: own-streamer distribution — a first-class release path ═══════════ */
 function ownPlatformStub(){
@@ -6275,19 +6342,25 @@ function launchPublishing(id){
   return { ok:true };
 }
 
-function libraryMove(fid){
-  const s=G.streamer; if(!s) return false;
-  const f=G.films.find(x=>x.id===fid);
-  if(!f || f.soldTo || f.streamingOriginal || f.inTheaters || f.onOwnPlatform || f.onOwn) return false;
+function libraryMoveResult(fid){
+  const s=G.streamer;
+  if(!s) return { ok:false, reason:"Launch a streamer before moving titles onto a platform." };
+  const f=findFilmById(fid);
+  if(!f) return { ok:false, reason:"That title is no longer in the catalogue." };
+  if(f.streamingOriginal) return { ok:false, reason:"Already a platform original." };
+  if(f.soldTo && !f.onOwn) return { ok:false, reason:"Already licensed to "+String(f.soldTo)+"." };
+  if(f.onOwnPlatform || f.onOwn) return { ok:false, reason:"Already on your platform." };
+  if(f.inTheaters) return { ok:false, reason:"Still in theaters — wait for the run to close." };
   f.onOwnPlatform=true; f.onOwn=true; f.soldTo=s.name;
-  const bump=Math.round((0.4+f.quality.overall/120)*100)/100;
-  s.subs+=bump; s.lastContent=G.week;
+  const q=(f.quality && Number.isFinite(f.quality.overall))?f.quality.overall:60;
+  const bump=Math.round((0.4+q/120)*100)/100;
+  s.subs=Math.round((s.subs+bump)*100)/100; s.lastContent=G.week;
   log("📚 \""+f.title+"\" moved to "+s.name+" (+"+bump.toFixed(2)+"M subs).","good");
-  saveGame(); return true;
+  saveGame();
+  return { ok:true, reason:"", bump };
 }
-function moveToStreamer(fid){
-  return libraryMove(fid);
-}
+function libraryMove(fid){ return libraryMoveResult(fid).ok; }
+function moveToStreamer(fid){ return libraryMove(fid); }
 
 
 function licenseOut(id, kind){
@@ -7031,9 +7104,13 @@ function tickMa(){
   G.maOffers = offers;
   log("🏦 The M&A desk circulates this quarter's deal book — see 💼 Finance.","");
 }
-function maBuy(id){
-  const o=(G.maOffers||[]).find(x=>x.id===id); if(!o) return false;
-  if(G.studio.cash<o.price){ log("💸 You can't cover "+fmtM(o.price)+" for \""+o.name+"\".","bad"); return false; }
+/* v36.0: the refusal now carries a reason the UI can show, instead of a
+   silent false that only wrote a log line. */
+function maBuyResult(id){
+  const o=(G.maOffers||[]).find(x=>x.id===id);
+  if(!o) return { ok:false, reason:"That deal is no longer on the book." };
+  if(o.expires<=G.week) return { ok:false, reason:"That offer expired in week "+o.expires+"." };
+  if(G.studio.cash<o.price) return { ok:false, reason:"You can't cover "+fmtM(o.price)+" for \""+o.name+"\" (cash "+fmtM(G.studio.cash)+")." };
   spend("studio", o.price);
   G.maOffers=G.maOffers.filter(x=>x.id!==id);
   G.maDeals=(G.maDeals||[]); G.maDeals.push({kind:o.kind, price:o.price, week:G.week, name:o.name});
@@ -7073,13 +7150,14 @@ function maBuy(id){
       }
       if(taken.length>=2) break;
     }
-    if(!taken.length){ earn("financing", o.price); G.maDeals.pop(); log("🤷 The firesale had nothing worth distributing — refund issued.",""); saveGame(); return false; }
+    if(!taken.length){ earn("financing", o.price); G.maDeals.pop(); log("🤷 The firesale had nothing worth distributing — refund issued.",""); saveGame(); return { ok:false, reason:"The firesale had nothing worth distributing — your money was refunded." }; }
     G.maSlate=(G.maSlate||[]);
     taken.forEach(f=>{ G.maSlate.push({title:f.title, week:f.week}); });
     log("🎞 Slate firesale: you now distribute "+taken.map(f=>"\""+f.title+"\"").join(" and ")+" — you keep the rentals, they take the credit-less writeoff.","gold");
   }
-  saveGame(); return true;
+  saveGame(); return { ok:true, reason:"", deal:o };
 }
+function maBuy(id){ return maBuyResult(id).ok; }
 // rival releases you've acquired pay your rent
 function tickMaSlateRentals(){
   for(const r of G.rivals) for(const f of r.slate){
