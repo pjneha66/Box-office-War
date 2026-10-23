@@ -1229,7 +1229,7 @@ function _renderImpl(){
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1267,8 +1267,8 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
-  { version:"34.8", label:"Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
-  { version:"34.7", label:"Streamer sub-tabs — originals, library, finance, sports, deals", status:"active" },
+  { version:"34.8", label:"🟡 §45 Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
+  { version:"34.7", label:"Streamer sub-tabs — originals, library, finance, sports, deals", status:"shipped" },
   { version:"34.6", label:"Fans desk rebrand + what's next roadmap", status:"shipped" },
   { version:"34.5", label:"Box office charts + produce dialogs", status:"shipped" },
   { version:"34.4", label:"Legacy dialog chrome", status:"shipped" }
@@ -2041,7 +2041,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -5833,175 +5833,301 @@ function viewBoxOffice(){
 
 
 /* ═══════════ VIEW: ott ═══════════ */
-/* Streaming market dashboard: platform subs/ARPU/churn/spend/revenue/share
-   derived from real deals, plus recent signings. Estimates labeled as such. */
-function streamMarketBoard(){
-  let rows;
-  try{ rows=platStats(); }catch(e){ return ""; }
-  const max=Math.max(1,...rows.map(r=>r.subs));
-  let h="<div class='section-title'>Streaming market</div><div class='grid g2'>";
-  rows.forEach(r=>{
-    h+="<div class='card'><div class='spread'><div><b>"+esc(r.name)+"</b> "+(r.mine?"<span class='tag purple'>yours</span>":"<span class='tag'>"+r.share+"% share</span>")+"</div>"+
-      "<b class='gold'>"+r.subs.toFixed(1)+"M subs</b></div>"+
-      "<div style='margin:6px 0'>"+meter(r.subs,Math.max(max,1))+"</div>"+
-      "<div class='cost-line'><span>ARPU</span><b>$"+r.arpu.toFixed(2)+"/wk</b></div>"+
-      "<div class='cost-line'><span>Churn</span><b>"+r.churn.toFixed(2)+"%/wk</b></div>"+
-      "<div class='cost-line'><span>Content spend (your deals)</span><b>"+fmtM(r.spend)+"</b></div>"+
-      "<div class='cost-line'><span>Revenue (est.)</span><b class='pos'>+"+fmtM(r.revenue)+"/wk</b></div>"+
-      "<div class='cost-line'><span>Library</span><b>"+r.titles+" titles · "+r.exclusives+" exclusives · "+r.seasons+" seasons</b></div>"+
-      (r.blurb?"<div class='tiny muted'>"+r.blurb+"</div>":"")+"</div>";
-  });
-  h+="</div>";
-  let signs;
-  try{ signs=recentSignings(); }catch(e){ signs=[]; }
-  h+="<div class='card' style='margin-top:8px'><b class='small'>Recent signings</b>"+
-    (signs.length?signs.map(s=>"<div class='cost-line'><span>“"+esc(s.title)+"” → "+esc(s.to)+"</span><b>"+fmtM(s.value)+" "+s.kind+"</b></div>").join(""):"<div class='tiny muted'>No platform deals yet — finish a film and shop it.</div>")+"</div>";
-  /* v31: box office analytics — charts + scope filter (renderers in v31-features.js) */
-  try{ h+=boxOfficeAnalytics(); }catch(e){}
-  return h;
+/* v34.7 OTT desk — one command shell and one navigation across every reading.
+   All figures come from the existing streaming engine; the view adds no
+   simulation state or economics. Historic action attributes stay in place. */
+const OTT_SECTIONS = [["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]];
+let OTT_HISTORY_MODE = "subs"; // view-only chart toggle; never written to the save
+
+function ottHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return `<header class="command-heading"><div><span class="command-edition">OTT DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">STREAMING / COMMAND &amp; LICENSING</span><h1>The streamer command desk.</h1><p>Audience, originals, deals, sports and buyers — every streaming decision in one place.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
 }
-/* v10 Phase 2 (spec §15): your platform at a glance — subs, churn, revenue, originals, library */
-function ownStreamerBoard(){
-  if(!G.streamer) return "";
+function ottRisk(){
+  try{ return churnRisk(); }catch(e){ return {level:"unknown",pct:0}; }
+}
+function ottTelemetry(){
+  const st=G.streamer, risk=ottRisk();
+  let ceiling=0; if(st){ try{ ceiling=streamerCeiling(); }catch(e){} }
+  const headroom=st?Math.max(0,ceiling-(st.subs||0)):0;
+  return `<div class="command-telemetry">${commandMetric("SUBSCRIBERS",st?fmtSubs(st.subs||0):"—",st?esc(st.name):"No platform launched")}${commandMetric("CEILING HEADROOM",st?fmtSubs(headroom):"—",st?fmtSubs(st.subs||0)+" of "+fmtSubs(ceiling)+" ceiling":"Launch to measure the room")}${commandMetric("REVENUE / WEEK",st?fmtM(st.income||0):"—",st?"Current streaming income":"No streaming income yet")}${commandMetric("CHURN RISK",st?(risk.level==="unknown"?"NO DATA":risk.level.toUpperCase()+" · "+risk.pct+"%"):"—",st?"Four-week subscriber trend":"No subscriber history")}</div>`;
+}
+function ottNav(){
+  const active=OTT_SECTIONS.some(s=>s[0]===OTT_SUB)?OTT_SUB:"home";
+  return `<nav class="command-section-nav command-ott-nav" aria-label="OTT desk sections"><div class="command-nav-brand"><span>OTT DESK</span><small>HOME / ORIGINALS / DEALS / SPORTS / MARKET</small></div><div class="command-nav-items">${OTT_SECTIONS.map(([key,label],i)=>{
+    const icon=getSubTabPixelIcon("ott",key);
+    return `<button data-ottsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+  }).join("")}</div></nav>`;
+}
+function ottPanel(eyebrow,title,description,content,stamp,cls){
+  return `<section class="produce-panel ${cls||""}"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${stamp?`<div class="ott-panel-aside">${stamp}</div>`:""}</div><div class="ott-panel-body">${content}</div></section>`;
+}
+function ottEmpty(title,copy,action){
+  return `<div class="ott-empty"><b>${title}</b><p>${copy}</p>${action||""}</div>`;
+}
+function ottMeter(value,max,label){
+  const pct=Math.max(0,Math.min(100,(Number(value)||0)/Math.max(1,Number(max)||1)*100));
+  return `<div class="ott-meter" role="meter" aria-label="${esc(label||"Progress")}" aria-valuemin="0" aria-valuemax="${Number(max)||0}" aria-valuenow="${Number(value)||0}"><i style="width:${pct.toFixed(2)}%"></i></div>`;
+}
+function ottRiskBadge(){
+  const risk=ottRisk(), level=risk.level||"unknown";
+  const label=level==="unknown"?"NO DATA":level.toUpperCase();
+  return `<span class="ott-chip ott-risk-${esc(level)}">${label} · ${Number(risk.pct)||0}%</span>`;
+}
+/* C1 — the history collected by tickStreamer, finally given a reading. */
+function ottSubscriberRoomPanel(){
   const st=G.streamer;
-  const orig=G.films.filter(f=>f.streamingOriginal&&f.onOwn);
-  const lib=G.films.filter(f=>f.onOwn);
-  const ownSeries=G.series.filter(s=>s.platform==="own");
-  let ce=0; try{ ce=streamerCeiling(); }catch(e){}
-  const starved=G.week-(st.lastContent||0)>6;
-  const hist = st.history || [];
-  const maxSubs = Math.max(1, ...hist.map(h=>h.subs), st.subs);
-  const spark = hist.length>=2 ? "<div class='weekly-gross-chart' style='height:36px;margin:8px 0'>"+hist.map(x=>"<div class='wg' style='height:"+Math.max(8,x.subs/maxSubs*100)+"%;background:var(--purple)' title='Wk "+x.w+": "+x.subs.toFixed(1)+"M subs'></div>").join("")+"</div>" : "";
-  const totalLib = (G.films||[]).length;
-  const utilPct = totalLib ? Math.round(lib.length / totalLib * 100) : 0;
-  return "<div class='bo-platform-head'><div class='section-title'>▶ Your platform — "+esc(st.name)+"</div><button class='bo-rebrand-btn' type='button' data-rebrand-streamer='1' aria-label='Rebrand your platform'>✏️ Rebrand</button></div>"+
-    "<div class='card'><div class='stat-hero' style='margin:0'>"+
-      statCard(st.subs.toFixed(1)+"M","Subscribers","var(--purple)")+
-      statCard(((st.churn||0)*100).toFixed(2)+"%","Weekly churn")+
-      statCard(fmtM(st.income||0)+"/wk","Revenue")+
-      statCard(Math.round(ce)+"M","Ceiling")+
-      statCard(lib.length+" titles","On Platform")+
-      statCard(String(orig.length),"Originals")+
-    "</div>"+
-    spark+
-    "<div style='margin-top:6px'><div class='cost-line'><span class='tiny muted'>Catalog streaming utilization</span><b class='tiny gold'>"+lib.length+" of "+totalLib+" films ("+utilPct+"%)</b></div>"+meter(utilPct, 100)+"</div>"+
-    "<div class='tiny muted' style='margin-top:6px'>"+(starved? "⚠ Starved — no new content for "+(G.week-(st.lastContent||0))+" weeks; churn is bleeding subscribers." : "Fed — last content "+(G.week-(st.lastContent||0))+" wk ago.")+" · "+ownSeries.length+" own original series · premieres and hybrids land here automatically.</div></div>";
+  if(!st) return ottPanel("SUBSCRIBER ROOM","Subscriber room","Sixteen weeks of subscribers and revenue, recorded by the existing weekly tick.",ottEmpty("No subscriber history yet.","Launch a platform and advance a week to begin its subscriber and revenue record."),"NO HISTORY","ott-subscriber-room");
+  const history=Array.isArray(st.history)?st.history.slice(-16):[];
+  const mode=OTT_HISTORY_MODE==="revenue"?"revenue":"subs";
+  const points=history.map(x=>({label:"W"+woyOf(x.w),value:Number(mode==="subs"?x.subs:x.inc)||0,note:dateLabel(x.w)}));
+  const chart=points.length&&typeof BOCharts!=="undefined"?BOCharts.area(points,{aria:mode==="subs"?"Subscriber history, last 16 weeks":"Streaming revenue history, last 16 weeks",format:mode==="subs"?(v=>fmtSubs(v)):(v=>fmtM(v)),compact:typeof boCompact==="function"?boCompact():false}):"";
+  const toggle=`<div class="produce-filters ott-history-toggle" role="group" aria-label="Subscriber chart metric"><button data-ott-history="subs" class="${mode==="subs"?"active":""}" aria-pressed="${mode==="subs"}">Subscribers</button><button data-ott-history="revenue" class="${mode==="revenue"?"active":""}" aria-pressed="${mode==="revenue"}">Revenue</button></div>`;
+  const kpis=`<div class="ott-kpis ott-kpis-three"><div class="ott-kpi"><small>PEAK SUBSCRIBERS</small><b>${fmtSubs(st.peak||st.subs||0)}</b><span>Career high for ${esc(st.name)}</span></div><div class="ott-kpi"><small>LIFETIME REVENUE</small><b>${fmtM(st.totalRev||0)}</b><span>Total streaming revenue</span></div><div class="ott-kpi"><small>CHURN RISK</small>${ottRiskBadge()}<span>Four-week subscriber trend</span></div></div>`;
+  const figure=chart?`<div class="ott-chart" data-chart-mode="${mode}" data-history-count="${history.length}">${chart}</div>`:ottEmpty("The first weekly point has not landed.","Advance one week; tickStreamer will record subscribers and income here automatically.");
+  return ottPanel("SUBSCRIBER ROOM","Subscriber room","The last 16 recorded weeks. Toggle subscribers against weekly revenue; the chart never alters the save.",toggle+kpis+figure,`${history.length} / 16 WEEKS`,"ott-subscriber-room");
+}
+function ottContentHealthOf(){
+  const st=G.streamer, films=G.films||[];
+  const graceWeeks=10+Math.min(26,films.length*2);
+  const elapsed=st?G.week-(st.lastContent||0):0;
+  return {graceWeeks,elapsed,starved:!!st&&elapsed>graceWeeks,weeksLeft:Math.max(0,graceWeeks-elapsed+1)};
+}
+/* C2 — use the exact starvation rule from tickStreamer, including its strict
+   “greater than graceWeeks” boundary. */
+function ottContentHealthPanel(){
+  const st=G.streamer;
+  if(!st) return ottPanel("CONTENT HEALTH","Content health","The same 10 + min(26, films × 2) grace rule used by the engine.",ottEmpty("No platform to feed.","Launch a streamer to see its exact content-grace countdown and eligible library moves."),"LOCKED","ott-content-health");
+  const health=ottContentHealthOf(), films=G.films||[];
+  const onPlatform=films.filter(f=>f.onOwn||f.onOwnPlatform);
+  const unsold=films.filter(f=>!f.soldTo&&!f.streamingOriginal&&!f.onOwn&&!f.onOwnPlatform);
+  const countdown=health.starved?"Churn has started — the content grace period has expired.":`${health.weeksLeft} week${health.weeksLeft===1?"":"s"} before churn starts`;
+  const kpis=`<div class="ott-kpis ott-kpis-three"><div class="ott-kpi"><small>FILMS ON PLATFORM</small><b>${onPlatform.length}</b><span>Exclusive catalogue titles</span></div><div class="ott-kpi"><small>MONETIZABLE / UNSOLD</small><b>${unsold.length}</b><span>Released films without a buyer</span></div><div class="ott-kpi"><small>CONTENT GRACE</small><b>${health.graceWeeks} wk</b><span>10 + min(26, ${films.length} films × 2)</span></div></div>`;
+  const status=`<div class="ott-countdown ${health.starved?"expired":""}"><b>${countdown}</b><span>Last content ${health.elapsed} week${health.elapsed===1?"":"s"} ago · starvation begins only after the ${health.graceWeeks}-week grace.</span></div>`;
+  const rows=unsold.slice(0,6).map(f=>{
+    const movable=!f.inTheaters;
+    return `<div class="ott-library-row"><div><b>${esc(f.title)}</b><small>${esc((DATA.GENRES[f.genre]||{}).name||f.genre||"Feature")} · ${f.inTheaters?"still in theaters":"ready to move"}</small></div>${movable?`<button class="produce-ghost" data-movestr="${f.id}">📱 Move to platform</button>`:`<span class="ott-chip">AFTER THEATRICAL RUN</span>`}</div>`;
+  }).join("");
+  const library=rows?`<div class="ott-library-list">${rows}</div>${unsold.length>6?`<p class="ott-note">+${unsold.length-6} more unsold titles in the film library.</p>`:""}`:ottEmpty("No unsold catalogue titles.","Every released film is either assigned to a platform or already exclusive to yours.");
+  return ottPanel("CONTENT HEALTH","Content health","A precise starvation countdown, plus released films that can move onto your service through moveToStreamer.",kpis+status+library,health.starved?"STARVED":"FED","ott-content-health");
+}
+/* C3 — EU quota reads and eligibility mirror euShareOf/euQuotaCheck. */
+function ottEuQuotaPanel(){
+  const st=G.streamer, EU=DATA.GLOBAL?DATA.GLOBAL.eu:{quota:.3,fine:5,freezeWeeks:4};
+  let r={share:1,eu:0,total:0}; try{ r=euShareOf(); }catch(e){}
+  const share=r.total?r.share:0, quota=EU.quota||.3, frozen=!!(st&&st.euFreeze>0);
+  const status=!st?"Launch a streamer to enter EU quota reviews.":r.total<3?"Catalogue too small to audit — the engine reviews at three works.":frozen?`Growth frozen · ${st.euFreeze} week${st.euFreeze===1?"":"s"} left`:share>=quota?"Compliant with the European works quota.":`Below quota · ${fmtM(EU.fine)} fine and ${EU.freezeWeeks}-week growth freeze at review.`;
+  const kpis=`<div class="ott-kpis"><div class="ott-kpi"><small>EUROPEAN WORKS</small><b>${r.eu} / ${r.total}</b><span>Eligible works / catalogue</span></div><div class="ott-kpi"><small>CURRENT SHARE</small><b>${Math.round(share*100)}%</b><span>Need ${Math.round(quota*100)}%</span></div><div class="ott-kpi"><small>FAILURE FINE</small><b>${fmtM(EU.fine)}</b><span>Charged at quota review</span></div><div class="ott-kpi"><small>GROWTH FREEZE</small><b>${frozen?st.euFreeze+" wk":"—"}</b><span>${frozen?"Weeks remaining":EU.freezeWeeks+" weeks on failure"}</span></div></div>`;
+  const meter=`<div class="ott-quota-read"><div><b>${Math.round(share*100)}% / ${Math.round(quota*100)}% required</b><span>${status}</span></div>${ottMeter(share,quota,"EU quota compliance")}</div>`;
+  const eligible=`<div class="ott-eligibility"><b>What counts as European works</b><div><span class="ott-chip">LONDON SHOOTS</span><span class="ott-chip">TORONTO SHOOTS</span><span class="ott-chip">QUEENSLAND SHOOTS</span><span class="ott-chip">ANY FOREIGN-LANGUAGE FILM</span></div><p>Exactly the locations and foreign-language flag read by euShareOf(). Series with completed seasons count toward the catalogue total.</p></div>`;
+  return ottPanel("EU QUOTA","European works quota","Progress against DATA.GLOBAL.eu.quota, the existing fine and any live growth freeze.",kpis+meter+eligible,frozen?"FROZEN":share>=quota&&r.total>=3?"COMPLIANT":"QUOTA WATCH","ott-eu-quota");
+}
+function ottHomePanel(){
+  const st=G.streamer;
+  if(!st){
+    let ok=false; try{ ok=canLaunchStreamer(); }catch(e){}
+    const action=`<button class="produce-action" id="launchStreamer" ${ok?"":"disabled"}>🚀 Launch streamer — $140M</button>`;
+    return ottPanel("YOUR PLATFORM","Your platform","Build a direct-to-consumer home for the catalogue. Launch needs $140M and reputation 35+.",ottEmpty("No streamer on the lot.","Launch here, then feed the platform with finished films, originals and live rights. Subscription tiers and audience analytics unlock with it.",action),"NOT LAUNCHED","ott-platform");
+  }
+  let ceiling=0; try{ ceiling=streamerCeiling(); }catch(e){}
+  const tier=DATA.tier(st.tier||"premium");
+  const body=`<div class="ott-kpis"><div class="ott-kpi"><small>PLATFORM</small><b>${esc(st.name)}</b><span>${esc(tier.name)}</span></div><div class="ott-kpi"><small>SUBSCRIBERS</small><b>${fmtSubs(st.subs||0)}</b><span>Peak ${fmtSubs(st.peak||st.subs||0)}</span></div><div class="ott-kpi"><small>CONTENT CEILING</small><b>${fmtSubs(ceiling)}</b><span>Current tier ×${tier.ceil.toFixed(2)}</span></div><div class="ott-kpi"><small>SPORTS POWER</small><b>${(st.sportsPower||0).toFixed(1)}</b><span>Decays ~1.5%/wk</span></div></div>${ottMeter(st.subs||0,Math.max(1,ceiling),"Subscriber ceiling")}${st.crackdown>0?`<p class="ott-note">🔐 Password crackdown active — churn doubled for ${st.crackdown} more weeks.</p>`:""}`;
+  return ottPanel("YOUR PLATFORM","Your platform — "+esc(st.name),"The active service, its current tier and the room left before the content ceiling.",body,`<button class="produce-ghost" type="button" data-rebrand-streamer="1" aria-label="Rebrand your platform">✏️ Rebrand</button>`,"ott-platform");
+}
+function ottTierDelta(t,current,key,higherBetter,kind){
+  if(!current) return "";
+  if(t.id===current.id) return `<span class="ott-chip">CURRENT</span>`;
+  const delta=(t[key]||0)-(current[key]||0);
+  if(Math.abs(delta)<.00001) return `<span class="ott-chip">SAME</span>`;
+  const better=higherBetter?delta>0:delta<0, sign=delta>0?"+":"−", magnitude=Math.abs(delta);
+  const value=kind==="churn"?`${sign}${(magnitude*100).toFixed(1)} pp`:kind==="ceil"?`${sign}${magnitude.toFixed(2)}×`:`${sign}$${magnitude.toFixed(2)}`;
+  return `<span class="ott-chip ${better?"better":"worse"}">${better?"BETTER":"WORSE"} ${value}</span>`;
+}
+/* C7 — every delta is a display comparison with DATA.tier(current). The promo
+   button quotes t.cost, the exact field setStreamerTier spends. */
+function ottTiersPanel(){
+  const st=G.streamer, current=st?DATA.tier(st.tier||"premium"):null;
+  const tiers=DATA.TIERS.map(t=>{
+    const on=!!(current&&current.id===t.id), disabled=!on&&G.studio.cash<(t.cost||0);
+    const price=t.cost?fmtM(t.cost).replace(".0M","M"):"no build fee";
+    const listPrice=t.listCost?fmtM(t.listCost).replace(".0M","M"):"";
+    return `<article class="ott-tier ${on?"active":""}" data-tier-card="${t.id}"><header><b>${esc(t.name)}</b>${on?`<span class="ott-chip">LIVE</span>`:""}</header><p>${esc(t.desc)}</p>${t.promo?`<div class="ott-promo-price"><span>PROMO RATE <b>${price}</b></span><span>LIST PRICE <b>${listPrice}</b></span></div>`:""}<dl><div><dt>ARPU / week</dt><dd><b>$${t.arpu.toFixed(2)}</b>${ottTierDelta(t,current,"arpu",true,"arpu")}</dd></div><div><dt>Ceiling multiplier</dt><dd><b>×${t.ceil.toFixed(2)}</b>${ottTierDelta(t,current,"ceil",true,"ceil")}</dd></div><div><dt>Base churn</dt><dd><b>${(t.churn*100).toFixed(1)}%/wk</b>${ottTierDelta(t,current,"churn",false,"churn")}</dd></div></dl>${!st?`<span class="ott-chip">LAUNCH TO SWITCH</span>`:on?`<span class="ott-chip">CURRENT TIER</span>`:`<button class="produce-action" data-tier="${t.id}" ${disabled?"disabled":""}>Switch — ${price}${t.promo?" promo":""}</button>`}</article>`;
+  }).join("");
+  const promo=DATA.TIERS.find(t=>t.promo);
+  const note=st?`<p class="ott-note">Better/worse chips compare with ${esc(current.name)}. Switching calls setStreamerTier${promo?`; the promo button charges the displayed ${fmtM(promo.cost).replace(".0M","M")} promo rate, not the ${fmtM(promo.listCost).replace(".0M","M")} list price`:""}.</p>`:"";
+  return ottPanel("SUBSCRIPTION TIERS","Subscription tiers","Three existing tiers with ARPU, ceiling, churn and delta-versus-current. Preview them before launch or switch from a live platform.",`<div class="ott-tier-grid">${tiers}</div>`+note,current?esc(current.name):"PREVIEW","ott-tiers");
+}
+
+function ottCrackdownPanel(){
+  const st=G.streamer, active=!!(st&&st.crackdown>0), disabled=!st||active||G.studio.cash<20;
+  const label=!st?"Launch a streamer first":active?`Active · ${st.crackdown} weeks left`:G.studio.cash<20?"Needs $20M cash":"Start crackdown — $20M";
+  const body=`<div class="ott-action-row"><div><b>Paid accounts now, higher churn for eight weeks.</b><p>Cost $20M · rep −8 · churn ×2 for 8 weeks. The engine adds 20% of current subscribers immediately.</p></div><button class="produce-ghost" id="ottCrackdown" ${disabled?"disabled":""}>${label}</button></div>`;
+  return ottPanel("AUDIENCE POLICY","Password-sharing crackdown","A one-off conversion push with an explicit reputation and churn trade-off.",body,active?"ACTIVE":"$20M","ott-crackdown");
+}
+/* C6 — series pipeline and recent-season record, with renewal expiry from the
+   actual offer already sitting in G.offers. */
+function ottOriginalsPanel(){
+  const series=G.series||[];
+  if(!series.length) return ottPanel("ORIGINALS DESK","Your series","Series bring steady license income, renewals and a reason to stay subscribed.",ottEmpty("No shows in the pipeline.","Pitch a series from Develop; its shoot, seasons and renewal offers will appear here.",`<button class="produce-action" onclick="switchTab('develop')">Open Develop →</button>`),"0 SERIES","ott-originals");
+  const rows=series.map(s=>{
+    const p=s.platform==="own"&&typeof ownPlatformStub==="function"?ownPlatformStub():DATA.platform(s.platform);
+    const seasons=s.seasons||[], last=seasons[seasons.length-1];
+    const format=(DATA.SERIES_FORMATS||[]).find(f=>f.id===s.formatId)||(DATA.SERIES_FORMATS||[])[0];
+    const renewal=(G.offers||[]).find(o=>o.type==="renewal"&&o.seriesId===s.id);
+    let phase="";
+    if(s.phase==="shoot") phase=`🎬 Shooting S${seasons.length+1} · ${s.weeksLeft||0} weeks left · burn ${fmtM((s.budget||0)/Math.max(s.weeksLeft0||s.weeksLeft||1,1))}/wk`;
+    else if(s.phase==="airing") phase=`📡 Airing on ${esc(p.name)} · ${s.airWeeks||0} week${s.airWeeks===1?"":"s"} left`;
+    else if(s.status==="ended") phase="Ended";
+    else if(s.status==="renewal_pending") phase=renewal?`Renewal pending · ${Math.max(0,(renewal.expires||G.week)-G.week)} weeks to answer`:"Renewal pending · offer not on file";
+    else phase="Between seasons";
+    const history=seasons.slice(-3).map(y=>`<div class="ott-data-row"><span>S${y.num} · ${s.eps||0} eps</span><b>${fmtM(y.license||0)} license · crit ${y.critic||"—"} · aud ${y.audience||y.viewership||"—"}</b></div>`).join("");
+    const canSpin=seasons.length>=2&&seasons.some(x=>(x.viewership||0)>=58);
+    return `<article class="ott-series" data-series-id="${s.id}"><header><div><b>📺 ${esc(s.title)}</b><button class="produce-ghost ott-icon-action" data-rename="s:${s.id}" aria-label="Rename ${esc(s.title)}">✏️</button></div><div class="ott-chip-row"><span class="ott-chip">${esc(p.name)}</span>${format?`<span class="ott-chip ott-format">${format.icon||"📺"} ${esc(format.name)}</span>`:""}</div></header><p>${gTag(s.genre)} · ${s.eps||0} eps × ${fmtM(s.perEp||0)} · ${seasons.length} season${seasons.length===1?"":"s"}</p><div class="ott-phase">${phase}</div>${last?ottMeter(last.viewership||0,100,"Last season buzz"):""}${history||`<p class="ott-note">No completed seasons yet.</p>`}<footer>${s.status!=="ended"?`<button class="produce-ghost" data-cancel-series="${s.id}">✕ Cancel series</button>`:""}${canSpin?`<button class="produce-ghost" data-spinoff-series="${s.id}">🎬 Film continuation</button>`:""}</footer></article>`;
+  }).join("");
+  return ottPanel("ORIGINALS DESK","Your series","Shoot burn, airing and between-season status, renewal countdowns, formats and the last three completed seasons.",`<div class="ott-series-list">${rows}</div>`,`${series.length} SERIES`,"ott-originals");
+}
+
+function ottOfferBudget(o){
+  if(o.type==="film_ott"){
+    const f=(G.films||[]).find(x=>x.id===o.filmId);
+    return f?(f.budget||0):0;
+  }
+  if(o.type==="prebuy"){
+    const p=(G.projects||[]).find(x=>x.id===o.projectId);
+    return p?(p.budget||0):0;
+  }
+  if(o.type==="renewal") return o.budget||0;
+  return o.budget||0;
+}
+/* C5 — open offers are a sorted decision queue, not an unsorted card dump. */
+function ottDealsPanel(){
+  const offers=(G.offers||[]).slice().sort((a,b)=>(b.value||0)-(a.value||0));
+  if(!offers.length) return ottPanel("DEALS DESK","Deal offers","Licenses, originals pre-buys and season orders land here with a live expiry.",ottEmpty("No offers on the table.","Hits and finished runs attract bidders — especially during streaming wars."),"0 OFFERS","ott-deals");
+  const cards=offers.map(o=>{
+    const p=DATA.platform(o.platform), title=o.filmTitle||o.seriesTitle||"Untitled offer";
+    const type=o.type==="film_ott"?"Theatrical → streaming":o.type==="prebuy"?"Pre-buy original":`Season ${o.seasonNum||"next"} order`;
+    const budget=ottOfferBudget(o), value=o.value||0, weeks=(o.expires==null?G.week:o.expires)-G.week;
+    const expiry=weeks>0?`expires in ${weeks} wk`:weeks===0?"expires this week":`expired ${Math.abs(weeks)} wk ago`;
+    const comparison=budget>0?`${(value/budget).toFixed(2)}× budget`:"budget not on file";
+    return `<article class="ott-offer" data-offer-id="${o.id}"><header><div><span class="ott-platform-logo">${esc(p.logo||"?")}</span><div><b>${esc(title)}</b><small>${esc(type)} · ${esc(p.name)}</small></div></div>${o.biddingWar?`<span class="ott-chip">🔥 BIDDING WAR</span>`:""}</header><div class="ott-offer-value"><div><b>${fmtM(value)}</b><span>${comparison}</span></div><span>${expiry}</span></div><footer><button class="produce-action" data-acc="${o.id}">✅ Accept</button>${o.countered?"":`<button class="produce-ghost" data-cnt="${o.id}">📈 Counter</button>`}<button class="produce-ghost" data-dec="${o.id}">✕ Decline</button></footer></article>`;
+  }).join("");
+  return ottPanel("DEALS DESK","Deal offers","Sorted by value. Compare each bid with its film or season budget before the expiry runs out.",`<div class="ott-offer-list">${cards}</div>`,`${offers.length} OFFERS`,"ott-deals");
+}
+
+function ottNextSportsAuction(){
+  const woy=woyOf(G.week), weeks=[13,26,39,52];
+  const target=weeks.find(w=>w>=woy)||13;
+  return {target,weeks:(target-woy+52)%52};
+}
+/* C8 — auction calendar and sportEcon figures are reads of current state. */
+function ottSportsPanel(){
+  const st=G.streamer, won=G.sportsWon||[], next=ottNextSportsAuction();
+  const held=DATA.SPORTS.filter(s=>won.includes(s.id));
+  const pending=G.pendingSports;
+  const auction=`<div class="ott-auction-countdown"><small>${pending?"AUCTION OPEN":"NEXT SEALED-BID AUCTION"}</small><b>${pending?`${esc((pending.pkg||{}).name||"Sports package")}`:`Week ${next.target} · ${next.weeks===0?"this week":next.weeks+" week"+(next.weeks===1?"":"s")}`}</b><span>${pending?`Answer within ${Math.max(0,(pending.expires||G.week)-G.week)} weeks`:"Auctions land on weeks 13 / 26 / 39 / 52"}</span></div>`;
+  let rights="";
+  if(!st) rights=ottEmpty("A platform is required for live sports.","Launch a streamer from Home, then bid in the quarterly sealed-bid auctions.");
+  else{
+    const rows=held.map(s=>{
+      const d=(G.sportsDeals||{})[s.id]||{base:120,subBump:4.5}, e=sportEcon({id:s.id,base:d.base,subBump:d.subBump});
+      return `<div class="ott-rights-row" data-sport-id="${s.id}"><div><b>${s.icon} ${esc(s.name)}</b><small>Won for ${fmtM(d.bid||d.base)}${d.week?` · ${dateLabel(d.week)}`:""}</small></div><dl><div><dt>Duration</dt><dd>${e.dur} weeks</dd></div><div><dt>Viewers</dt><dd>~${e.audience}M</dd></div><div><dt>Ads / week</dt><dd>+${fmtM(e.ad)}</dd></div><div><dt>Expected value</dt><dd>~${fmtM(e.revenue)}</dd></div></dl></div>`;
+    }).join("");
+    rights=`<div class="ott-sports-power"><span>SPORTS POWER</span><b>${(st.sportsPower||0).toFixed(1)}</b><small>Decays once at ~1.5%/wk</small></div>${rows?`<div class="ott-rights-list">${rows}</div>`:ottEmpty("No sports rights yet.","Your first sealed-bid auction arrives on the next 13 / 26 / 39 / 52 week.")}`;
+  }
+  const events=[["awardshow","Award show",25],["concert","Concert",40],["boxing","Boxing match",60]].map(e=>`<button class="produce-ghost" data-live-event="${e[0]}" ${!st||G.studio.cash<e[2]?"disabled":""}>${e[1]} — ${fmtM(e[2])}</button>`).join("");
+  const eventBody=`<div class="ott-action-row"><div><b>One-off PPV licenses.</b><p>Award show $25M · concert $40M · boxing $60M. Revenue and subscriber effects settle immediately.</p></div><div class="ott-actions">${events}</div></div>`;
+  return ottPanel("SPORTS DESK","Live sports rights","The next auction, held-rights economics from sportEcon(), and the single documented sports-power decay.",auction+rights,`${held.length} HELD`,"ott-sports")+ottPanel("LIVE EVENTS","Live event licensing","One-off events use the same licenseLiveEvent engine action; no new payout model.",eventBody,st?"PPV DESK":"NEEDS STREAMER","ott-live-events");
+}
+
+function ottStrongestGenre(){
+  const genres=Object.keys(DATA.GENRES||{}), totals={};
+  (G.films||[]).forEach(f=>{ if(DATA.GENRES[f.genre]) totals[f.genre]=(totals[f.genre]||0)+Math.max(0,f.ww||0); });
+  const ranked=Object.keys(totals).filter(g=>totals[g]>0).sort((a,b)=>totals[b]-totals[a]);
+  if(ranked.length) return {key:ranked[0],basis:"highest released worldwide gross"};
+  const next=(G.projects||[])[0]||(G.ideas||[])[0]||(G.films||[])[0];
+  if(next&&DATA.GENRES[next.genre]) return {key:next.genre,basis:"current development slate"};
+  return {key:genres[0],basis:"default pitch genre"};
+}
+/* C4 — every buyer and every taste multiplier, ranked against the studio's
+   strongest existing genre rather than a made-up market score. */
+function ottBuyerFitPanel(){
+  const strongest=ottStrongestGenre(), genre=strongest.key, genres=Object.keys(DATA.GENRES||{});
+  const platforms=DATA.allPlatforms().slice().sort((a,b)=>{
+    const fit=((b.taste||{})[genre]||1)-((a.taste||{})[genre]||1);
+    return fit||((b.generosity||1)-(a.generosity||1))||String(a.name).localeCompare(String(b.name));
+  });
+  const entrants=new Set((G.extraPlatforms||[]).map(p=>p.id));
+  const war=G.streamWar>0?`<div class="ott-war-banner"><b>⚔️ Streaming war</b><span>Offers +30% · ${G.streamWar} week${G.streamWar===1?"":"s"} left</span></div>`:"";
+  const rows=platforms.map(p=>{
+    const tastes=genres.map(g=>`<span class="ott-taste ${g===genre?"strong":""}" data-taste-genre="${g}"><small>${esc((DATA.GENRES[g]||{}).name||g)}</small><b>×${(((p.taste||{})[g]||1)).toFixed(2)}</b></span>`).join("");
+    return `<tr data-buyer-id="${esc(p.id)}" class="${entrants.has(p.id)?"entrant":""}"><th scope="row"><b>${esc(p.name)}</b>${entrants.has(p.id)?`<span class="ott-chip">NEW ENTRANT</span>`:""}<small>${esc(p.blurb||"")}</small></th><td><div class="ott-taste-grid">${tastes}</div></td><td data-label="Generosity"><b>${Math.round((p.generosity||1)*100)}%</b></td><td data-label="Renew threshold"><b>${p.renew||0} buzz</b></td></tr>`;
+  }).join("");
+  const table=`<div class="ott-table-wrap"><table class="ott-buyer-table"><thead><tr><th>Buyer</th><th>Taste multipliers · ${esc((DATA.GENRES[genre]||{}).name||genre)} highlighted</th><th>Generosity</th><th>Renew threshold</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const note=`<p class="ott-note">Sorted for <b>${esc((DATA.GENRES[genre]||{}).name||genre)}</b>, your strongest genre by ${esc(strongest.basis)}. Missing tastes use the engine's neutral ×1.00.</p>`;
+  return ottPanel("BUYER FIT","Who wants your next pitch","All platforms from DATA.allPlatforms(), their actual taste multipliers, generosity and renewal thresholds.",war+note+table,`${platforms.length} BUYERS`,"ott-buyer-fit");
+}
+function ottMarketPanel(){
+  let rows=[]; try{ rows=platStats(); }catch(e){}
+  const body=rows.length?`<div class="ott-platform-list">${rows.map(r=>`<article class="ott-platform"><header><span class="ott-platform-logo">${esc(r.logo||"?")}</span><div><b>${esc(r.name)}</b><small>${r.mine?"Your platform":r.share+"% market share"}</small></div><strong>${r.subs.toFixed(1)}M</strong></header>${ottMeter(r.subs,Math.max(...rows.map(x=>x.subs),1),"Subscriber share")}<dl><div><dt>ARPU</dt><dd>$${r.arpu.toFixed(2)}/wk</dd></div><div><dt>Churn</dt><dd>${r.churn.toFixed(2)}%/wk</dd></div><div><dt>Your deal spend</dt><dd>${fmtM(r.spend)}</dd></div><div><dt>Revenue (est.)</dt><dd>${fmtM(r.revenue)}/wk</dd></div></dl><p>${esc(r.blurb||"")}</p></article>`).join("")}</div>`:ottEmpty("No buyers are reporting.","Platform estimates appear once the market data is available.");
+  return ottPanel("THE MARKET","The platforms","Subscriber, ARPU, churn and revenue estimates derived from real deals; your platform is included when live.",body,`${rows.length} PLATFORMS`,"ott-market");
+}
+/* C9 — cross-links only. Purchases stay at the existing studio investment
+   desk; these descriptions name the multipliers engine.js actually reads. */
+function ottRdPanel(){
+  const effects=[
+    {id:"ottrel",effect:"Film OTT offer value ×1.12 (+12%); renewal thresholds −4 buzz."},
+    {id:"ottalgo",effect:"Subscriber ceiling ×1.15 (+15%); weekly churn ×0.80 (−20%)."},
+    {id:"globalcdn",effect:"Film and pre-buy offer value ×1.18 (+18%); weekly acquisition +0.08M subscribers."}
+  ];
+  const rows=effects.map(e=>{
+    const def=(DATA.UPGRADES||[]).find(u=>u.id===e.id)||{name:e.id,icon:"🔬"}, owned=!!(G.upgrades&&G.upgrades[e.id]);
+    return `<article class="ott-rd-item ${owned?"owned":""}" data-ott-upgrade="${e.id}"><header><b>${def.icon||"🔬"} ${esc(def.name)}</b><span class="ott-chip">${owned?"OWNED":"NOT OWNED"}</span></header><p>${e.effect}</p></article>`;
+  }).join("");
+  const owned=effects.filter(e=>G.upgrades&&G.upgrades[e.id]).length;
+  return ottPanel("R&D CROSS-LINKS","Streaming research","Owned-or-not status and the existing effects on offer value, ceiling, churn and acquisition. Research stays at the studio desk.",`<div class="ott-rd-grid">${rows}</div><div class="ott-action-row"><p>Review costs and unlock requirements with the other studio investments.</p><button class="produce-ghost" id="ottOpenRd">Open studio R&D desk →</button></div>`,`${owned} / 3 OWNED`,"ott-rd");
+}
+/* C10 — a pure projection of tickStreamer's current subscriber equation.
+   No tick, save, sports, ceiling or content mutation is performed here. */
+function ottSubscriberForecast(weeks){
+  const st=G.streamer, count=weeks||12;
+  if(!st) return {rows:[],ceiling:0,graceWeeks:0};
+  const ceiling=streamerCeiling(), tier=DATA.tier(st.tier||"premium"), graceWeeks=10+Math.min(26,(G.films||[]).length*2);
+  let subs=st.subs||0, crackdown=st.crackdown||0, euFreeze=st.euFreeze||0;
+  const rows=[];
+  for(let i=1;i<=count;i++){
+    let churn=tier.churn||.006;
+    if(G.upgrades&&G.upgrades.ottalgo) churn*=.80;
+    if(crackdown>0){churn*=2;crackdown--;}
+    churn=clamp(churn,.003,.025);
+    const starved=(G.week+i)-(st.lastContent||0)>graceWeeks;
+    let growth=(ceiling-subs)*.06-subs*churn;
+    if(G.upgrades&&G.upgrades.globalcdn) growth+=.08;
+    if(euFreeze>0){growth=Math.min(growth,0);euFreeze--;}
+    if(starved) growth-=subs*.004;
+    subs=clamp(subs+growth,.5,Math.ceil(ceiling*1.05));
+    subs=Math.round(subs*100)/100;
+    rows.push({week:G.week+i,subs});
+  }
+  return {rows,ceiling,graceWeeks};
+}
+function ottForecastPanel(){
+  const st=G.streamer;
+  if(!st) return ottPanel("12-WEEK FORECAST","Subscriber forecast","A read-only estimate from the current growth equation once a platform exists.",ottEmpty("Nothing to project yet.","Launch a streamer to estimate its subscribers 12 weeks from now."),"ESTIMATE","ott-forecast");
+  const forecast=ottSubscriberForecast(12), rows=forecast.rows, last=rows[rows.length-1];
+  const milestones=rows.filter((r,i)=>[2,5,8,11].includes(i)).map(r=>`<div><small>${dateLabel(r.week)}</small><b>${fmtSubs(r.subs)}</b></div>`).join("");
+  const tier=DATA.tier(st.tier||"premium");
+  const body=`<div class="ott-forecast-hero"><small>12-WEEK SUBSCRIBER FORECAST · ESTIMATE</small><b>${fmtSubs(last.subs)}</b><span>Projected for ${dateLabel(last.week)} · ${fmtSubs(st.subs||0)} today</span></div><div class="ott-forecast-milestones">${milestones}</div><p class="ott-assumptions"><b>Assumptions:</b> estimate only; the current ${fmtSubs(forecast.ceiling)} content ceiling and ${esc(tier.name)} tier stay constant. Each week applies 6% pull toward that ceiling, tier churn with existing ottalgo/crackdown modifiers, global CDN acquisition when owned, EU freezes, and starvation after the ${forecast.graceWeeks}-week content grace. No future sports, content, tier or save changes are simulated.</p>`;
+  return ottPanel("12-WEEK FORECAST","Subscriber forecast","Projected from the current growth equation — a planning estimate, never a write to the save.",body,"READ-ONLY ESTIMATE","ott-forecast");
 }
 function viewOTT(){
-  let h="";
-  try{ h+=ownStreamerBoard(); }catch(e){}
-  try{ h+=streamMarketBoard(); }catch(e){}
-  /* ── v28.9 §15: streamer sub-tabs (Home/Originals/Deals/Sports/Market) ── */
-  if(!OTT_SUB) OTT_SUB="home";
-  const OTT_TABS=[["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]];
-  h+="<div class='subnav-pills'>"+
-    OTT_TABS.map(x=>{
-      const ic = getSubTabPixelIcon("ott", x[0]);
-      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
-      return `<button class='subnav-pill ${OTT_SUB===x[0]?"active":""}' data-ottsub='${x[0]}'>${img}<span>${x[1]}</span></button>`;
-    }).join("")+"</div>";
-  if(OTT_SUB==="deals"){
-  h+="<div class='section-title'>Deal offers ("+G.offers.length+")</div>";
-  if(!G.offers.length) h+="<div class='card muted small'>No offers on the table. Hits and finished runs attract bidders — especially during streaming wars.</div>";
-  for(const o of G.offers){
-    const p=DATA.platform(o.platform);
-    const warTag = o.biddingWar ? "<span class='tag gold'>🔥 Bidding war</span> " : "";
-    const typeLabel = o.type==="film_ott"? "Theatrical → streaming license" : o.type==="prebuy"? "Buy-out as streaming original" : "Season "+o.seasonNum+" order";
-    h+="<div class='card offer-card'><div class='spread'><div class='platform-card'><div class='platform-logo' style='background:"+p.color+"'>"+p.logo+"</div>"+
-      "<div><b>"+esc(o.filmTitle||o.seriesTitle)+"</b> "+warTag+"<div class='tiny muted'>"+typeLabel+" · "+p.name+"</div></div></div>"+
-      "<div style='text-align:right'><div class='modal-offer-val'>"+fmtM(o.value)+"</div><div class='tiny muted'>expires in "+(o.expires-G.week)+" wk</div></div></div>"+
-      "<div class='modal-actions' style='margin-top:10px'>"+
-      "<button class='btn btn-primary btn-sm' data-acc='"+o.id+"'>✅ Accept</button>"+
-      (o.countered?"":"<button class='btn btn-alt btn-sm' data-cnt='"+o.id+"'>📈 Counter</button>")+
-      "<button class='btn btn-ghost btn-sm' data-dec='"+o.id+"'>✕ Decline</button></div></div>";
-  }
-  }
-  if(OTT_SUB==="originals"){
-  h+="<div class='section-title'>Your series ("+G.series.length+")</div>";
-  if(!G.series.length) h+="<div class='card muted small'>No shows yet. Series = steady license income + renewals. Pitch one from 📝 Develop.</div>";
-  for(const s of G.series){
-    const p=DATA.platform(s.platform);
-    const last=s.seasons[s.seasons.length-1];
-    h+="<div class='card'><div class='spread'><div><b>📺 "+esc(s.title)+"</b> <button class='btn btn-xs btn-ghost' data-rename='s:"+s.id+"' title='Rename'>✏️</button> <span class='tag purple'>"+p.name+"</span>"+
-      (s.seasons.length?"<span class='tag'>"+s.seasons.length+" season"+(s.seasons.length>1?"s":"")+"</span>":"")+"</div>"+
-      "<div class='tiny muted'>"+gTag(s.genre)+" · "+s.eps+" eps × "+fmtM(s.perEp)+"</div></div>";
-    if(s.phase==="shoot") h+="<div class='small' style='margin-top:6px'>🎬 Shooting S"+(s.seasons.length+1)+" — "+s.weeksLeft+" weeks left · burn "+fmtM(s.budget/Math.max(s.weeksLeft0||s.weeksLeft,1))+"/wk</div>";
-    else if(s.phase==="airing") h+="<div class='small' style='margin-top:6px'>📡 Airing on "+p.name+"…</div>";
-    else h+="<div class='small muted' style='margin-top:6px'>"+(s.status==="ended"?"Ended":s.status==="renewal_pending"?"Renewal offer pending":"Between seasons")+(last?" · last season buzz "+last.viewership+"/100":"")+"</div>";
-    if(last) h+="<div style='margin-top:6px'>"+meter(last.viewership,100)+"</div>";
-    h+="<div class='tiny muted' style='margin-top:6px'>✍️ "+(s.showrunner?esc(s.showrunner.name):"no showrunner")+" · "+(s.cast||[]).length+" cast · season budget "+fmtM(s.budget)+
-      " · earned "+fmtM((s.seasons||[]).reduce((a,x)=>a+(x.license||0),0))+"</div>";
-    (s.seasons||[]).slice(-3).forEach(y=>{
-      h+="<div class='cost-line'><span>S"+y.num+" · "+s.eps+" eps · "+fmtM(y.license)+"</span><b class='tiny'>crit "+(y.critic||"—")+" · aud "+(y.audience||y.viewership||"—")+" · buzz "+(y.viewership||0)+"</b></div>";
-    });
-    const canSpin=(s.seasons||[]).length>=2&&(s.seasons||[]).some(x=>(x.viewership||0)>=58);
-    h+="<div class='row' style='margin-top:8px'>"+
-      (s.status!=="ended"?"<button class='btn btn-sm btn-danger' data-cancel-series='"+s.id+"'>✕ Cancel series</button>":"")+
-      (canSpin?"<button class='btn btn-sm btn-alt' data-spinoff-series='"+s.id+"'>🎬 Film continuation</button>":"")+
-      "</div>";
-    h+="</div>";
-  }
-  }
-  if(OTT_SUB==="home"){
-  // YOUR OWN STREAMER (v3)
-  h+="<div class='section-title'>✨ Your platform</div>";
-  if(!G.streamer){
-    h+="<div class='card'><h4>📱 Launch your own streamer</h4>"+
-      "<p class='small muted'>Build a direct-to-consumer platform: $250M at reputation ≥40. Subscribers pay $0.5/sub/wk, but your subscriber ceiling is built from your library, franchises, shows and sports rights. Starve it and subs bleed (0.8%/wk churn).</p>"+
-      "<button class='btn btn-sm "+(G.studio.rep>=40&&G.studio.cash>=250?"btn-primary":"btn-ghost")+"' id='launchStreamer'>"+(G.studio.rep>=40? "🚀 Launch for $250M":"Launch (needs rep 40+ · current "+Math.round(G.studio.rep)+")")+"</button></div>";
-  }else{
-    const st=G.streamer;
-    const ceil=streamerCeiling();
-    h+="<div class='card' style='border-left:3px solid var(--purple)'><div class='spread'><div><b>📱 "+esc(st.name)+"</b> <span class='tag purple'>your platform</span> <button class='btn btn-xs btn-ghost' type='button' data-rebrand-streamer='1' title='Rebrand platform' aria-label='Rebrand your platform'>✏️ Rebrand</button></div>"+
-      "<div style='text-align:right'><b class='gold'>"+st.subs.toFixed(1)+"M subs</b><div class='tiny muted'>+$"+st.income+"/wk</div></div></div>"+
-      "<div class='tiny muted' style='margin-top:6px'>Content ceiling: <b>"+ceil+"M</b> · churn "+((st.churn||0.008)*100).toFixed(1)+"%/wk · sport power "+st.sportsPower.toFixed(1)+"</div>"+
-      "<div style='margin-top:6px'>"+meter(st.subs, Math.max(ceil,1))+"</div>"+
-      (st.crackdown>0? "<div class='tiny neg' style='margin-top:6px'>🔐 Password crackdown active — churn doubled for "+st.crackdown+" more weeks.</div>":"")+
-      (function(){ if(typeof euShareOf!=="function"||!DATA.GLOBAL) return "";
-        const r=euShareOf(); if(!r.total) return "";
-        const ok=r.share>=DATA.GLOBAL.eu.quota;
-        const note = st.euFreeze>0? " — GROWTH FROZEN "+st.euFreeze+" wks" : (ok? " ✓ compliant" : " — risk of fines");
-        return "<div class='tiny " + (ok?"pos":"neg") + "' style='margin-top:6px'>🇪🇺 EU content quota: "+Math.round(r.share*100)+"% European works (need "+Math.round(DATA.GLOBAL.eu.quota*100)+"%"+note+"). London/Toronto/Queensland shoots &amp; foreign-language films count.</div>";
-      })()+
-      "<div class='tiny muted' style='margin-top:6px'>Feed it: move finished films onto the platform, or win live sports rights.</div></div>";
-    h+="<div class='section-title'>💸 Subscription tiers</div><div class='grid g2'>";
-    DATA.TIERS.forEach(function(t){
-      const on=(st.tier||"premium")===t.id;
-      h+="<div class='card "+(on?"tier-on":"")+"'><div class='spread'><b>"+(t.id==="ads"?"📺 ":"✨ ")+t.name+"</b>"+(on?"<span class='tag green'>✓ live</span>":"")+"</div>"+
-        "<div class='tiny muted' style='margin:4px 0 8px'>"+t.desc+"</div>"+
-        "<div class='cost-line'><span>Revenue / sub / wk</span><b>$"+t.arpu.toFixed(2)+"</b></div>"+
-        "<div class='cost-line'><span>Ceiling multiplier</span><b>×"+t.ceil.toFixed(2)+"</b></div>"+
-        "<div class='cost-line'><span>Base churn</span><b>"+(t.churn*100).toFixed(1)+"%/wk</b></div>"+
-        (on? "" : "<button class='btn btn-sm btn-primary' style='margin-top:8px' data-tier='"+t.id+"'>"+(t.cost? "Switch — "+fmtM(t.cost):"Switch")+"</button>")+
-        "</div>";
-    });
-    h+="</div>";
-  }
-  }
-  if(OTT_SUB==="sports"){
-  // LIVE SPORTS (v3)
-  const won=G.sportsWon||[];
-  h+="<div class='section-title'>🏆 Live sports rights"+(won.length? " · "+won.length+" held":"")+"</div>";
-  if(!G.streamer){ h+="<div class='card muted small'>You need a live platform to carry sports. Launch a streamer first.</div>"; }
-  else if(G.pendingSports){ /* handled by the modal opened after tick */ }
-  else {
-    h+="<div class='card'><div class='tiny muted' style='margin-bottom:6px'>Quarterly sealed-bid auctions (weeks 13/26/39/52) for soccer, hoops, racing, fights, wrestling, esports and cricket ($70–170M). Winning bumps subscribers and raises your content ceiling; the sport power decays ~1.5%/wk.</div>";
-    const held=DATA.SPORTS.filter(s=>won.includes(s.id));
-    if(held.length){ held.forEach(s=>{ const d=(G.sportsDeals||{})[s.id]||{base:120, subBump:4.5}; const e=sportEcon({id:s.id, base:d.base, subBump:d.subBump});
-      h+="<div class='cost-line'><span>"+s.icon+" "+s.name+" <span class='tiny muted'>won "+fmtM(d.bid||d.base)+"</span></span><b class='tiny'>"+e.dur+"w · ~"+e.audience+"M viewers · +"+fmtM(e.ad)+"/wk ads · ~"+fmtM(e.revenue)+" value</b></div>"; }); }
-    else h+="<div class='tiny muted'>No sports rights yet. An auction will arrive near week 13, 26, 39 or 52.</div></div>";
-    if(held.length) h+="</div>";
-  }
-  }
-  if(OTT_SUB==="market"){
-  h+="<div class='section-title'>The platforms</div><div class='grid g3'>";
-  DATA.PLATFORMS.forEach(p=>{
-    h+="<div class='card platform-card'><div class='platform-logo' style='background:"+p.color+"'>"+p.logo+"</div><div><b>"+p.name+"</b>"+
-      "<div class='tiny muted'>"+p.blurb+"</div><div class='tiny muted' style='margin-top:4px'>pays "+Math.round((p.generosity-1)*100+100)+"% · renews above "+p.renew+" buzz</div></div></div>";
-  });
-  h+="</div>";
-  }
-  return h;
+  if(!OTT_SECTIONS.some(s=>s[0]===OTT_SUB)) OTT_SUB="home";
+  let body="";
+  if(OTT_SUB==="home") body=ottHomePanel()+ottSubscriberRoomPanel()+ottContentHealthPanel()+ottEuQuotaPanel()+ottTiersPanel()+ottCrackdownPanel()+ottRdPanel()+ottForecastPanel();
+  else if(OTT_SUB==="originals") body=ottOriginalsPanel();
+  else if(OTT_SUB==="deals") body=ottDealsPanel();
+  else if(OTT_SUB==="sports") body=ottSportsPanel();
+  else body=ottBuyerFitPanel()+ottMarketPanel();
+  return `<section class="command-deck command-produce command-ott">${ottHead()}${ottNav()}${ottTelemetry()}${body}</section>`;
 }
 
 /* ═══════════ VIEW: notifications ═══════════ */
@@ -6432,6 +6558,20 @@ function bindView(){
   const btnUni=$("#btnOpenUniverses"); if(btnUni) btnUni.onclick=()=>{ beep("click"); if(typeof openUniverseModal==="function") openUniverseModal(); };
   const btnFyc=$("#btnOpenAwardsCampaign"); if(btnFyc) btnFyc.onclick=()=>{ beep("click"); if(typeof openAwardsCampaignModal==="function") openAwardsCampaignModal(); };
   const ls=$("#launchStreamer"); if(ls) ls.onclick=()=>{ if(launchStreamer()){beep("gold"); flashes(G.flash); render();} else toast("Need rep ≥35 and $140M to launch.","bad"); };
+  const crackdown=$("#ottCrackdown");
+  if(crackdown) crackdown.onclick=()=>{
+    if(!confirm("Start a password-sharing crackdown for $20M? Reputation −8 and churn ×2 for 8 weeks.")) return;
+    const result=crackdownPasswordSharing();
+    if(result&&result.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast(result&&result.err?result.err:"The crackdown is unavailable right now.","bad");
+  };
+  $$("[data-live-event]").forEach(b=>b.onclick=()=>{
+    const fee={awardshow:25,concert:40,boxing:60}[b.dataset.liveEvent];
+    if(!confirm("License this live event for "+fmtM(fee)+"? PPV revenue and subscriber effects settle immediately.")) return;
+    const result=licenseLiveEvent(b.dataset.liveEvent);
+    if(result&&result.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast(result&&result.err?result.err:"That live event is unavailable right now.","bad");
+  });
   $$("[data-sched]").forEach(b=>b.onclick=()=>{ beep("click"); startScheduling(+b.dataset.sched); });
   $$("[data-ownprem]").forEach(b=>b.onclick=()=>{ beep("click"); ownPremiereModal(+b.dataset.ownprem); });
   $$("[data-ending]").forEach(b=>b.onclick=()=>{ if(applyAltEnding(+b.dataset.eid, b.dataset.ending)){ beep("gold"); flashes(G.flash); render(); } });
@@ -6720,6 +6860,8 @@ function bindView(){
   const boScreen=$("#btnBoScreenings");
   if(boScreen) boScreen.onclick=()=>{ beep("click"); if(typeof openFestivalPrModal==="function") openFestivalPrModal(); else if(typeof festivalPrModal==="function") festivalPrModal(); else toast("The festival desk is unavailable in this build.","bad"); };
   $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
+  $$("[data-ott-history]").forEach(b=>b.onclick=()=>{ OTT_HISTORY_MODE=b.dataset.ottHistory==="revenue"?"revenue":"subs"; beep("click"); render(); });
+  const ottRd=$("#ottOpenRd"); if(ottRd) ottRd.onclick=()=>{ beep("click"); switchTab("finance"); };
   $$("[data-libsub]").forEach(b=>b.onclick=()=>{ LIBRARY_SUB=b.dataset.libsub; beep("click"); render(); });
   $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ GAMES_SUB=b.dataset.gamestab; beep("click"); render(); });
 
@@ -8659,7 +8801,7 @@ function viewStreamerCard(){
       statCard(fmtSubs(ceil),"Subscriber ceiling")+
       statCard("+"+fmtM(s.subs*0.5)+"/wk","Streamer revenue","var(--green)")+
       statCard(fmtM(s.totalRev),"Lifetime revenue")+
-      statCard(Math.round(G.sportsPower||0),"Sports power")+
+      statCard(Math.round(G.streamer.sportsPower||0),"Sports power")+
       statCard((G.mySports.length? G.mySports.map(x=>DATA.SPORTS.find(d=>d.id===x.kind).emoji).join(" "):"—"),"Sports held")+
     "</div>"+
     "<div class='card'>"+meter(s.subs, ceil, "linear-gradient(90deg,#b48bff,#e0c3ff)")+

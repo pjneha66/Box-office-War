@@ -79,6 +79,8 @@
 #app #tabsNav .tab{border-radius:0!important;min-height:44px!important;padding:13px 14px!important;font:500 11px system-ui!important}
 @media(max-width:950px) and (orientation:landscape){#app #tabsNav{min-height:35px!important;padding-inline:8px!important}#app #tabsNav .tab{min-height:35px!important;padding:8px 11px!important;font-size:10px!important}}
 @media(max-width:430px) and (orientation:portrait){#app .command-header-identity{max-width:42%;min-width:110px}.command-header-mark{display:none}#app .command-header-identity .brand{max-width:135px!important}#app .command-header-actions{flex-direction:column;align-items:stretch;width:100%}.command-time-controls{justify-content:space-between}.command-header-utilities{border-left:0;padding-left:0;justify-content:space-between}#app .command-header-actions .btn{flex:1}}
+/* Narrow phones keep every ledger value without letting nowrap text widen the page. */
+@media(max-width:360px) and (orientation:portrait){#app .command-header-identity{min-width:100px;max-width:34%}#app .command-header-identity .brand{font-size:16px!important;max-width:108px!important}#app .command-header-ledger .chip{padding-inline:4px!important}#app .command-header-ledger .chip>span{font-size:5px;letter-spacing:.2px}#app .command-header-ledger .chip>b{font-size:9px}}
 /* Hard boundary against legacy arcade chrome. The old #modalRoot/#app rules
    have ID specificity and !important declarations, so component-only rules lose. */
 #modalRoot .modal.command-modal{background:#192b2c!important;background-image:none!important;border:1px solid #627360!important;border-radius:5px!important;box-shadow:0 24px 70px #0008!important;animation:none!important;opacity:1!important;transform:none!important;font-family:system-ui,sans-serif!important}
@@ -2164,4 +2166,271 @@
   #app #view[data-screen="fans"] .bo-next-item .bo-next-ver{grid-column:1;grid-row:1}
   #app #view[data-screen="fans"] .bo-next-item .bo-next-label{grid-column:2;grid-row:1}
   #app #view[data-screen="fans"] .bo-next-item .bo-chip{grid-column:2;grid-row:2;justify-self:start}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OTT DESK — streaming command, using the same produce chrome as Fans.
+   Tokens: gold #edc47c, muted #93a692, line #3e5551, panel #1b312b,
+   inner #152b26. Panel bodies own their padding; the shared produce panel
+   intentionally does not provide it.
+   ═══════════════════════════════════════════════════════════════════════ */
+#app #view[data-screen="ott"]{max-width:1640px!important;background:#152b26!important}
+#app #view[data-screen="ott"] .command-ott{text-align:left;--ott-gold:#edc47c;--ott-muted:#93a692;--ott-line:#3e5551;--ott-panel:#1b312b;--ott-inner:#152b26;--prod-panel:var(--ott-panel);--prod-line:var(--ott-line);--prod-soft:var(--ott-inner);--prod-scrim:var(--ott-inner);color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott *{box-sizing:border-box}
+#app #view[data-screen="ott"] .command-ott .command-heading h1{max-width:24ch;color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .command-heading p{color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .command-edition{margin-bottom:10px;color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .command-date{border-color:var(--ott-line);color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott-nav{margin-bottom:18px;background:var(--ott-inner);border-color:var(--ott-line);color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-brand{border-color:var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-brand>span,
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-brand>small{color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-items{min-width:0;max-width:100%}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-items button{min-width:0;color:var(--ott-muted);border-color:transparent}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-items button small{color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-items button.active{background:var(--ott-panel);border-color:var(--ott-gold);color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott-nav .command-nav-items button.active small{color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott-nav .subtab-pixel-icon{width:18px;height:18px;object-fit:contain;flex:0 0 auto}
+#app #view[data-screen="ott"] .command-ott .command-telemetry{margin-bottom:18px;background:var(--ott-inner);border-color:var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .command-metric{min-width:0;border-color:var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .command-metric strong{color:var(--ott-gold);font-size:clamp(18px,2vw,26px);overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .command-metric>span,
+#app #view[data-screen="ott"] .command-ott .command-metric small{color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .produce-panel{margin-bottom:18px;background:var(--ott-panel);border-color:var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .produce-panel-head{align-items:center;gap:14px;border-color:var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .produce-panel-head h2{margin:5px 0 0;color:var(--ott-gold);font:500 21px/1.25 Georgia,serif;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .produce-panel-head p{margin:5px 0 0;color:var(--ott-muted);font-size:11px;line-height:1.65;max-width:68ch}
+#app #view[data-screen="ott"] .command-ott .ott-panel-body{display:grid;gap:12px;padding:16px 20px 18px;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-panel-aside{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .produce-stamp{color:var(--ott-gold);border-color:var(--ott-line)}
+/* Scoped produce actions: the shared copies do not apply to OTT. */
+#app #view[data-screen="ott"] .command-ott .produce-action,
+#app #view[data-screen="ott"] .command-ott .produce-ghost{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:8px 12px;border-radius:2px;font:700 10.5px/1.35 system-ui,sans-serif;letter-spacing:.25px;cursor:pointer;box-shadow:none;text-shadow:none}
+#app #view[data-screen="ott"] .command-ott .produce-action{border:1px solid var(--ott-gold);background:var(--ott-gold);color:var(--ott-panel)}
+#app #view[data-screen="ott"] .command-ott .produce-ghost{border:1px solid var(--ott-line);background:transparent;color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .produce-action:disabled,
+#app #view[data-screen="ott"] .command-ott .produce-ghost:disabled{border-color:var(--ott-line);background:var(--ott-inner);color:var(--ott-muted);cursor:not-allowed;opacity:.72}
+#app #view[data-screen="ott"] .command-ott .produce-action:focus-visible,
+#app #view[data-screen="ott"] .command-ott .produce-ghost:focus-visible{outline:2px solid var(--ott-gold);outline-offset:2px}
+#app #view[data-screen="ott"] .command-ott .ott-empty{padding:22px;background:var(--ott-inner);border:1px dashed var(--ott-line);border-radius:2px;text-align:center}
+#app #view[data-screen="ott"] .command-ott .ott-empty b{display:block;color:var(--ott-gold);font:500 15px/1.35 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-empty p{margin:6px auto 0;max-width:62ch;color:var(--ott-muted);font-size:11px;line-height:1.65}
+#app #view[data-screen="ott"] .command-ott .ott-empty .produce-action,
+#app #view[data-screen="ott"] .command-ott .ott-empty .produce-ghost{margin-top:13px}
+#app #view[data-screen="ott"] .command-ott .ott-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#app #view[data-screen="ott"] .command-ott .ott-kpi{display:grid;gap:4px;min-width:0;padding:11px 12px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-kpi small{color:var(--ott-muted);font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.7px}
+#app #view[data-screen="ott"] .command-ott .ott-kpi b{color:var(--ott-gold);font:500 18px/1.25 Georgia,serif;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-kpi span{color:var(--ott-muted);font-size:9.5px;line-height:1.45}
+#app #view[data-screen="ott"] .command-ott .ott-meter{display:block;width:100%;height:8px;overflow:hidden;background:var(--ott-inner);border:1px solid var(--ott-line);border-radius:2px}
+#app #view[data-screen="ott"] .command-ott .ott-meter>i{display:block;height:100%;background:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-note{margin:0;color:var(--ott-muted);font-size:10.5px;line-height:1.65}
+#app #view[data-screen="ott"] .command-ott .ott-chip{display:inline-flex;align-items:center;width:max-content;max-width:100%;padding:4px 7px;border:1px solid var(--ott-line);border-radius:2px;color:var(--ott-gold);background:var(--ott-inner);font:700 8.5px/1.35 ui-monospace,monospace;letter-spacing:.5px;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-tier-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#app #view[data-screen="ott"] .command-ott .ott-tier{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;padding:15px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-tier.active{border-color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-tier header{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
+#app #view[data-screen="ott"] .command-ott .ott-tier header b{color:var(--ott-gold);font:500 16px/1.3 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-tier p{margin:0;color:var(--ott-muted);font-size:10.5px;line-height:1.6}
+#app #view[data-screen="ott"] .command-ott dl{display:grid;gap:0;width:100%;margin:0}
+#app #view[data-screen="ott"] .command-ott dl>div{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott dl>div:last-child{border-bottom:0}
+#app #view[data-screen="ott"] .command-ott dt{color:var(--ott-muted);font-size:10px}
+#app #view[data-screen="ott"] .command-ott dd{margin:0;color:var(--ott-gold);font:600 10.5px/1.4 ui-monospace,monospace;text-align:right}
+#app #view[data-screen="ott"] .command-ott .ott-tier .produce-action{margin-top:auto}
+#app #view[data-screen="ott"] .command-ott .ott-action-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-action-row>div:first-child{flex:1 1 280px;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-action-row b{color:var(--ott-gold);font:500 14px/1.4 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-action-row p{margin:4px 0 0;color:var(--ott-muted);font-size:10.5px;line-height:1.6}
+#app #view[data-screen="ott"] .command-ott .ott-actions{display:flex;gap:8px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-series-list,
+#app #view[data-screen="ott"] .command-ott .ott-offer-list{display:grid;gap:10px}
+#app #view[data-screen="ott"] .command-ott .ott-series,
+#app #view[data-screen="ott"] .command-ott .ott-offer{display:grid;gap:10px;min-width:0;padding:15px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-series>header,
+#app #view[data-screen="ott"] .command-ott .ott-offer>header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-series>header>div,
+#app #view[data-screen="ott"] .command-ott .ott-offer>header>div{display:flex;align-items:center;gap:8px;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-series b,
+#app #view[data-screen="ott"] .command-ott .ott-offer b{color:var(--ott-gold);overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-series p{margin:0;color:var(--ott-muted);font-size:10.5px}
+#app #view[data-screen="ott"] .command-ott .ott-series footer,
+#app #view[data-screen="ott"] .command-ott .ott-offer footer{display:flex;gap:8px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-icon-action{min-height:28px;padding:4px 7px}
+#app #view[data-screen="ott"] .command-ott .ott-phase{color:var(--ott-gold);font-size:11px;line-height:1.55}
+#app #view[data-screen="ott"] .command-ott .ott-data-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:9px 0;border-bottom:1px solid var(--ott-line);font-size:10.5px;line-height:1.55}
+#app #view[data-screen="ott"] .command-ott .ott-data-row:last-child{border-bottom:0}
+#app #view[data-screen="ott"] .command-ott .ott-data-row span,
+#app #view[data-screen="ott"] .command-ott .ott-data-row b{min-width:0;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-data-row b{color:var(--ott-gold);text-align:right}
+#app #view[data-screen="ott"] .command-ott .ott-data-row small{color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .ott-offer small{display:block;color:var(--ott-muted);font-size:9.5px;line-height:1.5}
+#app #view[data-screen="ott"] .command-ott .ott-offer-value{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-offer-value b{color:var(--ott-gold);font:500 25px/1.2 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-offer-value span{color:var(--ott-muted);font-size:10px}
+#app #view[data-screen="ott"] .command-ott .ott-platform-logo{display:inline-grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border:1px solid var(--ott-gold);border-radius:2px;color:var(--ott-gold);font:600 16px Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-platform-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:10px}
+#app #view[data-screen="ott"] .command-ott .ott-platform{display:grid;gap:10px;min-width:0;padding:14px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-platform>header{display:flex;align-items:center;gap:9px;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-platform>header>div{flex:1;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-platform>header b{display:block;color:var(--ott-gold);overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-platform>header small{color:var(--ott-muted);font-size:9px}
+#app #view[data-screen="ott"] .command-ott .ott-platform>header strong{color:var(--ott-gold);font:500 15px Georgia,serif;white-space:nowrap}
+#app #view[data-screen="ott"] .command-ott .ott-platform p{margin:0;color:var(--ott-muted);font-size:10px;line-height:1.55}
+@media(max-width:900px){
+  #app #view[data-screen="ott"] .command-ott .ott-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app #view[data-screen="ott"] .command-ott .ott-tier-grid{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  #app #view[data-screen="ott"] .command-ott{margin-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  #app #view[data-screen="ott"] .command-ott .produce-panel-head{padding:16px 16px 12px}
+  #app #view[data-screen="ott"] .command-ott .ott-panel-body{padding:14px 16px}
+}
+@media(max-width:640px){
+  #app #view[data-screen="ott"] .command-ott-nav .command-nav-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;width:100%;overflow:visible}
+  #app #view[data-screen="ott"] .command-ott-nav .command-nav-items button{justify-content:flex-start;min-height:42px;padding:8px;white-space:normal;line-height:1.25}
+  #app #view[data-screen="ott"] .command-ott .ott-data-row{grid-template-columns:minmax(0,1fr);gap:4px}
+  #app #view[data-screen="ott"] .command-ott .ott-data-row b{text-align:left}
+}
+@media(max-width:560px){
+  #app #view[data-screen="ott"] .command-ott{padding:16px 12px}
+  #app #view[data-screen="ott"] .command-ott .command-heading{flex-direction:column;align-items:flex-start;gap:10px}
+  #app #view[data-screen="ott"] .command-ott .command-heading h1{font-size:26px;max-width:none}
+  #app #view[data-screen="ott"] .command-ott .command-date{display:flex;align-items:baseline;gap:9px;min-width:0;padding:8px 0 0;border-left:0;border-top:1px solid var(--ott-line);text-align:left}
+  #app #view[data-screen="ott"] .command-ott .command-date b{font-size:27px}
+  #app #view[data-screen="ott"] .command-ott .command-metric{padding:12px 10px}
+  #app #view[data-screen="ott"] .command-ott .command-metric strong{font-size:18px}
+  #app #view[data-screen="ott"] .command-ott .ott-kpis{grid-template-columns:1fr 1fr;gap:6px}
+  #app #view[data-screen="ott"] .command-ott .ott-kpi{padding:9px}
+  #app #view[data-screen="ott"] .command-ott .ott-kpi b{font-size:15px}
+  #app #view[data-screen="ott"] .command-ott .ott-action-row{align-items:stretch}
+  #app #view[data-screen="ott"] .command-ott .ott-action-row>.produce-action,
+  #app #view[data-screen="ott"] .command-ott .ott-action-row>.produce-ghost{width:100%}
+  #app #view[data-screen="ott"] .command-ott .ott-actions{display:grid;grid-template-columns:1fr;width:100%}
+}
+
+/* OTT desk feature readings (C1–C10) — same five tokens, no new palette. */
+#app #view[data-screen="ott"] .command-ott .ott-kpis-three{grid-template-columns:repeat(3,minmax(0,1fr))}
+#app #view[data-screen="ott"] .command-ott .ott-history-toggle{margin:0;padding:0;justify-content:flex-end}
+#app #view[data-screen="ott"] .command-ott .ott-history-toggle button{border-color:var(--ott-line);background:var(--ott-inner);color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .ott-history-toggle button.active{border-color:var(--ott-gold);background:var(--ott-gold);color:var(--ott-panel)}
+#app #view[data-screen="ott"] .command-ott .ott-chart{min-width:0;padding:10px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-chart svg{display:block;width:100%;height:auto;max-width:100%}
+#app #view[data-screen="ott"] .command-ott .ott-risk-unknown{color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .ott-risk-medium{border-style:dashed}
+#app #view[data-screen="ott"] .command-ott .ott-risk-high{border:2px solid var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-countdown{display:grid;gap:4px;padding:14px 16px;background:var(--ott-inner);border-left:3px solid var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-countdown.expired{border-left-style:double}
+#app #view[data-screen="ott"] .command-ott .ott-countdown b{color:var(--ott-gold);font:500 16px/1.35 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-countdown span{color:var(--ott-muted);font-size:10px;line-height:1.55}
+#app #view[data-screen="ott"] .command-ott .ott-library-list{display:grid;gap:0}
+#app #view[data-screen="ott"] .command-ott .ott-library-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-library-row:last-child{border-bottom:0}
+#app #view[data-screen="ott"] .command-ott .ott-library-row>div{display:grid;gap:3px;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-library-row b{color:var(--ott-gold);font-size:11.5px;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-library-row small{color:var(--ott-muted);font-size:9.5px}
+#app #view[data-screen="ott"] .command-ott .ott-library-row .produce-ghost{flex:0 0 auto}
+#app #view[data-screen="ott"] .command-ott .ott-quota-read{display:grid;gap:10px;padding:14px 16px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-quota-read>div:first-child{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-quota-read b{color:var(--ott-gold);font-size:11px}
+#app #view[data-screen="ott"] .command-ott .ott-quota-read span{color:var(--ott-muted);font-size:10px;line-height:1.5}
+#app #view[data-screen="ott"] .command-ott .ott-eligibility{display:grid;gap:9px}
+#app #view[data-screen="ott"] .command-ott .ott-eligibility>b{color:var(--ott-gold);font:500 13px Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-eligibility>div{display:flex;gap:6px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-eligibility p{margin:0;color:var(--ott-muted);font-size:10px;line-height:1.6}
+#app #view[data-screen="ott"] .command-ott .ott-chip-row{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-chip.better{border-color:var(--ott-gold);color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-chip.worse{border-style:dashed;color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott dd{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap;min-width:0}
+#app #view[data-screen="ott"] .command-ott dd>b{color:var(--ott-gold);white-space:nowrap}
+#app #view[data-screen="ott"] .command-ott .ott-promo-price{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;padding:9px;background:var(--ott-panel);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-promo-price span{display:grid;gap:3px;color:var(--ott-muted);font:700 8px/1.4 ui-monospace,monospace;letter-spacing:.5px}
+#app #view[data-screen="ott"] .command-ott .ott-promo-price b{color:var(--ott-gold);font:500 16px Georgia,serif;letter-spacing:0}
+#app #view[data-screen="ott"] .command-ott .ott-offer-value>div{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+#app #view[data-screen="ott"] .command-ott .ott-offer-value>div>span{color:var(--ott-muted);font:700 9px ui-monospace,monospace}
+#app #view[data-screen="ott"] .command-ott .ott-auction-countdown{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 15px;background:var(--ott-inner);border:1px solid var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-auction-countdown small{color:var(--ott-muted);font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.7px}
+#app #view[data-screen="ott"] .command-ott .ott-auction-countdown b{color:var(--ott-gold);font:500 15px/1.35 Georgia,serif;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-auction-countdown span{color:var(--ott-muted);font-size:9.5px;text-align:right}
+#app #view[data-screen="ott"] .command-ott .ott-sports-power{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .ott-sports-power>span{font:700 8.5px ui-monospace,monospace;letter-spacing:.7px}
+#app #view[data-screen="ott"] .command-ott .ott-sports-power>b{color:var(--ott-gold);font:500 22px Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-sports-power>small{font-size:9.5px}
+#app #view[data-screen="ott"] .command-ott .ott-rights-list{display:grid;gap:9px}
+#app #view[data-screen="ott"] .command-ott .ott-rights-row{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,1.5fr);align-items:center;gap:16px;padding:13px 14px;background:var(--ott-inner);border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-rights-row>div:first-child{display:grid;gap:4px;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-rights-row>div:first-child b{color:var(--ott-gold);font:500 13px/1.4 Georgia,serif;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-rights-row>div:first-child small{color:var(--ott-muted);font-size:9px}
+#app #view[data-screen="ott"] .command-ott .ott-rights-row dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+#app #view[data-screen="ott"] .command-ott .ott-war-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:13px 15px;background:var(--ott-inner);border:1px solid var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-war-banner b{color:var(--ott-gold);font:500 15px Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-war-banner span{color:var(--ott-muted);font-size:10.5px}
+#app #view[data-screen="ott"] .command-ott .ott-note b{color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-table-wrap{width:100%;min-width:0;overflow:hidden;border:1px solid var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table{width:100%;border-collapse:collapse;table-layout:fixed;background:var(--ott-inner)}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table th,
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table td{padding:11px 12px;border-bottom:1px solid var(--ott-line);vertical-align:top;text-align:left;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table thead th{color:var(--ott-muted);background:var(--ott-panel);font:700 8.5px/1.45 ui-monospace,monospace;letter-spacing:.5px}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table thead th:nth-child(1){width:19%}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table thead th:nth-child(2){width:55%}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table thead th:nth-child(3),
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table thead th:nth-child(4){width:13%}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody tr:last-child>th,
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody tr:last-child>td{border-bottom:0}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody th>b{display:block;color:var(--ott-gold);font:500 13px/1.35 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody th>.ott-chip{margin-top:6px}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody th>small{display:block;margin-top:5px;color:var(--ott-muted);font:400 9px/1.5 system-ui,sans-serif}
+#app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td>b{color:var(--ott-gold);font:600 10px ui-monospace,monospace}
+#app #view[data-screen="ott"] .command-ott .ott-taste-grid{display:flex;gap:4px;flex-wrap:wrap;min-width:0}
+#app #view[data-screen="ott"] .command-ott .ott-taste{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:3px 5px;border:1px solid var(--ott-line);border-radius:2px;color:var(--ott-muted)}
+#app #view[data-screen="ott"] .command-ott .ott-taste.strong{border-color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-taste small{font-size:8px;line-height:1.35}
+#app #view[data-screen="ott"] .command-ott .ott-taste b{color:var(--ott-gold);font:600 8.5px ui-monospace,monospace;white-space:nowrap}
+#app #view[data-screen="ott"] .command-ott .ott-rd-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+#app #view[data-screen="ott"] .command-ott .ott-rd-item{display:grid;gap:9px;align-content:start;min-width:0;padding:13px 14px;background:var(--ott-inner);border:1px dashed var(--ott-line)}
+#app #view[data-screen="ott"] .command-ott .ott-rd-item.owned{border-style:solid;border-color:var(--ott-gold)}
+#app #view[data-screen="ott"] .command-ott .ott-rd-item header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+#app #view[data-screen="ott"] .command-ott .ott-rd-item header>b{color:var(--ott-gold);font:500 12.5px/1.4 Georgia,serif;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-rd-item header>.ott-chip{flex:0 0 auto}
+#app #view[data-screen="ott"] .command-ott .ott-rd-item p{margin:0;color:var(--ott-muted);font-size:10px;line-height:1.6}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-hero{display:grid;gap:5px;padding:18px;background:var(--ott-inner);border:1px solid var(--ott-gold);text-align:center}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-hero small{color:var(--ott-muted);font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-hero>b{color:var(--ott-gold);font:500 34px/1.15 Georgia,serif}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-hero>span{color:var(--ott-muted);font-size:10px}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-milestones{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-milestones>div{display:grid;gap:4px;min-width:0;padding:9px;background:var(--ott-inner);border:1px solid var(--ott-line);text-align:center}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-milestones small{color:var(--ott-muted);font-size:8px;line-height:1.4}
+#app #view[data-screen="ott"] .command-ott .ott-forecast-milestones b{color:var(--ott-gold);font:500 15px Georgia,serif;overflow-wrap:anywhere}
+#app #view[data-screen="ott"] .command-ott .ott-assumptions{margin:0;padding:12px 14px;background:var(--ott-inner);border-left:2px solid var(--ott-line);color:var(--ott-muted);font-size:10px;line-height:1.7}
+#app #view[data-screen="ott"] .command-ott .ott-assumptions>b{color:var(--ott-gold)}
+@media(max-width:900px){
+  #app #view[data-screen="ott"] .command-ott .ott-kpis-three{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app #view[data-screen="ott"] .command-ott .ott-rd-grid{grid-template-columns:1fr}
+  #app #view[data-screen="ott"] .command-ott .ott-rights-row{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table thead{display:none}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table,
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody{display:block;width:100%}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody tr{display:grid;grid-template-columns:1fr 1fr;width:100%;padding:12px;border-bottom:1px solid var(--ott-line)}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody tr:last-child{border-bottom:0}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody th,
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td{display:block;width:auto;padding:0;border:0}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody th{grid-column:1/-1;margin-bottom:10px}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td:nth-child(2){grid-column:1/-1;margin-bottom:10px}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td:nth-child(3),
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td:nth-child(4){display:grid;gap:3px}
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td:nth-child(3):before,
+  #app #view[data-screen="ott"] .command-ott .ott-buyer-table tbody td:nth-child(4):before{content:attr(data-label);color:var(--ott-muted);font:700 8px ui-monospace,monospace;letter-spacing:.4px}
+  #app #view[data-screen="ott"] .command-ott .ott-auction-countdown{grid-template-columns:1fr;gap:5px}
+  #app #view[data-screen="ott"] .command-ott .ott-auction-countdown span{text-align:left}
+}
+@media(max-width:560px){
+  #app #view[data-screen="ott"] .command-ott .ott-library-row{align-items:stretch;flex-direction:column}
+  #app #view[data-screen="ott"] .command-ott .ott-library-row .produce-ghost{width:100%}
+  #app #view[data-screen="ott"] .command-ott .ott-forecast-milestones{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app #view[data-screen="ott"] .command-ott .ott-forecast-hero>b{font-size:29px}
+  #app #view[data-screen="ott"] .command-ott .ott-tier dd{justify-content:flex-start;text-align:left}
+  #app #view[data-screen="ott"] .command-ott .ott-tier dl>div{align-items:flex-start}
+  #app #view[data-screen="ott"] .command-ott .ott-history-toggle{justify-content:flex-start}
 }
