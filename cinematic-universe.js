@@ -32,7 +32,7 @@
       return { ok: false, error: "Universe requires a valid name." };
     }
 
-    let franchise = (S.franchises || []).find(f => f.id === leadFranchiseId || f.name === leadFranchiseId);
+    let franchise = (S.franchises || []).find(f => String(f.id) === String(leadFranchiseId) || f.name === leadFranchiseId);
     if(!franchise){
       franchise = {
         id: typeof leadFranchiseId === "number" ? leadFranchiseId : Date.now(),
@@ -58,6 +58,8 @@
       name: name.trim(),
       leadFranchiseId: franchise.id,
       leadFranchiseName: franchise.name,
+      /* frIds keeps this schema-compatible with engine uniStats()/uniOf() */
+      frIds: [franchise.id],
       subFranchises: [franchise.name],
       loreConsistency: 85,
       yearlyReleaseCount: 0,
@@ -84,7 +86,7 @@
     const uni = S.universes.find(u => u.id === universeId);
     if(!uni) return { ok: false, error: "Universe not found." };
 
-    const franchise = (S.franchises || []).find(f => f.id === franchiseId);
+    const franchise = (S.franchises || []).find(f => String(f.id) === String(franchiseId) || f.name === franchiseId);
     if(!franchise) return { ok: false, error: "Franchise not found." };
 
     if(uni.subFranchises.includes(franchise.name)){
@@ -92,6 +94,8 @@
     }
 
     uni.subFranchises.push(franchise.name);
+    if(!Array.isArray(uni.frIds)) uni.frIds = [];
+    if(!uni.frIds.some(x => String(x) === String(franchise.id))) uni.frIds.push(franchise.id);
     uni.loreConsistency = Math.min(100, uni.loreConsistency + 5);
 
     if(typeof log === "function"){
@@ -168,7 +172,7 @@
       S.universes.forEach(u => {
         const fatigue = calculateUniverseFatigue(u, S.week);
         h += "<div class='card'>"+
-          "<div class='spread'><b>" + esc(u.name) + "</b><span class='tag gold'>" + u.subFranchises.length + " Branches</span></div>"+
+          "<div class='spread'><b>" + esc(u.name) + "</b><span class='tag gold'>" + (u.subFranchises || []).length + " Branches</span></div>"+
           "<div class='tiny muted' style='margin:4px 0'>Anchor: " + esc(u.leadFranchiseName) + " | Entries: " + u.totalEntries + "</div>"+
           "<div class='tiny' style='margin:6px 0'>"+
             "Lore Consistency: <b>" + u.loreConsistency + "/100</b> | Annual Releases: <b>" + u.yearlyReleaseCount + "/2 Safe</b>" +
@@ -180,7 +184,7 @@
               "<span class='pos'>Fatigue Pristine (0% Decay)</span>"
             ))+
           "</div>"+
-          "<div class='tiny muted' style='margin-top:6px'>Interconnected IPs: " + u.subFranchises.map(x => esc(x)).join(", ") + "</div>"+
+          "<div class='tiny muted' style='margin-top:6px'>Interconnected IPs: " + (u.subFranchises || []).map(x => esc(x)).join(", ") + "</div>"+
         "</div>";
       });
       h += "</div>";
@@ -211,7 +215,7 @@
     if(bCharter){
       bCharter.onclick = () => {
         const name = (v.querySelector("#uniNameInput") || {}).value;
-        const fId = +(v.querySelector("#uniFranchiseSelect") || {}).value;
+        const fId = (v.querySelector("#uniFranchiseSelect") || {}).value;
         const res = createUniverse(name, fId);
         if(res.ok){
           if(typeof beep === "function") beep("gold");

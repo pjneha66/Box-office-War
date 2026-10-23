@@ -1238,6 +1238,16 @@ function tickFatigue(){
     if(G.week - last > 26) fr.fatigue = Math.max(0, fr.fatigue - DATA.FATIGUE.recoverPerWeek);
   }
 }
+/* Rest countdown straight from tickFatigue()'s own rule: recovery only starts
+   once the brand has been quiet more than 26 weeks, then heals recoverPerWeek.
+   Simulating that exact rule is the countdown — no second fatigue formula. */
+function frRestPlan(fr){
+  const per=(DATA.FATIGUE&&DATA.FATIGUE.recoverPerWeek)||0.004;
+  const last=(fr.entries||[]).length? fr.entries[fr.entries.length-1].week : (fr.built||0);
+  let fat=clamp(fr.fatigue||0,0,0.95), since=G.week-last, wks=0;
+  while(fat>0 && wks<4000){ since++; wks++; if(since>26) fat=Math.max(0, fat-per); }
+  return { totalWks:wks };
+}
 
 /* ═══════════ quality & box office math ═══════════ */
 function neededBudget(genre, scale){
@@ -4465,6 +4475,11 @@ function weeklyChart(){
 }
 
 /* ═══════════ finance ═══════════ */
+function franchiseValue(fr){
+  /* canonical franchise valuation — the only place these weights live;
+     catalogValue() and the UI franchise desk both read this */
+  return (fr.tier||1)*15 + (fr.merch||0)*10 + (fr.park||0)*45;
+}
 function catalogValue(){
   let v=0;
   for(const f of G.films){
@@ -4473,7 +4488,7 @@ function catalogValue(){
     base += (f.awards||[]).length*8;
     v+=base;
   }
-  for(const fr of G.franchises){ v += (fr.tier||1)*15 + (fr.merch||0)*10 + (fr.park||0)*45; }
+  for(const fr of G.franchises){ v += franchiseValue(fr); }
   if(G.maLibraries) v += G.maLibraries * (DATA.MA? DATA.MA.library.catalogEach : 42);  // v5 M&A libraries
   return v;
 }
@@ -5024,7 +5039,10 @@ function frResolveEntry(e){
 }
 function merchCost(fr){ return [30+fr.tier*15, 80+fr.tier*20, 160+fr.tier*30][fr.merch] || 0; }
 function parkCost(fr){ return [180+fr.tier*50, 350, 520][fr.park] || 0; }
-function frWeeklyIncome(fr){
+function frIncomeBreakdown(fr){
+  /* single source for franchise weekly income: merch vs park components with
+     every live multiplier applied — frWeeklyIncome() and the Merch & Parks desk
+     both read this so they can never drift apart */
   const g=DATA.GENRES[fr.genre]||{merch:1};
   const M=DATA.MERCH_V2||{};
   const mo = DATA.seasonOf(((G.week-1)%52)+1).month;
@@ -5034,9 +5052,12 @@ function frWeeklyIncome(fr){
   const toy = fr.toys? (M.toyMult||1.3) : 1;
   // v5 licensing-out: while a rival controls the film rights, your shelf income sags
   const licDrag = (G.licensedOut||[]).some(L=>L.name===fr.name)? 0.9 : 1;
-  return ( fr.merch? fr.merch*(0.9+fr.tier*0.55)*g.merch*fr.decay*toy*merchBoost*licDrag : 0 )
-       + ( fr.park ? fr.park*(2.5+fr.tier*1.2)*fr.decay*parkBoost : 0 );
+  const uniBonus = 1 + (G.universeBonus||0);   // shared-universe weave: +15% all franchise income, forever
+  const merch = ( fr.merch? fr.merch*(0.9+fr.tier*0.55)*g.merch*fr.decay*toy*merchBoost*licDrag : 0 ) * uniBonus;
+  const park  = ( fr.park ? fr.park*(2.5+fr.tier*1.2)*fr.decay*parkBoost : 0 ) * uniBonus;
+  return { merch, park, uniBonus, total: merch+park };
 }
+function frWeeklyIncome(fr){ return frIncomeBreakdown(fr).total; }
 /* v5: toy-line licensing deal — one-off fee, permanent merch multiplier */
 function signToyLine(id){
   const fr=frById(id);
@@ -5922,19 +5943,20 @@ function buildResort(id){
 }
 
 function buyIp(id){
-  const it=(G.ipMarket||[]).find(x=>x.id===id); if(!it) return;
+  const it=(G.ipMarket||[]).find(x=>String(x.id)===String(id));
+  if(!it) return { ok:false, reason:"That IP listing is no longer on the market." };
   /* v28: legacy/custom franchise listing — buy straight into the franchise stable */
   if(it.kind==="legacy" || it.kind==="custom"){
-    if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return; }
+    if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return { ok:false, reason:"Need "+fmtM(it.price)+" cash for the \""+it.title+"\" rights (have "+fmtM(G.studio.cash)+")." }; }
     spend("development", it.price);
     G.franchises.push({ id:nid(), name:it.title, tier:1, entries:[], ww:0, merch:0, park:0, gameSold:0,
                         decay:1, genre:it.genre, earned:0, built:G.week, purchased:true, purchasedLeft:1,
                         custom: it.kind==="custom" });
     G.ipMarket = G.ipMarket.filter(x=>x!==it);
     log("🌍 Bought the \""+it.title+"\" franchise rights ("+fmtM(it.price)+") — proven IP with a ready fanbase. Your next entry gets a buzz bump. See Franchises.","gold");
-    saveGame(); return;
+    saveGame(); return { ok:true, kind:"franchise", title:it.title };
   }
-  if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return; }
+  if(G.studio.cash<it.price){ log("💸 Not enough cash for those rights.","bad"); return { ok:false, reason:"Need "+fmtM(it.price)+" cash for the \""+it.title+"\" rights (have "+fmtM(G.studio.cash)+")." }; }
   spend("development", it.price);
   const idea = genIdea();
   idea.genre=it.kind==="pd"? idea.genre : it.genre;
@@ -5948,6 +5970,7 @@ function buyIp(id){
   G.ipMarket = G.ipMarket.filter(x=>x!==it);
   log("📚 Bought \""+it.title+"\" ("+DATA.IPKINDS.find(k=>k.id===it.kind).emoji+" "+fmtM(it.price)+") — script +"+it.boost+", built-in awareness. See Develop.","gold");
   saveGame();
+  return { ok:true, kind:"idea", title:it.title };
 }
 
 function canLaunchStreamer(){ return !G.streamer && G.studio.rep>=40 && G.studio.cash>=250; }
@@ -6122,12 +6145,19 @@ function frHeatMult(p){
 }
 
 function franchiseTvSpinoff(fid){
-  const fr=frById(fid); if(!fr || fr.tier<2) return;
+  const fr=frById(fid);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if((fr.tier||0)<2) return { ok:false, reason:"TV spin-offs need a tier-2+ brand — grow "+fr.name+" first." };
   const res=pitchSeries({ genre: DATA.GENRES[fr.genre]? fr.genre:"action", eps:8, perEp:6,
     platformId:pick(DATA.allPlatforms()).id, showrunner:null, cast:[],
-    titleOverride:fr.name+": The Series", oddsBonus:0.3 });
-  if(res.ok) log("📺 The "+fr.name+" TV spin-off found a home.","gold");
+    titleOverride:fr.name+": The Series", oddsBonus:0.3, spinFr: fr.id });
+  if(res && res.ok){
+    log("📺 The "+fr.name+" TV spin-off found a home.","gold");
+    saveGame();
+    return { ok:true, series:res.s, spinFr:fr.id };
+  }
   saveGame();
+  return { ok:false, reason:"Every platform passed on the "+fr.name+" series this cycle." };
 }
 
 function fycFilm(fid, amt){
@@ -6327,23 +6357,33 @@ function mergeUniverse(idA, idB){
    A universe links 2+ franchises without merging them. Continuity rewards
    rested, coherent brands (±5% opening); crowded slates confuse audiences. */
 function foundUniverse(name, frIds){
-  const frs=(frIds||[]).map(id=>frById(+id)).filter(fr=>fr);
+  const frs=(frIds||[]).map(id=>frById(id)).filter(fr=>fr);
   if(frs.length<2) return false;
   if(!frs.every(fr=>fr.tier>=2)){ log("🌌 Universes need tier-2+ franchises.","bad"); return false; }
   if(G.studio.cash<80){ log("💸 Weaving a universe costs $80M.","bad"); return false; }
   spend("studio", 80);
   G.universes=G.universes||[];
-  const u={id:nid(), name:(name||frs.map(f=>f.name).join(" × ")).slice(0,40), frIds:frs.map(f=>f.id), founded:G.week};
+  const u={id:nid(), name:(name||frs.map(f=>f.name).join(" × ")).slice(0,40), frIds:frs.map(f=>f.id), founded:G.week,
+    subFranchises:frs.map(f=>f.name), leadFranchiseId:frs[0].id, leadFranchiseName:frs[0].name};
   G.universes.push(u);
   G.studio.rep=clamp(G.studio.rep+2,5,99);
   log("🌌 Universe founded: \""+u.name+"\" — continuity will make or break it (+$80M weave).","gold");
   saveGame(); return u;
 }
 function uniOf(frName){
-  return ((G.universes||[]).find(u=>u.frIds.some(id=>{ const fr=frById(id); return fr&&fr.name===frName; })))||null;
+  return ((G.universes||[]).find(u=>
+    (u.frIds||[]).some(id=>{ const fr=frById(id); return fr&&fr.name===frName; }) ||
+    (u.subFranchises||[]).includes(frName)
+  ))||null;
 }
 function uniStats(u){
-  const frs=u.frIds.map(frById).filter(Boolean);
+  /* schema-safe: frIds (engine weave) and subFranchises names (cinematic-universe
+     charters) both resolve to the same live franchise list, deduped by id */
+  const seen=new Set();
+  const frs=[...(u.frIds||[]).map(id=>frById(id)),
+             ...(u.subFranchises||[]).map(n=>(G.franchises||[]).find(f=>f.name===n))]
+    .filter(Boolean)
+    .filter(f=>{ const k=String(f.id); if(seen.has(k)) return false; seen.add(k); return true; });
   const ww=frs.reduce((a,f)=>a+(f.ww||0),0);
   const fat=frs.length?frs.reduce((a,f)=>a+(f.fatigue||0),0)/frs.length:0;
   const recent=frs.reduce((a,f)=>a+(f.entries||[]).filter(e=>G.week-e.week<26).length,0);
@@ -6424,18 +6464,24 @@ function refreshIpMarket(seed){
   G.ipMarket = (G.ipMarket||[]).filter(i=>i.born+16>G.week);
   /* v28: legacy franchise listings surface mid-run, never in the opening market */
   if(G.week>=10 && chance(0.18) && !G.ipMarket.some(i=>i.kind==="legacy")) G.ipMarket.push(genLegacyListing());
-  /* v28: custom franchise integration - add custom franchises to IP market */
+  /* v28: custom franchise integration — custom listings price in the $15M–$45M band
+     and several can sit on the market at once */
   if(G.custom && G.custom.franchises){
     G.custom.franchises.forEach(fr=>{
-      if(!G.ipMarket.some(i=>i.id===fr.id) && chance(0.15)){
-        G.ipMarket.push({ id:fr.id, kind:"legacy", genre:fr.genre, title:fr.name, 
-          price:Math.round((fr.value||0)*2.5), boost:Math.round(5+(fr.value||0)*0.1), 
+      if(!G.ipMarket.some(i=>String(i.id)===String(fr.id)) && chance(0.15)){
+        G.ipMarket.push({ id:fr.id, kind:"custom", genre:fr.genre, title:fr.name,
+          price:customListingPrice(), boost:Math.round(5+(fr.value||0)*0.1),
           buzz:0.12, born:G.week, custom:true });
       }
     });
   }
   while(G.ipMarket.length<4){ const it=genIpItem(); it.born=G.week; G.ipMarket.push(it); }
-  if(!seed && G.ipMarket.length>6) G.ipMarket.length=6;
+  if(!seed && G.ipMarket.length>6){
+    /* never truncate hard-won custom/legacy franchise listings — shed filler first */
+    const keep=G.ipMarket.filter(i=>i.kind==="custom"||i.kind==="legacy");
+    const filler=G.ipMarket.filter(i=>i.kind!=="custom"&&i.kind!=="legacy");
+    G.ipMarket=keep.concat(filler).slice(0,Math.max(6,keep.length));
+  }
 }
 
 function repayMezz(amount){
@@ -7856,14 +7902,16 @@ function createCustomPerson(name, kind, desc){
   saveGame();
   return p;
 }
+function customListingPrice(){ return rint(15,45); } // custom IP listings trade in the $15M–$45M band
 function createCustomFranchise(name, genre, desc){
   if(!G.custom) G.custom = { studios:[], people:[], franchises:[] };
   const f = DATA.customFranchise(name, genre, desc);
   G.custom.franchises.push(f);
-  /* v28 polish: custom franchises surface in the IP market as a buyable listing */
-  if(!G.ipMarket.some(i=>i.kind==="custom")){
-    G.ipMarket.push({ id:nid(), kind:"custom", genre, title:name, price:rint(15,45),
-      boost:Math.round(5+rnd()*8), buzz:0.08, born:G.week });
+  /* v28 polish: custom franchises surface in the IP market as buyable listings —
+     several customs can sit on the market at once (dedupe same title only) */
+  if(!G.ipMarket.some(i=>String(i.title)===String(name))){
+    G.ipMarket.push({ id:nid(), kind:"custom", genre, title:name, price:customListingPrice(),
+      boost:Math.round(5+rnd()*8), buzz:0.08, born:G.week, custom:true });
     log("🌍 Custom franchise \""+name+"\" listed in the IP Market.","gold");
   }
   saveGame();

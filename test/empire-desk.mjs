@@ -404,6 +404,187 @@ try{
   assert.equal(Math.round((w.eval('G.studio.cash')-cashPreLabel)*10)/10, expectedArtWk, 'tickLabel() credits exact labelArtistWeeklyIncome()');
   console.log('PASS A10: fabricated chart rank & scandal risk removed; labelArtistWeeklyIncome() shared; $0.3M/wk overhead verified');
 
+  /* ── A11 — valuation, rest & park honesty, universe bonus, UNIPICKS persistence,
+        TV spin-off contract, merch/merch-licensing/fan-conventions/IP-market fixes ── */
+
+  /* frValue() must equal catalogValue()'s franchise valuation exactly */
+  w.eval(`
+    G.films=[]; G.maLibraries=0;
+    G.franchises=[{id:888,name:'Park Probe',tier:2,entries:[{filmId:888,title:'Park Probe',ww:120,week:10}],ww:120,merch:1,park:1,gameSold:0,decay:1,genre:'action',earned:0,built:10,fatigue:0.14,toys:true}];
+    G.week=20; render();
+  `);
+  assert.equal(w.eval('frValue(G.franchises[0])'),85,'frValue() = tier*15 + merch*10 + park*45 with no toys ghost value (2*15+1*10+1*45 = 85)');
+  assert.equal(w.eval('catalogValue()'),85,'frValue() matches catalogValue() franchise valuation exactly');
+  w.eval(`G.franchises=[{id:889,name:'Val Probe',tier:3,entries:[],ww:0,merch:2,park:1,gameSold:0,decay:1,genre:'action',earned:0,built:1}]; render();`);
+  assert.equal(w.eval('frValue(G.franchises[0])'),110,'frValue() weights unify for tier 3 / merch 2 / park 1 (110)');
+
+  /* Fake park attendance % replaced by real park level + real park income */
+  w.eval(`
+    G.films=[]; G.week=20;
+    G.franchises=[{id:888,name:'Park Probe',tier:2,entries:[{filmId:888,title:'Park Probe',ww:120,week:10}],ww:120,merch:1,park:1,gameSold:0,decay:1,genre:'action',earned:0,built:10,fatigue:0.14,toys:true}];
+    G.empire.subTab='franchises'; G.empire.activeSub='franchises';
+    render();
+  `);
+  assert(!viewText().includes('Attendance'),`fake Park Attendance % must be gone: "${viewText()}"`);
+  assert(/Park/.test(viewText()),'real park data still shown on the card');
+
+  /* Rest countdown derives from tickFatigue() (26-wk gap + 0.004/wk recovery), not fatigue*26 */
+  assert.equal(w.eval('typeof frRestPlan'),'function','frRestPlan(fr) exists in the engine layer');
+  assert.equal(w.eval('frRestPlan(G.franchises[0]).totalWks'),51,'rest countdown = 17 wks until first recovery tick + 34 more 0.004 heals (51 wks)');
+  assert(viewText().includes('51 wks to heal'),`card rest countdown must come from tickFatigue() rule: "${viewText()}"`);
+
+  /* G.universeBonus (+15%) actually applies to franchise income and is shown */
+  w.eval('G.universeBonus=0.15; render();');
+  const incWithBonus=w.eval('frWeeklyIncome(G.franchises[0])');
+  assert(viewText().includes('+15% universe'),'card shows the +15% universe bonus');
+  w.eval('G.universeBonus=0;');
+  const incNoBonus=w.eval('frWeeklyIncome(G.franchises[0])');
+  assert(incNoBonus>0 && Math.abs(incWithBonus - incNoBonus*1.15)<0.01,'frWeeklyIncome() applies G.universeBonus +15% to real weekly income');
+  w.eval('G.universeBonus=0.15; empireModal(888);');
+  assert($('.modal-veil').textContent.includes('+15%'),'empireModal() shows the active +15% universe bonus');
+  w.eval('closeModal(); G.universeBonus=0;');
+
+  /* UNIPICKS persist across renders & save/load, prune dead ids, gate #uniGo (≥2 picks + $30M) */
+  fresh('universes');
+  w.eval(`
+    G.studio.cash=200;
+    G.franchises=[
+      {id:901,name:'Uni Alpha',tier:2,entries:[],ww:100,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1},
+      {id:902,name:'Uni Beta',tier:2,entries:[],ww:100,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1},
+      {id:'cust_903',name:'Uni Gamma',tier:2,entries:[],ww:100,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1,custom:true}
+    ];
+    render();
+  `);
+  $('[data-unipick="901"]').click();
+  $('[data-unipick="cust_903"]').click();
+  w.eval('render();');
+  assert.equal($('#uniPicks').textContent,'Uni Alpha × Uni Gamma','picked franchises render after re-render (persisted, string ids safe)');
+  w.eval('saveGame(); loadGame(); render();');
+  assert.equal($('#uniPicks').textContent,'Uni Alpha × Uni Gamma','picked franchises survive saveGame/loadGame');
+  assert.equal(w.eval("document.querySelector('[data-unipick=\"901\"]').classList.contains('btn-primary')"),true,'picked chip renders active after reload');
+  w.eval('G.franchises=G.franchises.filter(f=>f.id!==901); render();');
+  assert.equal($('#uniPicks').textContent,'Uni Gamma','stale picks prune when the franchise leaves the roster');
+  $('[data-unipick="902"]').click();
+  w.eval('G.studio.cash=25; render();');
+  assert.equal(w.eval("document.querySelector('#uniGo').disabled"),true,'#uniGo disabled below the $30M gate even with 2 picks');
+  w.eval('G.studio.cash=35; render();');
+  assert.equal(w.eval("document.querySelector('#uniGo').disabled"),false,'#uniGo enabled at 2 picks + $30M cash');
+  w.eval('G.studio.cash=25; render();');
+  assert.equal(w.eval("document.querySelector('#uniGo').disabled"),true,'#uniGo disabled again when cash drops under $30M');
+  w.eval('G.studio.cash=200; render();');
+  $('#uniGo').click();
+  assert.equal(w.eval('G.universes.length'),1,'weaving a universe from picks works with custom string franchise ids');
+  assert(w.eval("G.universes[0].frIds.includes('cust_903') && G.universes[0].frIds.includes(902)"),'universe frIds preserve numeric and string ids');
+
+  /* cinematic-universe.js output stays schema-compatible with uniStats()/uniOf() */
+  w.eval(`
+    G.studio.cash=200; G.universes=[];
+    G.franchises=[
+      {id:911,name:'CU Core',tier:1,entries:[],ww:0,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1},
+      {id:'cust_912',name:'CU Branch',tier:1,entries:[],ww:0,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1}
+    ];
+  `);
+  const cu=JSON.parse(w.eval('JSON.stringify(createUniverse("Probe Universe", 911))'));
+  assert(cu.ok,'cinematic-universe createUniverse() succeeds');
+  assert.deepEqual(JSON.parse(w.eval('JSON.stringify(G.universes[0].frIds||null)')),[911],'created universe carries frIds for uniStats()');
+  assert.equal(JSON.parse(w.eval('(function(){try{return JSON.stringify({ok:true,n:uniStats(G.universes[0]).frs.length})}catch(e){return JSON.stringify({ok:false,err:String(e)})}})()')).ok,true,'uniStats() reads createUniverse() output without throwing');
+  const cu2=JSON.parse(w.eval('JSON.stringify(addSubFranchiseToUniverse(G.universes[0].id, "cust_912"))'));
+  assert(cu2.ok,'addSubFranchiseToUniverse() accepts custom string franchise ids');
+  assert.equal(w.eval('uniStats(G.universes[0]).frs.length'),2,'uniStats() sees both franchises after schema-safe join');
+
+  /* franchiseTvSpinoff returns {ok, reason} and tags the series with spinFr */
+  w.eval(`
+    window.__realChance=chance; chance=()=>true;
+    G.studio.cash=200; G.series=[]; G.universes=[];
+    G.franchises=[
+      {id:921,name:'TV Probe',tier:2,entries:[],ww:100,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1},
+      {id:'cust_922',name:'Tier One',tier:1,entries:[],ww:50,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1}
+    ];
+  `);
+  const tv=JSON.parse(w.eval("JSON.stringify(franchiseTvSpinoff('921')||{ok:null})"));
+  assert(tv.ok,'franchiseTvSpinoff() returns {ok:true} on pickup');
+  assert.equal(w.eval('G.series[0].spinFr'),921,'created series carries spinFr = franchise id');
+  const tvRefuse=JSON.parse(w.eval("JSON.stringify(franchiseTvSpinoff('cust_922')||{ok:null})"));
+  assert(!tvRefuse.ok && typeof tvRefuse.reason==='string' && tvRefuse.reason.length>3,'tier-1 refusal carries a reason');
+  const tvMissing=JSON.parse(w.eval("JSON.stringify(franchiseTvSpinoff('nope')||{ok:null})"));
+  assert(!tvMissing.ok && /not found/i.test(tvMissing.reason),'missing franchise refusal carries a reason');
+  /* failure path must not false-success (no gold beep, reason toasted) */
+  w.eval("chance=()=>false; closeModal(); G.empire.subTab='franchises'; G.empire.activeSub='franchises'; render();");
+  clearBeeps();
+  $('[data-fr-tv="921"]').click();
+  assert(!beeps().includes('gold'),'failed TV pitch must not play gold success audio');
+  assert(toastText().length>0 || /passed|whiteboard/i.test(w.eval('G.logText||document.body.textContent')),'failed TV pitch surfaces the refusal');
+  w.eval('chance=window.__realChance;');
+
+  /* merchBoard lists films at merchEligible()'s $40M WW threshold */
+  w.eval(`
+    G.films=[
+      {id:931,title:'Shelf Flop',ww:20,budget:20,quality:{critic:60,overall:60}},
+      {id:932,title:'Shelf Hit',ww:40,budget:20,quality:{critic:60,overall:60}}
+    ];
+    G.franchises=[]; render();
+  `);
+  const mb=w.eval('merchBoard()');
+  assert(mb.includes('Shelf Hit'),'merchBoard lists films at ww >= 40 (merchEligible threshold)');
+  assert(!mb.includes('Shelf Flop'),'merchBoard no longer lists films under the $40M WW threshold');
+
+  /* merch-licensing.js resolves films by String(f.id) and reads f.ww gross */
+  w.eval(`
+    G.films=[{id:941,title:'WW Wonder',ww:120,budget:40,quality:{critic:70,overall:70}}];
+    G.merchandise={activeDeals:[],dealHistory:[],totalRoyaltyEarned:0};
+  `);
+  const ml=JSON.parse(w.eval("JSON.stringify(MerchLicensing.signMerchLicensingDeal('941','toys_action_figures'))"));
+  assert(ml.ok,`merch-licensing deal must accept string film ids and ww gross: ${ml.msg||''}`);
+  assert.equal(w.eval('G.merchandise.activeDeals.length'),1,'licensing deal recorded on the ww-only film');
+  w.eval('openMerchLicensingModal();');
+  assert($('.modal-veil').textContent.includes('WW Wonder'),'merch-licensing modal eligibility reads f.ww');
+  w.eval('closeModal();');
+
+  /* fan-conventions.js disables host buttons when cash cannot cover the scale */
+  w.eval(`
+    if(!G.fanClub) G.fanClub={totalFans:0,weeklyBudget:0,conventionHistory:[],lastConventionWeek:null};
+    G.fanClub.lastConventionWeek=null; G.studio.cash=1;
+    openFanClubModal();
+  `);
+  const broke=JSON.parse(w.eval("JSON.stringify([...document.querySelectorAll('[data-hostcon]')].map(b=>b.disabled))"));
+  assert(broke.length>0 && broke.every(d=>d),'all [data-hostcon] buttons disabled when cash is under the cheapest expo');
+  w.eval('closeModal(); G.studio.cash=500; openFanClubModal();');
+  const rich=JSON.parse(w.eval("JSON.stringify([...document.querySelectorAll('[data-hostcon]')].map(b=>b.disabled))"));
+  assert(rich.some(d=>!d),'host buttons enable again once cash covers the scale');
+  w.eval('closeModal();');
+
+  /* buyIp returns {ok, reason} with string-safe ids; custom listings price $15M–$45M */
+  w.eval(`
+    G.ipMarket=[{id:951,kind:'legacy',genre:'action',title:'Legacy Lot',price:20,boost:6,buzz:0.1,born:1}];
+    G.studio.cash=10;
+  `);
+  const poorBuy=JSON.parse(w.eval("JSON.stringify(buyIp('951')||{ok:null})"));
+  assert(!poorBuy.ok && typeof poorBuy.reason==='string','buyIp refusal returns {ok:false, reason}');
+  w.eval('G.studio.cash=300;');
+  const buy=JSON.parse(w.eval("JSON.stringify(buyIp('951')||{ok:null})"));
+  assert(buy.ok,'buyIp succeeds with a string listing id');
+  assert.equal(w.eval('G.franchises.some(f=>f.name==="Legacy Lot")'),true,'purchased legacy IP lands in the franchise stable');
+  const missBuy=JSON.parse(w.eval("JSON.stringify(buyIp('zzz')||{ok:null})"));
+  assert(!missBuy.ok && typeof missBuy.reason==='string','buyIp missing listing returns {ok:false, reason}');
+
+  w.eval(`
+    G.ipMarket=[]; G.studio.cash=500;
+    createCustomFranchise('Solo One','action','');
+    createCustomFranchise('Solo Two','drama','');
+  `);
+  assert.equal(w.eval("G.ipMarket.filter(i=>i.kind==='custom').length"),2,'multiple custom franchises can be listed at once');
+  w.eval(`
+    G.ipMarket=[]; G.week=20;
+    G.custom={studios:[],people:[],franchises:[{id:'cust_961',name:'Custom One',genre:'action',desc:'',created:1,films:0,value:0}]};
+    window.__realChance2=chance; chance=()=>true;
+    refreshIpMarket(true);
+    chance=window.__realChance2;
+  `);
+  const customPrices=JSON.parse(w.eval("JSON.stringify(G.ipMarket.filter(i=>i.custom||i.kind==='custom').map(i=>i.price))"));
+  assert(customPrices.length>0,'refreshIpMarket lists custom franchises');
+  assert(customPrices.every(p=>p>=15&&p<=45),`custom IP listings price in the $15M–$45M band (never $0): got ${JSON.stringify(customPrices)}`);
+  console.log('PASS A11: unified valuation, tickFatigue-derived rest, honest park data, +15% universe bonus, persisted UNIPICKS, spinFr tagging, $40M merch gate, licensing/fan-con/IP-market contract fixes');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){
