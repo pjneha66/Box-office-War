@@ -7741,13 +7741,13 @@ function viewEmpire(){
         h+="<div class='card'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/"+maxActs+" acts</span></div>";
         (L.artists||[]).forEach(a=>{
           const def=(DATA.ARTISTS||[]).find(x=>x.id===a.id)||{};
-          const charting=a.chartUntil>G.week;
-          const chartPos = charting? (a.chartPos || ((G.week*7+a.id.charCodeAt(0))%12+1)) : null;
-          const scandalRisk = Math.round((a.scandal||0.15)*100);
+          const charting=(a.chartUntil||0)>G.week;
+          const chartWksLeft=charting?Math.max(0,a.chartUntil-G.week):0;
+          const artWk=(typeof labelArtistWeeklyIncome==="function")?labelArtistWeeklyIncome(a):(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10);
           const canTour=G.studio.cash>=tourCost;
           const tourTip="Concert tour: "+fmtM(tourCost)+" upfront, variable tour gross, +"+tourBuzzPct+"% buzz for in-production musicals & concert films, "+tourChartWks+"-wk chart boost";
-          h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+(charting?" · <b class='pos'>#"+chartPos+" ON TOP 50 (×3)</b>":"")+" · scandal risk "+scandalRisk+"%</span></span>"+
-            "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10)+"/wk</b>"+
+          h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+" · heat "+(a.heat||1)+(charting?" · <b class='pos'>CHARTING (×3 · "+chartWksLeft+" wk"+(chartWksLeft===1?"":"s")+" left)</b>":"")+"</span></span>"+
+            "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(artWk)+"/wk</b>"+
             "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='"+tourTip+"'"+(canTour?"":" disabled")+">🎤 World Tour ("+fmtM(tourCost)+")</button>"+
             " <button class='btn btn-sm btn-ghost' data-dropartist='"+a.id+"'>✕</button></div></div>";
         });

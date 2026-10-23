@@ -378,6 +378,32 @@ try{
   assert.match(viewText(),/No films yet|first entry/i,'custom/purchased franchise with entries:[] renders safely');
   console.log('PASS A9: frTimeline() resolves G.films via filmId and degrades cleanly when absent');
 
+  /* ── A10 — Music label removes fabricated #Top50 & scandal risk; shares labelArtistWeeklyIncome(); verifies $0.3M/wk overhead ── */
+  fresh('divisions');
+  const ovhBeforeLabel=w.eval('weeklyOverhead()');
+  w.eval(`
+    G.studio.cash=200;
+    unlockLabel();
+    signArtist('nova');
+    G.label.artists[0].chartUntil = G.week + 5;
+    render();
+  `);
+  const ovhAfterLabel=w.eval('weeklyOverhead()');
+  assert.equal(Math.round((ovhAfterLabel-ovhBeforeLabel)*100)/100, 0.3, 'weeklyOverhead() charges exact +$0.3M/wk when music label unlocked');
+  const divTxt=viewText();
+  assert(!/TOP 50/i.test(divTxt) && !/#\d+\s+ON/i.test(divTxt), `Music label must not fabricate chart rank: "${divTxt}"`);
+  assert(!/scandal risk/i.test(divTxt), `Music label must not fabricate artist scandal risk: "${divTxt}"`);
+  assert.match(divTxt,/5\s*wk/i,'Charting artist displays real remaining chart weeks (5 wks)');
+
+  /* Displayed per-artist $/wk equals labelArtistWeeklyIncome() and tickLabel() credit */
+  const expectedArtWk=w.eval('typeof labelArtistWeeklyIncome==="function" ? labelArtistWeeklyIncome(G.label.artists[0]) : -1');
+  assert(expectedArtWk > 0, 'labelArtistWeeklyIncome() exists and returns > 0');
+  assert(divTxt.includes('+'+w.fmtM(expectedArtWk)+'/wk'), 'Music label displays exact labelArtistWeeklyIncome()');
+  const cashPreLabel=w.eval('G.studio.cash');
+  w.eval('G.weekTx={}; tickLabel();');
+  assert.equal(Math.round((w.eval('G.studio.cash')-cashPreLabel)*10)/10, expectedArtWk, 'tickLabel() credits exact labelArtistWeeklyIncome()');
+  console.log('PASS A10: fabricated chart rank & scandal risk removed; labelArtistWeeklyIncome() shared; $0.3M/wk overhead verified');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

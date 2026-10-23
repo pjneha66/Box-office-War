@@ -1826,19 +1826,23 @@ function dropArtist(id){
   if(G.label.artists.length<before){ log("📦 Dropped an act from the roster.",""); saveGame(); return true; }
   return false;
 }
+function labelArtistWeeklyIncome(a){
+  if(!a) return 0;
+  let inc=0.08+0.14*(a.heat||1);
+  if((a.chartUntil||0)>G.week) inc*=3;
+  return Math.round(inc*10)/10;
+}
 function tickLabel(){
   const L=G.label; if(!L||!L.unlocked) return;
   const lc=DATA.LABEL_COSTS||{};
   const chartBuzz=lc.chartBuzzBonus!=null?lc.chartBuzzBonus:0.02;
   (L.artists||[]).forEach(a=>{
-    let inc=0.08+0.14*(a.heat||1);
-    if(a.chartUntil>G.week) inc*=3;
-    else if(chance(0.035+0.01*(a.heat||1))){
+    if(!((a.chartUntil||0)>G.week) && chance(0.035+0.01*(a.heat||1))){
       a.chartUntil=G.week+4;
       log("🎵 "+a.name+" is CHARTING — streaming and sync money ×3 for a month.","gold");
       G.projects.forEach(p=>{ if(p.genre==="musical"||p.genre==="concert") p.buzzBonus=Math.round(((p.buzzBonus||0)+chartBuzz)*100)/100; });
     }
-    earn("music", Math.round(inc*10)/10);
+    earn("music", labelArtistWeeklyIncome(a));
   });
 }
 
@@ -6667,7 +6671,7 @@ function weeklyOverhead(){
   DATA.EXECS.forEach(e=>{ const ex=G.execs[e.id]; if(ex) o+=(typeof ex==="object"&&Number.isFinite(ex.salary))? ex.salary : e.salary; });
   o += hqUpkeep(); // headquarters facilities bill weekly maintenance
   if(G.btl){ ["dp","composer","vfx"].forEach(r=>{ if(G.btl[r]) o+=G.btl[r].salary; }); } // v9 crew retainers
-  if(G.label && G.label.unlocked) o+=0.3; // v14 music label: A&R, studio time, sync paperwork
+  if(G.label && G.label.unlocked) o+=((DATA.LABEL_COSTS&&DATA.LABEL_COSTS.overheadPerWeek!=null)?DATA.LABEL_COSTS.overheadPerWeek:0.3); // v14 music label: A&R, studio time, sync paperwork
   if(G.gamesDiv && G.gamesDiv.unlocked) o+=0.4; // v16 game studio: engines, licenses, dev kits
   return Math.round(o*100)/100;
 }
