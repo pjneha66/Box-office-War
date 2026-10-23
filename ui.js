@@ -4324,45 +4324,6 @@ function produceBacklot(projs){
     "<div class='produce-backlot-rec"+(rolling.length?"":" idle")+"'>"+(rolling.length?"REC":"STANDBY")+"</div></div>"+
     "<div class='produce-backlot-foot'><b>"+caption+"</b><span>"+(rolling.length?rolling.length+" shooting":"lot dark")+"</span></div></div>";
 }
-function produceProcessStrip(){
-  const stages=[
-    {id:"concept", icon:"💡", label:"Concept", desc:"Idea locked"},
-    {id:"script", icon:"✍️", label:"Script", desc:"Writer room"},
-    {id:"cast", icon:"⭐", label:"Cast", desc:"Attach leads"},
-    {id:"prod", icon:"🎬", label:"Production", desc:"Pre/Shoot/Post"},
-    {id:"post", icon:"✂️", label:"Post", desc:"Edit & score"},
-    {id:"test", icon:"👥", label:"Test", desc:"Dial screening"},
-    {id:"marketing", icon:"📣", label:"Marketing", desc:"P&A drops"},
-    {id:"release", icon:"🎟️", label:"Release", desc:"Theatrical"},
-    {id:"boxoffice", icon:"💰", label:"Box Office", desc:"Rentals"},
-    {id:"streaming", icon:"📺", label:"Streaming", desc:"Library"}
-  ];
-  const inProd=inProdProjects(), ready=readyProjects();
-  const counts={
-    concept:(G.ideas||[]).length,
-    script:inProd.filter(p=>p.phase==="pre").length,
-    cast:inProd.filter(p=>p.phase==="pre").length + inProd.filter(p=>p.phase==="shoot").length,
-    prod:inProd.length,
-    post:inProd.filter(p=>p.phase==="post").length,
-    test:ready.filter(p=>!p.tested).length,
-    marketing:ready.filter(p=>!!p.releaseWeek).length,
-    release:(G.films||[]).filter(f=>f.inTheaters).length,
-    boxoffice:(G.films||[]).filter(f=>f.weeksOut>=0 && (f.ww||0)>0).length,
-    streaming:(G.films||[]).filter(f=>f.streamingOriginal || f.onOwn).length
-  };
-  const totalMoving=inProd.length+ready.length+(G.films||[]).length;
-  let h=`<div class="produce-process" role="img" aria-label="Film lifecycle from concept to streaming, with animated stage characters">`;
-  stages.forEach((s,i)=>{
-    const n=counts[s.id]||0;
-    const live=n>0;
-    const pulse=!live && totalMoving===0 && i===0;
-    h+=`<div class="produce-step ${live?"live":pulse?"pulse":""}"><i class="produce-step-icon">${s.icon}</i><b>${s.label}</b><small>${s.desc}</small><em>${live?n:"—"}</em></div>`;
-    if(i<stages.length-1) h+=`<span class="produce-step-conn" aria-hidden="true"></span>`;
-  });
-  h+=`</div>`;
-  h+=`<div class="produce-process-foot"><span><b>${totalMoving}</b> titles in motion — Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release → Box office → Streaming</span><span>${inProd.length} shooting · ${ready.length} ready · ${(G.films||[]).length} released</span></div>`;
-  return h;
-}
 
 /* ── v28.17: animated backlot set — four crew characters (director, camera
    operator, lead, clapper loader) drawn as crisp-edge pixel SVGs, all
@@ -4470,7 +4431,7 @@ function viewProductions(){
 
   let h=`<section class="command-deck command-produce">${produceHead()}${produceTelemetry()}${produceBrief()}${produceTools()}`;
   // Pipeline overview (gantt + backlot + lifecycle) as one panel
-  h+=producePanel("PIPELINE","On the lot right now","How every active picture moves through the three phases — and who is actually on set today.",`<div class="produce-gantt">${produceGantt(allProd).replace(/^<div class='produce-gantt'>/,"").replace(/<\/div>$/,"")}</div>${produceBacklot(allProd)}${produceProcessStrip()}<div class="produce-pipeline"><span>${allProd.length} IN MOTION</span> Pre ${allProd.filter(p=>p.phase==="pre").length} · Shoot ${allProd.filter(p=>p.phase==="shoot").length} · Post ${allProd.filter(p=>p.phase==="post").length}${allProd.filter(p=>p.phase==="reshoot").length?" · Reshoot "+allProd.filter(p=>p.phase==="reshoot").length:""} · Ready ${readyAll.length} <b>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release</b></div>`);
+  h+=producePanel("PIPELINE","On the lot right now","How every active picture moves through the three phases — and who is actually on set today.",`<div class="produce-gantt">${produceGantt(allProd).replace(/^<div class='produce-gantt'>/,"").replace(/<\/div>$/,"")}</div>${produceBacklot(allProd)}<div class="produce-pipeline"><span>${allProd.length} IN MOTION</span> Pre ${allProd.filter(p=>p.phase==="pre").length} · Shoot ${allProd.filter(p=>p.phase==="shoot").length} · Post ${allProd.filter(p=>p.phase==="post").length}${allProd.filter(p=>p.phase==="reshoot").length?" · Reshoot "+allProd.filter(p=>p.phase==="reshoot").length:""} · Ready ${readyAll.length} <b>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release</b></div>`);
   // Acquired media vault (if any) lives inside the same deck, not as legacy cards
   const vaultHtml=acquiredMediaSection();
   if(vaultHtml){

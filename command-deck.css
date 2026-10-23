@@ -1300,10 +1300,16 @@
 .produce-backlot{margin:0 20px 16px;border:1px solid var(--prod-line);background:#1b312b;border-radius:3px;overflow:hidden;position:relative}
 .produce-backlot-hero{position:relative;display:flex;justify-content:space-evenly;align-items:flex-end;padding:22px 12px 12px;min-height:88px;background:linear-gradient(180deg,#2a4a3a,#1b312b)}
 .produce-backlot-hero:before{content:'';position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:22px 22px;opacity:.4}
-.produce-crew{position:relative;display:grid;justify-items:center;gap:4px;min-width:52px}
+.produce-crew{position:relative;display:grid;justify-items:center;gap:4px;min-width:52px;animation:produceWalk 3.6s ease-in-out infinite}
+.produce-crew:nth-child(2){animation-delay:.45s}
+.produce-crew:nth-child(3){animation-delay:.9s}
+.produce-crew:nth-child(4){animation-delay:1.35s}
+@keyframes produceWalk{0%,100%{transform:translateX(0)}25%{transform:translateX(3px)}75%{transform:translateX(-3px)}}
 .produce-crew small{font:700 7px ui-monospace,monospace;letter-spacing:1px;color:#edc47c}
 .produce-crew b{font:700 8px ui-monospace,monospace;letter-spacing:.8px;color:#cfe0c0}
 .produce-crew i{width:44px;height:44px;display:grid;place-items:center;background:#243d34;border:1px solid var(--prod-line);border-radius:2px;font-size:20px}
+.produce-sprite{display:grid;place-items:center;width:44px;height:44px;background:#243d34;border:1px solid var(--prod-line);border-radius:2px;overflow:hidden}
+.produce-sprite .px{width:34px;height:auto;display:block;filter:drop-shadow(0 2px 0 rgba(0,0,0,.35));animation:produceBob 1.9s ease-in-out infinite}
 .produce-backlot-rec{position:absolute;top:8px;right:10px;display:flex;align-items:center;gap:5px;font:700 8px ui-monospace,monospace;letter-spacing:1.2px;padding:4px 7px;border-radius:2px;background:#1a1204;color:#edc47c;border:1px solid #8a7748}
 .produce-backlot-rec:before{content:'●';color:#c0392b;animation:produceRec 1.2s steps(1) infinite}
 .produce-backlot-rec.idle{color:#9fb0a2;border-color:#4e6355}
