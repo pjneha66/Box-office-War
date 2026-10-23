@@ -14,8 +14,8 @@ const chromium=require('@sparticuz/chromium').default;
  try{
   const page=await browser.newPage(), errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(process.env.GAME_URL||'http://127.0.0.1:8080/',{waitUntil:'networkidle0'});
-  await page.evaluate(()=>{SEL={scenario:'standard',difficulty:'normal',sandbox:false,slot:1,legacy:''};newGame(DATA.ARCHETYPES[1].id,'Visual Test Studio',SEL);enterApp(false);closeModal();switchTab('dashboard');});
-  for(const [width,height] of [[1440,900],[844,390],[390,844]]){
+  await page.evaluate(()=>{SEL={scenario:'standard',difficulty:'normal',sandbox:false,slot:1,legacy:''};newGame(DATA.ARCHETYPES[1].id,'Visual Test Studio',SEL);enterApp(false);closeModal();G.studio.cash=1000;G.studio.rep=60;G.week=20;switchTab('dashboard');render();});
+  for(const [width,height] of [[1440,900],[844,390],[390,844],[320,900]]){
    await page.setViewport({width,height});
    const header=await page.evaluate(()=>{const el=document.querySelector('.topbar'),chip=document.querySelector('.command-header-ledger .chip'),btn=document.querySelector('#btnWeek');return{overflow:el.scrollWidth>el.clientWidth+2,pseudo:getComputedStyle(chip,'::before').content,shadow:getComputedStyle(btn).boxShadow};});
    assert(!header.overflow,'header overflows at '+width);assert.equal(header.pseudo,'none');assert.equal(header.shadow,'none');
@@ -27,6 +27,6 @@ const chromium=require('@sparticuz/chromium').default;
    }
    await page.evaluate(()=>closeModal());
   }
-  assert.deepEqual(errors,[]);console.log('PASS real-browser legacy chrome isolation and header/settings/guide layout at desktop, phone landscape and portrait sizes');
+  assert.deepEqual(errors,[]);console.log('PASS real-browser legacy chrome isolation and header/settings/guide layout at desktop, phone landscape and portrait sizes down to 320px');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
