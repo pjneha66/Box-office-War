@@ -2041,7 +2041,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
