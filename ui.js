@@ -7793,7 +7793,7 @@ function viewEmpire(){
         const pc=parkCost(fr), ok=G.studio.cash>=pc;
         return "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(pc)+" cash'")+">🎡 "+(fr.park?(fr.park===2?"Resort district":"Expand park"):"Build attraction")+" · "+fmtM(pc)+(ok?"":" (need "+fmtM(pc)+")")+"</button>";
       })() : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
-      (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights (Tier "+fr.tier+": +"+fmtM(fr.tier*20)+")</button>":"")+
+      (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights (Tier "+fr.tier+": +"+fmtM(gameRightsPayout(fr))+")</button>":"")+
       (!fr.toys && fr.merch>=1? (function(){
         const tc=DATA.MERCH_V2? DATA.MERCH_V2.toyCost(fr.tier):45, ok=G.studio.cash>=tc;
         return "<button class='btn btn-sm btn-alt' data-fr-toys='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(tc)+" cash'")+">🧒 Toy line · "+fmtM(tc)+(ok?"":" (need "+fmtM(tc)+")")+"</button>";

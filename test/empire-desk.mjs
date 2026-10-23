@@ -169,6 +169,30 @@ try{
   assert.equal(w.eval('mergeUniverse(101,102).ok'),true,'mergeUniverse ok when funded');
   console.log('PASS A2: 11 Empire helpers return {ok, reason}; zero false-success audio/flash/modal-close');
 
+  /* ── A3 — game-rights button payout matches sellGameRights() cash credit ── */
+  fresh('franchises');
+  const gameCases=[
+    {id:201,tier:1,ww:300},
+    {id:202,tier:2,ww:2500},
+    {id:203,tier:3,ww:750}
+  ];
+  for(const tc of gameCases){
+    w.eval(`
+      G.franchises=[{id:${tc.id},name:'Game IP ${tc.id}',tier:${tc.tier},entries:[],ww:${tc.ww},merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1}];
+      render();
+    `);
+    const btn=$(`[data-fr-game="${tc.id}"]`);
+    assert(btn,`[data-fr-game="${tc.id}"] rendered`);
+    const expected=Math.round(20 + tc.tier*12 + Math.min(40, tc.ww/50));
+    const expectedStr=w.fmtM(expected);
+    assert(btn.textContent.includes(expectedStr),`button text "${btn.textContent}" must display exact payout ${expectedStr}`);
+    const cashBefore=w.eval('G.studio.cash');
+    btn.click();
+    const cashAfter=w.eval('G.studio.cash');
+    assert.equal(Math.round((cashAfter-cashBefore)*10)/10, expected, `credited cash delta must equal displayed payout ${expectedStr}`);
+  }
+  console.log('PASS A3: gameRightsPayout(fr) shared between button copy and sellGameRights()');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

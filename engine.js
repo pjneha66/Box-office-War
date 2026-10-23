@@ -5034,11 +5034,15 @@ function buildPark(id){
   saveGame();
   return { ok:true };
 }
+function gameRightsPayout(fr){
+  if(!fr) return 0;
+  return Math.round(20 + (fr.tier||0)*12 + Math.min(40, (fr.ww||0)/50));
+}
 function sellGameRights(id){
   const fr=frById(id);
   if(!fr) return { ok:false, reason:"Franchise not found." };
   if(fr.gameSold===fr.tier) return { ok:false, reason:"Game rights for tier "+fr.tier+" are already licensed." };
-  const v=Math.round(20 + fr.tier*12 + Math.min(40, fr.ww/50));
+  const v=gameRightsPayout(fr);
   earn("empire", v); fr.gameSold=fr.tier;
   log("🎮 \""+fr.name+"\" game rights licensed for "+fmtM(v)+".","gold");
   saveGame();
