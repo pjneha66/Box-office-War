@@ -6969,13 +6969,18 @@ function bindView(){
   });
   $$("[data-live-autofill]").forEach(b=>b.onclick=()=>{
     const [chId, strat] = b.dataset.liveAutofill.split(":");
+    const chBefore = getLiveChannel(chId);
+    const before = chBefore ? JSON.stringify(chBefore.schedule||[]) : "";
     autoFillSchedule(chId, strat);
-    beep("gold");
-    toast("Broadcast grid auto-scheduled ("+strat+").", "good");
+    const chAfter = getLiveChannel(chId);
+    const changed = !!chAfter && JSON.stringify(chAfter.schedule||[]) !== before;
+    if(changed){ beep("gold"); toast("Broadcast grid updated ("+strat.replace(/_/g," ")+").", "good"); }
+    else toast("Nothing to schedule — this strategy needs films or series in your library.", "bad");
     render();
   });
   $$("[data-live-clear]").forEach(b=>b.onclick=()=>{
     const chId = b.dataset.liveClear;
+    if(!confirm("Clear all 24 slots on this channel? Every hour becomes Network Off-Air Filler.")) return;
     clearSchedule(chId);
     beep("click");
     toast("Broadcast schedule cleared.", "");
@@ -9859,8 +9864,10 @@ function viewLiveLinear(){
   } else {
     h += "<div style='display:flex;gap:6px;align-items:center'>"+
       "<button class='btn btn-sm " + (ch.active ? "btn-alt" : "btn-primary") + "' data-live-toggle='" + ch.id + "'>" + (ch.active ? "Pause Broadcast" : "Resume Broadcast") + "</button>"+
-      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":quality'>Auto-Fill Quality</button>"+
-      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":hype'>Auto-Fill Hype</button>"+
+      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":prime_movies'>Prime Movies</button>"+
+      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":infomercials'>Overnight Infomercials</button>"+
+      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":library_reruns'>Library Reruns</button>"+
+      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":full_syndication'>Full Syndication</button>"+
       "<button class='btn btn-sm btn-ghost' data-live-clear='" + ch.id + "'>Clear Grid</button>"+
       "</div>";
   }
