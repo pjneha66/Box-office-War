@@ -715,6 +715,157 @@ try{
     'empire CSS reserves .bottomnav clearance on mobile widths (incl. 390px)');
   console.log('PASS B6: command-deck.css scoped to .command-empire + .produce-panel — no overflow masking, no broad .view rules, no legacy restyling, mobile .bottomnav clearance');
 
+  /* ═══ PART C — desk features on real state + existing actions only ═══ */
+  const popDesk=()=>{
+    w.eval(`
+      G.studio.cash=600;
+      G.films=[{id:1201,title:'Shelf Titan',ww:220,budget:80,profit:60,criticAvg:80,quality:{critic:80,overall:78},releaseWeek:1}];
+      G.franchises=[
+        {id:1201,name:'Titan Verse',tier:3,entries:[{filmId:1201,title:'Shelf Titan',ww:220,week:1,opening:70,criticAvg:80,profit:60}],ww:220,merch:1,park:1,gameSold:0,decay:1,genre:'action',earned:12.5,built:1,fatigue:0.2},
+        {id:1202,name:'Titan Ally',tier:2,entries:[{filmId:1202,title:'Ally One',ww:180,week:2}],ww:180,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:4,built:2,fatigue:0.5},
+        {id:'cust_1203',name:'Custom Quest',tier:1,entries:[],ww:0,merch:0,park:0,gameSold:0,decay:1,genre:'fantasy',earned:0,built:1,fatigue:0,custom:true}
+      ];
+      G.ipMarket=[{id:1301,kind:'custom',genre:'drama',title:'Market Pick',price:22,boost:7,buzz:0.1,born:1,custom:true}];
+      render();
+    `);
+  };
+
+  /* C1 — Home reads live empire state and the cross-media timeline */
+  fresh('home');
+  assert($('#view .empire-brief'),'home renders the empire overview block');
+  assert(viewText().includes('0 franchise(s)'),'home empty career states real counts');
+  assert(viewText().includes('No franchises yet'),'home keeps the empty-state guidance');
+  popDesk();
+  w.eval(`G.empire.subTab='home';G.empire.activeSub='home';render();`);
+  assert(viewText().includes('3 franchise(s)'),'home counts the live roster');
+  assert.equal($$('#view .timeline-item').length>0,true,'cross-media timeline lists real events');
+  assert(viewText().includes('Shelf Titan'),'timeline names the released film');
+  w.eval("document.querySelector(\"[data-empire-goto='divisions']\").click();");
+  assert.equal(w.eval('empireSub()'),'divisions','home goto buttons switch panels');
+  console.log('PASS C1: empire home — live counts, empty state, cross-media timeline, goto navigation');
+
+  /* C2 — Portfolio Desk is view-only sort/filter over real state */
+  w.eval(`G.empire.subTab='franchises';G.empire.activeSub='franchises';render();`);
+  assert.equal($$('#view [data-em-filter]').length,4,'portfolio has four filter chips');
+  assert.equal($$('#view [data-em-sort]').length,5,'portfolio has five sort chips');
+  assert.equal($$('#view .empire-portfolio .empire-prow').length,3,'portfolio lists every brand');
+  const savedBefore=w.eval('JSON.stringify({f:G.franchises})');
+  $('[data-em-filter="resting"]').click();
+  const restingCount=w.eval('G.franchises.filter(f=>frRestPlan(f).totalWks>0).length');
+  assert.equal($$('#view .empire-portfolio .empire-prow').length,restingCount,'resting filter shows exactly the resting brands');
+  assert.equal(w.eval('JSON.stringify({f:G.franchises})'),savedBefore,'filtering is view-only — engine state untouched');
+  $('[data-em-filter="all"]').click();
+  $('[data-em-sort="ww"]').click();
+  assert(viewText().indexOf('Titan Verse')<viewText().indexOf('Titan Ally'),'WW sort orders the desk by gross');
+  $('[data-em-sort="name"]').click();
+  $('[data-em-filter="all"]').click();
+  console.log('PASS C2: portfolio desk — view-only filter & sort over live franchise state');
+
+  /* C3 — Dossier renders one full brand record per visible franchise */
+  assert.equal($$('#view .empire-dossier').length,3,'one dossier per visible franchise');
+  $('[data-em-filter="tier2"]').click();
+  assert.equal($$('#view .empire-dossier').length,2,'dossiers follow the portfolio filter');
+  $('[data-em-filter="all"]').click();
+  assert($('#view .empire-dossier [data-fr-seq]')&&$('#view .empire-dossier [data-fr-sell]'),'dossier keeps every action surface');
+  assert($('#view .empire-dossier .fr-meters .empire-meter'),'dossier meters use the desk vocabulary');
+  assert(viewText().includes('Revenue history'),'dossier shows the real entry history');
+  console.log('PASS C3: dossiers carry full brand records and actions for every visible franchise');
+
+  /* C4 — Sequel timing planner derives its countdown from tickFatigue() */
+  assert.equal($$('#view .empire-planner').length,3,'planner block per dossier');
+  const titan=w.eval('G.franchises.find(f=>f.id===1201)');
+  const planWks=w.eval('frRestPlan(G.franchises.find(f=>f.id===1201)).totalWks');
+  assert(viewText().includes(planWks?'~'+planWks+' wks to heal':'Brand rested & fresh'),'planner countdown equals frRestPlan()/tickFatigue()');
+  assert(viewText().includes('26+ wks'),'planner states the tickFatigue rest rule');
+  assert(viewText().includes(w.eval('frSequel(G.franchises.find(f=>f.id===1201))')),'planner shows the sequel call from real fatigue state');
+  console.log('PASS C4: sequel timing planner — countdown and advice derive from tickFatigue()');
+
+  /* C5 — Merch & Parks split income straight from frIncomeBreakdown() */
+  w.eval(`G.empire.subTab='divisions';G.empire.activeSub='divisions';render();`);
+  assert($('#view .empire-merchparks'),'merch & parks rollup renders');
+  const b1201=w.eval('frIncomeBreakdown(G.franchises.find(f=>f.id===1201))');
+  assert(viewText().includes('+'+w.fmtM(b1201.merch)+'/wk'),'rollup merch income equals frIncomeBreakdown().merch');
+  assert(viewText().includes('+'+w.fmtM(b1201.park)+'/wk'),'rollup park income equals frIncomeBreakdown().park');
+  assert(viewText().includes('×1.6')&&viewText().includes('×1.3'),'rollup states the real MERCH_V2 holiday & toy boosts');
+  assert($('#view [data-merchline]'),'film merch lines keep the manufacture action');
+  const linePlan=w.eval('merchPlan(G.films[0], "toys")||merchPlan(G.films[0], merchLineDefs()[0].id)');
+  assert(linePlan && viewText().includes(w.fmtM(linePlan.cost)),'merch board costs come from merchPlan()');
+  console.log('PASS C5: merch & parks — income split from frIncomeBreakdown(), boosts from MERCH_V2, lines from merchPlan()');
+
+  /* C6 — Universes desk reads uniStats() continuity honestly */
+  w.eval(`G.empire.subTab='universes';G.empire.activeSub='universes';G.universes=[{id:1401,name:'Probe Verse',frIds:[1201,1202],founded:1,subFranchises:['Titan Verse','Titan Ally']}];render();`);
+  const st1401=w.eval('uniStats(G.universes[0])');
+  assert(viewText().includes('Probe Verse'),'universe list renders the woven universe');
+  assert(viewText().includes('continuity '+st1401.continuity+'%'),'continuity % equals uniStats()');
+  assert($('#view [data-unipick]')&&$('#view #uniGo'),'weave controls stay available');
+  w.eval('G.universes=[]; render();');
+  console.log('PASS C6: universes desk — uniStats() continuity, picks and weave controls');
+
+  /* C7 — Music label shows real label economics only */
+  w.eval(`G.empire.subTab='divisions';G.empire.activeSub='divisions';render();`);
+  const lc=w.eval('DATA.LABEL_COSTS');
+  assert(viewText().includes('Launch — '+w.fmtM(lc.unlock)),'label unlock price comes from DATA.LABEL_COSTS');
+  w.eval('unlockLabel(); signArtist("nova"); render();');
+  assert(viewText().includes('+'+w.fmtM(w.eval('labelArtistWeeklyIncome(G.label.artists[0])'))+'/wk'),'artist income equals labelArtistWeeklyIncome()');
+  assert(viewText().includes('heat '+(w.eval('G.label.artists[0].heat||1'))),'artist rows show real heat state');
+  console.log('PASS C7: music label — label economics and artist income from engine constants');
+
+  /* C8 — IP market & sell lists real listings and persisted bids */
+  w.eval(`G.empire.subTab='franchises';G.empire.activeSub='franchises';render();`);
+  assert($('#view .empire-ipsell'),'IP market & sell desk renders');
+  assert(viewText().includes('Market Pick'),'market listing title shown');
+  const buyBtn=$('#view [data-ip="1301"]');
+  assert(buyBtn&&buyBtn.textContent.includes(w.fmtM(22)),'buy button prices match the listing');
+  const top1202=w.eval('franchiseOffers(G.franchises.find(f=>f.id===1202))[0].value');
+  const sellRows=$$('#view .empire-ipsell [data-fr-sell]').map(b=>b.dataset.frSell);
+  assert(sellRows.includes('1202'),'sell row exists per franchise');
+  assert($$('#view .empire-ipsell [data-fr-sell]').some(b=>b.dataset.frSell==='1202'&&b.textContent.includes(w.fmtM(top1202))),'sell row shows the persisted top bid');
+  buyBtn.click();
+  assert.equal(w.eval('G.franchises.some(f=>f.name==="Market Pick")'),true,'buy action routes through buyIp()');
+  console.log('PASS C8: IP market & sell — real listings, persisted bids, working buy action');
+
+  /* C9 — Divisions ledger lists the live division cards */
+  w.eval(`G.empire.subTab='divisions';G.empire.activeSub='divisions';render();`);
+  assert($$('#view .div-card').length>=3,'divisions ledger lists the operating divisions');
+  const wb=w.eval('empireWeeklyBreakdown()');
+  assert(viewText().includes(w.fmtM(wb.publishing))||viewText().includes(w.fmtM(wb.total)),'ledger reads the live weekly breakdown');
+  console.log('PASS C9: divisions ledger — live division cards and weekly breakdown');
+
+  /* C10 — Endgame crown tracker reads endgameGoals()/endgameInfluence() */
+  w.eval(`G.empire.subTab='endgame';G.empire.activeSub='endgame';render();`);
+  const eg=w.eval('endgameGoals()'), egi=w.eval('endgameInfluence()');
+  assert($('#view .empire-endgame'),'endgame tracker renders');
+  for(const g of eg.slice(0,3)) assert(viewText().includes(g.name.replace(/<[^>]*>/g,''))||viewText().includes(g.label),'tracker lists real goals');
+  assert(viewText().includes(egi.share+'% market share'),'tracker shows the real influence share');
+  w.eval('G.endgame={crowned:true}; render();');
+  assert(viewText().includes('CROWNED'),'tracker shows the earned crown');
+  w.eval('G.endgame={}; render();');
+  console.log('PASS C10: endgame crown tracker — real goals, influence and crown state');
+
+  /* C11 — Custom & purchased onboarding */
+  w.eval(`G.empire.subTab='franchises';G.empire.activeSub='franchises';render();`);
+  assert($('#view .empire-onboard'),'onboarding guide renders');
+  assert(viewText().includes('Custom Quest')&&viewText().includes('custom'),'custom brands appear with their badge');
+  assert(/no entries yet — greenlight the first entry/i.test(viewText()),'custom brand onboarding explains the next step');
+  w.eval(`G.franchises.push({id:1204,name:'Bought Lot',tier:1,entries:[],ww:0,merch:0,park:0,gameSold:0,decay:1,genre:'action',earned:0,built:1,purchased:true,purchasedLeft:1});render();`);
+  assert(viewText().includes('Bought Lot')&&viewText().includes('purchased'),'purchased IP appears with its badge');
+  w.eval(`G.franchises=G.franchises.filter(f=>f.id!==1204);`);
+  fresh('franchises');
+  assert(/land here with guidance/i.test(viewText()),'onboarding placeholder explains custom & purchased IP');
+  console.log('PASS C11: custom & purchased onboarding — badges, guidance and safe empty states');
+
+  /* Zero legacy chrome across every desk panel (populated + empty) */
+  for(const sub of allSubs){
+    popDesk();
+    w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
+    assert.equal($$('#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter').length,0,
+      `${sub}: zero legacy .card/.section-title/.cost-line/.stat-hero/.fr-meter in the desk`);
+    fresh(sub);
+    assert.equal($$('#view .card, #view .section-title, #view .cost-line, #view .stat-hero, #view .fr-meter').length,0,
+      `${sub}: zero legacy classes on an empty career too`);
+  }
+  console.log('PASS C-DESK: zero legacy chrome on every Empire panel — populated and empty');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){
