@@ -92,10 +92,10 @@
     const cat = LICENSING_CATEGORIES[categoryId];
     if(!cat) return { ok: false, msg: "Invalid licensing category: " + categoryId };
 
-    const film = (S.films || []).find(f => f.id === filmId || f.title === filmId);
+    const film = (S.films || []).find(f => String(f.id) === String(filmId) || f.title === filmId);
     if(!film) return { ok: false, msg: "Film not found" };
 
-    const totalGross = film.gross || film.boxOffice || film.revenue || (film.dom ? film.dom * 2 : 0);
+    const totalGross = film.ww || film.gross || film.boxOffice || film.revenue || (film.dom ? film.dom * 2 : 0);
     if(totalGross < cat.minGross){
       return {
         ok: false,
@@ -181,8 +181,8 @@
     if(!S) return;
     initMerchLicensing(S);
 
-    const eligibleFilms = (S.films || []).filter(f => (f.gross || f.boxOffice || (f.dom ? f.dom * 2 : 0)) >= 50);
-    let selectedFilm = (optFilmId ? eligibleFilms.find(f => f.id === optFilmId) : null) || eligibleFilms[0];
+    const eligibleFilms = (S.films || []).filter(f => (f.ww || f.gross || f.boxOffice || (f.dom ? f.dom * 2 : 0)) >= 50);
+    let selectedFilm = (optFilmId ? eligibleFilms.find(f => String(f.id) === String(optFilmId)) : null) || eligibleFilms[0];
 
     function renderInner(){
       const weeklyRunRate = (S.merchandise.activeDeals || []).reduce((acc, d) => acc + (d.weeklyRoyalty || 0), 0);
@@ -200,7 +200,7 @@
         h += "<div style='display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;touch-action:pan-x;'>";
         eligibleFilms.forEach(f => {
           const isSel = selectedFilm && f.id === selectedFilm.id;
-          const gM = (f.gross || f.boxOffice || (f.dom ? f.dom * 2 : 0)).toFixed(0);
+          const gM = (f.ww || f.gross || f.boxOffice || (f.dom ? f.dom * 2 : 0)).toFixed(0);
           h += "<button class='btn btn-xs " + (isSel ? "btn-primary" : "btn-alt") + "' data-sel-merch-film='" + f.id + "'>" + f.title + " ($" + gM + "M)</button>";
         });
         h += "</div>";
@@ -209,7 +209,7 @@
       if(!selectedFilm){
         h += "<div class='card tiny muted' style='margin-bottom:12px'>No films currently meet the minimum $50M box office threshold for merchandising. Score a box office hit to unlock commercial licensing!</div>";
       } else {
-        const grossVal = selectedFilm.gross || selectedFilm.boxOffice || (selectedFilm.dom ? selectedFilm.dom * 2 : 0);
+        const grossVal = selectedFilm.ww || selectedFilm.gross || selectedFilm.boxOffice || (selectedFilm.dom ? selectedFilm.dom * 2 : 0);
         h += "<div class='card' style='margin-bottom:12px'>"+
           "<div class='spread'><b>" + selectedFilm.title + "</b><span class='tag gold'>Box Office: $" + grossVal.toFixed(1) + "M</span></div>"+
         "</div>";
@@ -256,7 +256,7 @@
       container.querySelectorAll("[data-sel-merch-film]").forEach(btn => {
         btn.onclick = () => {
           const targetId = btn.dataset.selMerchFilm;
-          selectedFilm = eligibleFilms.find(f => f.id === targetId) || eligibleFilms[0];
+          selectedFilm = eligibleFilms.find(f => String(f.id) === String(targetId)) || eligibleFilms[0];
           container.innerHTML = renderInner();
           wireEvents(container);
         };

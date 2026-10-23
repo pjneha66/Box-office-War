@@ -243,7 +243,11 @@
         "</div>"+
         "<div>"+
           (conStatus.canHost ? (
-            "<button class='btn btn-sm btn-primary' data-hostcon='" + scale.id + "'>Host ($" + scale.cost + "M)</button>"
+            _getCashM(S) >= scale.cost ? (
+              "<button class='btn btn-sm btn-primary' data-hostcon='" + scale.id + "'>Host ($" + scale.cost + "M)</button>"
+            ) : (
+              "<button class='btn btn-sm' data-hostcon='" + scale.id + "' disabled title='Requires $" + scale.cost + "M cash'>Host ($" + scale.cost + "M) (need $" + scale.cost + "M)</button>"
+            )
           ) : (
             "<button class='btn btn-sm' disabled>Cooldown (" + conStatus.cooldown + "w)</button>"
           ))+

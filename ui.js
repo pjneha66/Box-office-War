@@ -1229,7 +1229,7 @@ function _renderImpl(){
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1267,6 +1267,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"35.0", label:"EMPIRE DESK — the empire command desk (Franchises rebuilt: portfolio, dossier, sequel timing planner, merch & parks, universes, music label, IP market & sell, divisions ledger, endgame crown tracker)", status:"shipped" },
   { version:"34.9", label:"Live Desk — the broadcast command desk + Develop-a-Show lab (Live TV rebuilt: home, channels, shows, grid, stream, events, hosts)", status:"shipped" },
   { version:"34.8", label:"🟡 §45 Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
   { version:"34.7", label:"Streamer sub-tabs — originals, library, finance, sports, deals", status:"shipped" },
@@ -1990,10 +1991,11 @@ const SUBTAB_PIXEL_ICONS = {
   "library:physical": "assets/itch-ui/icons/Icon_02.png",
   "library:vault": "assets/itch-ui/icons/Icon_08.png",
   // empire
+  "empire:home": "assets/2d/executive.png",
   "empire:franchises": "assets/bos2-icons/logos/icons8-queen-crown-100.png",
-  "empire:music": "assets/bos2-icons/genres/icons8-musical-100.png",
-  "empire:games": "assets/pixel-characters/char-robot.png",
-  "empire:comics": "assets/bos2-icons/general/icons8-art-64.png",
+  "empire:universes": "assets/bos2-icons/logos/icons8-starburst-shape-100.png",
+  "empire:divisions": "assets/itch-ui/icons/Icon_02.png",
+  "empire:endgame": "assets/bos2-icons/logos/icons8-prism-96.png",
   // games
   "games:dev": "assets/pixel-characters/char-robot.png",
   "games:released": "assets/itch-ui/icons/Icon_09.png",
@@ -2042,7 +2044,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -6610,12 +6612,29 @@ function bindView(){
   $$("[data-seq]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.seq); if(s) startSequel(s); beep("click"); });
   $$("[data-spin]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.spin); if(s) startSpinoff(s); beep("click"); });
   $$("[data-fr]").forEach(b=>b.onclick=()=>{ viewFranchiseDetail(b.dataset.fr); beep("click"); });
-  $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-sell]").forEach(b=>b.onclick=()=>{ franchiseSaleModal(+b.dataset.frSell); beep("click"); });
-  $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
+  $$("[data-fr-podcast]").forEach(b=>b.onclick=()=>{
+    const r=launchPodcast(b.dataset.frPodcast);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&(r.err||r.reason))||"Cannot launch podcast right now.","bad"); render(); }
+  });
+  $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{
+    const r=upgradeMerch(b.dataset.frMerch);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Cannot upgrade merchandise right now.","bad"); render(); }
+  });
+  $$("[data-fr-park]").forEach(b=>b.onclick=()=>{
+    const r=buildPark(b.dataset.frPark);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Cannot build park attraction right now.","bad"); render(); }
+  });
+  $$("[data-fr-sell]").forEach(b=>b.onclick=()=>{ franchiseSaleModal(b.dataset.frSell); beep("click"); });
+  $$("[data-fr-game]").forEach(b=>b.onclick=()=>{
+    const r=sellGameRights(b.dataset.frGame);
+    if(r&&r.ok){ beep("cash"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Game rights unavailable for this tier.","bad"); render(); }
+  });
   $$("[data-fr-seq]").forEach(b=>b.onclick=()=>{
-    const fr=frById(+b.dataset.frSeq);
+    const fr=frById(b.dataset.frSeq);
     const f=frResolvableFilm(fr);
     if(f){ beep("click"); startSequel(f); }
     else if(fr){ beep("click"); startSpinoff(fr); }   // no original on file (purchased IP) — open the wizard as the franchise's first entry
@@ -6640,18 +6659,20 @@ function bindView(){
   $$("[data-dec]").forEach(b=>b.onclick=()=>{ declineOffer(G.offers.find(o=>o.id===+b.dataset.dec)); beep("click"); render(); });
   $$("[data-spec]").forEach(b=>b.onclick=()=>{ if(specFocus(b.dataset.spec)){ beep("gold"); flashes(G.flash); render(); } });
   $$("[data-tech]").forEach(b=>b.onclick=()=>{ if(startResearch(b.dataset.tech)){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
+  $$("[data-em-filter]").forEach(b=>b.onclick=()=>{ EMPIRE_PORTFOLIO.filter=b.dataset.emFilter; beep("click"); render(); });
+  $$("[data-em-sort]").forEach(b=>b.onclick=()=>{ EMPIRE_PORTFOLIO.sort=b.dataset.emSort; beep("click"); render(); });
   $$("[data-unipick]").forEach(b=>b.onclick=()=>{
-    const id=+b.dataset.unipick, i=UNIPICKS.indexOf(id);
-    if(i>=0) UNIPICKS.splice(i,1); else UNIPICKS.push(id);
+    const fr=frById(b.dataset.unipick); if(!fr) return;
+    const picks=uniPicksArr(), i=picks.findIndex(x=>String(x)===String(fr.id));
+    if(i>=0) picks.splice(i,1); else picks.push(fr.id);
     beep("click");
-    const names=UNIPICKS.map(x=>{ const fr=frById(x); return fr?fr.name:"#"+x; });
-    const el=$("#uniPicks"); if(el) el.textContent=names.length?names.join(" × "):"—";
-    b.classList.toggle("btn-primary");
+    render();
   });
   const ug=$("#uniGo");
   if(ug) ug.onclick=()=>{
-    if(UNIPICKS.length<2){ toast("Pick at least two franchises.","bad"); return; }
-    if(foundUniverse(null, UNIPICKS.slice())){ UNIPICKS=[]; beep("gold"); flashes(G.flash); render(); }
+    const picks=uniPicksArr();
+    if(picks.length<2){ toast("Pick at least two franchises.","bad"); beep("bad"); return; }
+    if(foundUniverse(null, picks.slice())){ picks.length=0; beep("gold"); flashes(G.flash); render(); }
     else beep("bad");
   };
   $$("[data-upg]").forEach(b=>b.onclick=()=>{ buyUpgrade(b.dataset.upg); beep("gold"); render(); });
@@ -6710,10 +6731,19 @@ function bindView(){
   $$("[data-agdeal]").forEach(b=>b.onclick=()=>{ if(signAgencyDeal(b.dataset.agdeal)){ beep("gold"); flashes(G.flash); } render(); });
   $$("[data-ma]").forEach(b=>b.onclick=()=>{ if(maBuy(+b.dataset.ma)){ beep("gold"); flashes(G.flash); } render(); });
   $$("[data-fyc]").forEach(b=>b.onclick=()=>{ beep("click"); fycModal(+b.dataset.fyc); });
-  $$("[data-fr-toys]").forEach(b=>b.onclick=()=>{ signToyLine(+b.dataset.frToys); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-spin]").forEach(b=>b.onclick=()=>{ const fr=frById(+b.dataset.frSpin); if(fr){ beep("click"); startSpinoff(fr); } });
-  $$("[data-fr-tv]").forEach(b=>b.onclick=()=>{ franchiseTvSpinoff(+b.dataset.frTv); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-more]").forEach(b=>b.onclick=()=>{ beep("click"); empireModal(+b.dataset.frMore); });
+  $$("[data-fr-toys]").forEach(b=>b.onclick=()=>{
+    const r=signToyLine(b.dataset.frToys);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Cannot sign toy line right now.","bad"); render(); }
+  });
+  $$("[data-fr-spin]").forEach(b=>b.onclick=()=>{ const fr=frById(b.dataset.frSpin); if(fr){ beep("click"); startSpinoff(fr); } });
+  $$("[data-fr-tv]").forEach(b=>b.onclick=()=>{
+    const res=franchiseTvSpinoff(b.dataset.frTv);
+    if(res&&res.ok){ beep("gold"); flashes(G.flash); }
+    else { beep("bad"); toast((res&&res.reason)||"TV spin-off could not be set up.","bad"); }
+    render();
+  });
+  $$("[data-fr-more]").forEach(b=>b.onclick=()=>{ beep("click"); empireModal(b.dataset.frMore); });
   $$("[data-merchline]").forEach(b=>b.onclick=()=>{ const [fid,lid]=b.dataset.merchline.split(":"); if(launchMerchLine(+fid,lid)){ beep("cash"); flashes(G.flash); render(); } else beep("bad"); });
   $$("[data-rerelease]").forEach(b=>b.onclick=()=>{ rereleaseFilm(+b.dataset.rerelease); beep("gold"); flashes(G.flash); render(); });
   $$("[data-court]").forEach(b=>b.onclick=()=>{ courtChain(b.dataset.court); beep("gold"); flashes(G.flash); render(); });   // v12: warm up a theater chain
@@ -6732,7 +6762,12 @@ function bindView(){
     const rs=v.querySelector("#scrRs"); if(rs) rs.onclick=()=>{ reshootFilm(r.p.id); closeModal(); flashes(G.flash); render(); };
   });
   const tsk=$("#tutSkip"); if(tsk) tsk.onclick=()=>{ G.tutorial={step:99,done:true}; beep("click"); render(); };
-  $$("[data-ip]").forEach(b=>b.onclick=()=>{ buyIp(+b.dataset.ip); beep("gold"); flashes(G.flash); render(); });
+  $$("[data-ip]").forEach(b=>b.onclick=()=>{
+    const res=buyIp(b.dataset.ip);
+    if(res&&res.ok){ beep("gold"); flashes(G.flash); }
+    else { beep("bad"); toast((res&&res.reason)||"Could not acquire those rights.","bad"); }
+    render();
+  });
   const ab=$("#btnAch"); if(ab) ab.onclick=()=>{ beep("click"); achievementsModal(); };
   /* ── v14 bindings: intel, label, what-if ── */
   $$("[data-intel]").forEach(b=>b.onclick=()=>{
@@ -6759,8 +6794,16 @@ function bindView(){
     const cl=v.querySelector("#intelClose"); if(cl) cl.onclick=()=>closeModal();
     v.querySelectorAll("[data-buyintel]").forEach(bb=>bb.onclick=()=>{ if(buyIntel(bb.dataset.buyintel)){ closeModal(); beep("gold"); flashes(G.flash); render(); } });
   });
-  $$("[data-label]").forEach(b=>b.onclick=()=>{ if(unlockLabel()){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
-  $$("[data-sign]").forEach(b=>b.onclick=()=>{ if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
+  $$("button[data-label]").forEach(b=>b.onclick=()=>{
+    const lc=DATA.LABEL_COSTS||{};
+    if(unlockLabel()){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast("Need "+fmtM(lc.unlock||60)+" cash to launch the music label.","bad"); render(); }
+  });
+  $$("[data-sign]").forEach(b=>b.onclick=()=>{
+    const art=(DATA.ARTISTS||[]).find(x=>x.id===b.dataset.sign);
+    if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast(art && G.studio.cash<art.fee ? "Need "+fmtM(art.fee)+" cash to sign "+art.name+"." : "Roster full (max 3 acts) or artist unavailable.","bad"); render(); }
+  });
   $$("[data-dropartist]").forEach(b=>b.onclick=()=>{ if(dropArtist(b.dataset.dropartist)){ beep("click"); flashes(G.flash); render(); } });
   $$("[data-whatif]").forEach(b=>b.onclick=()=>{ beep("click"); whatIfModal(); });
   const mr=$("#btnMailRead"); if(mr) mr.onclick=()=>{ markMailRead(); beep("click"); render(); };
@@ -6892,7 +6935,10 @@ function bindView(){
     box.innerHTML=fnLedgerRows(G.txHistory||[], txs.value);
   };
   $$("[data-tour]").forEach(b=>b.onclick=()=>{
+    const lc=DATA.LABEL_COSTS||{};
+    const tc=lc.tourCost!=null?lc.tourCost:8;
     if(tourArtist(b.dataset.tour)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast("Need "+fmtM(tc)+" cash to stage a world stadium tour.","bad"); render(); }
   });
   $$("button[data-cameo]").forEach(b=>b.onclick=(e)=>{
     e.stopPropagation();
@@ -7066,7 +7112,22 @@ function bindView(){
   /* ── Mobile sub-tab strip (rendered at the top of bindView so the
        data-* bindings above and below attach to the live chips) ── */
   $$("[data-fanfilter]").forEach(b=>b.onclick=()=>{ FAN_MAIL_FILTER=b.dataset.fanfilter; beep("click"); render(); });
-  $$("[data-empiretab]").forEach(b=>b.onclick=()=>{ /* Empire tabs are view-only for now; could switch sub-views later */ beep("click"); });
+  $$("[data-empiresub]").forEach(b=>b.onclick=()=>{
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+    else if(!G.empire) G.empire={subTab:"franchises",activeSub:"franchises"};
+    G.empire.subTab = b.dataset.empiresub;
+    G.empire.activeSub = b.dataset.empiresub;
+    if(typeof saveGame==="function") saveGame();
+    beep("click"); render();
+  });
+  $$("[data-empire-goto]").forEach(b=>b.onclick=()=>{
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+    else if(!G.empire) G.empire={subTab:"franchises",activeSub:"franchises"};
+    G.empire.subTab = b.dataset.empireGoto;
+    G.empire.activeSub = b.dataset.empireGoto;
+    if(typeof saveGame==="function") saveGame();
+    beep("click"); render();
+  });
   $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ /* Games tabs are view-only for now */ beep("click"); });
 
   /* Financial Analysis Lab bindings */
@@ -7165,13 +7226,15 @@ function auctionModal(){
 
 /* v28: franchise transfer modal — rival buy-out offers for one of your brands */
 function franchiseSaleModal(frId){
-  const fr=(G.franchises||[]).find(x=>x.id===frId); if(!fr) return;
+  const fr=frById(frId); if(!fr) return;
   const offs=franchiseOffers(fr);
+  const exp=offs[0]&&offs[0].expires ? " · valid through "+dateLabel(offs[0].expires) : "";
+  const lostWk=frWeeklyIncome(fr);
   let h="<h3>🤝 Sell the “"+esc(fr.name)+"” franchise?</h3>"+
-    "<div class='tiny muted' style='margin-bottom:6px'>Selling banks cash today but kills its merch/park income forever, hands the brand to a rival, and costs a little rep.</div>";
+    "<div class='tiny muted' style='margin-bottom:6px'>Selling banks cash today, forfeits "+(lostWk>0?"+"+fmtM(lostWk)+"/wk":"all future")+" merch &amp; park income forever, hands the brand to a rival, and costs −2 rep"+exp+".</div>";
   offs.forEach((o,i)=>{
     h+="<div class='bid-card'><div class='platform-logo' style='background:#2a3142'>🏢</div>"+
-      "<div style='flex:1'><b>"+esc(o.rival? o.rival.name : "Unnamed buyer")+"</b><div class='tiny muted'>Outright purchase of all rights and future entries.</div></div>"+
+      "<div style='flex:1'><b>"+esc(o.rival? o.rival.name : "Unnamed buyer")+"</b><div class='tiny muted'>Outright purchase of all rights and future entries"+exp+".</div></div>"+
       "<b class='modal-offer-val'>"+fmtM(o.value)+"</b>"+
       "<button class='btn btn-primary btn-sm' data-froff='"+i+"'>Sell</button></div>";
   });
@@ -7417,7 +7480,7 @@ function openLibraryFilters(){
 
 /* ═══════════ Cross-Media Timeline ── */
 function crossMediaTimeline(){
-  let h="<div class='section-title'>📅 Cross-Media Timeline</div>";
+  let h="<div class='empire-sub'>📅 Cross-Media Timeline</div>";
   const entries = [];
   (G.films||[]).filter(f=>f.ww).forEach(f=>{
     entries.push({type:"film", title:f.title, genre:f.genre, week:f.releaseWeek, ww:f.ww, franchise:f.franchiseName, icon:"🎬"});
@@ -7438,10 +7501,10 @@ function crossMediaTimeline(){
   });
   entries.sort((a,b)=>(a.week||0)-(b.week||0));
   if(!entries.length){
-    h+="<div class='card muted small'>No cross-media events yet. Release a film, launch a series, or build a franchise.</div>";
+    h+="<div class='empire-block empire-empty muted small'>No cross-media events yet. Release a film, launch a series, or build a franchise.</div>";
     return h;
   }
-  h+="<div class='card'><div class='timeline-container' style='position:relative;padding-left:24px'>";
+  h+="<div class='empire-block'><div class='timeline-container' style='position:relative;padding-left:24px'>";
   entries.forEach((e,i)=>{
     const color = {film:"var(--gold)",series:"var(--blue)",game:"var(--purple)",merch:"var(--green)",park:"var(--gold)"}[e.type]||"var(--dim)";
     const yr = yearOf(e.week||G.week);
@@ -7608,81 +7671,252 @@ function viewGames(){
 }
 
 /* ═══════════ EMPIRE view ═══════════ */
+const EMPIRE_SECTIONS = [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]];
+function empireSub(){
+  if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+  const emp=(G&&G.empire)||{};
+  const want=emp.activeSub||emp.subTab||"franchises";
+  return EMPIRE_SECTIONS.some(s=>s[0]===want)?want:"franchises";
+}
+function empireNav(){
+  const active=empireSub();
+  return `<nav class="command-section-nav command-empire-nav" aria-label="Empire desk sections"><div class="command-nav-brand"><span>EMPIRE DESK</span><small>HOME / FRANCHISES / UNIVERSES / DIVISIONS / ENDGAME</small></div><div class="command-nav-items">${EMPIRE_SECTIONS.map(([key,label],i)=>{
+    const icon=getSubTabPixelIcon("empire",key);
+    return `<button data-empiresub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+  }).join("")}</div></nav>`;
+}
+/* ── v35.0 EMPIRE DESK shell — head, telemetry and produce-panel surfaces ── */
+function empireHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return `<header class="command-heading"><div><span class="command-edition">EMPIRE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">FRANCHISES / UNIVERSES / DIVISIONS / ENDGAME CROWN</span><h1>The empire command desk.</h1><p>Franchises, shared universes, divisions and the endgame crown — the global entertainment conglomerate, every empire decision in one place.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function empireTelemetry(){
+  const ewb=(typeof empireWeeklyBreakdown==="function")?empireWeeklyBreakdown():{total:G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0)};
+  const owned=(G.franchises||[]).length;
+  const tier2=(G.franchises||[]).filter(f=>(f.tier||0)>=2).length;
+  const earned=(G.franchises||[]).reduce((a,f)=>a+(f.earned||0),0);
+  const ww=(G.franchises||[]).reduce((a,f)=>a+(f.ww||0),0);
+  return `<div class="command-telemetry">${commandMetric("FRANCHISES OWNED",String(owned),tier2+" at tier 2+")}${commandMetric("EMPIRE INCOME / WEEK","+"+fmtM(ewb.total),"Settles weekly in tickEmpire()")}${commandMetric("FRANCHISE EARNINGS",fmtM(earned),"Lifetime, credited per brand")}${commandMetric("FRANCHISE WW GROSS",fmtG(ww),"Cumulative worldwide gross")}</div>`;
+}
+function empirePanel(eyebrow,title,description,content,aside,cls){
+  return `<section class="produce-panel ${cls||""}"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${aside?`<div class="empire-panel-aside">${aside}</div>`:""}</div><div class="empire-panel-body">${content}</div></section>`;
+}
+function empireShell(panelHtml){
+  return `<section class="command-deck command-produce command-empire">${empireHead()}${empireNav()}${empireTelemetry()}${panelHtml}</section>`;
+}
+function empireAsideFan(){ return `<button class="btn btn-sm btn-alt" id="btnOpenFanClub">Fan Conventions ↗</button>`; }
+function empireAsideUni(){ return `<button class="btn btn-sm btn-alt" id="btnOpenUniverses">Cinematic Universes Charter ↗</button>`; }
+function empireAsideMerch(){ return `<button class="btn btn-sm btn-alt" id="btnOpenMerch">Merch &amp; Licensing Deals ↗</button>`; }
+
+/* ── v35.0 C2 — Portfolio Desk: view-only sort & filter (session state, never saved) ── */
+const EMPIRE_PORTFOLIO={ filter:"all", sort:"tier" };
+function empirePortfolioList(){
+  let list=(G.franchises||[]).slice();
+  if(EMPIRE_PORTFOLIO.filter==="earning") list=list.filter(f=>frWeeklyIncome(f)>=0.1);
+  else if(EMPIRE_PORTFOLIO.filter==="resting") list=list.filter(f=>frRestPlan(f).totalWks>0);
+  else if(EMPIRE_PORTFOLIO.filter==="tier2") list=list.filter(f=>(f.tier||0)>=2);
+  const s=EMPIRE_PORTFOLIO.sort;
+  list.sort((a,b)=>{
+    if(s==="name") return String(a.name).localeCompare(String(b.name));
+    if(s==="ww") return (b.ww||0)-(a.ww||0);
+    if(s==="income") return frWeeklyIncome(b)-frWeeklyIncome(a);
+    if(s==="value") return franchiseValue(b)-franchiseValue(a);
+    return (b.tier||0)-(a.tier||0) || String(a.name).localeCompare(String(b.name));
+  });
+  return list;
+}
+function empirePortfolio(){
+  const list=empirePortfolioList();
+  const filters=[["all","All brands"],["earning","Earning"],["resting","Resting"],["tier2","Tier 2+"]];
+  const sorts=[["tier","Tier"],["ww","WW gross"],["income","Income/wk"],["value","Value"],["name","A–Z"]];
+  let h="<div class='empire-block empire-portfolio'><div class='spread'><div class='empire-sub' style='margin:0'>📊 Portfolio desk</div><span class='tag'>"+list.length+" shown</span></div>";
+  h+="<div class='row' style='gap:6px;flex-wrap:wrap;margin:8px 0'>"+
+    filters.map(([k,l])=>"<button class='btn btn-xs "+(EMPIRE_PORTFOLIO.filter===k?"btn-primary":"btn-alt")+"' data-em-filter='"+k+"'>"+l+"</button>").join("")+
+    "<span class='tiny muted' style='align-self:center;margin-left:6px'>Sort:</span>"+
+    sorts.map(([k,l])=>"<button class='btn btn-xs "+(EMPIRE_PORTFOLIO.sort===k?"btn-primary":"btn-alt")+"' data-em-sort='"+k+"'>"+l+"</button>").join("")+
+  "</div>";
+  if(!list.length) h+="<div class='tiny muted'>No brands match this filter — clear it to see the whole stable.</div>";
+  list.forEach(fr=>{
+    const inc=frWeeklyIncome(fr), plan=frRestPlan(fr);
+    const badges=((fr.custom?" <span class='tag purple'>🧪 custom IP</span>":"")+(fr.purchased?" <span class='tag gold'>🌍 purchased IP</span>":""));
+    h+="<div class='empire-row empire-prow'><span><b>"+esc(fr.name)+"</b>"+badges+" <span class='tiny muted'>tier "+fr.tier+" · "+(fr.entries||[]).length+" entr"+((fr.entries||[]).length===1?"y":"ies")+"</span></span>"+
+      "<span class='tiny'>"+fmtG(fr.ww||0)+" WW · "+(inc>=0.1?"+"+fmtM(inc)+"/wk":"—")+" · heat "+frHeatPct(fr)+"% · "+(plan.totalWks?"rest ~"+plan.totalWks+"w":"rested")+" · "+fmtM(franchiseValue(fr))+"</span></div>";
+  });
+  return h+"</div>";
+}
+
+/* ── v35.0 C4 — Sequel Timing Planner: countdown derives from tickFatigue() ── */
+function empireSequelPlanner(fr){
+  const plan=frRestPlan(fr), fat=Math.round((fr.fatigue||0)*100);
+  let h="<div class='empire-block empire-planner'><div class='empire-sub'>⏱ Sequel timing planner</div>";
+  h+="<div class='empire-row'><span>😴 Franchise fatigue</span><b class='"+((fr.fatigue||0)>0.3?"neg":(fr.fatigue||0)>0.15?"":"pos")+"'>"+fat+"%</b></div>";
+  h+="<div class='empire-row'><span>🕰 Rest countdown <span class='tiny muted'>(tickFatigue rule: heals 0.4%/wk once the brand is quiet 26+ wks)</span></span><b>"+(plan.totalWks?"Resting: ~"+plan.totalWks+" wks to heal":"Brand rested & fresh")+"</b></div>";
+  h+="<div class='empire-row'><span>🎬 Sequel call</span><b class='tiny'>"+frSequel(fr)+"</b></div>";
+  h+="<div class='empire-row'><span>🎭 Spin-off call</span><b class='tiny'>"+frSpinoff(fr)+"</b></div>";
+  return h+"</div>";
+}
+
+/* ── v35.0 C8 — IP Market & Sell: live listings + sealed-bid sales on real state ── */
+function empireIpMarket(){
+  const mkt=(G.ipMarket||[]).slice(0,6);
+  let h="<div class='empire-block empire-ipsell'><div class='empire-sub'>🌍 IP market & sell</div>";
+  h+="<div class='tiny muted' style='margin-bottom:6px'>Buy proven IP straight into the brand stable, or open a sealed-bid sale on any franchise — every offer below is real money on paper.</div>";
+  if(!mkt.length) h+="<div class='tiny muted'>The market is empty — listings rotate in over the run.</div>";
+  mkt.forEach(it=>{
+    const kindName=(DATA.IPKINDS||[]).find(k=>k.id===it.kind);
+    const canBuy=G.studio.cash>=it.price;
+    h+="<div class='empire-row'><span><b>"+esc(it.title)+"</b> <span class='tiny muted'>"+(kindName?esc(kindName.name):(it.kind==="custom"?"custom franchise":"legacy franchise"))+" · boost +"+(it.boost||0)+"</span></span>"+
+      "<button class='btn btn-sm "+(canBuy?"btn-primary":"btn-alt")+"' data-ip='"+it.id+"'"+(canBuy?"":" disabled title='Requires "+fmtM(it.price)+" cash'")+">Buy · "+fmtM(it.price)+(canBuy?"":" (need "+fmtM(it.price)+")")+"</button></div>";
+  });
+  (G.franchises||[]).forEach(fr=>{
+    let top=0; try{ top=(franchiseOffers(fr)[0]||{}).value||0; }catch(e){}
+    h+="<div class='empire-row'><span>🤝 Sell <b>"+esc(fr.name)+"</b> <span class='tiny muted'>sealed bids · 8-wk window</span></span>"+
+      "<button class='btn btn-sm btn-alt' data-fr-sell='"+fr.id+"'>🤝 Sell IP · top bid "+fmtM(top)+"</button></div>";
+  });
+  return h+"</div>";
+}
+
+/* ── v35.0 C11 — Custom & Purchased Onboarding: guidance for owned special IP ── */
+function empireOnboarding(){
+  const customs=(G.franchises||[]).filter(f=>f.custom||f.purchased);
+  let h="<div class='empire-block empire-onboard'><div class='empire-sub'>🧭 Custom & purchased IP · desk guide</div>";
+  h+="<div class='tiny muted' style='margin-bottom:6px'>Every entry adds <b>franchise fatigue</b> (smaller openings, weaker reviews) that only heals if you rest the brand — see the sequel timing planner — or perform an active Brand Reboot. Merch &amp; parks pay every week and spike again whenever a franchise film hits theaters. Game rights are one-time cash per tier.</div>";
+  if(!customs.length) h+="<div class='tiny muted'>Custom brands from the Creative Lab and purchased IP from the market land here with guidance the moment you own one.</div>";
+  customs.forEach(fr=>{
+    h+="<div class='empire-row'><span><b>"+esc(fr.name)+"</b>"+(fr.custom?" <span class='tag purple'>🧪 custom</span>":"")+(fr.purchased?" <span class='tag gold'>🌍 purchased</span>":"")+
+      " <span class='tiny muted'>"+((fr.entries||[]).length?"keep the streak going":"no entries yet — greenlight the first entry on its dossier")+"</span></span>"+
+      "<span class='tiny muted'>tier "+fr.tier+" · "+fmtG(fr.ww||0)+" WW</span></div>";
+  });
+  return h+"</div>";
+}
+
+/* ── v35.0 C5 — Merch & Parks: income split straight from frIncomeBreakdown() ── */
+function merchParksRollup(){
+  const M=DATA.MERCH_V2||{};
+  let h="<div class='empire-block empire-merchparks'><div class='empire-sub'>🧸 Merch &amp; parks</div>";
+  h+="<div class='tiny muted' style='margin-bottom:6px'>Weekly shelf + gate income with every live boost applied: holiday shelves ×"+(M.holidayMult||1.6)+" ("+(M.holidayMonths||[]).join(", ")+"), park summer ×"+(M.parkSummerMult||1.25)+" ("+(M.parkSummer||[]).join(", ")+"), toy lines ×"+(M.toyMult||1.3)+".</div>";
+  if(!(G.franchises||[]).length) h+="<div class='tiny muted'>No brands yet — merch and parks unlock with your first franchise.</div>";
+  (G.franchises||[]).forEach(fr=>{
+    const b=frIncomeBreakdown(fr);
+    h+="<div class='empire-row'><span><b>"+esc(fr.name)+"</b> <span class='tiny muted'>merch L"+(fr.merch||0)+(fr.toys?" · 🧒 toy line":"")+" · park "+(fr.park?"L"+fr.park:"—")+"</span></span>"+
+      "<span class='tiny'>🧸 "+(b.merch>=0.1?"+"+fmtM(b.merch)+"/wk":"—")+" · 🎡 "+(b.park>=0.1?"+"+fmtM(b.park)+"/wk":"—")+(b.uniBonus>1?" · +"+Math.round((b.uniBonus-1)*100)+"% universe":"")+"</span></div>";
+  });
+  return h+"</div>";
+}
 function viewEmpire(){
-  let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-queen-crown-100.png' alt='' /><span>Franchises</span></button>"+
-    "<button class='subnav-pill' id='btnOpenUniverses'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-starburst-shape-100.png' alt='' /><span>Cinematic Universes</span></button>"+
-    "<button class='subnav-pill' id='btnOpenMerch'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_02.png' alt='' /><span>Merch &amp; Licensing</span></button>"+
-    "<button class='subnav-pill' id='btnOpenFanClub'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-red-carpet-100.png' alt='' /><span>Fan Conventions</span></button>"+
-    "<button class='subnav-pill' onclick='switchTab(\"games\")'><img class='subtab-pixel-icon' src='assets/pixel-characters/char-robot.png' alt='' /><span>Game Studio</span></button>"+
-  "</div>";
-  const weekly=G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0);
-  const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
-  const ww=G.franchises.reduce((a,f)=>a+f.ww,0);
-  h+="<div class='stat-hero'>"+
-    statCard(G.franchises.length,"Franchises")+
-    statCard("+"+fmtM(weekly)+"/wk","Empire income","var(--green)")+
-    statCard(fmtM(earned),"Empire earnings")+
-    statCard(fmtG(ww),"Franchise WW gross")+
-  "</div>";
-  /* v14: music label division (§32) */
-  try{
+  if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+  const active=empireSub();
+  let h="";
+
+  if(active==="home"){
+    let goalsDone=0;
+    try{ goalsDone=(endgameGoals()||[]).filter(g=>g.prog>=1).length; }catch(e){}
     const L=G.label||{unlocked:false, artists:[]};
-    h+="<div class='section-title'>🎵 Music label</div>";
-    if(!L.unlocked){
-      h+="<div class='card'><div class='spread'><div><b>Launch the "+esc(G.studio.name)+" music label</b><div class='tiny muted'>Sign up to 3 acts. Each earns weekly; when one charts, money ×3 for a month and your in-production musicals & concert films get +2% buzz. Charts also feed the trending board's ecosystem.</div></div>"+
-        "<button class='btn btn-primary' data-label='1'>Launch — "+fmtM(60)+"</button></div>"+
-        "<div class='tiny muted' style='margin-top:6px'>+$0.3M/wk overhead once live. Sign artists from the roster below.</div></div>";
-    }else{
-      h+="<div class='card'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/3 acts</span></div>";
-      (L.artists||[]).forEach(a=>{
-        const def=(DATA.ARTISTS||[]).find(x=>x.id===a.id)||{};
-        const charting=a.chartUntil>G.week;
-        const chartPos = charting? (a.chartPos || ((G.week*7+a.id.charCodeAt(0))%12+1)) : null;
-        const scandalRisk = Math.round((a.scandal||0.15)*100);
-        h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+(charting?" · <b class='pos'>#"+chartPos+" ON TOP 50 (×3)</b>":"")+" · scandal risk "+scandalRisk+"%</span></span>"+
-          "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10)+"/wk</b>"+
-          "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='Concert tour: $5M upfront, +15% buzz for musicals'>🎤 World Tour ($5M)</button>"+
-          " <button class='btn btn-sm btn-ghost' data-dropartist='"+a.id+"'>✕</button></div></div>";
-      });
-      if(!L.artists.length) h+="<div class='tiny muted'>Empty roster — sign your first act below.</div>";
-      h+="<div class='tiny muted' style='margin-top:6px'>Available acts:</div>";
-      (DATA.ARTISTS||[]).filter(a=>!L.artists.some(x=>x.id===a.id)).forEach(a=>{
-        h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(a.blurb)+"</span></span>"+
-          "<button class='btn btn-sm "+(G.studio.cash>=a.fee?"btn-primary":"")+"' data-sign='"+a.id+"'>Sign — "+fmtM(a.fee)+"</button></div>";
-      });
-      h+="</div>";
+    h+="<div class='empire-block empire-brief'><div class='spread'><b>Empire overview</b><span class='tag gold'>"+goalsDone+"/6 endgame</span></div>"+
+      "<div class='tiny muted' style='margin-top:4px'>"+G.franchises.length+" franchise(s) · "+(G.universes||[]).length+" shared universe(s) · Music label "+(L.unlocked?"live ("+(L.artists||[]).length+"/3 acts)":"locked")+"</div>"+
+      "<div class='row' style='margin-top:8px;gap:6px;flex-wrap:wrap'>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='franchises'>Franchises</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='universes'>Universes</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='divisions'>Divisions</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='endgame'>Endgame</button>"+
+        "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
+      "</div></div>";
+    if(!G.franchises.length){
+      h+="<div class='empire-block empire-empty muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
     }
-  }catch(e){}
-  if(!G.franchises.length){
-    h+="<div class='card muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
+    try{ h+=crossMediaTimeline(); }catch(e){}
+    return empireShell(empirePanel("EMPIRE / HOME","Empire home","Where the conglomerate stands today — holdings, the cross-media timeline and what needs you.",h,empireAsideFan()));
   }
-  for(const fr of G.franchises){
+
+  if(active==="universes"){
+    try{ if(typeof uniBoard==="function") h+=uniBoard(); }catch(e){}
+    return empireShell(empirePanel("EMPIRE / UNIVERSES","Universes","Shared-universe overlays — continuity rewards rested, coherent brands (±5% openings).",h,empireAsideUni()));
+  }
+
+  if(active==="divisions"){
+    h+="<div class='row' style='margin-bottom:8px;gap:6px;flex-wrap:wrap'>"+
+      "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
+    "</div>";
+    /* v14: music label division (§32) */
+    try{
+      const L=G.label||{unlocked:false, artists:[]};
+      const lc=DATA.LABEL_COSTS||{};
+      const unlockCost=lc.unlock!=null?lc.unlock:60;
+      const tourCost=lc.tourCost!=null?lc.tourCost:8;
+      const tourBuzzPct=Math.round((lc.tourBuzzBonus!=null?lc.tourBuzzBonus:0.06)*100);
+      const chartBuzzPct=Math.round((lc.chartBuzzBonus!=null?lc.chartBuzzBonus:0.02)*100);
+      const tourChartWks=lc.tourChartWeeks!=null?lc.tourChartWeeks:8;
+      const ovh=lc.overheadPerWeek!=null?lc.overheadPerWeek:0.3;
+      const maxActs=lc.maxActs||3;
+      h+="<div class='empire-sub'>🎵 Music label</div>";
+      if(!L.unlocked){
+        const canUnlock=G.studio.cash>=unlockCost;
+        h+="<div class='empire-block empire-label'><div class='spread'><div><b>Launch the "+esc(G.studio.name)+" music label</b><div class='tiny muted'>Sign up to "+maxActs+" acts. Each earns weekly; when one charts, money ×3 for a month and your in-production musicals & concert films get +"+chartBuzzPct+"% buzz. Charts also feed the trending board's ecosystem.</div></div>"+
+          "<button class='btn btn-primary' data-label='1'"+(canUnlock?"":" disabled title='Requires "+fmtM(unlockCost)+" cash'")+">Launch — "+fmtM(unlockCost)+(canUnlock?"":" (need "+fmtM(unlockCost)+")")+"</button></div>"+
+          "<div class='tiny muted' style='margin-top:6px'>+"+fmtM(ovh)+"/wk overhead once live. Sign artists from the roster below.</div></div>";
+      }else{
+        h+="<div class='empire-block empire-label'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/"+maxActs+" acts</span></div>";
+        (L.artists||[]).forEach(a=>{
+          const def=(DATA.ARTISTS||[]).find(x=>x.id===a.id)||{};
+          const charting=(a.chartUntil||0)>G.week;
+          const chartWksLeft=charting?Math.max(0,a.chartUntil-G.week):0;
+          const artWk=(typeof labelArtistWeeklyIncome==="function")?labelArtistWeeklyIncome(a):(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10);
+          const canTour=G.studio.cash>=tourCost;
+          const tourTip="Concert tour: "+fmtM(tourCost)+" upfront, variable tour gross, +"+tourBuzzPct+"% buzz for in-production musicals & concert films, "+tourChartWks+"-wk chart boost";
+          h+="<div class='empire-row'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+" · heat "+(a.heat||1)+(charting?" · <b class='pos'>CHARTING (×3 · "+chartWksLeft+" wk"+(chartWksLeft===1?"":"s")+" left)</b>":"")+"</span></span>"+
+            "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(artWk)+"/wk</b>"+
+            "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='"+tourTip+"'"+(canTour?"":" disabled")+">🎤 World Tour ("+fmtM(tourCost)+")</button>"+
+            " <button class='btn btn-sm btn-ghost' data-dropartist='"+a.id+"'>✕</button></div></div>";
+        });
+        if(!L.artists.length) h+="<div class='tiny muted'>Empty roster — sign your first act below.</div>";
+        h+="<div class='tiny muted' style='margin-top:6px'>Available acts:</div>";
+        (DATA.ARTISTS||[]).filter(a=>!L.artists.some(x=>x.id===a.id)).forEach(a=>{
+          const canSign=G.studio.cash>=a.fee && L.artists.length<maxActs;
+          h+="<div class='empire-row'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(a.blurb)+"</span></span>"+
+            "<button class='btn btn-sm "+(canSign?"btn-primary":"")+"' data-sign='"+a.id+"'"+(canSign?"":" disabled")+">Sign — "+fmtM(a.fee)+"</button></div>";
+        });
+        h+="</div>";
+      }
+    }catch(e){}
+    try{ h+=merchParksRollup(); }catch(e){}
+    try{ h+=merchBoard(); }catch(e){}
+    try{ h+=divisionsPanel(); }catch(e){}
+    return empireShell(empirePanel("EMPIRE / DIVISIONS","Divisions","Music label, film merchandising, publishing, comics and direct retail.",h,empireAsideMerch()));
+  }
+
+  if(active==="endgame"){
+    try{ if(typeof endgameBoard==="function") h+=endgameBoard(); }catch(e){}
+    return empireShell(empirePanel("EMPIRE / ENDGAME","Endgame","Six optional milestones toward the industry crown — the sandbox stays untouched.",h,""));
+  }
+
+  if(!G.franchises.length){
+    h+="<div class='empire-block empire-empty muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
+  }
+  try{ h+=empirePortfolio(); }catch(e){}
+  for(const fr of empirePortfolioList()){
     const g=DATA.GENRES[fr.genre];
     const inc=frWeeklyIncome(fr);
-    const restWks = Math.max(0, Math.ceil((fr.fatigue||0)*26));
+    const brk=frIncomeBreakdown(fr);
     const isShared = fr.universe || G.franchises.some(f2=>f2.id!==fr.id && f2.universe && f2.universe===fr.universe);
     const merchTier = (DATA.MERCH_TIERS||[])[fr.merch||0] || {icon:"🧸", name:"Tier "+(fr.merch||0)};
-    const parkAtt = Math.max(10, Math.round((1-(fr.fatigue||0)*0.7)*(fr.decay||0.8)*100));
 
-    h+="<div class='card'><div class='fr-head'><div class='fr-emblem'>"+g.emoji+"</div>"+
+    h+="<div class='empire-block empire-dossier'><div class='fr-head'><div class='fr-emblem'>"+g.emoji+"</div>"+
       "<div style='flex:1;min-width:180px'><b>"+esc(fr.name)+"</b> <span class='tag gold'>tier "+fr.tier+"</span>"+
       (isShared? " <span class='tag purple'>🌌 Shared Universe (+10% cross-pollination)</span>":"")+
       "<div class='tiny muted'>"+fr.entries.length+" franchise hit"+(fr.entries.length>1?"s":"")+" · "+fmtG(fr.ww)+" WW · merch potential "+Math.round(g.merch*100)+"%</div></div>"+
       "<div style='text-align:right'><b class='"+(inc>=0.1?"pos":"muted")+"'>"+(inc>=0.1?"+"+fmtM(inc)+"/wk":"—")+"</b>"+
-      "<div class='tiny muted'>"+(fr.decay<0.95? "cooling · "+Math.round(fr.decay*100)+"%":"hot")+"</div></div></div>"+
+      (G.universeBonus?"<div class='tiny gold'>+15% universe</div>":"")+
+      "<div class='tiny muted'>"+(frHeatPct(fr)<95? "cooling · "+frHeatPct(fr)+"%":"hot · "+frHeatPct(fr)+"%")+"</div></div></div>"+
       
-      // Fatigue meter & resting countdown
-      "<div style='margin-top:6px'><div class='spread tiny'><span>😴 Franchise Fatigue: "+Math.round((fr.fatigue||0)*100)+"%</span><span class='muted'>"+(restWks? "Resting: ~"+restWks+" wks to heal":"Brand rested & fresh")+"</span></div>"+
-      "<div style='height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:2px;overflow:hidden'><div style='height:100%;width:"+Math.round((fr.fatigue||0)*100)+"%;background:"+((fr.fatigue||0)>0.3?"var(--bad)":"var(--gold)")+"'></div></div></div>"+
+      empireSequelPlanner(fr)+
       
       "<div class='fr-meters' style='margin-top:8px'>"+
         frMeter("💎 Value", fmtM(frValue(fr)))+
         frMeter("👥 Fanbase", "<span class='tiny'>"+frFanbase(fr)+"</span>")+
-        frMeter("🔥 Heat", Math.round((fr.decay||0)*100)+"%")+
+        frMeter("🔥 Heat", frHeatPct(fr)+"%")+
         frMeter("😴 Fatigue", "<span class='"+((fr.fatigue||0)>0.3?"neg":(fr.fatigue||0)>0.15?"":"pos")+"'>"+Math.round((fr.fatigue||0)*100)+"%</span>")+
         frMeter("🧸 Merchandise", merchTier.icon+" "+merchTier.name)+
-        frMeter("🎡 Park Attendance", fr.tier>=2? "<span class='stat-bar' style='display:inline-block;width:36px;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;vertical-align:middle'><span style='display:block;width:"+parkAtt+"%;height:100%;background:var(--pos)'></span></span> "+parkAtt+"%" : "<span class='tiny muted'>needs tier 2</span>")+
+        frMeter("🎡 Park", fr.tier>=2? (fr.park? "L"+fr.park+" · +"+fmtM(brk.park)+"/wk" : "<span class='tiny muted'>unbuilt</span>") : "<span class='tiny muted'>needs tier 2</span>")+
         frMeter("🎬 Sequel", "<span class='tiny'>"+frSequel(fr)+"</span>")+
         frMeter("🎭 Spinoff", "<span class='tiny'>"+frSpinoff(fr)+"</span>")+
         frMeter("📺 Streaming", "<span class='tiny'>"+frStreamVal(fr)+"</span>")+
@@ -7695,46 +7929,55 @@ function viewEmpire(){
       ((G.licensedOut||[]).filter(L=>L.name===fr.name).length? "<div class='tiny gold' style='margin-top:6px'>📦 Licensed out to "+(G.licensedOut.filter(L=>L.name===fr.name).map(L=>L.rival).join(", "))+" — backend pending; merch shelf sags while away.</div>":"")+
       "<div class='fr-actions'>"+
       "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ "+(frResolvableFilm(fr)? "Greenlight Sequel":"Greenlight First Entry")+"</button>"+
-      (fr.podcast? "<span class='tag green' style='align-self:center'>🎙️ Podcast live</span>"
-        : "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"'>🎙️ Launch Podcast · "+fmtM(DATA.PODCAST?.cost||0.5)+"M</button>")+
-      (fr.merch<3? "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'>🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(merchCost(fr))+"</button>" : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
-      (fr.park<3? (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'>🎡 "+(fr.park?(fr.park===2?"Resort district":"Expand park"):"Build attraction")+" · "+fmtM(parkCost(fr))+"</button>" : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
-      (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights (Tier "+fr.tier+": +"+fmtM(fr.tier*20)+")</button>":"")+
-      (!fr.toys && fr.merch>=1? "<button class='btn btn-sm btn-alt' data-fr-toys='"+fr.id+"'>🧒 Toy line · "+fmtM(DATA.MERCH_V2? DATA.MERCH_V2.toyCost(fr.tier):45)+"</button>":"")+
+      (fr.podcast? (fr.podcastDone? "<span class='tag' style='align-self:center'>🎙️ Podcast complete</span>" : "<span class='tag green' style='align-self:center'>🎙️ Podcast live · "+Math.max(0,(DATA.PODCAST?.duration||12)-(fr.podcastWeeks||0))+" wks left</span>")
+        : (function(){
+          const pc=DATA.PODCAST?.cost||0.5, dur=DATA.PODCAST?.duration||12, subs=DATA.PODCAST?.subsPerWeek||0.5, ok=G.studio.cash>=pc;
+          const subCopy=G.streamer? "+"+subs+"M subs/wk to "+esc(G.streamer.name) : "needs own streamer for +"+subs+"M subs/wk";
+          return "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"' title='"+dur+" wks · +1 rep · "+subCopy+"'"+(ok?"":" disabled")+">🎙️ Launch Podcast · "+fmtM(pc)+" ("+dur+" wks · "+(G.streamer?"+"+subs+"M subs/wk":"+1 rep, streamer req. for subs")+")</button>";
+        })())+
+      (fr.merch<3? (function(){
+        const mc=merchCost(fr), ok=G.studio.cash>=mc;
+        return "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(mc)+" cash'")+">🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(mc)+(ok?"":" (need "+fmtM(mc)+")")+"</button>";
+      })() : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
+      (fr.park<3? (fr.tier>=2? (function(){
+        const pc=parkCost(fr), ok=G.studio.cash>=pc;
+        return "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(pc)+" cash'")+">🎡 "+(fr.park?(fr.park===2?"Resort district":"Expand park"):"Build attraction")+" · "+fmtM(pc)+(ok?"":" (need "+fmtM(pc)+")")+"</button>";
+      })() : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
+      (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights (Tier "+fr.tier+": +"+fmtM(gameRightsPayout(fr))+")</button>":"")+
+      (!fr.toys && fr.merch>=1? (function(){
+        const tc=DATA.MERCH_V2? DATA.MERCH_V2.toyCost(fr.tier):45, ok=G.studio.cash>=tc;
+        return "<button class='btn btn-sm btn-alt' data-fr-toys='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(tc)+" cash'")+">🧒 Toy line · "+fmtM(tc)+(ok?"":" (need "+fmtM(tc)+")")+"</button>";
+      })() : "")+
       ((fr.fatigue||0)>0.1? "<button class='btn btn-sm btn-alt' data-fr-reboot='"+fr.id+"'>✨ Brand Reboot ($25M)</button>":"")+
       "<button class='btn btn-sm btn-alt' data-fr-spin='"+fr.id+"'>🎬 Spin-off film</button>"+
       (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-tv='"+fr.id+"'>📺 TV spin-off</button>":"")+
-      "<button class='btn btn-sm btn-alt' data-fr-sell='"+fr.id+"'>🤝 Sell IP · from "+fmtM((franchiseOffers(fr)[0]||{}).value||0)+"</button>"+
+      "<button class='btn btn-sm btn-alt' data-fr-sell='"+fr.id+"'>🤝 Sell IP · top bid "+fmtM((franchiseOffers(fr)[0]||{}).value||0)+"</button>"+
       "<button class='btn btn-sm' data-fr-more='"+fr.id+"'>⋯ More moves</button>"+
       "</div></div>";
   }
-  h+="<div class='card'><b>How the empire works</b><div class='small muted' style='margin-top:4px'>Every entry adds <b>franchise fatigue</b> (smaller openings, weaker reviews) that only heals if you rest the brand for about half a year or perform an active Brand Reboot. Merch & parks pay every week and spike again whenever a franchise film hits theaters. Game rights are one-time cash per tier.</div></div>";
-  try{ h+=merchBoard(); }catch(e){}
-  try{ if(typeof uniBoard==="function") h+=uniBoard(); }catch(e){}
-  try{ if(typeof endgameBoard==="function") h+=endgameBoard(); }catch(e){}
-  /* ── v25: Cross-Media Timeline & Shared Universe Dashboard ── */
-  try{ h+=crossMediaTimeline(); }catch(e){}
-  try{ h+=sharedUniverseDashboard(); }catch(e){}
+  try{ h+=empireIpMarket(); }catch(e){}
+  try{ h+=empireOnboarding(); }catch(e){}
   if(((G.licensedOut||[]).length)){
-    h+="<div class='section-title'>📦 Brands licensed out</div><div class='card'>";
+    h+="<div class='empire-sub'>📦 Brands licensed out</div><div class='empire-block'>";
     (G.licensedOut||[]).forEach(function(L){
-      h+="<div class='cost-line'><span>"+(L.kind==="goods"?"🥤":"🎬")+" “"+esc(L.name)+"” → "+esc(L.rival)+"</span><b class='muted tiny'>settles "+dateLabel(L.due)+"</b></div>";
+      h+="<div class='empire-row'><span>"+(L.kind==="goods"?"🥤":"🎬")+" “"+esc(L.name)+"” → "+esc(L.rival)+"</span><b class='muted tiny'>settles "+dateLabel(L.due)+"</b></div>";
     });
     h+="</div>";
   }
-  return h;
+  return empireShell(empirePanel("EMPIRE / FRANCHISES","Franchises","Every brand in the stable — sequels, merch, parks, game rights and top sale bids.",h,empireAsideFan()));
 }
 /* Per-film merchandising dashboard: demand/cost/revenue/profit/brand per line.
    Weak films lose money on the shelf — check demand before manufacturing. */
 function merchBoard(){
-  const cands=(G.films||[]).filter(f=>!f.streamingOriginal&&(f.ww||0)>=1)
+  /* $40M WW threshold matches merchEligible() — weak films never reach the shelf board */
+  const cands=(G.films||[]).filter(f=>!f.streamingOriginal&&(f.ww||0)>=40)
     .sort((a,b)=>(b.ww||0)-(a.ww||0)).slice(0,6);
   if(!cands.length) return "";
-  let h="<div class='section-title'>🧸 Film merchandising</div>";
+  let h="<div class='empire-sub'>🧸 Film merchandising</div>";
   cands.forEach(f=>{
     const done=f.merchLines||[];
     const tot=done.reduce((a,m)=>a+(m.profit||0),0);
-    h+="<div class='card'><div class='spread'><div><b>"+esc(f.title)+"</b> <span class='tiny muted'>"+fmtG(f.ww||0)+" WW"+(f.franchiseName?" · "+esc(f.franchiseName):"")+"</span></div>"+
+    h+="<div class='empire-block'><div class='spread'><div><b>"+esc(f.title)+"</b> <span class='tiny muted'>"+fmtG(f.ww||0)+" WW"+(f.franchiseName?" · "+esc(f.franchiseName):"")+"</span></div>"+
       "<b class='"+(tot>=0?"pos":"neg")+"'>"+(tot>=0?"+":"")+fmtM(Math.round(tot*10)/10)+" shelf</b></div>";
     if(done.length) h+="<div class='tiny muted' style='margin:4px 0'>"+done.map(m=>{ const d=merchLineDefs().find(x=>x.id===m.id)||{icon:"📦",name:m.id}; return d.icon+" "+d.name+" ("+(m.profit>=0?"+":"")+fmtM(m.profit)+")"; }).join(" · ")+"</div>";
     if(!f.merchDone){
@@ -7743,11 +7986,11 @@ function merchBoard(){
         if(done.some(m=>m.id===d.id)) return;
         let plan=null; try{ plan=merchPlan(f,d.id); }catch(e){}
         if(!plan) return;
-        h+="<div class='card' style='padding:10px'><b>"+d.icon+" "+d.name+"</b>"+
+        h+="<div class='empire-block empire-merchline'><b>"+d.icon+" "+d.name+"</b>"+
           "<div class='tiny muted'>"+d.desc+"</div>"+
-          "<div class='cost-line'><span>Demand</span><b class='"+(plan.demand>=60?"pos":plan.demand<40?"neg":"")+"'>"+plan.demand+"</b></div>"+
-          "<div class='cost-line'><span>Cost → revenue</span><b>"+fmtM(plan.cost)+" → "+fmtM(plan.revenue)+"</b></div>"+
-          "<div class='cost-line'><span>Profit · brand</span><b class='"+(plan.profit>=0?"pos":"neg")+"'>"+(plan.profit>=0?"+":"")+fmtM(plan.profit)+" · +"+plan.brand+"</b></div>"+
+          "<div class='empire-row'><span>Demand</span><b class='"+(plan.demand>=60?"pos":plan.demand<40?"neg":"")+"'>"+plan.demand+"</b></div>"+
+          "<div class='empire-row'><span>Cost → revenue</span><b>"+fmtM(plan.cost)+" → "+fmtM(plan.revenue)+"</b></div>"+
+          "<div class='empire-row'><span>Profit · brand</span><b class='"+(plan.profit>=0?"pos":"neg")+"'>"+(plan.profit>=0?"+":"")+fmtM(plan.profit)+" · +"+plan.brand+"</b></div>"+
           "<button class='btn btn-sm "+(plan.profit>=0?"btn-primary":"")+"' style='margin-top:6px' data-merchline='"+f.id+":"+d.id+"'>Manufacture</button></div>";
       });
       h+="</div>";
@@ -7758,15 +8001,23 @@ function merchBoard(){
 }
 /* Universe map + endgame dashboard. Universes are opt-in overlays; endgame
    tracks six optional milestones toward an industry crown. */
-let UNIPICKS=[]; // staged franchise ids for the next universe weave
+function uniPicksArr(){
+  /* staged franchise ids for the next universe weave — persisted on the save
+     (G.empire.uniPicks) and pruned whenever a pick no longer qualifies */
+  if(!G.empire) G.empire={subTab:"franchises",activeSub:"franchises"};
+  if(!Array.isArray(G.empire.uniPicks)) G.empire.uniPicks=[];
+  G.empire.uniPicks=G.empire.uniPicks.filter(id=>{ const fr=frById(id); return fr&&fr.tier>=2; });
+  return G.empire.uniPicks;
+}
 function uniBoard(){
   const list=G.universes||[];
-  let h="<div class='section-title'>🌌 Franchise universes (optional)</div>";
-  if(!list.length) h+="<div class='card muted small'>No universes — franchises stand alone just fine. Weave 2+ tier-2 franchises ($80M) to link them: continuity rewards rested brands (±5% openings).</div>";
+  const picks=uniPicksArr();
+  let h="<div class='empire-sub'>🌌 Franchise universes (optional)</div>";
+  if(!list.length) h+="<div class='empire-block empire-empty muted small'>No universes — franchises stand alone just fine. Weave 2+ tier-2 franchises ($80M) to link them: continuity rewards rested brands (±5% openings).</div>";
   list.forEach(u=>{
     let st;
     try{ st=uniStats(u); }catch(e){ return; }
-    h+="<div class='card'><div class='spread'><div><b>🌌 "+esc(u.name)+"</b>"+
+    h+="<div class='empire-block empire-universe'><div class='spread'><div><b>🌌 "+esc(u.name)+"</b>"+
       "<div class='tiny muted'>"+st.frs.length+" brands · "+fmtG(st.ww)+" WW · value "+fmtM(st.value)+" · continuity "+st.continuity+"% · "+st.fanbase+"</div></div>"+
       "<b class='"+(st.continuity>=70?"pos":st.continuity<40?"neg":"")+"'>"+(st.continuity>=70?"+5% openings":st.continuity<40?"−5% openings":"neutral")+"</b></div>";
     st.frs.forEach((fr,i)=>{
@@ -7783,10 +8034,12 @@ function uniBoard(){
   });
   const elig=(G.franchises||[]).filter(f=>f.tier>=2);
   if(elig.length>=2){
-    h+="<div class='card'><b class='small'>Weave a universe — $80M</b><div class='tiny muted'>Optional. Does not merge brands (unlike the old merge move).</div>"+
-      "<div class='row' style='margin-top:6px'>"+elig.map(f=>"<button class='btn btn-sm btn-alt' data-unipick='"+f.id+"'>"+esc(f.name)+"</button>").join("")+"</div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Picked: <b id='uniPicks'>—</b></div>"+
-      "<div class='row' style='margin-top:6px'><button class='btn btn-sm btn-primary' id='uniGo'>🌌 Found universe</button></div></div>";
+    const canGo=picks.length>=2 && G.studio.cash>=30;
+    const pickedNames=picks.map(x=>{ const fr=frById(x); return fr?fr.name:""; }).filter(Boolean);
+    h+="<div class='empire-block empire-weave'><b class='small'>Weave a universe — $80M</b><div class='tiny muted'>Optional. Does not merge brands (unlike the old merge move).</div>"+
+      "<div class='row' style='margin-top:6px'>"+elig.map(f=>"<button class='btn btn-sm "+(picks.some(x=>String(x)===String(f.id))?"btn-primary":"btn-alt")+"' data-unipick='"+f.id+"'>"+esc(f.name)+"</button>").join("")+"</div>"+
+      "<div class='tiny muted' style='margin-top:4px'>Picked: <b id='uniPicks'>"+(pickedNames.length?esc(pickedNames.join(" × ")):"—")+"</b></div>"+
+      "<div class='row' style='margin-top:6px'><button class='btn btn-sm btn-primary' id='uniGo'"+(canGo?"":" disabled title='Pick 2+ tier-2 franchises · needs $30M cash'")+">🌌 Found universe"+(canGo?"":" (need 2+ picks · $30M)")+"</button></div></div>";
   }
   return h;
 }
@@ -7794,19 +8047,21 @@ function endgameBoard(){
   let goals, inf;
   try{ goals=endgameGoals(); inf=endgameInfluence(); }catch(e){ return ""; }
   const done=goals.filter(g=>g.prog>=1).length;
-  let h="<div class='section-title'>👑 Endgame — industry empire ("+done+"/6, optional)</div><div class='card'>"+
-    "<div class='spread'><div><b>Industry influence</b><div class='tiny muted'>"+inf.share+"% market share · "+inf.talent+"★ talent network · "+fmtM(Math.round(inf.intl))+" intl WW</div></div>"+
+  let h="<div class='empire-sub'>👑 Endgame — industry empire ("+done+"/6, optional)</div><div class='empire-block empire-endgame'>"+
+    "<div class='empire-row'><span><b>Industry influence</b> <span class='tiny muted'>"+inf.share+"% market share · "+inf.talent+"★ talent network · "+fmtM(Math.round(inf.intl))+" intl WW</span></span>"+
     "<b class='gold'>"+done+"/6</b></div>";
   goals.forEach(g=>{
-    h+="<div class='spread' style='margin-top:4px'><span class='small'>"+g.icon+" "+g.name+" <span class='tiny muted'>"+g.label+"</span></span>"+
-      "<b class='tiny "+(g.prog>=1?"pos":"")+"'>"+(g.prog>=1?"✓":Math.round(g.prog*100)+"%")+"</b></div>"+meter(g.prog,1);
+    h+="<div class='empire-progress'><div><span>"+g.icon+" <b>"+g.name+"</b> <span class='tiny muted'>"+g.label+"</span></span>"+
+      "<b class='tiny "+(g.prog>=1?"pos":"")+"'>"+(g.prog>=1?"✓":Math.round(g.prog*100)+"%")+"</b></div>"+
+      "<i><b style='width:"+clamp(g.prog*100,2,100)+"%'></b></i></div>";
   });
   if((G.endgame||{}).crowned) h+="<div class='tiny gold' style='margin-top:4px'>👑 CROWNED Entertainment Empire.</div>";
   return h+"</div>";
 }
-/* Franchise dashboard: read-only rollups from fr fields + entries. Value mirrors
-   catalogValue weights (tier/merch/park); fanbase estimated from entries + WW. */
-function frValue(fr){ return (fr.tier||0)*15+(fr.merch||0)*10+(fr.park||0)*45+((fr.toys)?15:0); }
+/* Franchise dashboard: read-only rollups from fr fields + entries. Value IS
+   catalogValue's franchise valuation (franchiseValue in engine.js); fanbase
+   estimated from entries + WW. */
+function frValue(fr){ return franchiseValue(fr); }
 function frFanbase(fr){
   const ww=fr.ww||0;
   if(ww>=2000) return "Global phenomenon";
@@ -7819,15 +8074,20 @@ function frFanbase(fr){
    films list (sold/pruned), and purchased IPs start with no films at all */
 function frResolvableFilm(fr){
   if(!fr) return null;
-  return (fr.entries||[]).map(e=>G.films.find(x=>x.id===e.filmId)).find(Boolean) || null;
+  const ents=(fr.entries||[]).slice().reverse();
+  for(const e of ents){
+    const f=(G.films||[]).find(x=>x.id===e.filmId || String(x.id)===String(e.filmId));
+    if(f) return f;
+  }
+  return null;
 }
 function frSequel(fr){
   if(!frResolvableFilm(fr)) return "New IP — greenlight entry 1";
   const fat=fr.fatigue||0;
   if(fat>0.45) return "Rest it — fatigue "+Math.round(fat*100)+"%";
-  if((fr.decay||0)<0.6) return "Cooling — rebuild heat first";
+  if(frHeatPct(fr)<60) return "Cooling — heat "+frHeatPct(fr)+"%";
   if((fr.tier||0)>=4) return "Eventize it — saga tier";
-  return "Ready — heat "+Math.round((fr.decay||0)*100)+"%";
+  return "Ready — heat "+frHeatPct(fr)+"%";
 }
 function frSpinoff(fr){
   if((fr.tier||0)<2) return "Needs tier 2";
@@ -7844,19 +8104,24 @@ function frStreamVal(fr){
 }
 function frTimeline(fr){
   const ents=(fr.entries||[]).slice().sort((a,b)=>a.week-b.week);
-  let h="<div class='fr-timeline' style='margin-top:8px'><div class='tl-header'><b>🕰 Timeline</b> <span class='tiny muted'>(fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+Math.round((fr.decay||1)*100)+"%)</span></div>";
+  let h="<div class='fr-timeline' style='margin-top:8px'><div class='tl-header'><b>🕰 Timeline</b> <span class='tiny muted'>(fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+frHeatPct(fr)+"%)</span></div>";
   if(!ents.length){
     h+="<div class='tl-empty'>No films yet — greenlight the first entry</div>";
   }else{
     h+="<div class='tl-track'>";
     ents.forEach((e,i)=>{
-      const smash=(e.ww||0)>=300?" <span class='tl-breakout'>BREAKOUT</span>":"";
-      const yrs=Math.floor(e.week/52)+1;
-      const w=e.week%52||52;
+      const r=(typeof frResolveEntry==="function")?frResolveEntry(e):{title:e.title,ww:e.ww||0,week:e.week||1,opening:e.opening,critic:e.criticAvg,profit:e.profit};
+      const smash=(r.ww||0)>=300?" <span class='tl-breakout'>BREAKOUT</span>":"";
+      const yrs=typeof yearOf==="function"?yearOf(r.week||1):(Math.floor((r.week||1)/52)+1);
+      const w=typeof woyOf==="function"?woyOf(r.week||1):((r.week||1)%52||52);
+      const metaParts=["Year "+yrs+", W"+w, fmtG(r.ww||0)+" WW"];
+      if(r.opening!=null) metaParts.push(fmtG(r.opening)+" open");
+      if(r.critic!=null) metaParts.push(Math.round(r.critic)+"% critics");
+      const profitHtml=r.profit!=null ? "<div class='tl-profit'>Profit: <span class='"+(r.profit>=0?"pos":"neg")+"'>"+(r.profit>=0?"+":"")+fmtM(r.profit)+"</span></div>" : "";
       h+="<div class='tl-node'><div class='tl-marker'></div>"+
-        "<div class='tl-content'><div class='tl-title'>"+esc(e.title)+smash+"</div>"+
-        "<div class='tl-meta'>Year "+yrs+", W"+w+" · "+fmtG(e.ww||0)+" WW · "+fmtG(e.opening||0)+" open · "+(e.criticAvg||e.quality?.critic||"?")+"% critics</div>"+
-        "<div class='tl-profit'>Profit: <span class='"+((e.profit||0)>=0?"pos":"neg")+"'>"+((e.profit||0)>=0?"+":"")+fmtM(e.profit||0)+"</span></div></div></div>";
+        "<div class='tl-content'><div class='tl-title'>"+esc(r.title)+smash+"</div>"+
+        "<div class='tl-meta'>"+metaParts.join(" · ")+"</div>"+
+        profitHtml+"</div></div>";
       if(i<ents.length-1) h+="<div class='tl-gap'></div>";
     });
     h+="</div>";
@@ -7887,7 +8152,7 @@ function frTimeline(fr){
   h+="</div></div>";
   return h;
 }
-function frMeter(l,v){ return "<div class='fr-meter'><div class='fm-v'>"+v+"</div><div class='fm-l'>"+l+"</div></div>"; }
+function frMeter(l,v){ return "<div class='empire-meter'><div class='fm-v'>"+v+"</div><div class='fm-l'>"+l+"</div></div>"; }
 function pips(n,max){ let s="<span class='pips'>"; for(let i=1;i<=max;i++) s+= i<=n? "●":"<span class='off'>●</span>"; return s+"</span>"; }
 
 /* ═══════════ choice / report / gameover modals ═══════════ */
@@ -8979,15 +9244,16 @@ function fycModal(fid){
 function empireModal(frId){
   const fr=frById(frId); if(!fr) return;
   const others=G.franchises.filter(x=>x!==fr);
+  const canCollab=G.studio.cash>=6, canDtv=G.studio.cash>=12, canPub=G.studio.cash>=15, canResort=G.studio.cash>=400, canCross=G.studio.cash>=40, canMerge=G.studio.cash>=150;
   let h="<h3>🏰 "+esc(fr.name)+" — empire moves</h3>"+
-    "<div class='tiny muted'>Tier "+fr.tier+" · fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+Math.round(clamp(1-(fr.decay||0),0,1)*100)+"%</div>";
+    "<div class='tiny muted'>Tier "+fr.tier+" · fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+frHeatPct(fr)+"% (×"+frHeatMultOf(fr).toFixed(2)+" opening)</div>";
   h+="<div class='card' style='margin-top:8px'><div class='row'>"+
-    (((fr.collabAt||0)>G.week)? "<span class='tag green'>🤝 collab live</span>" : "<button class='btn btn-sm btn-alt' id='emCollab'>🤝 Brand collab · $6M</button>")+
-    (((fr.dtvAt||0)>G.week)? "<span class='tag green'>📀 DTV in stores</span>" : "<button class='btn btn-sm btn-alt' id='emDtv'>📀 DTV sequel · $12–22M</button>")+
-    (fr.publishing? "<span class='tag green'>📚 publishing arm</span>" : "<button class='btn btn-sm btn-alt' id='emPub'>📚 Publishing arm · $15M</button>")+
+    (((fr.collabAt||0)>G.week)? "<span class='tag green'>🤝 collab live</span>" : "<button class='btn btn-sm btn-alt' id='emCollab'"+(canCollab?"":" disabled title='Requires $6M cash'")+">🤝 Brand collab · $6M"+(canCollab?"":" (need $6M)")+"</button>")+
+    (((fr.dtvAt||0)>G.week)? "<span class='tag green'>📀 DTV in stores</span>" : "<button class='btn btn-sm btn-alt' id='emDtv'"+(canDtv?"":" disabled title='Requires $12–22M cash'")+">📀 DTV sequel · $12–22M"+(canDtv?"":" (need $12M+)")+"</button>")+
+    (fr.publishing? "<span class='tag green'>📚 publishing arm</span>" : "<button class='btn btn-sm btn-alt' id='emPub'"+(canPub?"":" disabled title='Requires $15M cash'")+">📚 Publishing arm · $15M"+(canPub?"":" (need $15M)")+"</button>")+
   "</div></div>";
   h+="<div class='card'><div class='row'>"+
-    (fr.resort? "<span class='tag green'>🏝 resort open</span>" : (fr.park>=1? "<button class='btn btn-sm btn-gold' id='emResort'>🏝 Resort & cruise line · $400M</button>" : "<span class='tiny muted'>🏝 Resort unlocks after the first 🎡 attraction</span>"))+
+    (fr.resort? "<span class='tag green'>🏝 resort landmark open (+5 rep · $0/wk)</span>" : (fr.park>=1? "<button class='btn btn-sm btn-gold' id='emResort' title='Prestige landmark: +5 rep, $0/wk recurring income'"+(canResort?"":" disabled")+">🏝 Resort & cruise landmark · $400M (+5 rep · $0/wk)"+(canResort?"":" (need $400M)")+"</button>" : "<span class='tiny muted'>🏝 Resort landmark (+5 rep · $0/wk) unlocks after the first 🎡 attraction</span>"))+
   "</div></div>";
   h+="<div class='card'><b>📦 License it out</b><div class='tiny muted' style='margin:4px 0'>Hand the brand to a rival for a fat upfront fee + a backend settlement on “"+dateLabel(G.week+39)+"”-ish paper. Brand heat fades while it's away.</div><div class='row'>"+
     (((fr.licenseAt||0)>G.week)? "<span class='tag green'>already out</span>" :
@@ -8995,21 +9261,28 @@ function empireModal(frId){
       (fr.merch>=1? "<button class='btn btn-sm btn-alt' id='emLicGoods'>🥤 Consumer goods</button>" : ""))+
   "</div></div>";
   if(others.length && fr.tier>=3){
-    h+="<div class='card'><b>💥 Crossover film</b> <span class='tiny muted'>($40M · tentpole idea lands in Develop · both brands tier 3+)</b><div class='row' style='margin-top:6px'>"+
+    h+="<div class='card'><b>💥 Crossover film</b> <span class='tiny muted'>($40M · tentpole idea lands in Develop · both brands tier 3+)</span><div class='row' style='margin-top:6px'>"+
       others.filter(o=>o.tier>=3)
-        .map(o=>"<button class='btn btn-sm btn-alt' data-em-cross='"+o.id+"'>× "+esc(o.name)+"</button>").join("")+
+        .map(o=>"<button class='btn btn-sm btn-alt' data-em-cross='"+o.id+"'"+(canCross?"":" disabled title='Requires $40M cash'")+">× "+esc(o.name)+(canCross?"":" (need $40M)")+"</button>").join("")+
       (others.filter(o=>o.tier<3).length? "<span class='tiny muted'>"+others.filter(o=>o.tier<3).length+" brand(s) below tier 3</span>" : "")+
     "</div></div>";
   }
   if(others.length && !G.universeBonus){
-    h+="<div class='card'><b>🌌 Weave a shared universe</b> <span class='tiny muted'>($150M · all franchise income +15% forever · one-time)</b><div class='row' style='margin-top:6px'>"+
+    h+="<div class='card'><b>🌌 Weave a shared universe</b> <span class='tiny muted'>($150M · all franchise income +15% forever · one-time)</span><div class='row' style='margin-top:6px'>"+
       others
-        .map(o=>"<button class='btn btn-sm btn-alt' data-em-merge='"+o.id+"'>⚭ "+esc(o.name)+"</button>").join("")+
+        .map(o=>"<button class='btn btn-sm btn-alt' data-em-merge='"+o.id+"'"+(canMerge?"":" disabled title='Requires $150M cash'")+">⚭ "+esc(o.name)+(canMerge?"":" (need $150M)")+"</button>").join("")+
     "</div></div>";
+  }
+  if(G.universeBonus){
+    h+="<div class='card'><b>🌌 Shared universe active</b> — all franchise income <b class='gold'>+15%</b> forever.</div>";
   }
   h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>"+t("btn.close")+"</button></div>";
   const v=openModal(h);
-  const go=(fn,arg)=>()=>{ fn.call(null,arg); beep("gold"); closeModal(); flashes(G.flash); render(); };
+  const go=(fn,arg)=>()=>{
+    const r=fn.call(null,arg);
+    if(r && r.ok){ beep("gold"); closeModal(); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r && r.reason) || "Requirements not met.", "bad"); }
+  };
   const grab=id=>v.querySelector(id);
   if(grab("#emCollab")) grab("#emCollab").onclick=go(brandCollab, fr.id);
   if(grab("#emDtv"))    grab("#emDtv").onclick=go(dtvSequel, fr.id);
@@ -9017,8 +9290,8 @@ function empireModal(frId){
   if(grab("#emResort")) grab("#emResort").onclick=go(buildResort, fr.id);
   if(grab("#emLicFilm"))  grab("#emLicFilm").onclick=go(()=>licenseOut(fr.id,"film"));
   if(grab("#emLicGoods")) grab("#emLicGoods").onclick=go(()=>licenseOut(fr.id,"goods"));
-  v.querySelectorAll("[data-em-cross]").forEach(b=>b.onclick=go(()=>crossoverEvent(fr.id,+b.dataset.emCross)));
-  v.querySelectorAll("[data-em-merge]").forEach(b=>b.onclick=go(()=>mergeUniverse(fr.id,+b.dataset.emMerge)));
+  v.querySelectorAll("[data-em-cross]").forEach(b=>b.onclick=go(()=>crossoverEvent(fr.id,b.dataset.emCross)));
+  v.querySelectorAll("[data-em-merge]").forEach(b=>b.onclick=go(()=>mergeUniverse(fr.id,b.dataset.emMerge)));
 }
 
 /* ═══════════ VIEW: 2D Studio Lot Simulation (Rust Core) ═══════════ */
@@ -10801,33 +11074,23 @@ function deepfakeModal(){
   };
 }
 
-/* ── divisions panel ── */
+/* ── divisions ledger (v35.0 desk rows — no legacy div-card chrome) ── */
 function divisionsPanel(){
-  let h="<div class='divisions-grid'>";
-  // Game Studio
   const gs=G.gameStudio;
-  h+="<div class='div-card'><div class='div-icon'>🎮</div><div class='div-main'><b>Game Studio</b>";
-  h+="<div class='div-sub'>"+(gs? (gs.title||"In development") : "No active project")+"</div>";
-  h+="</div><div class='div-side'>"+(gs? fmtMoney(gs.weekly||0)+"/wk" : "—")+"</div></div>";
-  // Store
   const sl=storeLevel();
-  h+="<div class='div-card'><div class='div-icon'>🏪</div><div class='div-main'><b>Merchandise</b>";
-  h+="<div class='div-sub'>Level "+sl+" — "+fmtNum(storeMult(),1)+"× multiplier</div>";
-  h+="</div><div class='div-side'>"+fmtMoney(storeDirectIncome())+"/wk</div></div>";
-  // Publishing
   const pub=(G.franchises||[]).filter(f=>f.publishing).length;
   const pubInc=(G.franchises||[]).reduce((s,f)=>s+publishingIncome(f),0);
-  h+="<div class='div-card'><div class='div-icon'>📚</div><div class='div-main'><b>Publishing</b>";
-  h+="<div class='div-sub'>"+pub+" franchise"+(pub!==1?"s":"")+" licensed</div>";
-  h+="</div><div class='div-side'>"+fmtMoney(pubInc)+"/wk</div></div>";
-  // Comics
   const com=(G.franchises||[]).reduce((s,f)=>s+(f.comics||0),0);
   const comInc=(G.franchises||[]).reduce((s,f)=>s+comicsIncome(f),0);
-  h+="<div class='div-card'><div class='div-icon'>💬</div><div class='div-main'><b>Comics</b>";
-  h+="<div class='div-sub'>"+com+" line"+(com!==1?"s":"")+" running</div>";
-  h+="</div><div class='div-side'>"+fmtMoney(comInc)+"/wk</div></div>";
-  h+="</div>";
-  return h;
+  const drow=(icon,name,sub,side)=>
+    "<div class='empire-row'><span>"+icon+" <b>"+name+"</b> <span class='tiny muted'>"+sub+"</span></span>"+
+    "<b class='gold'>"+side+"</b></div>";
+  return "<div class='empire-block empire-divisions'>"+
+    drow("🎮","Game Studio",gs?(gs.title||"In development"):"No active project",gs?fmtMoney(gs.weekly||0)+"/wk":"—")+
+    drow("🏪","Merchandise","Level "+sl+" — direct retail stream",fmtMoney(storeDirectIncome())+"/wk")+
+    drow("📚","Publishing",pub+" franchise"+(pub!==1?"s":"")+" licensed",fmtMoney(pubInc)+"/wk")+
+    drow("💬","Comics",com+" line"+(com!==1?"s":"")+" running",fmtMoney(comInc)+"/wk")+
+    "</div>";
 }
 
 /* ── board vote modal ── */

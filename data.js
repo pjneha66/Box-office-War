@@ -256,6 +256,15 @@ DATA.ARTISTS = [
   {id:"mcd",    name:"MC Delta",      fee:6,  heat:2, vibe:"sports & comedy",   blurb:"Locker-room anthems, every one of them."},
   {id:"aria",   name:"Aria Solene",   fee:7,  heat:3, vibe:"musicals",          blurb:"Trained, towering, awards-season favorite."},
 ];
+DATA.LABEL_COSTS = {
+  unlock: 60,
+  overheadPerWeek: 0.3,
+  tourCost: 8,
+  tourBuzzBonus: 0.06,
+  chartBuzzBonus: 0.02,
+  tourChartWeeks: 8,
+  maxActs: 3,
+};
 
 /* ── v15 fan mail (§18-adjacent flavor): the people who buy the tickets write back ── */
 DATA.FAN_NAMES = [
@@ -1241,8 +1250,8 @@ DATA.DOCUMENTARY = {
 /* ── Podcast / Audio Drama ── */
 DATA.PODCAST = {
   cost: 0.5,         // $500K
-  duration: 4,       // weeks to produce
-  subsPerWeek: 0.5,  // +0.5M subs/week for 12 weeks
+  duration: 12,      // 12-week audio run
+  subsPerWeek: 0.5,  // +0.5M subs/week for 12 weeks (when own streamer is live)
   repGain: 1,
   awarenessBoost: 5, // franchise awareness +5%
 };
