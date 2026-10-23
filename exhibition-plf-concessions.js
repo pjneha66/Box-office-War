@@ -215,35 +215,38 @@
     initExhibitionPLF(S);
 
     const activeDeal = CONCESSION_DEALS.find(d => d.id === S.exhibitionPLF.activeConcessionDeal) || CONCESSION_DEALS[0];
+    const kpi = (label, value, note) =>
+      "<div class='bo-kpi'><small>" + label + "</small><b>" + value + "</b><span>" + note + "</span></div>";
 
-    let h = "<div class='card' style='margin-bottom:12px'>";
-    h += "<div class='spread'><b>PLF Mastering, Concessions &amp; Screen Scheduling</b><span class='tag gold'>" + S.exhibitionPLF.plfMasteredCount + " PLF Films</span></div>";
-    h += "<div class='tiny muted' style='margin:4px 0 10px'>Deliver IMAX 70mm and Dolby Cinema deliverables (+35% ticket surcharges), negotiate concession popcorn splits, and book Thursday midnight fan previews (Cinema Simulator parity).</div>";
+    let h = "<div class='bo-kpis'>" +
+      kpi("PLF MASTERED", String(S.exhibitionPLF.plfMasteredCount || 0), "films delivered in large format") +
+      kpi("SURCHARGE", "+35%", "ticket premium on PLF screens") +
+      kpi("CONCESSION CUT", Math.round(activeDeal.cutSharePct * 100) + "%", activeDeal.name) +
+      kpi("THURSDAY PREVIEWS", String(S.exhibitionPLF.thursdayPreviewsBooked || 0), "midnight fan screenings booked") +
+    "</div>";
 
-    h += "<div class='section-title'>Premium Large Format (PLF) Mastering Suites</div>";
-    h += "<div class='grid g3' style='gap:8px;margin-bottom:10px'>";
+    h += "<div class='bo-campaigns'>";
     PLF_FORMATS.forEach(f => {
-      h += "<div style='background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:4px;border-left:3px solid var(--gold)'>" +
-        "<div class='spread'><b>" + f.name.split(" ")[0] + "</b><span class='tag gold'>+" + Math.round(f.ticketSurchargePct*100) + "% Gross</span></div>" +
-        "<div class='tiny muted' style='margin-top:2px'>" + f.desc + "</div>" +
-        "<div class='tiny gold' style='margin-top:4px'>Cost: $" + f.masteringCostM + "M</div>" +
-      "</div>";
+      h += "<article class='bo-campaign'>" +
+        "<header><h3>" + f.name + "</h3><span class='bo-campaign-cost'>+$" + Math.round(f.ticketSurchargePct*100) + "%</span></header>" +
+        "<p>" + f.desc + "</p>" +
+        "<dl><div><dt>Mastering</dt><dd>$" + f.masteringCostM + "M</dd></div>" +
+        "<div><dt>Surcharge</dt><dd>ticket premium</dd></div></dl>" +
+      "</article>";
     });
     h += "</div>";
 
-    h += "<div class='section-title'>Active Exhibitor Concession Deal</div>";
-    h += "<div class='card' style='margin-bottom:10px;background:rgba(255,255,255,0.02)'>" +
-      "<div class='spread'><b>" + activeDeal.name + "</b><span class='tag " + (activeDeal.cutSharePct > 0 ? "green" : "gold") + "'>" + Math.round(activeDeal.cutSharePct*100) + "% Concessions</span></div>" +
-      "<div class='tiny muted' style='margin:4px 0'>" + activeDeal.desc + "</div>" +
-      "<div style='display:flex;gap:6px;margin-top:8px;flex-wrap:wrap'>" +
+    h += "<div class='bo-campaign-foot' style='flex-direction:column;align-items:stretch;gap:10px'>" +
+      "<div><span class='command-eyebrow'>ACTIVE CONCESSION DEAL</span>" +
+        "<p style='font:600 13px/1.5 Georgia,serif;color:#f3e8cc;margin:4px 0 2px'>" + activeDeal.name + " · " + Math.round(activeDeal.cutSharePct*100) + "% of concessions</p>" +
+        "<p class='bo-figure-cap' style='max-width:none'>" + activeDeal.desc + "</p></div>" +
+      "<div class='bo-chip-row'>" +
         CONCESSION_DEALS.map(d =>
-          "<button class='btn btn-xs " + (d.id === activeDeal.id ? "btn-primary" : "btn-alt") + " btnSelectConcession' data-deal-id='" + d.id + "'>" + d.name.split(" ")[0] + " (" + Math.round(d.cutSharePct*100) + "%)</button>"
+          "<button class='bo-chip " + (d.id === activeDeal.id ? "gold" : "") + " btnSelectConcession' data-deal-id='" + d.id + "' style='cursor:pointer;background:" + (d.id === activeDeal.id ? "#2a443a" : "transparent") + "'>" + d.name + " · " + Math.round(d.cutSharePct*100) + "%</button>"
         ).join("") +
       "</div>" +
+      "<button class='produce-action' id='btnOpenPLFModal'>Manage PLF mastering &amp; previews →</button>" +
     "</div>";
-
-    h += "<button class='btn btn-sm btn-primary' id='btnOpenPLFModal' style='width:100%'>Manage PLF Mastering &amp; Previews</button>";
-    h += "</div>";
     return h;
   }
 

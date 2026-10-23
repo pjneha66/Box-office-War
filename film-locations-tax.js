@@ -452,27 +452,34 @@
   }
 
   function renderTheaterChainsSection(){
-    let h = "<div class='section-title'>Premium Large Format (PLF) &amp; Global Multiplex Circuits</div>";
-    h += "<div class='grid g3' style='gap:8px'>";
+    let h = "<div class='bo-kpis'>" +
+      "<div class='bo-kpi'><small>CIRCUITS</small><b>" + THEATER_CIRCUITS.length + "</b><span>national chains tracked</span></div>" +
+      "<div class='bo-kpi'><small>BEST MULTIPLIER</small><b>×" + (Math.max.apply(null, THEATER_CIRCUITS.map(c => c.plfMultiplier)) || 1) + "</b><span>large-format uplift</span></div>" +
+      "<div class='bo-kpi'><small>SCREENS</small><b>" + THEATER_CIRCUITS.reduce((a, c) => a + (c.screens || 0), 0).toLocaleString("en-US") + "</b><span>dedicated premium sites</span></div>" +
+    "</div><div class='bo-campaigns'>";
     THEATER_CIRCUITS.forEach(c => {
-      h += "<div class='card' style='display:flex;flex-direction:column;justify-content:space-between'>"+
-        "<div><div class='spread'><b>" + c.name + "</b><span class='tag gold'>BO ×" + c.plfMultiplier + "</span></div>"+
-        "<div class='tiny muted' style='margin:4px 0'>" + c.desc + "</div>"+
-        "<div class='tiny' style='color:var(--blue)'>Dedicated Screens: " + c.screens + " | Bidding Advance: $" + c.upfrontBiddingCost + "M</div></div>"+
-      "</div>";
+      h += "<article class='bo-campaign'>" +
+        "<header><h3>" + c.name + "</h3><span class='bo-campaign-cost'>BO ×" + c.plfMultiplier + "</span></header>" +
+        "<p>" + c.desc + "</p>" +
+        "<dl><div><dt>Screens</dt><dd>" + Number(c.screens || 0).toLocaleString("en-US") + "</dd></div>" +
+        "<div><dt>Advance</dt><dd>$" + c.upfrontBiddingCost + "M</dd></div></dl>" +
+      "</article>";
     });
     h += "</div>";
     return h;
   }
 
   function renderAwardCircuitSection(){
-    let h = "<div class='section-title'>Seasonal Award Bodies &amp; Film Festivals</div>";
-    h += "<div class='grid g2' style='gap:8px'>";
+    let h = "<div class='bo-kpis'>" +
+      "<div class='bo-kpi'><small>BODIES</small><b>" + AWARD_CIRCUITS.length + "</b><span>ceremonies this year</span></div>" +
+      "<div class='bo-kpi'><small>FIRST VOTE</small><b>Wk " + Math.min.apply(null, AWARD_CIRCUITS.map(a => a.week)) + "</b><span>earliest ceremony</span></div>" +
+      "<div class='bo-kpi'><small>LAST VOTE</small><b>Wk " + Math.max.apply(null, AWARD_CIRCUITS.map(a => a.week)) + "</b><span>closing ceremony</span></div>" +
+    "</div><div class='bo-campaigns'>";
     AWARD_CIRCUITS.forEach(a => {
-      h += "<div class='card spread'>"+
-        "<div><b>" + a.name + "</b><div class='tiny muted'>" + a.focus + "</div></div>"+
-        "<span class='tag purple'>Week " + a.week + "</span>"+
-      "</div>";
+      h += "<article class='bo-campaign'>" +
+        "<header><h3>" + a.name + "</h3><span class='bo-campaign-cost'>WK " + a.week + "</span></header>" +
+        "<p>" + a.focus + "</p>" +
+      "</article>";
     });
     h += "</div>";
     return h;

@@ -70,7 +70,7 @@ w.eval(`BOXOFFICE_SUB='clash';render();`);
 assert($('.command-boxoffice .bo-weekends'),'clash radar keeps the forward corridor');
 assert.equal($$('.bo-weekend').length,12,'twelve weekends forecast');
 assert($$('.bo-rivals .rival-card').length>=1,'rival dossiers stay clickable');
-assert.equal($$('.bo-rivals .rival-card').every(c=>c.onclick)!==undefined,true);
+assert.equal($$('.bo-rivals .rival-card').every(c=>typeof c.onclick==='function'),true,'rival dossiers stay wired');
 console.log('PASS box office chart reads live rival state, clash radar wired');
 
 /* 4 — table features, dossier bindings and the catalogue shortcut survive */

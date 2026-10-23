@@ -130,34 +130,36 @@
     return { ok: true, msg: camp.name + " launched (+ " + camp.buzzBonus + " Buzz)!" };
   }
 
-  // UI Renderer Section
+  // UI Renderer Section — produce desk skin, shared with the box office tab.
   function renderMarketingBlitzSection(state){
     const S = _getG(state);
     if(!S) return "";
     initMarketingBlitz(S);
 
-    let h = "<div class='card' style='margin-bottom:12px'>";
-    h += "<div class='spread'><b>High-Impact Marketing Blitz Campaigns</b><span class='tag gold'>$" + S.marketingBlitz.totalMarketingSpend.toFixed(1) + "M Spent</span></div>";
-    h += "<div class='tiny muted' style='margin:4px 0 10px'>Super Bowl prime-time spots, San Diego Comic-Con Hall H showcases, and viral guerrilla street campaigns (Box Office Inc parity).</div>";
+    const spent = S.marketingBlitz.totalMarketingSpend || 0;
+    const kpi = (label, value, note) =>
+      "<div class='bo-kpi'><small>" + label + "</small><b>" + value + "</b><span>" + note + "</span></div>";
 
-    h += "<div class='stat-hero' style='margin-bottom:10px'>" +
-      "<div class='stat'><div class='s-v' style='color:var(--gold)'>" + S.marketingBlitz.superBowlSpotsAired + "</div><div class='s-l'>Super Bowl Commercials</div></div>" +
-      "<div class='stat'><div class='s-v'>" + S.marketingBlitz.hallHAppearances + "</div><div class='s-l'>Hall H Showcases</div></div>" +
-      "<div class='stat'><div class='s-v'>" + S.marketingBlitz.executedCampaigns.length + "</div><div class='s-l'>Total Campaigns Deployed</div></div>" +
+    let h = "<div class='bo-kpis'>" +
+      kpi("SPENT", "$" + spent.toFixed(1) + "M", "lifetime blitz budget") +
+      kpi("SUPER BOWL", String(S.marketingBlitz.superBowlSpotsAired || 0), "prime-time spots aired") +
+      kpi("HALL H", String(S.marketingBlitz.hallHAppearances || 0), "showcase panels") +
+      kpi("CAMPAIGNS", String((S.marketingBlitz.executedCampaigns || []).length), "deployed to date") +
     "</div>";
 
-    h += "<div class='grid g2' style='gap:8px;margin-bottom:10px'>";
+    h += "<div class='bo-campaigns'>";
     MARKETING_TIERS.forEach(c => {
-      h += "<div style='background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:4px;border-left:3px solid var(--gold)'>" +
-        "<div class='spread'><b>" + c.name.split(" ")[0] + " " + (c.name.split(" ")[1]||"") + "</b><span class='tag gold'>$" + c.costM + "M</span></div>" +
-        "<div class='tiny muted' style='margin-top:2px'>" + c.desc + "</div>" +
-        "<div class='tiny' style='color:var(--green);margin-top:4px'>Buzz Boost: +" + c.buzzBonus + " pts | Target: " + c.demographicFocus.toUpperCase() + "</div>" +
-      "</div>";
+      h += "<article class='bo-campaign'>" +
+        "<header><h3>" + c.name + "</h3><span class='bo-campaign-cost'>$" + c.costM + "M</span></header>" +
+        "<p>" + c.desc + "</p>" +
+        "<dl><div><dt>Buzz</dt><dd>+" + c.buzzBonus + " pts</dd></div>" +
+        "<div><dt>Targets</dt><dd>" + String(c.demographicFocus).replace(/_/g, " ").toLowerCase() + "</dd></div></dl>" +
+      "</article>";
     });
     h += "</div>";
 
-    h += "<button class='btn btn-sm btn-primary' id='btnOpenMarketingBlitzModal' style='width:100%'>Open Marketing Blitz Command</button>";
-    h += "</div>";
+    h += "<div class='bo-campaign-foot'><p>Blitz budget, channels and timing live in the command desk. Every spend line below moves the opening and the legs.</p>" +
+      "<button class='produce-action' id='btnOpenMarketingBlitzModal'>Open marketing blitz command →</button></div>";
     return h;
   }
 

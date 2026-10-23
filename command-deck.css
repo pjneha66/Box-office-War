@@ -1686,3 +1686,176 @@
    and clip ("atrica | ega-cl | conce"). Keep their natural width and let the
    strip scroll, as the pill rules already assume. */
 #subTabs .subtab-btn{flex:0 0 auto}
+
+/* ── Box office figures ────────────────────────────────────────────────────
+   Shared chart furniture for the run card, the dossier and the review desk.
+   Every chart is inline SVG so it scales with the panel and stays legible
+   when the rail collapses to one column on a phone. */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-svg{display:block;width:100%;height:auto;overflow:visible}
+.bo-figure{margin:0;background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:12px 14px 10px}
+.bo-figure-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.bo-figure-head b{font:700 9px/1.4 ui-monospace,monospace;letter-spacing:.9px;text-transform:uppercase;color:#93a692}
+.bo-figure-head span{font:600 11px/1.4 system-ui;color:#f3e8cc;font-variant-numeric:tabular-nums}
+.bo-figure-cap{font-size:10.5px;line-height:1.6;color:#93a692;margin:6px 0 0}
+.bo-figure-cap b{color:#e4dfc3}
+.bo-run-figures{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px}
+@media(max-width:900px){.bo-run-figures{grid-template-columns:minmax(0,1fr)}}
+
+/* Split meter: two-tone proportion bar with a legend underneath. */
+.bo-split{display:grid;gap:8px}
+.bo-split-bar{display:flex;height:12px;border-radius:2px;overflow:hidden;background:#122823;border:1px solid #2c4038}
+.bo-split-seg{display:block;height:100%}
+.bo-legend{display:flex;flex-wrap:wrap;gap:6px 16px}
+.bo-legend-item{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1.4 system-ui;color:#a9bda9}
+.bo-legend-item i{width:8px;height:8px;border-radius:1px;display:inline-block}
+.bo-legend-item b{color:#f2edda;font-variant-numeric:tabular-nums}
+.bo-legend-item small{color:#93a692;font:600 9.5px ui-monospace,monospace}
+
+/* KPI strip inside a run card. */
+.bo-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+.bo-kpi{background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:9px 11px}
+.bo-kpi small{display:block;font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px;text-transform:uppercase;color:#93a692}
+.bo-kpi b{display:block;font:600 16px/1.3 Georgia,serif;color:#f2edda;margin-top:3px;font-variant-numeric:tabular-nums}
+.bo-kpi span{display:block;font-size:9.5px;line-height:1.4;color:#7f9486;margin-top:2px}
+.bo-kpi.good b{color:#a8d69a}
+.bo-kpi.bad b{color:#e09a86}
+
+/* Track rows: territory share, audience appeal, buzz. */
+.bo-track-rows{display:grid;gap:2px}
+.bo-track-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(60px,1.5fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #22362f}
+.bo-track-row:last-child{border-bottom:0}
+.bo-track-label{display:flex;align-items:center;gap:7px;min-width:0;font:600 12px/1.4 system-ui;color:#f2edda}
+.bo-track-label small{display:block;font:600 9.5px/1.4 ui-monospace,monospace;color:#93a692;letter-spacing:.3px}
+.bo-track{position:relative;height:6px;border-radius:2px;background:#122823;border:1px solid #2c4038;overflow:hidden}
+.bo-track i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8a7748,#edc47c);border-radius:1px}
+.bo-track.teal i{background:linear-gradient(90deg,#3f6f63,#7fb3a2)}
+.bo-track.bad i{background:linear-gradient(90deg,#7a4438,#e09a86)}
+.bo-track-val{font:600 12px/1.4 ui-monospace,monospace;color:#f3e8cc;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.bo-track-val small{display:block;font-size:9.5px;color:#93a692}
+.bo-region-cities{font:600 10px/1.6 ui-monospace,monospace;color:#8fa394;padding:0 0 6px 24px}
+.bo-region-cities b{color:#c8d3ba;font-weight:700}
+
+/* Insight list (why is this performing this way). */
+.bo-why{display:grid;gap:1px}
+.bo-why-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #22362f;font-size:11.5px;line-height:1.6;color:#d8dcc8}
+.bo-why-row:last-child{border-bottom:0}
+.bo-why-mark{flex:0 0 auto;width:16px;height:16px;display:grid;place-items:center;border-radius:2px;font:700 10px/1 system-ui;margin-top:1px}
+.bo-why-row.up .bo-why-mark{background:#24402f;border:1px solid #5c7f57;color:#a8d69a}
+.bo-why-row.down .bo-why-mark{background:#3a2722;border:1px solid #8a5b52;color:#e09a86}
+
+/* Review split: critics vs audience, then the freshness meter. */
+.bo-score{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px}
+.bo-score-card{background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:10px 12px}
+.bo-score-card small{display:block;font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px;text-transform:uppercase;color:#93a692}
+.bo-score-card b{display:block;font:600 22px/1.2 Georgia,serif;color:#f2edda;margin-top:2px}
+.bo-score-card span{font-size:10px;color:#8fa394}
+.bo-score-card.good b{color:#a8d69a}
+.bo-score-card.bad b{color:#e09a86}
+.bo-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bo-chip{font:700 9px/1 ui-monospace,monospace;letter-spacing:.6px;padding:4px 7px;border:1px solid #3e5551;border-radius:2px;color:#c8d3ba;background:#152b26}
+.bo-chip.good{color:#a8d69a;border-color:#5c7f57}
+.bo-chip.bad{color:#e09a86;border-color:#8a5b52}
+.bo-chip.gold{color:#f0cf94;border-color:#8a7748}
+
+/* Produce accordion used inside the run card. */
+.bo-run .fold{border:1px solid #2c4038!important;border-radius:2px!important;background:#152b26!important;margin:0!important;overflow:hidden}
+.bo-run .fold-head{background:#20372f!important;border:0!important;border-bottom:1px solid #2c4038!important;color:#f2edda!important;padding:10px 12px!important;font:700 9.5px/1.4 ui-monospace,monospace!important;letter-spacing:.7px!important}
+.bo-run .fold-body{padding:12px!important;background:#152b26!important}
+.bo-run .fold.open .fold-head{border-bottom-color:#3e5551!important}
+@media(max-width:640px){.bo-track-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.bo-track{grid-column:1 / -1;order:3}.bo-kpi b{font-size:14px}}
+
+/* Run card header, weekly ledger and callouts. */
+#app #view[data-screen="boxoffice"] .bo-run-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #2c4038}
+#app #view[data-screen="boxoffice"] .bo-run-head h3{font:500 22px/1.2 Georgia,serif;color:#f3e8cc;margin:5px 0 0}
+#app #view[data-screen="boxoffice"] .bo-run-stamp{display:grid;gap:2px;text-align:right}
+#app #view[data-screen="boxoffice"] .bo-run-stamp b{font:700 9.5px/1.4 ui-monospace,monospace;letter-spacing:.9px;color:#a8d69a}
+#app #view[data-screen="boxoffice"] .bo-run-stamp b.neg{color:#e09a86}
+#app #view[data-screen="boxoffice"] .bo-run-stamp span{font:600 11px/1.5 system-ui;color:#d8dcc8}
+#app #view[data-screen="boxoffice"] .bo-run-stamp small{font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692}
+.bo-weeks{display:grid;gap:0}
+.bo-weeks-head,.bo-weeks-row{display:grid;grid-template-columns:52px minmax(64px,1fr) 82px 92px 52px 74px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #22362f}
+.bo-weeks-head{border-bottom-color:#3e5551}
+.bo-weeks-head span{font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px;color:#7f9486}
+.bo-weeks-row{font:600 11.5px/1.4 ui-monospace,monospace;color:#e4dfc3;font-variant-numeric:tabular-nums}
+.bo-weeks-row span:first-child{color:#93a692}
+.bo-weeks-row span:nth-child(2){color:#f3e8cc}
+.bo-weeks-row .pos{color:#a8d69a}
+.bo-weeks-row .neg{color:#e09a86}
+.bo-weeks-open{font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.6px;color:#f0cf94}
+.bo-callout{border-left:2px solid #8a5b52;background:#241d1a;padding:10px 12px;border-radius:2px}
+.bo-callout b{font:700 9px/1.4 ui-monospace,monospace;letter-spacing:.9px;color:#e09a86}
+.bo-callout p{margin:4px 0 0;font-size:11px;line-height:1.6;color:#c8c0b4}
+@media(max-width:640px){.bo-weeks-head,.bo-weeks-row{grid-template-columns:44px minmax(58px,1fr) 66px 58px}.bo-weeks-head span:nth-child(4),.bo-weeks-row span:nth-child(4),.bo-weeks-head span:nth-child(5),.bo-weeks-row span:nth-child(5){display:none}}
+
+/* Produce dialog internals: grids of live-ops buttons, review quotes and the
+   dossier action strip. */
+#modalRoot .command-produce-modal .bo-review-quote{font:italic 400 13px/1.7 Georgia,serif;color:#e8e3ca;margin:6px 0 4px;padding-left:10px;border-left:2px solid #8a7748}
+#modalRoot .command-produce-modal .bo-track-row{grid-template-columns:minmax(0,1.1fr) minmax(60px,1.4fr) auto}
+#modalRoot .command-produce-modal .bo-track-label{font-size:11.5px}
+#modalRoot .command-produce-modal .produce-modal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px;margin-top:10px}
+#modalRoot .command-produce-modal .produce-modal-grid .produce-ghost{display:grid;gap:2px;justify-items:start;text-align:left;padding:10px 12px!important;min-height:0!important}
+#modalRoot .command-produce-modal .produce-modal-grid .produce-ghost b{font:600 11.5px/1.4 system-ui;color:#f3e8cc}
+#modalRoot .command-produce-modal .produce-modal-grid .produce-ghost small{font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692}
+#modalRoot .command-produce-modal .bo-dossier-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+#modalRoot .command-produce-modal .bo-kpis{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+#modalRoot .command-produce-modal .bo-score{margin-bottom:0}
+#modalRoot .command-produce-modal .bo-figure{background:#152b26}
+#modalRoot .command-produce-modal .pos{color:#a8d69a}
+#modalRoot .command-produce-modal .neg{color:#e09a86}
+@media(max-width:640px){
+  #modalRoot .command-produce-modal .produce-modal-body{padding:14px 16px 16px}
+  #modalRoot .command-produce-modal .produce-modal-actions{padding:12px 16px;flex-direction:column;align-items:stretch}
+  #modalRoot .command-produce-modal .bo-dossier-actions{justify-content:stretch}
+}
+
+/* Blitz campaign cards (shared by the box office module panel). */
+.bo-campaigns{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.bo-campaign{background:#1b312b;border:1px solid #3e5551;border-radius:2px;padding:13px 14px;display:grid;gap:8px;align-content:start}
+.bo-campaign header{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.bo-campaign h3{font:600 14px/1.3 Georgia,serif;color:#f3e8cc;margin:0}
+.bo-campaign-cost{font:700 9px/1 ui-monospace,monospace;letter-spacing:.6px;color:#f0cf94;border:1px solid #8a7748;border-radius:2px;padding:3px 6px;white-space:nowrap}
+.bo-campaign p{font-size:11px;line-height:1.6;color:#a9bda9;margin:0}
+.bo-campaign dl{display:flex;gap:16px;margin:0;flex-wrap:wrap}
+.bo-campaign dt{font:700 8px/1.4 ui-monospace,monospace;letter-spacing:.7px;color:#93a692;text-transform:uppercase}
+.bo-campaign dd{margin:2px 0 0;font:600 11px/1.4 system-ui;color:#e4dfc3}
+.bo-campaign-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #2c4038}
+.bo-campaign-foot p{font-size:11px;line-height:1.6;color:#93a692;margin:0;max-width:520px}
+
+/* ── Produce buttons on the box office desk ────────────────────────────────
+   .produce-action/.produce-ghost were only skinned under the productions
+   screen and inside #modalRoot, so every desk tool button here fell back to a
+   bare white <button>. Same skin, scoped to this desk. */
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action,
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-ghost,
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-campaign .produce-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:9px 16px;border-radius:3px;font:700 11px/1.3 system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;box-shadow:none!important;text-shadow:none!important;transform:none!important;background-image:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action{background:#edc47c!important;border:1px solid #edc47c!important;color:#24332e!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action:hover{background:#f3d597!important;border-color:#f3d597!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action:disabled{background:#3a4a3e!important;border-color:#4e6355!important;color:#93a28f!important;cursor:not-allowed}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-ghost{background:transparent!important;border:1px solid #4e6355!important;color:#e8e3ca!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-ghost:hover{background:#20372f!important;border-color:#8fa47c!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-release-actions{display:flex;flex-wrap:wrap;gap:8px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-release-actions .produce-action{flex:1 1 200px}
+#app #view[data-screen="boxoffice"] .bo-run-figures{align-items:start}
+#app #view[data-screen="boxoffice"] .bo-run-figures .bo-figure{display:grid;align-content:start}
+
+/* Competition desk: rival studios as produce cards. */
+.bo-rivals{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.bo-rival{background:#1b312b;border:1px solid #3e5551;border-radius:2px;padding:13px 14px;display:grid;gap:7px;align-content:start}
+.bo-rival header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.bo-rival h3{font:600 15px/1.3 Georgia,serif;margin:0}
+.bo-rival header small{display:block;font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692;margin-top:2px}
+.bo-rival .bo-track-val{font:600 13px/1.3 ui-monospace,monospace;color:#f3e8cc;text-align:right}
+.bo-rival .bo-track-val small{display:block;font-size:8.5px;color:#93a692;letter-spacing:.7px}
+.bo-rival-line{display:flex;justify-content:space-between;gap:10px;margin:0;font:600 10.5px/1.6 system-ui;color:#a9bda9;border-bottom:1px solid #22362f;padding-bottom:5px}
+.bo-rival-line span{color:#7f9486;text-transform:uppercase;font:700 8.5px/1.6 ui-monospace,monospace;letter-spacing:.6px}
+.bo-rival-line b{text-align:right;font-weight:600;color:#e4dfc3}
+.bo-rival-line b.pos{color:#a8d69a}
+.bo-rival-line b.neg{color:#e09a86}
+.bo-rival-slate{margin:0;font:600 10px/1.6 ui-monospace,monospace;color:#8fa394}
+.bo-rival-slate b{color:#c8d3ba}
+@media(min-width:900px){
+  #modalRoot .command-produce-modal .bo-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  #modalRoot .command-produce-modal .bo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
