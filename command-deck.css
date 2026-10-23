@@ -1478,3 +1478,558 @@
   .produce-brief h2{font-size:22px}
   .produce-tools button{min-height:56px;padding:10px}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BOX OFFICE DESK — the market tab under Story Department rules.
+   One header, one numbered rail, produce panels inside. Legacy module
+   interiors (chains/PLF/blitz/awards) are re-skinned in place so their IDs,
+   data attributes and bindings survive untouched.
+   ═══════════════════════════════════════════════════════════════════════ */
+#app #view[data-screen="boxoffice"]{max-width:1640px!important;background:#142625!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice{text-align:left;--prod-panel:#20372f;--prod-line:#4e6355;--prod-soft:#2a443a;--prod-scrim:#142a26}
+#app #view[data-screen="boxoffice"] .command-boxoffice .command-heading h1{max-width:26ch}
+#app #view[data-screen="boxoffice"] .command-boxoffice .command-edition{margin-bottom:10px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .command-metric{border-right:1px solid #3e5551}
+#app #view[data-screen="boxoffice"] .command-boxoffice .command-metric strong{font-size:clamp(19px,2vw,26px);overflow-wrap:anywhere}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel{margin-bottom:18px}
+/* Weekend chart */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart{padding:4px 20px 10px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-row{display:grid;grid-template-columns:36px minmax(0,1.15fr) minmax(90px,1fr) 92px;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #2c4038}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-row:last-child{border-bottom:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-rank{font:11px ui-monospace,monospace;color:#789384;letter-spacing:1px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-name{min-width:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-name b{display:block;font:500 16px Georgia,serif;color:#f3e8cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-name small{font:9px ui-monospace,monospace;letter-spacing:.5px;color:#93a692}
+.command-boxoffice .bo-chart-bar{height:12px;background:#132722;border:1px solid #2c4038;border-radius:2px;overflow:hidden;display:block}
+.command-boxoffice .bo-chart-bar i{min-width:4px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-bar i{display:block;height:100%;background:#7f9470}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-row.mine .bo-chart-bar i{background:linear-gradient(90deg,#edc47c,#d6ad63)}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-row.mine .bo-chart-name b{color:#f7e4b8}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-gross{font:600 12px ui-monospace,monospace;color:#e4dfc3;text-align:right}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 20px 14px;border-top:1px solid #2c4038;font:9px ui-monospace,monospace;letter-spacing:1px;color:#93a692}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-foot b{color:#c3cba5;font-weight:600;letter-spacing:.4px}
+/* Rivals, chains, runs */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-actions{padding:12px 20px 0;margin:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-note{margin:8px 20px 0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-rivals{padding-top:14px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chains{padding-top:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card{background:#1b312b;border:1px solid var(--prod-line);border-top:3px solid #7f9470;border-radius:2px;padding:16px;display:grid;gap:10px;align-content:start}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card h3{font:500 17px Georgia,serif;color:#f3e8cc;margin:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card header small{font:9px ui-monospace,monospace;color:#93a692}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-rel{font:700 10px ui-monospace,monospace;color:#cfe0c0;border:1px solid var(--prod-line);border-radius:2px;padding:4px 7px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-rel.good{color:#b6dba8;border-color:#5c7f57}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-rel.bad{color:#e9a99a;border-color:#8a5b52}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card p{font-size:11px;line-height:1.7;color:#a9bda9;margin:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card dl{display:grid;gap:6px;margin:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card dl div{display:flex;justify-content:space-between;gap:10px;font-size:11px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card dt{color:#93a692}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card dd{color:#f2edda;margin:0;font-weight:600}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chain-card .produce-ghost{width:100%}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-runs{padding:16px 20px 20px;display:grid;gap:14px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-runs .bo-run{margin:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .stat-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;background:transparent;border:0;padding:0;margin-top:8px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .stat{background:#152b26!important;background-image:none!important;border:1px solid #2c4038!important;border-radius:2px!important;box-shadow:none!important;padding:10px 12px!important;transform:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .stat::before{display:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .stat:hover{transform:none!important;border-color:#3e5551!important;box-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .stat .s-v{font:600 16px Georgia,serif!important;color:#f2edda;font-variant-numeric:tabular-nums}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .stat .s-l{font:9px ui-monospace,monospace!important;letter-spacing:.5px!important;color:#93a692!important;text-transform:none!important;margin-top:3px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .cost-line{border-color:#2c4038}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .weekly-gross-chart{background:#132722!important;border:1px solid #2c4038;border-radius:2px;padding:6px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-empty{padding:26px;background:#1b312b;border:1px dashed var(--prod-line);border-radius:2px;margin:16px 20px;text-align:center}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-empty b{font:500 16px Georgia,serif;color:#f3e8cc}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-empty p{font-size:11px;line-height:1.7;color:#9fb0a2;margin:6px 0 0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-empty .produce-action{margin-top:12px}
+/* Library */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-lib{padding:0 20px 20px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-lib-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:16px 0 12px;flex-wrap:wrap}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-lib-head h2{font:500 20px Georgia,serif;color:#f2edda;margin:6px 0 0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library{display:grid;gap:0;border:1px solid var(--prod-line);border-radius:2px;overflow:hidden;background:#1b312b}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;padding:14px 16px;border-bottom:1px solid #2c4038;background:transparent!important;border-radius:0!important;box-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-row:last-child{border-bottom:0}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-row:hover{background:#20372f!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-row.sel{box-shadow:inset 3px 0 0 #edc47c!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-head b{font:500 16px Georgia,serif;color:#f3e8cc}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-breakdown-badge{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0;font:10px ui-monospace,monospace;color:#93a692}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-side{text-align:right}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-side>b{font:600 14px ui-monospace,monospace}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-head input[type=checkbox]{accent-color:#edc47c}
+/* Module re-skin: chains, PLF, blitz, awards, territories, corridor */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module{padding:0 20px 20px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .section-title::before,#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .section-title::after{content:none!important;display:none!important;background:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .section-title{font:500 18px Georgia,serif!important;color:#f2edda!important;margin:16px 0 10px!important;background:transparent!important;border:0!important;border-left:2px solid #8a7748!important;padding:0 0 0 10px!important;box-shadow:none!important;text-transform:none!important;letter-spacing:0!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .card{background:#1b312b!important;background-image:none!important;border:1px solid var(--prod-line)!important;border-radius:2px!important;box-shadow:none!important;padding:14px!important;color:#e4dfc3!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .card b{color:#f3e8cc!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .card .tiny,#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .card .muted{color:#a9bda9!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .grid{gap:10px!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .btn{background:#203b2c!important;background-image:none!important;border:1px solid #4d6549!important;border-radius:2px!important;color:#e4dfc3!important;font:600 10px/1.3 system-ui!important;min-height:34px!important;box-shadow:none!important;text-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .btn-primary{background:#edc47c!important;border-color:#edc47c!important;color:#24332e!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .btn-alt:hover,#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .btn:hover{background:#2a443a!important;border-color:#8fa47c!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .tag{background:#2a443a!important;border:1px solid #4e6355!important;color:#cfd8c2!important;border-radius:2px!important;font:700 9px/1.7 ui-monospace,monospace!important;letter-spacing:.6px!important;padding:1px 6px!important;text-transform:none!important;box-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .tag.gold{color:#f0cf94!important;border-color:#8a7748!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .tag.purple{color:#c3b4e6!important;border-color:#6a5c8a!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .cost-line{border-bottom:1px solid #2c4038}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .fold{border:1px solid var(--prod-line)!important;border-radius:2px!important;background:#1b312b!important;margin:0 0 12px!important;overflow:hidden}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .fold-head{background:#20372f!important;color:#f2edda!important;padding:12px 14px!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .fold-body{padding:12px 14px!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .spread>.card.spread{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:12px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-corridor .card{padding:10px 6px!important;text-align:center;background:#152b26!important;border-color:#2c4038!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-corridor .grid{grid-template-columns:repeat(auto-fit,minmax(78px,1fr))!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-territories .card,#app #view[data-screen="boxoffice"] .command-boxoffice .bo-clash .card{background:#1b312b!important}
+/* Forward corridor — twelve weekend cells */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekends{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:16px 20px 20px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-rivals{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+/* Rival dossiers wear the same flat paper as the rest of the desk. bow-restyle
+   ships these cards with !important gradients and a heavy bottom edge, so each
+   property is re-stated here with a deeper scope. */
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card{background:#1b312b!important;background-image:none!important;border:1px solid #4e6355!important;border-left:3px solid #4e6355!important;border-radius:2px!important;box-shadow:none!important;padding:16px!important;color:#e4dfc3!important;transform:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card:hover{background:#20372f!important;border-color:#718a60!important;transform:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card b{font-family:Georgia,serif!important;font-weight:500!important;font-size:16px!important;color:#f3e8cc!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .tiny{font:10px/1.8 ui-monospace,monospace!important;color:#93a692!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .cost-line{border:0!important;border-bottom:1px solid #2c4038!important;border-radius:0!important;padding:5px 0!important;background:transparent!important;box-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .cost-line:hover{background:transparent!important;box-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .cost-line span{color:#93a692!important;font:10px system-ui!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .cost-line b{font:600 10px ui-monospace,monospace!important;color:#cfd8c2!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .cost-line b.pos{color:#b6dba8!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .cost-line b.neg{color:#e9a99a!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .tag{background:#2a443a!important;border:1px solid #4e6355!important;color:#cfd8c2!important;font:700 9px ui-monospace,monospace!important;border-radius:2px!important;padding:1px 6px!important;text-transform:none!important;box-shadow:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel .bo-rivals .rival-card .tag.gold{color:#f0cf94!important;border-color:#8a7748!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .command-nav-tools{flex-wrap:wrap}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend{background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:10px;display:grid;gap:3px;text-align:center}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend.peak{background:#1f3a32;border-color:#8a7748}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend small{font:9px ui-monospace,monospace;letter-spacing:.7px;color:#93a692}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend b{font:600 15px Georgia,serif;color:#f2edda}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend.peak b{color:#edc47c}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend span{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;min-height:13px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend em{font:8px ui-monospace,monospace;letter-spacing:.4px;font-style:normal;border:1px solid #3e5551;border-radius:2px;padding:1px 4px;color:#c3cba5}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend em.mine{color:#edc47c;border-color:#8a7748}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend em.rivals{color:#e9a99a;border-color:#8a5b52}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekend em.open{color:#93a692;border-style:dashed}
+/* Folds inside live runs keep the produce skin */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .fold{border:1px solid #2c4038;border-radius:2px;background:#152b26;margin-top:6px;overflow:hidden}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .fold-head{background:#20372f;color:#e4dfc3;padding:10px 12px;font-size:11px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .fold-body{padding:10px 12px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .section-title{color:#f2edda;border-left:2px solid #8a7748;padding-left:8px;font:600 13px system-ui}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .btn-ghost{background:transparent!important;border:1px solid #4e6355!important;color:#e8e3ca!important;border-radius:2px!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-run .btn-primary{background:#edc47c!important;border-color:#edc47c!important;color:#24332e!important;border-radius:2px!important}
+@media(max-width:1560px){
+  #app #view[data-screen="boxoffice"] .command-boxoffice-nav{flex-wrap:wrap;gap:10px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice-nav .command-nav-items{order:3;flex-basis:100%}
+}
+@media(max-width:1100px){#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekends{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:740px){#app #view[data-screen="boxoffice"] .command-boxoffice .bo-weekends{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px 14px 16px}}
+@media(max-width:900px){
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-row{grid-template-columns:26px minmax(0,1fr) 78px;gap:8px 10px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-rank{grid-row:1}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-gross{grid-row:1;grid-column:3}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-bar{grid-column:2 / span 2;grid-row:2;height:8px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-row{grid-template-columns:1fr}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-library .film-side{text-align:left;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-runs{padding:14px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-module{padding:0 14px 16px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-lib{padding:0 14px 16px}
+}
+@media(max-width:740px){
+  #app #view[data-screen="boxoffice"] .command-boxoffice{padding:14px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .command-heading h1{font-size:26px;max-width:none}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart{padding:2px 14px 6px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-actions{padding:10px 14px 0}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-empty{margin:14px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .bo-foot{padding:10px 14px 12px}
+}
+@media(max-width:900px) and (orientation:landscape){
+  #app #view[data-screen="boxoffice"] .command-boxoffice{padding:16px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .command-heading{margin-bottom:14px}
+  #app #view[data-screen="boxoffice"] .command-boxoffice .command-heading h1{font-size:25px}
+}
+
+/* ── Platform rebrand: the OTT dialog inside the command-produce shell ── */
+#modalRoot .command-produce-modal .bo-rebrand-label{display:block;font:9px ui-monospace,monospace;letter-spacing:1.3px;color:#93a692;margin:0 0 8px}
+#modalRoot .command-produce-modal .bo-rebrand-input{display:block;width:100%;box-sizing:border-box;min-height:46px;padding:12px 13px!important;background:#122823!important;background-image:none!important;border:1px solid #4e6355!important;border-radius:3px!important;color:#f3e8cc!important;font:16px/1.3 system-ui!important;outline:none!important;box-shadow:none!important}
+#modalRoot .command-produce-modal .bo-rebrand-input:focus{border-color:#edc47c!important;box-shadow:0 0 0 2px #edc47c33!important}
+#modalRoot .command-produce-modal .bo-rebrand-input.invalid{border-color:#a3675c!important;box-shadow:0 0 0 2px #a3675c33!important}
+#modalRoot .command-produce-modal .bo-rebrand-error{font:11px/1.6 system-ui;color:#e9a99a;margin:10px 0 0;border-left:2px solid #8a5b52;padding-left:9px}
+#modalRoot .command-produce-modal .bo-rebrand-meta{font:10px ui-monospace,monospace;letter-spacing:.5px;color:#93a692;margin:10px 0 0}
+#modalRoot .command-produce-modal .bo-rebrand-note{font:10px ui-monospace,monospace;letter-spacing:.6px;color:#93a692}
+#modalRoot .command-produce-modal .produce-modal-actions .row{gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#modalRoot .command-produce-modal .produce-modal-card h4{font:600 13px Georgia,serif;color:#f3e8cc;margin:0 0 6px}
+/* The rebrand entry point sits on the platform card it rebrands. */
+#app .bo-platform-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#app .bo-platform-head .section-title{margin:0}
+#app .bo-rebrand-btn{display:inline-flex;align-items:center;gap:5px;background:transparent!important;border:1px solid #4e6355!important;border-radius:2px!important;color:#e8e3ca!important;font:600 10px/1.3 system-ui!important;padding:6px 10px!important;min-height:34px;cursor:pointer;box-shadow:none!important}
+#app .bo-rebrand-btn:hover{background:#2a443a!important;border-color:#8fa47c!important;color:#fff3da!important}
+#app .bo-rebrand-btn:focus-visible{outline:2px solid #edc47c;outline-offset:2px}
+@media(max-width:740px){#app .bo-platform-head{align-items:flex-start}#app .bo-rebrand-btn{min-height:38px}}
+
+/* ── Weekend grosses report (box office desk → daily/weekly tool) ── */
+#modalRoot .command-produce-modal .bo-weekend-report-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:14px;cursor:pointer;transition:background .12s}
+#modalRoot .command-produce-modal .bo-weekend-report-row:hover{background:#20372f!important;border-color:#718a60!important}
+#modalRoot .command-produce-modal .bo-weekend-report-row .bo-rank{font:11px ui-monospace,monospace;letter-spacing:1px;color:#789384}
+#modalRoot .command-produce-modal .bo-weekend-report-row h4{margin:0 0 3px}
+#modalRoot .command-produce-modal .bo-weekend-report-row p{margin:0}
+#modalRoot .command-produce-modal .bo-weekend-report-gross{font:600 14px ui-monospace,monospace;color:#edc47c;white-space:nowrap}
+@media(max-width:640px){
+  #modalRoot .command-produce-modal .bo-weekend-report-row{grid-template-columns:26px minmax(0,1fr);gap:10px}
+  #modalRoot .command-produce-modal .bo-weekend-report-gross{grid-column:2;justify-self:start}
+}
+
+/* ── Festival circuit dialog: real pickers instead of a prompt() ── */
+#modalRoot .command-produce-modal .bo-fest-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+#modalRoot .command-produce-modal .bo-fest-pick{flex:1 1 220px;min-width:0;min-height:38px;padding:8px 10px!important;background:#122823!important;background-image:none!important;border:1px solid #4e6355!important;border-radius:3px!important;color:#f3e8cc!important;font:12px system-ui!important;outline:none!important;box-shadow:none!important}
+#modalRoot .command-produce-modal .bo-fest-pick:focus{border-color:#edc47c!important;box-shadow:0 0 0 2px #edc47c33!important}
+#modalRoot .command-produce-modal .bo-fest-pick option{background:#122823;color:#f3e8cc}
+@media(max-width:640px){#modalRoot .command-produce-modal .bo-fest-actions .produce-action{width:100%}}
+
+/* ── Mobile section strip ──────────────────────────────────────────────────
+   #subTabs is the phone-only strip for the screens that still use it. Its
+   buttons are nowrap, so letting flex shrink them made long labels overlap
+   and clip ("atrica | ega-cl | conce"). Keep their natural width and let the
+   strip scroll, as the pill rules already assume. */
+#subTabs .subtab-btn{flex:0 0 auto}
+
+/* ── Box office figures ────────────────────────────────────────────────────
+   Shared chart furniture for the run card, the dossier and the review desk.
+   Every chart is inline SVG so it scales with the panel and stays legible
+   when the rail collapses to one column on a phone. */
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-svg{display:block;width:100%;height:auto;overflow:visible}
+.bo-figure{margin:0;background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:12px 14px 10px}
+.bo-figure-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.bo-figure-head b{font:700 9px/1.4 ui-monospace,monospace;letter-spacing:.9px;text-transform:uppercase;color:#93a692}
+.bo-figure-head span{font:600 11px/1.4 system-ui;color:#f3e8cc;font-variant-numeric:tabular-nums}
+.bo-figure-cap{font-size:10.5px;line-height:1.6;color:#93a692;margin:6px 0 0}
+.bo-figure-cap b{color:#e4dfc3}
+.bo-run-figures{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px}
+@media(max-width:900px){.bo-run-figures{grid-template-columns:minmax(0,1fr)}}
+
+/* Split meter: two-tone proportion bar with a legend underneath. */
+.bo-split{display:grid;gap:8px}
+.bo-split-bar{display:flex;height:12px;border-radius:2px;overflow:hidden;background:#122823;border:1px solid #2c4038}
+.bo-split-seg{display:block;height:100%}
+.bo-legend{display:flex;flex-wrap:wrap;gap:6px 16px}
+.bo-legend-item{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1.4 system-ui;color:#a9bda9}
+.bo-legend-item i{width:8px;height:8px;border-radius:1px;display:inline-block}
+.bo-legend-item b{color:#f2edda;font-variant-numeric:tabular-nums}
+.bo-legend-item small{color:#93a692;font:600 9.5px ui-monospace,monospace}
+
+/* KPI strip inside a run card. */
+.bo-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+.bo-kpi{background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:9px 11px}
+.bo-kpi small{display:block;font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px;text-transform:uppercase;color:#93a692}
+.bo-kpi b{display:block;font:600 16px/1.3 Georgia,serif;color:#f2edda;margin-top:3px;font-variant-numeric:tabular-nums}
+.bo-kpi span{display:block;font-size:9.5px;line-height:1.4;color:#7f9486;margin-top:2px}
+.bo-kpi.good b{color:#a8d69a}
+.bo-kpi.bad b{color:#e09a86}
+
+/* Track rows: territory share, audience appeal, buzz. */
+.bo-track-rows{display:grid;gap:2px}
+.bo-track-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(60px,1.5fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #22362f}
+.bo-track-row:last-child{border-bottom:0}
+.bo-track-label{display:flex;align-items:center;gap:7px;min-width:0;font:600 12px/1.4 system-ui;color:#f2edda}
+.bo-track-label small{display:block;font:600 9.5px/1.4 ui-monospace,monospace;color:#93a692;letter-spacing:.3px}
+.bo-track{position:relative;height:6px;border-radius:2px;background:#122823;border:1px solid #2c4038;overflow:hidden}
+.bo-track i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#8a7748,#edc47c);border-radius:1px}
+.bo-track.teal i{background:linear-gradient(90deg,#3f6f63,#7fb3a2)}
+.bo-track.bad i{background:linear-gradient(90deg,#7a4438,#e09a86)}
+.bo-track-val{font:600 12px/1.4 ui-monospace,monospace;color:#f3e8cc;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.bo-track-val small{display:block;font-size:9.5px;color:#93a692}
+.bo-region-cities{font:600 10px/1.6 ui-monospace,monospace;color:#8fa394;padding:0 0 6px 24px}
+.bo-region-cities b{color:#c8d3ba;font-weight:700}
+
+/* Insight list (why is this performing this way). */
+.bo-why{display:grid;gap:1px}
+.bo-why-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #22362f;font-size:11.5px;line-height:1.6;color:#d8dcc8}
+.bo-why-row:last-child{border-bottom:0}
+.bo-why-mark{flex:0 0 auto;width:16px;height:16px;display:grid;place-items:center;border-radius:2px;font:700 10px/1 system-ui;margin-top:1px}
+.bo-why-row.up .bo-why-mark{background:#24402f;border:1px solid #5c7f57;color:#a8d69a}
+.bo-why-row.down .bo-why-mark{background:#3a2722;border:1px solid #8a5b52;color:#e09a86}
+
+/* Review split: critics vs audience, then the freshness meter. */
+.bo-score{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px}
+.bo-score-card{background:#152b26;border:1px solid #2c4038;border-radius:2px;padding:10px 12px}
+.bo-score-card small{display:block;font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px;text-transform:uppercase;color:#93a692}
+.bo-score-card b{display:block;font:600 22px/1.2 Georgia,serif;color:#f2edda;margin-top:2px}
+.bo-score-card span{font-size:10px;color:#8fa394}
+.bo-score-card.good b{color:#a8d69a}
+.bo-score-card.bad b{color:#e09a86}
+.bo-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bo-chip{font:700 9px/1 ui-monospace,monospace;letter-spacing:.6px;padding:4px 7px;border:1px solid #3e5551;border-radius:2px;color:#c8d3ba;background:#152b26}
+.bo-chip.good{color:#a8d69a;border-color:#5c7f57}
+.bo-chip.bad{color:#e09a86;border-color:#8a5b52}
+.bo-chip.gold{color:#f0cf94;border-color:#8a7748}
+
+/* Produce accordion used inside the run card. */
+.bo-run .fold{border:1px solid #2c4038!important;border-radius:2px!important;background:#152b26!important;margin:0!important;overflow:hidden}
+.bo-run .fold-head{background:#20372f!important;border:0!important;border-bottom:1px solid #2c4038!important;color:#f2edda!important;padding:10px 12px!important;font:700 9.5px/1.4 ui-monospace,monospace!important;letter-spacing:.7px!important}
+.bo-run .fold-body{padding:12px!important;background:#152b26!important}
+.bo-run .fold.open .fold-head{border-bottom-color:#3e5551!important}
+@media(max-width:640px){.bo-track-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.bo-track{grid-column:1 / -1;order:3}.bo-kpi b{font-size:14px}}
+
+/* Run card header, weekly ledger and callouts. */
+#app #view[data-screen="boxoffice"] .bo-run-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #2c4038}
+#app #view[data-screen="boxoffice"] .bo-run-head h3{font:500 22px/1.2 Georgia,serif;color:#f3e8cc;margin:5px 0 0}
+#app #view[data-screen="boxoffice"] .bo-run-stamp{display:grid;gap:2px;text-align:right}
+#app #view[data-screen="boxoffice"] .bo-run-stamp b{font:700 9.5px/1.4 ui-monospace,monospace;letter-spacing:.9px;color:#a8d69a}
+#app #view[data-screen="boxoffice"] .bo-run-stamp b.neg{color:#e09a86}
+#app #view[data-screen="boxoffice"] .bo-run-stamp span{font:600 11px/1.5 system-ui;color:#d8dcc8}
+#app #view[data-screen="boxoffice"] .bo-run-stamp small{font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692}
+.bo-weeks{display:grid;gap:0}
+.bo-weeks-head,.bo-weeks-row{display:grid;grid-template-columns:52px minmax(64px,1fr) 82px 92px 52px 74px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #22362f}
+.bo-weeks-head{border-bottom-color:#3e5551}
+.bo-weeks-head span{font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.8px;color:#7f9486}
+.bo-weeks-row{font:600 11.5px/1.4 ui-monospace,monospace;color:#e4dfc3;font-variant-numeric:tabular-nums}
+.bo-weeks-row span:first-child{color:#93a692}
+.bo-weeks-row span:nth-child(2){color:#f3e8cc}
+.bo-weeks-row .pos{color:#a8d69a}
+.bo-weeks-row .neg{color:#e09a86}
+.bo-weeks-open{font:700 8.5px/1.4 ui-monospace,monospace;letter-spacing:.6px;color:#f0cf94}
+.bo-callout{border-left:2px solid #8a5b52;background:#241d1a;padding:10px 12px;border-radius:2px}
+.bo-callout b{font:700 9px/1.4 ui-monospace,monospace;letter-spacing:.9px;color:#e09a86}
+.bo-callout p{margin:4px 0 0;font-size:11px;line-height:1.6;color:#c8c0b4}
+@media(max-width:640px){.bo-weeks-head,.bo-weeks-row{grid-template-columns:44px minmax(58px,1fr) 66px 58px}.bo-weeks-head span:nth-child(4),.bo-weeks-row span:nth-child(4),.bo-weeks-head span:nth-child(5),.bo-weeks-row span:nth-child(5){display:none}}
+
+/* Produce dialog internals: grids of live-ops buttons, review quotes and the
+   dossier action strip. */
+#modalRoot .command-produce-modal .bo-review-quote{font:italic 400 13px/1.7 Georgia,serif;color:#e8e3ca;margin:6px 0 4px;padding-left:10px;border-left:2px solid #8a7748}
+#modalRoot .command-produce-modal .bo-track-row{grid-template-columns:minmax(0,1.1fr) minmax(60px,1.4fr) auto}
+#modalRoot .command-produce-modal .bo-track-label{font-size:11.5px}
+#modalRoot .command-produce-modal .produce-modal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px;margin-top:10px}
+#modalRoot .command-produce-modal .produce-modal-grid .produce-ghost{display:grid;gap:2px;justify-items:start;text-align:left;padding:10px 12px!important;min-height:0!important}
+#modalRoot .command-produce-modal .produce-modal-grid .produce-ghost b{font:600 11.5px/1.4 system-ui;color:#f3e8cc}
+#modalRoot .command-produce-modal .produce-modal-grid .produce-ghost small{font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692}
+#modalRoot .command-produce-modal .bo-dossier-actions{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+#modalRoot .command-produce-modal .bo-kpis{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))}
+#modalRoot .command-produce-modal .bo-score{margin-bottom:0}
+#modalRoot .command-produce-modal .bo-figure{background:#152b26}
+#modalRoot .command-produce-modal .pos{color:#a8d69a}
+#modalRoot .command-produce-modal .neg{color:#e09a86}
+@media(max-width:640px){
+  #modalRoot .command-produce-modal .produce-modal-body{padding:14px 16px 16px}
+  #modalRoot .command-produce-modal .produce-modal-actions{padding:12px 16px;flex-direction:column;align-items:stretch}
+  #modalRoot .command-produce-modal .bo-dossier-actions{justify-content:stretch}
+}
+
+/* Blitz campaign cards (shared by the box office module panel). */
+.bo-campaigns{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.bo-campaign{background:#1b312b;border:1px solid #3e5551;border-radius:2px;padding:13px 14px;display:grid;gap:8px;align-content:start}
+.bo-campaign header{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.bo-campaign h3{font:600 14px/1.3 Georgia,serif;color:#f3e8cc;margin:0}
+.bo-campaign-cost{font:700 9px/1 ui-monospace,monospace;letter-spacing:.6px;color:#f0cf94;border:1px solid #8a7748;border-radius:2px;padding:3px 6px;white-space:nowrap}
+.bo-campaign p{font-size:11px;line-height:1.6;color:#a9bda9;margin:0}
+.bo-campaign dl{display:flex;gap:16px;margin:0;flex-wrap:wrap}
+.bo-campaign dt{font:700 8px/1.4 ui-monospace,monospace;letter-spacing:.7px;color:#93a692;text-transform:uppercase}
+.bo-campaign dd{margin:2px 0 0;font:600 11px/1.4 system-ui;color:#e4dfc3}
+.bo-campaign-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #2c4038}
+.bo-campaign-foot p{font-size:11px;line-height:1.6;color:#93a692;margin:0;max-width:520px}
+
+/* ── Produce buttons on the box office desk ────────────────────────────────
+   .produce-action/.produce-ghost were only skinned under the productions
+   screen and inside #modalRoot, so every desk tool button here fell back to a
+   bare white <button>. Same skin, scoped to this desk. */
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action,
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-ghost,
+#app #view[data-screen="boxoffice"] .command-boxoffice .bo-campaign .produce-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:9px 16px;border-radius:3px;font:700 11px/1.3 system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;box-shadow:none!important;text-shadow:none!important;transform:none!important;background-image:none!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action{background:#edc47c!important;border:1px solid #edc47c!important;color:#24332e!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action:hover{background:#f3d597!important;border-color:#f3d597!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-action:disabled{background:#3a4a3e!important;border-color:#4e6355!important;color:#93a28f!important;cursor:not-allowed}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-ghost{background:transparent!important;border:1px solid #4e6355!important;color:#e8e3ca!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-ghost:hover{background:#20372f!important;border-color:#8fa47c!important}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-release-actions{display:flex;flex-wrap:wrap;gap:8px}
+#app #view[data-screen="boxoffice"] .command-boxoffice .produce-release-actions .produce-action{flex:1 1 200px}
+#app #view[data-screen="boxoffice"] .bo-run-figures{align-items:start}
+#app #view[data-screen="boxoffice"] .bo-run-figures .bo-figure{display:grid;align-content:start}
+
+/* Competition desk: rival studios as produce cards. */
+.bo-rivals{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.bo-rival{background:#1b312b;border:1px solid #3e5551;border-radius:2px;padding:13px 14px;display:grid;gap:7px;align-content:start}
+.bo-rival header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.bo-rival h3{font:600 15px/1.3 Georgia,serif;margin:0}
+.bo-rival header small{display:block;font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692;margin-top:2px}
+.bo-rival .bo-track-val{font:600 13px/1.3 ui-monospace,monospace;color:#f3e8cc;text-align:right}
+.bo-rival .bo-track-val small{display:block;font-size:8.5px;color:#93a692;letter-spacing:.7px}
+.bo-rival-line{display:flex;justify-content:space-between;gap:10px;margin:0;font:600 10.5px/1.6 system-ui;color:#a9bda9;border-bottom:1px solid #22362f;padding-bottom:5px}
+.bo-rival-line span{color:#7f9486;text-transform:uppercase;font:700 8.5px/1.6 ui-monospace,monospace;letter-spacing:.6px}
+.bo-rival-line b{text-align:right;font-weight:600;color:#e4dfc3}
+.bo-rival-line b.pos{color:#a8d69a}
+.bo-rival-line b.neg{color:#e09a86}
+.bo-rival-slate{margin:0;font:600 10px/1.6 ui-monospace,monospace;color:#8fa394}
+.bo-rival-slate b{color:#c8d3ba}
+@media(min-width:900px){
+  #modalRoot .command-produce-modal .bo-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  #modalRoot .command-produce-modal .bo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ── Event ticker (toasts) ─────────────────────────────────────────────────
+   The old ticker was the pre-redesign pixel skin: 2px borders, a 4px base
+   drop and a gradient body. It also stacked an unbounded column over the
+   dialog it was reporting on. Now: one quiet panel, a thin tone rail, and a
+   tidy column that never grows past four. */
+#toasts{gap:8px;pointer-events:none}
+#toasts .toast{
+  background:#182e28!important;background-image:none!important;
+  border:1px solid #3e5551!important;border-left:2px solid #edc47c!important;border-radius:2px!important;
+  color:#e8e3ca!important;
+  padding:10px 13px!important;
+  font:600 11.5px/1.55 system-ui,sans-serif!important;
+  letter-spacing:.1px;
+  max-width:340px!important;min-width:0;
+  box-shadow:0 8px 22px -12px rgba(0,0,0,.9)!important;
+  backdrop-filter:none!important;
+}
+#toasts .toast.good{border-left-color:#7fb86a!important}
+#toasts .toast.bad{border-left-color:#c9705c!important}
+#toasts .toast.gold{border-left-color:#edc47c!important}
+#toasts .toast::after{height:1px!important;background:linear-gradient(90deg,#8a7748,transparent)!important}
+#toasts .toast.good::after{background:linear-gradient(90deg,#5c7f57,transparent)!important}
+#toasts .toast.bad::after{background:linear-gradient(90deg,#8a5b52,transparent)!important}
+@media(max-width:520px){
+  #toasts .toast{max-width:calc(100vw - 24px)!important;font-size:11px!important}
+}
+
+/* Produce dialog helpers used by the weekly report and blitz command. */
+#modalRoot .command-produce-modal .bo-news{display:grid;gap:0}
+#modalRoot .command-produce-modal .bo-news-row{padding:7px 0;border-bottom:1px solid #22362f;font-size:11.5px;line-height:1.6;color:#d8dcc8}
+#modalRoot .command-produce-modal .bo-news-row:last-child{border-bottom:0}
+#modalRoot .command-produce-modal .bo-week-jump{display:flex;flex-wrap:wrap;gap:7px}
+#modalRoot .command-produce-modal .bo-week-jump .produce-ghost{min-height:34px;padding:7px 12px!important}
+#modalRoot .command-produce-modal .produce-modal-head h3.pos{color:#a8d69a}
+#modalRoot .command-produce-modal .produce-modal-head h3.neg{color:#e09a86}
+#modalRoot .command-produce-modal .bo-blitz-projects{display:grid;gap:10px}
+#modalRoot .command-produce-modal .bo-blitz-project{background:#1b312b;border:1px solid #3e5551;border-radius:2px;padding:14px 16px;display:grid;gap:10px}
+#modalRoot .command-produce-modal .bo-blitz-project header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+#modalRoot .command-produce-modal .bo-blitz-project h4{font:600 15px/1.3 Georgia,serif;color:#f3e8cc;margin:0}
+#modalRoot .command-produce-modal .bo-blitz-project header small{display:block;font:700 8.5px/1.6 ui-monospace,monospace;letter-spacing:.7px;color:#93a692;margin-top:3px}
+#modalRoot .command-produce-modal .bo-blitz-rows{display:grid;gap:0}
+#modalRoot .command-produce-modal .bo-blitz-frames{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+#modalRoot .command-produce-modal .bo-blitz-frames .bo-chip{white-space:nowrap}
+#modalRoot .command-produce-modal .bo-blitz-project .produce-modal-grid{margin-top:0}
+#modalRoot .command-produce-modal .bo-blitz-project .produce-modal-grid .produce-ghost b{font-size:11px}
+@media(max-width:640px){
+  #modalRoot .command-produce-modal .bo-blitz-project{padding:12px}
+  #modalRoot .command-produce-modal .bo-blitz-frames{justify-content:flex-start}
+}
+
+/* Campaign cards keep their own type scale inside a produce dialog: the
+   dialog's h3 rule would otherwise blow the titles up to display size. */
+#modalRoot .command-produce-modal .bo-campaign h3{font:600 13.5px/1.35 Georgia,serif!important;color:#f3e8cc!important;margin:0!important}
+#modalRoot .command-produce-modal .bo-campaign{padding:12px 13px}
+#modalRoot .command-produce-modal .bo-campaign p{font-size:10.5px;line-height:1.6}
+#modalRoot .command-produce-modal .bo-campaign-foot p{font-size:11px}
+#modalRoot .command-produce-modal .bo-campaigns{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+/* The cash delta already carries its own sign — no second arrow from .pos. */
+#modalRoot .command-produce-modal .produce-modal-head h3.pos::after,
+#modalRoot .command-produce-modal .produce-modal-head h3.neg::after{content:none!important}
+
+/* ── Produce chrome for every remaining dialog ─────────────────────────────
+   Most dialogs still on the pre-redesign surface (finance sheets, franchise
+   desks, settings, achievements, year-end reports, test screenings…) share
+   one vocabulary: .card + .cost-line + .section-title + .btn. Rather than
+   rewriting ~100 call sites, they all receive .command-legacy-modal and this
+   layer repaints that vocabulary in the produce palette. Dialogs that already
+   opt into a command skin (pitch, verdict, inbox, produce, develop, management)
+   are untouched. */
+#modalRoot .modal.command-legacy-modal{background:#122823!important;background-image:none!important;border:1px solid #627360!important;border-radius:6px!important;padding:0!important;overflow:hidden!important;font-family:system-ui,sans-serif!important;box-shadow:0 24px 70px #0009!important}
+#modalRoot .modal.command-legacy-modal>.modal-head{background:#14251e!important;background-image:none!important;border:0!important;border-bottom:1px solid #2c4038!important;border-radius:0!important;padding:9px 16px!important;margin:0!important;min-height:40px;box-shadow:none!important}
+#modalRoot .modal.command-legacy-modal>.modal-head .modal-x{background:#152b26!important;border:1px solid #4e6355!important;border-radius:2px!important;color:#e8e3ca!important;box-shadow:none!important;width:28px;height:28px}
+#modalRoot .modal.command-legacy-modal>.modal-head .modal-x:hover{background:#20372f!important;border-color:#8fa47c!important}
+/* Body rhythm: legacy dialogs assumed the old .modal padding. */
+#modalRoot .modal.command-legacy-modal>h2,
+#modalRoot .modal.command-legacy-modal>h3,
+#modalRoot .modal.command-legacy-modal>p,
+#modalRoot .modal.command-legacy-modal>.card,
+#modalRoot .modal.command-legacy-modal>.section-title,
+#modalRoot .modal.command-legacy-modal>.tiny,
+#modalRoot .modal.command-legacy-modal>.small,
+#modalRoot .modal.command-legacy-modal>.modal-actions,
+#modalRoot .modal.command-legacy-modal>.row,
+#modalRoot .modal.command-legacy-modal>.plan-pick,
+#modalRoot .modal.command-legacy-modal>div:not(.modal-head):not(.card):not(.modal-actions){margin-left:24px!important;margin-right:24px!important}
+#modalRoot .modal.command-legacy-modal>h2,
+#modalRoot .modal.command-legacy-modal>h3{font:600 20px/1.25 Georgia,serif!important;color:#f2edda!important;margin-top:22px!important;margin-bottom:8px!important}
+#modalRoot .modal.command-legacy-modal>h3:first-of-type,
+#modalRoot .modal.command-legacy-modal>h2:first-of-type{margin-top:20px!important}
+#modalRoot .modal.command-legacy-modal>p{font-size:12px!important;line-height:1.7!important;color:#a9bda9!important}
+#modalRoot .modal.command-legacy-modal>.card:first-of-type{margin-top:14px!important}
+#modalRoot .modal.command-legacy-modal>.card{margin-top:10px!important;margin-bottom:0!important}
+#modalRoot .modal.command-legacy-modal>.modal-actions{margin-top:18px!important;margin-bottom:20px!important;display:flex!important;flex-wrap:wrap;gap:8px}
+/* Cards inside a legacy dialog become produce panels. */
+#modalRoot .modal.command-legacy-modal .card{background:#1b312b!important;background-image:none!important;border:1px solid #3e5551!important;border-radius:3px!important;box-shadow:none!important;padding:14px 16px!important;color:#e4dfc3!important}
+#modalRoot .modal.command-legacy-modal .card b{color:#f3e8cc}
+#modalRoot .modal.command-legacy-modal .card .tiny,
+#modalRoot .modal.command-legacy-modal .card .muted{color:#93a692!important}
+/* Section titles keep the produce rail, never the dotted legacy rules. */
+#modalRoot .modal.command-legacy-modal .section-title{background:transparent!important;background-image:none!important;border:0!important;border-left:2px solid #8a7748!important;border-radius:0!important;box-shadow:none!important;color:#f2edda!important;font:500 16px/1.4 Georgia,serif!important;letter-spacing:0!important;text-transform:none!important;padding:0 0 0 10px!important;margin:18px 0 10px!important}
+#modalRoot .modal.command-legacy-modal .section-title::before,
+#modalRoot .modal.command-legacy-modal .section-title::after{content:none!important;display:none!important;background:none!important;border:0!important}
+/* Divider rows. */
+#modalRoot .modal.command-legacy-modal .cost-line{border-bottom:1px solid #22362f!important;padding:7px 0!important;font-size:11.5px!important;color:#d8dcc8!important}
+#modalRoot .modal.command-legacy-modal .cost-line:last-child{border-bottom:0!important}
+#modalRoot .modal.command-legacy-modal .cost-line>span:first-child{color:#a9bda9}
+#modalRoot .modal.command-legacy-modal .cost-line b{color:#f2edda;font-variant-numeric:tabular-nums}
+#modalRoot .modal.command-legacy-modal .cost-line b.pos{color:#a8d69a}
+#modalRoot .modal.command-legacy-modal .cost-line b.neg{color:#e09a86}
+/* Buttons: gold primary, quiet secondary, square corners. */
+#modalRoot .modal.command-legacy-modal .btn{background:#203b2c!important;background-image:none!important;border:1px solid #4d6549!important;border-radius:3px!important;color:#e4dfc3!important;font:600 11px/1.3 system-ui,sans-serif!important;min-height:36px!important;box-shadow:none!important;text-shadow:none!important;letter-spacing:.2px;padding:9px 14px!important}
+#modalRoot .modal.command-legacy-modal .btn:hover{background:#2a443a!important;border-color:#8fa47c!important}
+#modalRoot .modal.command-legacy-modal .btn-primary{background:#edc47c!important;border-color:#edc47c!important;color:#24332e!important}
+#modalRoot .modal.command-legacy-modal .btn-primary:hover{background:#f3d597!important;border-color:#f3d597!important}
+#modalRoot .modal.command-legacy-modal .btn-ghost,
+#modalRoot .modal.command-legacy-modal .btn-alt{background:transparent!important;border-color:#4e6355!important;color:#e8e3ca!important}
+#modalRoot .modal.command-legacy-modal .btn-ghost:hover,
+#modalRoot .modal.command-legacy-modal .btn-alt:hover{background:#20372f!important;border-color:#8fa47c!important}
+#modalRoot .modal.command-legacy-modal .btn:disabled,
+#modalRoot .modal.command-legacy-modal .btn-disabled{background:#2a3a33!important;border-color:#3e5551!important;color:#93a28f!important;cursor:not-allowed}
+#modalRoot .modal.command-legacy-modal .modal-actions .btn-primary{flex:1 1 auto}
+/* Tags, chips and stat tiles. */
+#modalRoot .modal.command-legacy-modal .tag{background:#2a443a!important;background-image:none!important;border:1px solid #4e6355!important;border-radius:2px!important;color:#cfd8c2!important;font:700 9px/1.7 ui-monospace,monospace!important;letter-spacing:.6px!important;padding:1px 6px!important;text-transform:none!important;box-shadow:none!important}
+#modalRoot .modal.command-legacy-modal .tag.gold{color:#f0cf94!important;border-color:#8a7748!important}
+#modalRoot .modal.command-legacy-modal .tag.green{color:#a8d69a!important;border-color:#5c7f57!important}
+#modalRoot .modal.command-legacy-modal .tag.red{color:#e09a86!important;border-color:#8a5b52!important}
+#modalRoot .modal.command-legacy-modal .tag.blue,
+#modalRoot .modal.command-legacy-modal .tag.purple{color:#b9c9e0!important;border-color:#4d6079!important}
+#modalRoot .modal.command-legacy-modal .stat-hero{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))!important;gap:8px!important;background:transparent!important;border:0!important;padding:0!important;margin:12px 0 0!important}
+#modalRoot .modal.command-legacy-modal .stat{background:#152b26!important;background-image:none!important;border:1px solid #2c4038!important;border-radius:2px!important;box-shadow:none!important;padding:10px 12px!important;transform:none!important}
+#modalRoot .modal.command-legacy-modal .stat::before{content:none!important;display:none!important}
+#modalRoot .modal.command-legacy-modal .stat .s-v{font:600 16px/1.3 Georgia,serif!important;color:#f2edda!important}
+#modalRoot .modal.command-legacy-modal .stat .s-l{font:700 8.5px/1.5 ui-monospace,monospace!important;letter-spacing:.7px;color:#93a692!important;text-transform:uppercase}
+/* Option lists (intel, plans, wizard choices). */
+#modalRoot .modal.command-legacy-modal .plan-opt{background:#1b312b!important;background-image:none!important;border:1px solid #3e5551!important;border-radius:3px!important;box-shadow:none!important;padding:12px 14px!important;margin-bottom:8px}
+#modalRoot .modal.command-legacy-modal .plan-opt h5{font:600 13.5px/1.35 Georgia,serif!important;color:#f3e8cc!important;margin:0}
+#modalRoot .modal.command-legacy-modal .plan-opt .p-sub{font-size:10.5px!important;color:#93a692!important;margin-top:3px}
+#modalRoot .modal.command-legacy-modal .plan-opt:hover{border-color:#8fa47c!important;background:#20372f!important}
+/* Inputs and selects. */
+#modalRoot .modal.command-legacy-modal input[type="text"],
+#modalRoot .modal.command-legacy-modal input[type="number"],
+#modalRoot .modal.command-legacy-modal select,
+#modalRoot .modal.command-legacy-modal textarea{background:#122823!important;border:1px solid #4e6355!important;border-radius:3px!important;color:#f3e8cc!important;font:12px system-ui!important;padding:9px 11px!important;box-shadow:none!important}
+#modalRoot .modal.command-legacy-modal input:focus,
+#modalRoot .modal.command-legacy-modal select:focus,
+#modalRoot .modal.command-legacy-modal textarea:focus{border-color:#edc47c!important;outline:none!important;box-shadow:0 0 0 2px #edc47c33!important}
+/* Reach/score meter bars inside legacy dialogs. */
+#modalRoot .modal.command-legacy-modal .dist-bar-wrap{background:#122823!important;border:1px solid #2c4038!important;border-radius:2px!important;overflow:hidden!important;height:10px!important}
+/* Nested produce helpers used by the converted dialogs. */
+#modalRoot .command-produce-modal .bo-choice-list{display:grid;gap:8px}
+#modalRoot .command-produce-modal .bo-choice{display:grid!important;justify-items:start!important;text-align:left!important;padding:12px 14px!important;min-height:0!important}
+#modalRoot .command-produce-modal .bo-choice b{font:600 13px/1.4 system-ui;color:#f3e8cc}
+#modalRoot .command-produce-modal .bo-choice small{font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692}
+#modalRoot .command-produce-modal .bo-intel-list{display:grid;gap:8px}
+#modalRoot .command-produce-modal .bo-intel-row{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#1b312b;border:1px solid #3e5551;border-radius:3px;padding:13px 16px}
+#modalRoot .command-produce-modal .bo-intel-row h4{font:600 14px/1.3 Georgia,serif;color:#f3e8cc;margin:0}
+#modalRoot .command-produce-modal .bo-intel-row p{margin:3px 0 0;font-size:10.5px;line-height:1.5;color:#93a692}
+#modalRoot .command-produce-modal .bo-intel-row .produce-ghost{white-space:nowrap}
+@media(max-width:640px){
+  #modalRoot .modal.command-legacy-modal>h2,#modalRoot .modal.command-legacy-modal>h3,
+  #modalRoot .modal.command-legacy-modal>p,#modalRoot .modal.command-legacy-modal>.card,
+  #modalRoot .modal.command-legacy-modal>.section-title,#modalRoot .modal.command-legacy-modal>.tiny,
+  #modalRoot .modal.command-legacy-modal>.small,#modalRoot .modal.command-legacy-modal>.modal-actions,
+  #modalRoot .modal.command-legacy-modal>.row,#modalRoot .modal.command-legacy-modal>.plan-pick,
+  #modalRoot .modal.command-legacy-modal>div:not(.modal-head):not(.card):not(.modal-actions){margin-left:14px!important;margin-right:14px!important}
+  #modalRoot .command-produce-modal .bo-intel-row{flex-direction:column;align-items:stretch;gap:10px}
+}
+
+/* Comparison dialog: two or three runs read side by side. */
+#modalRoot .command-produce-modal .bo-compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+#modalRoot .command-produce-modal .bo-compare-card{display:grid;gap:10px;align-content:start}
+#modalRoot .command-produce-modal .bo-compare-card .bo-figure-head{margin-bottom:2px}
+#modalRoot .command-produce-modal .bo-compare-card .bo-figure-head b{font:600 14px/1.3 Georgia,serif;letter-spacing:0;text-transform:none;color:#f3e8cc}

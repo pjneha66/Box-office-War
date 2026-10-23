@@ -32,8 +32,11 @@ const chromium=require('@sparticuz/chromium').default;
   /* ── 1. Location desk: three entry points, one surface, never a dead end ── */
   const pill=await page.evaluate(async()=>{
     closeModal();G.projects=[];switchTab('productions');await new Promise(r=>setTimeout(r,260));
-    const b=[...document.querySelectorAll('.subnav-pill')].find(x=>/Location Scouting/.test(x.textContent));
-    if(!b) return {error:'the Productions pill is missing'};
+    /* Productions was reworked into the command deck: the location desk is a
+       produce-tools destination now. Accept either shell so this guard tests
+       the entry point, not the chrome that carries it. */
+    const b=[...document.querySelectorAll('.produce-tools button, .subnav-pill')].find(x=>/Location Scouting/i.test(x.textContent));
+    if(!b) return {error:'the Productions location-desk entry point is missing'};
     b.click();await new Promise(r=>setTimeout(r,260));
     const m=document.querySelector('#modalRoot .modal');
     return {cls:m?m.className:'',cards:m?m.querySelectorAll('.loc-dest').length:0,
@@ -44,7 +47,7 @@ const chromium=require('@sparticuz/chromium').default;
       overflow:m?m.scrollWidth>m.clientWidth+2:false};
   });
   assert(!pill.error,pill.error);
-  assert(/command-location-modal/.test(pill.cls),'the Productions pill must open the location desk, not another system');
+  assert(/command-location-modal/.test(pill.cls),'the Productions entry point must open the location desk, not another system');
   assert.equal(pill.cards,8,'the desk lists every commission');
   assert.equal(pill.buttons,8,'every commission is contractable even with no shoot');
   assert(pill.empty,'with no picture the desk explains what is missing (no dead end)');

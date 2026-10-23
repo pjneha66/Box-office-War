@@ -521,6 +521,14 @@ function openModal(html, opts){
     dialog.classList.add('command-modal','command-develop-modal');
     const title=dialog.querySelector('h3,h2');
     if(title){ dialog.setAttribute('aria-label',title.textContent); }
+  } else {
+    // Every other screen's dialogs (box office, fans, OTT, finance, game studio)
+    // kept the pre-redesign navy-and-gold surface. They are not rewritten one by
+    // one; they share one produce chrome so the platform reads as one product.
+    const dialog=veil.querySelector('.modal');
+    dialog.classList.add('command-modal','command-legacy-modal');
+    const title=dialog.querySelector('h3,h2');
+    if(title){ dialog.setAttribute('aria-label',title.textContent); }
   }
   if(!opts.noX) veil.querySelector(".modal-x").onclick=()=>{ closeModal(triggerEl); if(opts.onClose) opts.onClose(); };
   if(!opts.locked) veil.addEventListener("click", e=>{ if(e.target===veil){ closeModal(triggerEl); if(opts.onClose) opts.onClose(); } });
@@ -1220,7 +1228,7 @@ function _renderImpl(){
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1906,7 +1914,7 @@ function renderSubTabs(){
   const bar = $("#subTabs");
   if(!bar) return;
   // These screens own a single branded navigation, shared across all viewports.
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -4101,35 +4109,43 @@ function weekSummaryModal(){
   const isQuarter = (G.week % 13 === 0);
   const wantPopup = localStorage.getItem("bow_wksum") === "1" || opened.length > 0 || isQuarter || warns.length > 0;
   if(!wantPopup) return;
-  let h="<div class='wk-head'><div class='wk-when'>📅 "+(snap.weeks>1? snap.weeks+" weeks later" : "This week")+" · Y"+yearOf(G.week)+" · "+DATA.seasonOf(woyOf(G.week)).month+" W"+woyOf(G.week)+"</div>"+
-    "<div class='wk-cash "+(delta>=0?"pos":"neg")+"'>"+(delta>=0?"+":"−")+fmtM(Math.abs(delta))+"</div>"+
-    "<div class='tiny muted'>net cash · "+(delta>=0?"the ledger likes you":"it happens to everyone")+"</div></div>";
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">'+
+      (snap.weeks>1? snap.weeks+" WEEKS LATER" : "THIS WEEK")+' / Y'+yearOf(G.week)+' · '+esc(DATA.seasonOf(woyOf(G.week)).month)+' W'+woyOf(G.week)+'</span>'+
+    '<h3 class="'+(delta>=0?"pos":"neg")+'" style="font:600 30px/1.1 Georgia,serif">'+(delta>=0?"+":"−")+fmtM(Math.abs(delta))+'</h3>'+
+    '<p>Net cash movement · '+(delta>=0?"the ledger likes you":"it happens to everyone")+'. '+
+      (opened.length?opened.length+" picture"+(opened.length===1?"":"s")+" opened.":"Nothing opened this week.")+'</p></div>';
+
+  let body='<div class="produce-modal-body">';
   if(opened.length){
-    h+="<div class='card' style='margin-top:10px'><b class='small'>🎬 Opened this week</b>";
-    opened.slice(0,4).forEach(f=>{ h+="<div class='cost-line'><span>"+esc(f.title)+"</span><b>"+fmtG(f.opening||0)+" opening</b></div>"; });
-    h+="</div>";
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>OPENED THIS WEEK</b><span>'+opened.length+' release'+(opened.length===1?"":"s")+'</span></div><div class="bo-track-rows">'+
+      opened.slice(0,4).map(f=>'<div class="bo-track-row"><span class="bo-track-label">'+esc(f.title)+'</span><span class="bo-track-val">'+fmtG(f.opening||0)+'<small>opening</small></span></div>').join("")+
+    '</div></div>';
   }
   if(live.length){
-    h+="<div class='card'><b class='small'>🎟 In theaters ("+live.length+")</b><div class='tiny muted' style='margin-top:2px'>"+
-      live.slice(0,3).map(f=>esc(f.title)+" — "+fmtG(f.ww||0)+" WW").join(" · ")+"</div></div>";
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>IN THEATERS</b><span>'+live.length+' running</span></div><div class="bo-track-rows">'+
+      live.slice(0,4).map(f=>'<div class="bo-track-row"><span class="bo-track-label">'+esc(f.title)+'</span><span class="bo-track-val">'+fmtG(f.ww||0)+'<small>worldwide</small></span></div>').join("")+
+    '</div></div>';
   }
   if(news.length){
-    h+="<div class='card'><b class='small'>📰 The trade papers</b><div style='margin-top:4px'>";
-    news.forEach(n=>{ h+="<div class='tiny' style='padding:4px 0;border-bottom:1px dashed var(--line)'>"+n.t+"</div>"; });
-    h+="</div></div>";
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>THE TRADE PAPERS</b><span>'+news.length+' stor'+(news.length===1?"y":"ies")+'</span></div><div class="bo-news">'+
+      news.map(n=>'<div class="bo-news-row">'+n.t+'</div>').join("")+
+    '</div></div>';
   }
   if(warns.length){
-    h+="<div class='card' style='border-left:3px solid var(--red)'><b class='small neg'>⚠ Warnings</b><div style='margin-top:4px'>";
-    warns.slice(0,5).forEach(w=>{ h+="<div class='tiny neg' style='padding:4px 0;border-bottom:1px dashed var(--line)'>"+w+"</div>"; });
-    h+="</div></div>";
+    body+='<div class="bo-callout bad"><b>WARNINGS ('+warns.length+')</b>'+
+      warns.slice(0,5).map(w=>'<p>'+w+'</p>').join("")+'</div>';
   }
-  h+="<div class='row' style='margin-top:12px'>"+
-    "<button class='btn btn-alt' data-wk-tab='studio'>🏛 Studio</button>"+
-    "<button class='btn btn-alt' data-wk-tab='productions'>🎬 Films</button>"+
-    "<button class='btn btn-alt' data-wk-tab='boxoffice'>📊 Box Office</button>"+
-    "<button class='btn btn-alt' data-wk-tab='develop'>📝 Develop</button></div>";
-  h+="<div class='modal-actions'><button class='btn btn-primary' id='wkGo'>▶ Onward</button></div>";
-  const v=openModal(h,{noX:false});
+  body+='</div>';
+
+  const foot='<div class="produce-modal-actions"><div class="bo-week-jump">'+
+      '<button class="produce-ghost" data-wk-tab="studio">🏛 Studio</button>'+
+      '<button class="produce-ghost" data-wk-tab="productions">🎬 Films</button>'+
+      '<button class="produce-ghost" data-wk-tab="boxoffice">📊 Box office</button>'+
+      '<button class="produce-ghost" data-wk-tab="develop">📝 Develop</button>'+
+    '</div><div class="row" style="margin:0;gap:8px"><button class="produce-action" id="wkGo">Onward →</button></div></div>';
+
+  const v=openModal(head+body+foot,{className:"command-produce-modal"});
   v.querySelectorAll("[data-wk-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.wkTab); });
   const go=v.querySelector("#wkGo"); if(go) go.onclick=closeModal;
 }
@@ -4139,7 +4155,7 @@ function renameModal(kind,id){
   let cur="", title="";
   if(kind==="f"){ const f=G.films.find(x=>x.id===+id); cur=f&&f.title; title="Rename film"; }
   else if(kind==="s"){ const s=G.series.find(x=>x.id===+id); cur=s&&s.title; title="Rename series"; }
-  else if(kind==="st"){ cur=G.streamer? G.streamer.name : ""; title="Rebrand your streamer"; }
+  else if(kind==="st"){ return rebrandStreamerModal(); }
   if(cur==null) return;
   let h="<h3>✏️ "+title+"</h3>"+
     "<input id='rnInput' type='text' maxlength='60' value='"+esc(cur)+"' style='width:100%;background:#0b0f18;border:1px solid var(--line2);color:var(--text);border-radius:11px;padding:12px;font-size:16px;outline:none'>"+
@@ -4155,6 +4171,53 @@ function renameModal(kind,id){
     if(ok){ beep("gold"); toast("✏️ Renamed","good"); }
     closeModal(); render();
   };
+  v.querySelector("#rnCancel").onclick=closeModal;
+}
+
+/* ═══════════ v34: platform rebrand — the OTT dialog, not a bare prompt ═══════════
+   Reached from the platform card on OTT › Home and from the platform board, so
+   the rebrand lives inside the surface it changes. Same IDs as the old rename
+   dialog (rnInput / rnSave / rnCancel) so every existing binding and test keeps
+   working; the dialog wears the command-produce shell and reports empty, saved
+   and rejected states in place. */
+function rebrandStreamerModal(){
+  if(!G.streamer){ toast("No platform to rebrand yet — launch a streamer first.","bad"); return; }
+  const cur=G.streamer.name||"";
+  const html=`<div class="produce-modal-head"><span class="command-eyebrow">OTT / PLATFORM IDENTITY</span><h3>Rebrand your streamer</h3><p>A new name on the marquee. Subscribers, deals, sports rights and the library stay exactly where they are — the rebrand is free and takes effect immediately.</p></div>
+    <div class="produce-modal-body">
+      <div class="produce-modal-card">
+        <label class="bo-rebrand-label" for="rnInput">Platform name</label>
+        <input id="rnInput" class="bo-rebrand-input" type="text" maxlength="24" autocomplete="off" value="${esc(cur)}" placeholder="e.g. Meridian+">
+        <p class="bo-rebrand-error" id="rnError" role="alert" aria-live="assertive" hidden></p>
+        <p class="bo-rebrand-meta">${G.streamer.subs.toFixed(1)}M subscribers · ${fmtM(G.streamer.income||G.streamer.totalRev||0)}/wk · ceiling ${streamerCeiling()}M</p>
+      </div>
+      <div class="produce-modal-card">
+        <h4>What the name carries</h4>
+        <p>Subscribers recognise the platform, not the paperwork — churn, content ceiling and every signed deal are untouched by a rename. Up to 24 characters.</p>
+      </div>
+    </div>
+    <div class="produce-modal-actions"><span class="bo-rebrand-note">No cash cost · keeps subscribers &amp; deals</span><div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="rnCancel">Cancel</button><button class="produce-action" id="rnSave">Save name</button></div></div>`;
+  const v=openModal(html,{className:"command-produce-modal"});
+  const inp=v.querySelector("#rnInput");
+  const err=v.querySelector("#rnError");
+  const showError=(msg)=>{ if(!err) return; err.textContent=msg; err.hidden=false; if(inp){ inp.classList.add("invalid"); inp.setAttribute("aria-invalid","true"); inp.focus(); } };
+  const clearError=()=>{ if(!err) return; err.hidden=true; err.textContent=""; if(inp){ inp.classList.remove("invalid"); inp.removeAttribute("aria-invalid"); } };
+  if(inp){
+    inp.focus(); inp.select();
+    inp.addEventListener("input",clearError);
+    inp.addEventListener("keydown",(e)=>{ if(e.key==="Enter"){ e.preventDefault(); save(); } });
+  }
+  function save(){
+    const n=(inp?inp.value:"").trim();
+    if(!n){ showError("Give the platform a name before saving."); return; }
+    if(n===cur){ showError("That is already the platform name — nothing to change."); return; }
+    let ok=false;
+    try{ ok=renameStreamer(n); }catch(e){ ok=false; }
+    if(!ok){ showError("That name was rejected by the platform desk. Try a different one."); return; }
+    beep("gold"); toast("📱 Platform rebranded as \""+G.streamer.name+"\" — subscribers untouched.","good");
+    closeModal(); render();
+  }
+  v.querySelector("#rnSave").onclick=save;
   v.querySelector("#rnCancel").onclick=closeModal;
 }
 
@@ -4784,14 +4847,18 @@ function scoreSplit(f){
   const crit = f.criticAvg!=null? f.criticAvg : (f.quality? f.quality.critic:50);
   const aud  = audienceScoreOf(f);
   const fresh = f.freshPct!=null? f.freshPct : (crit>=60?100:0);
-  return "<div class='split'>"+
-    "<div class='sp-side'><div class='sp-face'>"+(crit>=70?"🍅":crit>=50?"🍂":"🤢")+"</div>"+
-      "<div><b class='"+(crit>=70?"pos":crit>=50?"":"neg")+"'>"+crit+"%</b><div class='tiny muted'>critics"+((f.reviews&&f.reviews.length)? " ("+f.reviews.length+")":"")+"</div></div></div>"+
-    "<div class='sp-side'><div class='sp-face'>"+(aud>=70?"🍿":aud>=50?"😐":"👎")+"</div>"+
-      "<div><b class='"+(aud>=70?"pos":aud>=50?"":"neg")+"'>"+aud+"%</b><div class='tiny muted'>audience</div></div></div>"+
-    "<span class='tag "+(fresh>=60?"green":"red")+"'>"+fresh+"% positive</span>"+
-    (f.reviewBombed? "<span class='tag red'>🍅 review-bombed</span>":"")+
+  const card=(label,value,tone,note)=>"<div class='bo-score-card"+(tone?" "+tone:"")+"'><small>"+label+"</small><b>"+value+"</b><span>"+note+"</span></div>";
+  let h="<div class='bo-score'>"+
+    card("CRITICS",crit+"%",crit>=70?"good":crit<50?"bad":"",(f.reviews&&f.reviews.length)?f.reviews.length+" reviews filed":"named critic consensus")+
+    card("AUDIENCE",aud+"%",aud>=70?"good":aud<50?"bad":"","word of mouth")+
+    card("FRESH",fresh+"%",fresh>=60?"good":"bad",fresh>=60?"certified fresh":"rotten")+
   "</div>";
+  const meter=(label,value,tone)=>"<div class='bo-track-row'><span class='bo-track-label'>"+label+"<small>out of 100</small></span>"+
+    "<span class='bo-track"+(tone?" "+tone:"")+"'><i style='width:"+clamp(value,0,100)+"%'></i></span>"+
+    "<span class='bo-track-val'>"+Math.round(value)+"</span></div>";
+  h+="<div class='bo-track-rows'>"+meter("Critics",crit,crit<50?" bad":"")+meter("Audience",aud,aud<50?" bad":"")+"</div>";
+  if(f.reviewBombed) h+="<div class='bo-chip-row'><span class='bo-chip bad'>REVIEW BOMBED −"+f.reviewBombed+"</span></div>";
+  return h;
 }
 function reviewsModal(fid){
   const f=G.films.find(x=>x.id===fid); if(!f) return;
@@ -4800,52 +4867,47 @@ function reviewsModal(fid){
   const mixCount = revs.filter(r=>r.score>=40 && r.score<60).length;
   const negCount = revs.filter(r=>r.score<40).length;
   const totRevs = Math.max(1, posCount + mixCount + negCount);
+  const crit = f.criticAvg!=null? f.criticAvg : (f.quality? f.quality.critic:50);
+  const aud  = audienceScoreOf(f);
 
-  let h="<h3>Reviews: “"+esc(f.title)+"”</h3>"+scoreSplit(f);
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">REVIEWS / '+esc((DATA.GENRES[f.genre]||{}).name||f.genre)+'</span>'+
+    '<h3>“'+esc(f.title)+'”</h3>'+
+    '<p>What the press desk and the paying audience said. Critics decide prestige and awards odds; the audience score decides how long the run holds.</p></div>';
 
-  // Game Dev Story 4-Judge Magazine Panel (/40)
+  let body='<div class="produce-modal-body">';
+  body+=scoreSplit(f);
+
   if(f.gdsJudges && f.gdsJudges.length){
-    const hof = (f.gdsTotal >= 32);
-    h+="<div class='card' style='margin:10px 0;background:"+(hof?"rgba(245,185,66,0.08)":"var(--card-sub)")+";border:1px solid "+(hof?"var(--gold)":"var(--line)")+"'>"+
-      "<div class='spread' style='align-items:center'><b>[INDUSTRY CRITIC DESK]</b><span class='gold' style='font-family:var(--font-mono);font-size:16px;font-weight:800'>"+f.gdsTotal+" / 40</span></div>"+
-      (hof?"<div class='tiny gold' style='margin:4px 0 8px'>[HALL OF FAME INDUCTION] Golden Plaque awarded! Boosted studio reputation and sequel hype.</div>":"<div class='tiny muted' style='margin:4px 0 8px'>32/40 required for Hall of Fame induction</div>")+
-      "<div class='row' style='gap:6px;flex-wrap:wrap'>";
-    f.gdsJudges.forEach(j => {
-      h+="<div style='flex:1;min-width:110px;padding:6px 8px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--line)'>"+
-        "<div class='tiny muted'>"+esc(j.name)+"</div>"+
-        "<div class='spread' style='align-items:center;margin-top:2px'><span class='tiny'>"+esc(j.focus)+"</span><b class='"+(j.score>=8?"pos":j.score<=4?"neg":"")+"'>"+j.score+"/10</b></div>"+
-        "</div>";
-    });
-    h+="</div></div>";
-  }
-
-  // Social Dev Story Live Ops Campaigns for Active Theatrical Releases
-  if(f.inTheaters){
-    h+="<div class='card' style='margin:10px 0'>"+
-      "<div class='spread' style='margin-bottom:6px'><b>[SOCIAL DEV STORY: LIVE OPS CAMPAIGNS]</b><span class='tag blue'>Theatrical Boosts</span></div>"+
-      "<div class='tiny muted' style='margin-bottom:8px'>Deploy targeted viral marketing, stunt screenings, or influencer tours while the film is on screens.</div>"+
-      "<div class='row' style='gap:6px;flex-wrap:wrap'>"+
-      "<button class='btn btn-xs btn-alt' id='revLiveTiktok' style='flex:1;min-width:120px'>TikTok Viral ($1.5M)<div class='tiny muted'>+12% legs</div></button>"+
-      "<button class='btn btn-xs btn-alt' id='revLiveMidnight' style='flex:1;min-width:120px'>Midnight Stunt ($0.8M)<div class='tiny muted'>+4 aud, +15% legs</div></button>"+
-      "<button class='btn btn-xs btn-alt' id='revLiveBlitz' style='flex:1;min-width:120px'>Influencer Tour ($2.2M)<div class='tiny muted'>+22% weekly BO</div></button>"+
-      "<button class='btn btn-xs btn-alt' id='revLiveLeak' style='flex:1;min-width:120px'>Controversy Leak ($0.4M)<div class='tiny muted'>+25% buzz (risk)</div></button>"+
-      "</div></div>";
+    const hof=(f.gdsTotal>=32);
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>INDUSTRY CRITIC DESK</b><span class="'+(hof?"pos":"")+'">'+f.gdsTotal+' / 40 · '+(hof?"HALL OF FAME":"BELOW HALL OF FAME")+'</span></div>'+
+      (hof?'<p class="bo-figure-cap">Golden Plaque awarded — reputation and sequel hype both lifted.</p>':'<p class="bo-figure-cap">32/40 required for Hall of Fame induction.</p>')+
+      '<div class="bo-kpis">'+f.gdsJudges.map(j=>'<div class="bo-kpi'+(j.score>=8?" good":j.score<=4?" bad":"")+'"><small>'+esc(j.name)+'</small><b>'+j.score+'/10</b><span>'+esc(j.focus)+'</span></div>').join("")+'</div></div>';
   }
 
   if(revs.length){
-    h+="<div class='card' style='margin:8px 0'>"+
-      "<div class='spread small'><b>Score Distribution (Metacritic style)</b><span class='tiny muted'>"+posCount+" Pos · "+mixCount+" Mixed · "+negCount+" Neg</span></div>"+
-      "<div class='dist-bar-wrap' style='margin:6px 0'>"+
-        "<div class='dist-pos' style='width:"+Math.round(posCount/totRevs*100)+"%' title='"+posCount+" Positive'></div>"+
-        "<div class='dist-mid' style='width:"+Math.round(mixCount/totRevs*100)+"%' title='"+mixCount+" Mixed'></div>"+
-        "<div class='dist-neg' style='width:"+Math.round(negCount/totRevs*100)+"%' title='"+negCount+" Negative'></div>"+
-      "</div></div>";
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>SCORE DISTRIBUTION</b><span>'+posCount+' positive · '+mixCount+' mixed · '+negCount+' negative</span></div>'+
+      ((typeof BOCharts!=="undefined")?BOCharts.split([
+        {label:"Positive",value:posCount,tone:"gold"},
+        {label:"Mixed",value:mixCount,tone:"muted"},
+        {label:"Negative",value:negCount,tone:"bad"}
+      ],{format:v=>v+" review"+(v===1?"":"s")}):"")+'</div>';
   } else {
-    h+="<div class='card muted small'>No reviews filed for this title.</div>";
+    body+='<div class="produce-modal-card"><h4>No reviews filed</h4><p>Nothing has been screened for press yet. Critics weigh in from the first paid preview.</p></div>';
   }
+
+  if(f.inTheaters){
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>LIVE OPS CAMPAIGNS</b><span>theatrical boosts</span></div>'+
+      '<p class="bo-figure-cap">Spend while the film is on screens. Each campaign buys legs or buzz, and each one is booked against the picture, not the studio.</p>'+
+      '<div class="produce-modal-grid">'+
+        '<button class="produce-ghost" id="revLiveTiktok"><b>TikTok viral · $1.5M</b><small>+12% legs</small></button>'+
+        '<button class="produce-ghost" id="revLiveMidnight"><b>Midnight stunt · $0.8M</b><small>+4 audience, +15% legs</small></button>'+
+        '<button class="produce-ghost" id="revLiveBlitz"><b>Influencer tour · $2.2M</b><small>+22% weekly box office</small></button>'+
+        '<button class="produce-ghost" id="revLiveLeak"><b>Controversy leak · $0.4M</b><small>+25% buzz, reputation risk</small></button>'+
+      '</div></div>';
+  }
+
   revs.slice().sort((a,b)=>b.score-a.score).forEach(function(r){
     const cats=r.cats||{};
-    const catRow=(k,label)=>"<div class='cost-line'><span>"+label+"</span><b>"+(cats[k]!=null?cats[k]:"—")+"</b></div>";
     const criticDef = (DATA.CRITICS||[]).find(c=>c.name===r.name || c.id===r.id);
     let biasStr = "";
     if(criticDef){
@@ -4854,19 +4916,23 @@ function reviewsModal(fid){
       else if(criticDef.harsh > 4) biasStr = " · notorious cynic";
       else if(criticDef.harsh < -3) biasStr = " · generous scorer";
     }
-    h+="<div class='card review-card'><div class='spread'><div><b>"+esc(r.name)+"</b> <span class='tiny muted'>"+esc(r.outlet)+biasStr+"</span>"+
-       (r.sentiment?" <span class='tag "+(r.sentiment==="positive"?"green":r.sentiment==="negative"?"red":"")+"'>"+r.sentiment+"</span>":"")+"</div>"+
-       "<b class='"+(r.score>=70?"pos":r.score>=50?"":"neg")+"'>"+r.score+"/100</b></div>"+
-       "<div class='small' style='margin-top:4px'>“"+esc(r.quote)+"”</div>"+
-       "<div class='grid g2' style='margin-top:6px'><div>"+
-       catRow("story","Story")+catRow("direction","Direction")+catRow("acting","Acting")+"</div><div>"+
-       catRow("production","Production")+catRow("entertainment","Entertainment")+catRow("originality","Originality")+"</div></div></div>";
+    const cat=(k,label)=>cats[k]!=null?('<div class="bo-track-row"><span class="bo-track-label">'+label+'</span><span class="bo-track"><i style="width:'+clamp(cats[k],0,10)*10+'%"></i></span><span class="bo-track-val">'+cats[k]+'</span></div>'):"";
+    body+='<div class="produce-modal-card review-card">'+
+      '<div class="bo-figure-head"><b>'+esc(r.name)+'</b><span class="'+(r.score>=70?"pos":r.score>=50?"":"neg")+'">'+r.score+'/100'+(r.sentiment?" · "+r.sentiment:"")+'</span></div>'+
+      '<p class="bo-figure-cap">'+esc(r.outlet)+biasStr+'</p>'+
+      '<p class="bo-review-quote">“'+esc(r.quote)+'”</p>'+
+      '<div class="bo-track-rows">'+cat("story","Story")+cat("direction","Direction")+cat("acting","Acting")+cat("production","Production")+cat("entertainment","Entertainment")+cat("originality","Originality")+'</div>'+
+    '</div>';
   });
-  if(f.reviewBombed) h+="<div class='card' style='border-left:3px solid var(--red)'><b>Review bombing</b><div class='tiny muted'>An organised pile-on cost this film "+f.reviewBombed+" audience points — and the word of mouth that goes with them.</div></div>";
-  h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Close</button></div>";
-  const v = openModal(h);
 
-  // Wire Live Ops buttons
+  if(f.reviewBombed) body+='<div class="bo-callout bad"><b>REVIEW BOMBING</b><p>An organised pile-on cost this film '+f.reviewBombed+' audience points — and the word of mouth that goes with them.</p></div>';
+  body+='</div>';
+
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+revs.length+' review'+(revs.length===1?"":"s")+' · critics '+crit+'% · audience '+aud+'%</span>'+
+    '<div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="revClose">Close</button></div></div>';
+
+  const v=openModal(head+body+foot,{className:"command-produce-modal"});
+  const cl=v.querySelector("#revClose"); if(cl) cl.onclick=()=>closeModal();
   const bTiktok = v.querySelector("#revLiveTiktok");
   if(bTiktok) bTiktok.onclick=()=>{ launchLiveOpsCampaign(f.id, "tiktok_viral"); closeModal(); reviewsModal(fid); };
   const bMid = v.querySelector("#revLiveMidnight");
@@ -4879,7 +4945,7 @@ function reviewsModal(fid){
 
 /* ═══════════ v32: Individual Film Details & Full International Breakdown ═══════════ */
 function openFilmDetailsModal(filmId){
-  const f = (G.films||[]).find(x => x.id === +filmId);
+  const f = (G.films||[]).find(x => x.id === +filmId || String(x.id)===String(filmId));
   if(!f) return;
   const sp = boSplit(f);
   const be = breakevenWW(f);
@@ -4891,83 +4957,67 @@ function openFilmDetailsModal(filmId){
   const crit = f.criticAvg != null ? f.criticAvg : (f.quality ? f.quality.critic : 50);
   const aud = (typeof audienceScoreOf === "function") ? audienceScoreOf(f) : (f.quality ? f.quality.aud : 50);
   const regs = (typeof regionSplit === "function") ? regionSplit(f) : [];
+  const state = f.inTheaters ? "IN THEATERS" : f.soldTo ? "LICENSED TO "+String(f.soldTo).toUpperCase() : f.onOwn ? "ON PLATFORM" : "IN VAULT";
 
-  let h = "<div class='film-modal-header' style='margin-bottom:12px'>"+
-    "<div class='spread'><div><span class='tag' style='background:rgba(245,185,66,.18);color:var(--gold2)'>" + (DATA.GENRES[f.genre] ? DATA.GENRES[f.genre].name : f.genre).toUpperCase() + "</span> " +
-    "<span class='tag'>" + (f.rating || "PG-13") + "</span> " +
-    "<span class='tag' style='background:rgba(255,255,255,0.06)'>" + (f.inTheaters ? "🎟 In Theaters" : f.soldTo ? "📺 Licensed to " + f.soldTo : f.onOwn ? "📱 On Platform" : "📚 In Vault") + "</span></div>" +
-    "<b class='tiny muted'>Released Y" + yearOf(f.releaseWeek || G.week) + " · W" + woyOf(f.releaseWeek || G.week) + "</b></div>" +
-    "<h2 style='margin:6px 0 2px;font-size:22px;letter-spacing:-0.02em'>" + esc(f.title) + "</h2>" +
-    (f.franchiseName ? "<div class='tiny' style='color:var(--gold2)'>🏰 Franchise: <b>" + esc(f.franchiseName) + "</b></div>" : "") +
-    "</div>";
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">FILM DOSSIER / '+esc(((DATA.GENRES[f.genre]||{}).name||f.genre)).toUpperCase()+'</span>'+
+    '<h3>'+esc(f.title)+'</h3>'+
+    '<p>'+esc(f.rating||"PG-13")+' · '+state+' · released Y'+yearOf(f.releaseWeek||G.week)+' W'+woyOf(f.releaseWeek||G.week)+
+    (f.franchiseName?' · franchise <b>'+esc(f.franchiseName)+'</b>':'')+'</p></div>';
 
-  // Financials Hero Cards
-  h += "<div class='stat-hero' style='margin-bottom:14px'>" +
-    statCard(fmtG(sp.dom) + " (" + domPct + "%)", "Domestic Box Office", "var(--gold)") +
-    statCard(fmtG(sp.intl) + " (" + intlPct + "%)", "International Box Office", "var(--cyan)") +
-    statCard(fmtG(sp.ww), "Worldwide Total", "var(--green)") +
-    statCard((profit >= 0 ? "+" : "") + fmtM(profit), "Net Studio Profit", profit >= 0 ? "var(--green)" : "var(--red)") +
-    statCard(fmtM(f.budget), "Production Budget") +
-    statCard(fmtM(f.marketing || 0), "P&A Marketing") +
-    statCard(fmtM(f.rentalsDom || Math.round(sp.dom * 0.53 * 10) / 10), "Studio Rentals Recv'd") +
-    statCard(mult + "×", "Multiplier (WW / Open)") +
+  const kpi=(label,value,note,tone)=>"<div class='bo-kpi"+(tone?" "+tone:"")+"'><small>"+label+"</small><b>"+value+"</b>"+(note?"<span>"+note+"</span>":"")+"</div>";
+  let body='<div class="produce-modal-body">';
+  body+="<div class='bo-kpis'>"+
+    kpi("Domestic",fmtG(sp.dom),domPct+"% of worldwide")+
+    kpi("International",fmtG(sp.intl),intlPct+"% of worldwide")+
+    kpi("Worldwide",fmtG(sp.ww),"all territories")+
+    kpi("Net studio profit",(profit>=0?"+":"")+fmtM(profit),profit>=0?"above breakeven":"below breakeven",profit>=0?"good":"bad")+
+    kpi("Production budget",fmtM(f.budget),"negative cost")+
+    kpi("P&A marketing",fmtM(f.marketing||0),"prints and advertising")+
+    kpi("Rentals received",fmtM(f.rentalsDom||Math.round(sp.dom*0.53*10)/10),"~53% of domestic")+
+    kpi("Multiplier",mult+"×","worldwide ÷ opening",mult>=2.5?"good":mult<1.6?"bad":"")+
   "</div>";
 
-  // Split visual progress bar
-  h += "<div class='card' style='margin-bottom:12px'>" +
-    "<div class='cost-line'><span class='small'><b>Box Office Revenue Breakdown</b></span>" +
-    "<span class='tiny'>Domestic: <b>" + fmtG(sp.dom) + "</b> (" + domPct + "%) · International: <b>" + fmtG(sp.intl) + "</b> (" + intlPct + "%)</span></div>" +
-    "<div style='display:flex;height:10px;border-radius:5px;overflow:hidden;background:rgba(0,0,0,0.5);margin:6px 0'>" +
-      "<div style='width:" + domPct + "%;background:linear-gradient(90deg,var(--gold),var(--gold2))' title='Domestic " + fmtG(sp.dom) + " (" + domPct + "%)'></div>" +
-      "<div style='width:" + intlPct + "%;background:linear-gradient(90deg,var(--cyan),#38bdf8)' title='International " + fmtG(sp.intl) + " (" + intlPct + "%)'></div>" +
-    "</div>" +
-  "</div>";
+  body+="<figure class='bo-figure'><div class='bo-figure-head'><b>REVENUE SPLIT</b><span>"+fmtG(sp.ww)+" worldwide</span></div>"+
+    ((typeof BOCharts!=="undefined")?BOCharts.split([
+      {label:"Domestic",value:sp.dom,tone:"gold"},
+      {label:"International",value:sp.intl,tone:"teal"}
+    ],{format:BOCharts.money}):"")+
+    "<p class='bo-figure-cap'>Breakeven for this release is <b>"+fmtG(be)+"</b> worldwide. Legs stand at "+legs+"× the opening weekend.</p></figure>";
 
-  // International Territory Breakdown Table
-  h += "<div class='section-title'>🌍 International Territory Breakdown</div>" +
-    "<div class='card' style='margin-bottom:12px'>";
   if(regs && regs.length){
-    const maxRegGross = Math.max(0.1, ...regs.map(r => r.gross || 0));
-    h += "<div class='territory-grid'>";
-    regs.forEach(r => {
-      const pct = Math.round(((r.gross || 0) / maxRegGross) * 100);
-      const shareOfWW = sp.ww > 0 ? Math.round(((r.gross || 0) / sp.ww) * 100) : 0;
-      h += "<div class='territory-row'>" +
-        "<span class='territory-flag'>" + (r.emoji || "🌐") + "</span>" +
-        "<span class='t-name'>" + esc(r.name) + " <small class='muted'>(" + shareOfWW + "% WW)</small></span>" +
-        "<div class='t-bar-wrap'><div class='t-bar-fill' style='width:" + pct + "%'></div></div>" +
-        "<span class='t-val'>" + fmtG(r.gross || 0) + "</span>" +
-      "</div>";
-    });
-    h += "</div>";
+    const maxReg=Math.max.apply(null, regs.map(r=>r.gross||0).concat([0.1]));
+    const rows=regs.map(r=>{
+      const share=sp.ww>0?Math.round(((r.gross||0)/sp.ww)*100):0;
+      return "<div class='bo-track-row'><span class='bo-track-label'>"+(r.emoji||"🌐")+" "+esc(r.name)+"<small>"+share+"% of worldwide</small></span>"+
+        "<span class='bo-track teal'><i style='width:"+Math.max(2,(r.gross||0)/maxReg*100).toFixed(1)+"%'></i></span>"+
+        "<span class='bo-track-val'>"+fmtG(r.gross||0)+"</span></div>";
+    }).join("");
+    body+="<div class='produce-modal-card'><div class='bo-figure-head'><b>INTERNATIONAL TERRITORIES</b><span>"+regs.length+" markets</span></div><div class='bo-track-rows'>"+rows+"</div>"+
+      "<p class='bo-figure-cap'>Territorial splits settle as international runs expand. Deal terms are set at release; the desk only reports them.</p></div>";
   } else {
-    h += "<div class='tiny muted'>Global territorial splits settle as international theatrical runs expand across territories.</div>";
+    body+="<div class='produce-modal-card'><h4>No territorial split yet</h4><p>Global splits settle as international runs expand across territories.</p></div>";
   }
-  h += "</div>";
 
-  // Creative & Cast Details
-  h += "<div class='section-title'>🎬 Key Creative Team</div>" +
-    "<div class='card' style='margin-bottom:12px'><div class='grid g2'>" +
-      "<div><div class='cost-line'><span>Director</span><b>" + (f.director ? esc(f.director.name) : "In-House") + "</b></div>" +
-      "<div class='cost-line'><span>Writer</span><b>" + (f.writer ? esc(f.writer.name) : "Staff") + "</b></div>" +
-      "<div class='cost-line'><span>Producer</span><b>" + (f.producer ? esc(f.producer.name) : "Studio Unit") + "</b></div></div>" +
-      "<div><div class='cost-line'><span>Top Cast</span><b>" + ((f.cast || []).map(c => esc(c.name)).join(", ") || "Ensemble") + "</b></div>" +
-      "<div class='cost-line'><span>Critics Score</span><b class='" + (crit >= 60 ? "pos" : "neg") + "'>" + crit + "%</b></div>" +
-      "<div class='cost-line'><span>Audience WOM</span><b class='" + (aud >= 60 ? "pos" : "neg") + "'>" + aud + "%</b></div></div>" +
+  body+="<div class='produce-modal-card'><div class='bo-figure-head'><b>KEY CREATIVE</b><span>critics "+crit+"% · audience "+aud+"%</span></div>"+
+    "<div class='bo-track-rows'>"+
+      "<div class='bo-track-row'><span class='bo-track-label'>Director</span><span class='bo-track-val'>"+(f.director?esc(f.director.name):"In-house")+"</span></div>"+
+      "<div class='bo-track-row'><span class='bo-track-label'>Writer</span><span class='bo-track-val'>"+(f.writer?esc(f.writer.name):"Studio staff")+"</span></div>"+
+      "<div class='bo-track-row'><span class='bo-track-label'>Producer</span><span class='bo-track-val'>"+(f.producer?esc(f.producer.name):"Studio unit")+"</span></div>"+
+      "<div class='bo-track-row'><span class='bo-track-label'>Top cast</span><span class='bo-track-val'>"+((f.cast||[]).map(c=>esc(c.name)).join(", ")||"Ensemble")+"</span></div>"+
     "</div></div>";
+  body+="</div>";
 
-  // Actions
-  h += "<div class='modal-actions' style='flex-wrap:wrap;gap:6px'>" +
-    "<button class='btn btn-ghost' onclick='closeModal()'>Close</button>" +
-    "<button class='btn btn-alt' id='dossierTerritoryDeals'>🌍 Territory Deals (MG vs RevShare)</button>" +
-    (!f.inTheaters && typeof canRerelease === "function" && canRerelease(f) ? "<button class='btn btn-alt' id='dossierRe'>🎟 Theatrical Re-release</button>" : "") +
-    (!f.inTheaters && typeof canReboot === "function" && canReboot(f) ? "<button class='btn btn-alt' id='dossierReboot'>🔁 Franchise Reboot</button>" : "") +
-    (!f.inTheaters && !f.directorsCut && f.ww >= 100 ? "<button class='btn btn-alt' id='dossierCut'>✂ Director's Cut</button>" : "") +
-    (typeof MerchLicensing !== "undefined" ? "<button class='btn btn-primary' id='dossierMerch'>🧸 Sign Merchandising</button>" : "") +
-    (typeof SyndicationTV !== "undefined" ? "<button class='btn btn-alt' id='dossierTV'>📡 TV Syndication Deal</button>" : "") +
-  "</div>";
+  let actions='<button class="produce-ghost" id="dossierTerritoryDeals">🌍 Territory deals</button>'+
+    (!f.inTheaters && typeof canRerelease === "function" && canRerelease(f) ? '<button class="produce-ghost" id="dossierRe">🎟 Theatrical re-release</button>' : "")+
+    (!f.inTheaters && typeof canReboot === "function" && canReboot(f) ? '<button class="produce-ghost" id="dossierReboot">🔁 Franchise reboot</button>' : "")+
+    (!f.inTheaters && !f.directorsCut && f.ww >= 100 ? '<button class="produce-ghost" id="dossierCut">✂ Director\'s cut</button>' : "")+
+    (typeof MerchLicensing !== "undefined" ? '<button class="produce-action" id="dossierMerch">🧸 Sign merchandising</button>' : "")+
+    (typeof SyndicationTV !== "undefined" ? '<button class="produce-ghost" id="dossierTV">📡 TV syndication</button>' : "");
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+fmtG(sp.ww)+' worldwide · '+fmtG(f.opening||0)+' opening · '+mult+'× multiplier</span>'+
+    '<div class="bo-dossier-actions">'+actions+'<button class="produce-ghost" id="dossierClose">Close</button></div></div>';
 
-  const v = openModal(h);
+  const v = openModal(head+body+foot,{className:"command-produce-modal"});
+  const btnClose=v.querySelector("#dossierClose"); if(btnClose) btnClose.onclick=()=>closeModal();
   const bTerr = v.querySelector("#dossierTerritoryDeals");
   if(bTerr) bTerr.onclick = () => { closeModal(); if(typeof openTerritoryDealsModal === "function") openTerritoryDealsModal(f.id); };
   const btnRe = v.querySelector("#dossierRe");
@@ -5042,8 +5092,8 @@ function boWhy(f){
     try{ if(G.piracy>=45) rows.push(["-","High piracy meter ("+Math.round(G.piracy)+") taxes every live run."]); }catch(e){}
     if(f.embargoActive) rows.push([(f.quality&&f.quality.critic>=55)?"+":"-","Review embargo "+((f.quality&&f.quality.critic>=55)?"built anticipation.":"backfired on weak reviews.")]);
   }catch(e){}
-  if(!rows.length) return "<div class='tiny muted'>No signal yet.</div>";
-  return rows.map(r=>"<div class='cost-line'><span><b class='"+(r[0]==="+"?"pos":"neg")+"'>"+r[0]+"</b> "+r[1]+"</span></div>").join("");
+  if(!rows.length) return "<p class='bo-figure-cap'>No signal yet — the desk needs a weekend of data.</p>";
+  return "<div class='bo-why'>"+rows.map(r=>"<div class='bo-why-row "+(r[0]==="+"?"up":"down")+"'><span class='bo-why-mark'>"+(r[0]==="+"?"+":"−")+"</span><span>"+r[1]+"</span></div>").join("")+"</div>";
 }
 /* Rivals: read-only profiles from existing slate/ytd. Behavior (slates, chicken,
    poaching, bids, trends) already lives in engine.js; this surfaces it. */
@@ -5060,15 +5110,18 @@ function rivalProfile(r){
   const tot=all.reduce((a,x)=>a+x.ww,0)||1;
   const rank=all.slice().sort((a,b)=>b.ww-a.ww).findIndex(x=>x.n===r.name)+1;
   const share=Math.round((r.ytd||0)/tot*100);
-  return "<div class='card rival-card' data-rival='"+esc(r.name)+"' style='cursor:pointer;border-left:4px solid "+(r.color||"#fff")+"'><div class='spread'><div><b style='color:"+(r.color||"#fff")+"'>"+esc(r.name)+"</b>"+
-    (G.intel&&G.intel.until>G.week&&G.intel.name===r.name?" <span class='tag gold'>🕵 intel</span>":"")+
-    "<div class='tiny muted'>"+esc(r.blurb||"")+" · #"+rank+" share ("+share+"%)</div></div>"+
-    "<span class='tag'>"+fmtM(r.ytd||0)+" YTD</span></div>"+
-    "<div class='cost-line'><span>Strategy</span><b class='tiny'>"+meta.strategy+"</b></div>"+
-    "<div class='cost-line'><span>Strength</span><b class='tiny pos'>"+meta.strength+"</b></div>"+
-    "<div class='cost-line'><span>Weakness</span><b class='tiny neg'>"+meta.weakness+"</b></div>"+
-    "<div class='tiny muted' style='margin-top:4px'><b>Current slate</b> — "+(up.length?up.map(f=>esc(f.title)+" ("+DATA.GENRES[f.genre].name+"/"+f.scale+", "+dateLabel(f.week)+")").join(" · "):"nothing dated")+ "</div>"+
-    "<div class='tiny muted' style='margin-top:2px'><b>Recent</b> — "+(done.length?done.map(f=>esc(f.title)+" "+fmtG(f.dom||0)+" dom"+((f.dom||0)>=(f.opening||0)*2.5?" 🔥":"")).join(" · "):"no releases yet")+"</div></div>";
+  return "<article class='bo-rival rival-card' data-rival='"+esc(r.name)+"' style='cursor:pointer;border-left:3px solid "+(r.color||"#4e6355")+"'>"+
+    "<header><div><h3 style='color:"+(r.color||"#f3e8cc")+"'>"+esc(r.name)+"</h3>"+
+      "<small>#"+rank+" of "+all.length+" · "+share+"% share of the town</small></div>"+
+      "<span class='bo-track-val'>"+fmtM(r.ytd||0)+"<small>YTD</small></span></header>"+
+    "<span class='bo-track'><i style='width:"+Math.max(3,share)+"%'></i></span>"+
+    "<p class='bo-rival-line'><span>Strategy</span><b>"+esc(meta.strategy)+"</b></p>"+
+    "<p class='bo-rival-line'><span>Strength</span><b class='pos'>"+esc(meta.strength)+"</b></p>"+
+    "<p class='bo-rival-line'><span>Weakness</span><b class='neg'>"+esc(meta.weakness)+"</b></p>"+
+    "<p class='bo-rival-slate'><b>Dated</b> — "+(up.length?up.map(f=>esc(f.title)+" ("+DATA.GENRES[f.genre].name+"/"+f.scale+", "+dateLabel(f.week)+")").join(" · "):"nothing dated")+"</p>"+
+    "<p class='bo-rival-slate'><b>Recent</b> — "+(done.length?done.map(f=>esc(f.title)+" "+fmtG(f.dom||0)+" dom"+((f.dom||0)>=(f.opening||0)*2.5?" 🔥":"")).join(" · "):"no releases yet")+"</p>"+
+    (G.intel&&G.intel.until>G.week&&G.intel.name===r.name?"<span class='bo-chip gold'>INTEL ACTIVE</span>":"")+
+  "</article>";
 }
 /* International dashboard: regional split of settled actuals. Live runs show
    estimates pro-rated from the current domestic pace; finished runs show final
@@ -5076,22 +5129,28 @@ function rivalProfile(r){
 function regionPanel(f){
   let regs=f.regions;
   try{ if(!regs||!regs.length) regs=regionSplit(f); }catch(e){ return ""; }
+  if(!regs.length) return "";
   const lastWk=(f.weekly&&f.weekly.length)?f.weekly[f.weekly.length-1].gross:0;
   const live=!!f.inTheaters;
   const cities=cityRows(f);
-  let h="<div class='card' style='margin:8px 0 0'><b class='small'>🌍 International markets</b>"+
-    "<div class='tiny muted'>"+(live?"Estimates split from the live domestic pace — totals update nightly.":"Final regional split.")+" City-level detail under the top three markets. Levers: staggered rollout, intl campaign channel, foreign-language bonus.</div>";
+  const intl=(f.ww||0)-(f.dom||0);
+  const max=Math.max.apply(null, regs.map(r=>r.gross||0).concat([0.1]));
+  let h="<div class='bo-track-rows'>";
   regs.forEach(r=>{
-    const openEst=f.opening? Math.max(0,Math.round(f.opening*(r.gross/Math.max(1,((f.ww||0)-(f.dom||0))))*10)/10):0;
-    const wkEst=live? Math.max(0,Math.round(lastWk*(r.gross/Math.max(1,((f.ww||0)-(f.dom||0))))*10)/10):0;
-    /* v28.9: per-region audience score = base + regional modifiers */
+    const openEst=f.opening? Math.max(0,Math.round(f.opening*(r.gross/Math.max(1,intl))*10)/10):0;
+    const wkEst=live? Math.max(0,Math.round(lastWk*(r.gross/Math.max(1,intl))*10)/10):0;
     const regAud = Math.round(clamp((r.aud || 50) + (r.audAdj || 0) + (f.foreignLang && r.id==="europe"? 5:0) - (f.genre==="horror" && r.id==="eastasia"? 8:0) - (f.genre==="comedy" && r.id==="eastasia"? 5:0), 20, 95));
-    h+="<div class='cost-line'><span>"+r.emoji+" "+r.name+" <span class='tiny muted'>aud "+regAud+" · "+r.share+"% of WW"+(r.note?" · "+r.note:"")+"</span></span>"+
-      "<b>"+fmtG(r.gross)+"<span class='tiny muted'> tot</span>"+(live?" · "+fmtG(wkEst)+"<span class='tiny muted'>/wk</span>":" · open ≈ "+fmtG(openEst))+"</b></div>";
+    const pct=Math.max(2,(r.gross||0)/max*100);
+    h+="<div class='bo-track-row'>"+
+      "<span class='bo-track-label'>"+r.emoji+" "+esc(r.name)+"<small>aud "+regAud+" · "+r.share+"% of WW"+(r.note?" · "+esc(r.note):"")+"</small></span>"+
+      "<span class='bo-track teal'><i style='width:"+pct.toFixed(1)+"%'></i></span>"+
+      "<span class='bo-track-val'>"+fmtG(r.gross||0)+(live?"<small>"+fmtG(wkEst)+"/wk</small>":"<small>open ≈ "+fmtG(openEst)+"</small>")+"</span>"+
+    "</div>";
     const cr=cities.find(x=>x.region.id===r.id);
-    if(cr) h+="<div class='tiny muted' style='margin:-2px 0 4px 14px'>🏙 "+cr.cities.map(c=>esc(c.name)+" "+fmtG(c.gross)).join(" · ")+"</div>";
+    if(cr) h+="<div class='bo-region-cities'>🏙 "+cr.cities.map(c=>esc(c.name)+" <b>"+fmtG(c.gross)+"</b>").join(" · ")+"</div>";
   });
-  return h+"</div>";
+  h+="</div><p class='bo-figure-cap'>"+(live?"Estimates split from the live domestic pace; totals update nightly.":"Final regional split.")+" Levers: staggered rollout, the international campaign channel and a foreign-language bonus.</p>";
+  return h;
 }
 
 /* Regional summary across all films */
@@ -5103,57 +5162,100 @@ function regionSummaryPanel(){
   films.forEach(f=>{
     let regs = f.regions;
     try{ if(!regs||!regs.length) regs=regionSplit(f); }catch(e){ return; }
-    regs.forEach((r,i)=>{
+    regs.forEach(r=>{
       const t = totals.find(x=>x.id===r.id);
-      if(t){
-        t.gross += r.gross;
-        t.count++;
-        t.aud = t.count>0 ? Math.round((t.aud*(t.count-1) + r.aud)/t.count) : r.aud;
-      }
+      if(t){ t.gross += r.gross; t.count++; t.aud = t.count>0 ? Math.round((t.aud*(t.count-1) + r.aud)/t.count) : r.aud; }
     });
   });
   const totalIntl = totals.reduce((a,b)=>a+b.gross,0);
-  let h="<div class='card' style='margin-bottom:12px'><b class='small'>🌍 Regional box office summary (all-time)</b>"+
-    "<div class='tiny muted'>Aggregated across "+films.length+" released films. Total intl: <b class='gold'>"+fmtG(totalIntl)+"</b>.</div>";
-  totals.sort((a,b)=>b.gross-a.gross).forEach(t=>{
+  const sorted = totals.slice().sort((a,b)=>b.gross-a.gross);
+  const max = Math.max.apply(null, sorted.map(t=>t.gross).concat([0.1]));
+
+  let h = "<div class='bo-kpis'>" +
+    "<div class='bo-kpi'><small>TITLES REPORTING</small><b>" + films.length + "</b><span>films with international gross</span></div>" +
+    "<div class='bo-kpi'><small>INTERNATIONAL</small><b>" + fmtG(totalIntl) + "</b><span>all-time, all markets</span></div>" +
+    "<div class='bo-kpi'><small>TOP MARKET</small><b>" + (sorted[0] ? sorted[0].name : "—") + "</b><span>" + (sorted[0] ? fmtG(sorted[0].gross) + " · " + Math.round(sorted[0].gross/Math.max(1,totalIntl)*1000)/10 + "% of intl" : "no settled gross") + "</span></div>" +
+    "<div class='bo-kpi'><small>MARKETS</small><b>" + sorted.filter(t=>t.gross>0).length + "</b><span>regions with receipts</span></div>" +
+  "</div>";
+
+  if(typeof BOCharts !== "undefined" && sorted.length){
+    h += "<figure class='bo-figure'><div class='bo-figure-head'><b>INTERNATIONAL BY MARKET</b><span>" + fmtG(totalIntl) + " all-time</span></div>" +
+      BOCharts.bars(sorted.map(t=>({label:(t.emoji||"")+" "+t.name.split(" ")[0], value:t.gross, tone:"teal"})), {aria:"International gross by market", format:BOCharts.money, compact:boCompact()}) +
+      "<p class='bo-figure-cap'>Aggregated across every released picture, largest market first. Bars are gross, not share of the studio slate.</p></figure>";
+  }
+
+  h += "<div class='bo-track-rows'>";
+  sorted.forEach(t=>{
     const pct = totalIntl>0 ? Math.round(t.gross/totalIntl*1000)/10 : 0;
-    h+="<div class='cost-line'><span>"+t.emoji+" "+t.name+" <span class='tiny muted'>"+t.count+" films · aud "+t.aud+"</span></span>"+
-      "<b>"+fmtG(t.gross)+"<span class='tiny muted'> ("+pct+"% of intl)</span></b></div>";
+    h += "<div class='bo-track-row'>" +
+      "<span class='bo-track-label'>" + t.emoji + " " + esc(t.name) + "<small>" + t.count + " film" + (t.count===1?"":"s") + " · aud " + t.aud + "</small></span>" +
+      "<span class='bo-track teal'><i style='width:" + Math.max(2, t.gross/max*100).toFixed(1) + "%'></i></span>" +
+      "<span class='bo-track-val'>" + fmtG(t.gross) + "<small>" + pct + "% of intl</small></span>" +
+    "</div>";
   });
-return h+"</div>";
+  h += "</div>";
+  return h;
 }
 
-/* Film comparison modal */
+/* Film comparison modal — side-by-side KPIs plus a shared comparison chart, so
+   two runs are read on the same scale instead of two separate div stacks. */
 function compareFilmsModal(){
   const sel = (G.compareSel||[]).map(id=>G.films.find(f=>f.id===id)).filter(Boolean);
   if(sel.length<2){ toast("Select at least 2 films to compare.","bad"); return; }
-  let h="<h3>⚖ Film Comparison</h3>";
-  h+="<div class='grid g2' style='margin-top:12px;max-height:70vh;overflow:auto'>";
-  sel.forEach(f=>{
-    const be=breakevenWW(f);
+  const rows=sel.map(f=>{
+    let be=0; try{ be=breakevenWW(f); }catch(e){ be=(f.budget||0)*2; }
     const mult=boMult(f), legs=boLegs(f);
-    const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):f.quality.aud;
-    const crit=f.criticAvg!=null?f.criticAvg:f.quality.critic;
+    const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
+    const crit=f.criticAvg!=null?f.criticAvg:(f.quality?f.quality.critic:50);
     const sp=boSplit(f);
-    const verdict = f.streamingOriginal? "streaming original" :
-      f.ww>=be*1.6? "SMASH" : f.ww>=be? "HIT" : f.ww>=be*0.75? "soft" : "FLOP";
-    h+="<div class='card'><div style='border-bottom:2px solid "+(verdict==="SMASH"?"var(--green)":verdict==="HIT"?"var(--gold2)":verdict==="soft"?"var(--gold)":"var(--red)")+"';padding-bottom:8px;margin-bottom:8px>"+
-      "<b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b> <span class='tag'>"+verdict+"</span></div>"+
-      "<div class='cost-line'><span>Budget</span><b>"+fmtM(f.budget)+"</b></div>"+
-      "<div class='cost-line'><span>Opening</span><b>"+fmtG(f.opening||0)+"</b></div>"+
-      "<div class='cost-line'><span>Domestic</span><b>"+fmtG(sp.dom)+"</b></div>"+
-      "<div class='cost-line'><span>Intl</span><b>"+fmtG(sp.intl)+"</b></div>"+
-      "<div class='cost-line'><span>Worldwide</span><b>"+fmtG(sp.ww)+"</b></div>"+
-      "<div class='cost-line'><span>Multiplier</span><b>"+mult+"×</b></div>"+
-      "<div class='cost-line'><span>Legs</span><b>"+legs+"×</b></div>"+
-      "<div class='cost-line'><span>Critics</span><b>"+crit+"%</b></div>"+
-      "<div class='cost-line'><span>Audience</span><b>"+aud+"%</b></div>"+
-      "<div class='cost-line'><span>Profit</span><b class='"+(f.profit>=0?"pos":"neg")+"'>"+(f.profit>=0?"+":"")+fmtM(f.profit||0)+"</b></div>"+
-      "<div class='weekly-gross-chart' style='margin-top:8px'>"+(f.weekly||[]).slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/(f.opening||1)*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
-      "</div>";
+    const verdict = f.streamingOriginal? "STREAMING ORIGINAL" :
+      f.ww>=be*1.6? "SMASH" : f.ww>=be? "HIT" : f.ww>=be*0.75? "SOFT" : "FLOP";
+    const tone = verdict==="SMASH"||verdict==="HIT" ? "good" : verdict==="SOFT" ? "gold" : "bad";
+    return {f, be, mult, legs, aud, crit, sp, verdict, tone};
   });
-  h+="</div>";
-  openModal(h,{onClose:()=>{G.compareSel=[]; render();}});
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">LIBRARY / COMPARISON</span>'+
+    '<h3>'+rows.length+' pictures, one scale</h3>'+
+    '<p>Worldwide gross, legs and word of mouth side by side. Everything below reads off the same run data as the chart desk.</p></div>';
+
+  let body='<div class="produce-modal-body">';
+  if(typeof BOCharts!=="undefined"){
+    body+="<figure class='bo-figure'><div class='bo-figure-head'><b>WORLDWIDE BY PICTURE</b><span>"+fmtG(rows.reduce((a,r)=>a+r.sp.ww,0))+" combined</span></div>"+
+      BOCharts.bars(rows.map((r,i)=>({label:r.f.title.slice(0,12),value:r.sp.ww,tone:i===0?"gold":"muted"})),{aria:"Worldwide gross comparison",format:BOCharts.money,compact:boCompact()})+
+      "<p class='bo-figure-cap'>"+rows.map((r,i)=>"<b"+(i===0?' style="color:#edc47c"':"")+">"+esc(r.f.title)+"</b> "+fmtG(r.sp.ww)).join(" · ")+"</p>"+
+      "<p class='bo-figure-cap'>Domestic plus international, not adjusted for budget. A taller bar is not automatically the better release.</p></figure>";
+  }
+
+  body+='<div class="bo-compare-grid">';
+  rows.forEach(r=>{
+    const line=(label,value,tone)=>'<div class="bo-track-row"><span class="bo-track-label">'+label+'</span><span class="bo-track-val'+(tone?' '+tone:'')+'">'+value+'</span></div>';
+    body+='<article class="produce-modal-card bo-compare-card">'+
+      '<div class="bo-figure-head"><b>'+esc(r.f.title)+'</b><span class="bo-chip '+r.tone+'">'+r.verdict+'</span></div>'+
+      '<div class="bo-track-rows">'+
+        line("Budget",fmtM(r.f.budget||0))+
+        line("Opening",fmtG(r.f.opening||0))+
+        line("Domestic",fmtG(r.sp.dom))+
+        line("International",fmtG(r.sp.intl))+
+        line("Worldwide",fmtG(r.sp.ww))+
+        line("Breakeven",fmtG(r.be))+
+        line("Multiplier",r.mult+"×")+
+        line("Legs",r.legs+"×")+
+        line("Critics",r.crit+"%")+
+        line("Audience",r.aud+"%")+
+      '</div>'+
+      ((typeof BOCharts!=="undefined")?BOCharts.split([
+        {label:"Domestic",value:r.sp.dom,tone:"gold"},
+        {label:"International",value:r.sp.intl,tone:"teal"}
+      ],{format:BOCharts.money}):'')+
+    '</article>';
+  });
+  body+='</div></div>';
+
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+rows.length+' selected · clears when you close</span>'+
+    '<div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="compareClose">Close</button></div></div>';
+
+  const v=openModal(head+body+foot,{className:"command-produce-modal",onClose:()=>{G.compareSel=[]; render();}});
+  const cl=v.querySelector("#compareClose"); if(cl) cl.onclick=()=>closeModal();
 }
 
 /* Rival studio profile modal */
@@ -5166,26 +5268,58 @@ function rivalProfileModal(r){
   }[style]||{strategy:style, strength:"—", weakness:"—"};
   const up=(r.slate||[]).filter(f=>!f.dead&&!f.live&&f.week>G.week).sort((a,b)=>a.week-b.week).slice(0,6);
   const done=(r.slate||[]).filter(f=>(f.live||f.dead)&&(f.opening||0)>0).sort((a,b)=>b.week-a.week).slice(0,6);
-  const all=[{n:"You",ww:G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0)}].concat(G.rivals.map(x=>({n:x.name,ww:x.ytd||0})));
+  const myYtd=G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0);
+  const all=[{n:"You",ww:myYtd}].concat(G.rivals.map(x=>({n:x.name,ww:x.ytd||0})));
   const tot=all.reduce((a,x)=>a+x.ww,0)||1;
   const rank=all.slice().sort((a,b)=>b.ww-a.ww).findIndex(x=>x.n===r.name)+1;
   const share=Math.round((r.ytd||0)/tot*100);
+  const myShare=Math.round(myYtd/tot*100);
   const cash=r.cash||0, debt=r.debt||0, rep=r.rep||25;
-  let h="<h3>🏢 "+esc(r.name)+" <span class='tiny' style='color:"+(r.color||"#fff")+"'>●</span></h3>"+
-    "<div class='tiny muted'>"+esc(r.blurb||"")+" · #"+rank+" market share ("+share+"%) · rep "+rep+" · cash "+fmtM(cash)+" · debt "+fmtM(debt)+"</div>";
-  h+="<div class='card' style='margin-top:12px'><b class='small'>Strategy</b><div class='tiny muted'>"+meta.strategy+"</div></div>";
-  h+="<div class='card'><b class='small'>Strength / Weakness</b>"+
-    "<div class='cost-line'><span>✅ Strength</span><b class='pos'>"+meta.strength+"</b></div>"+
-    "<div class='cost-line'><span>❌ Weakness</span><b class='neg'>"+meta.weakness+"</b></div></div>";
-  h+="<div class='card' style='margin-top:8px'><b class='small'>Current slate ("+up.length+")</b>"+
-    "<div class='tiny muted'>"+(up.length?up.map(f=>"• "+esc(f.title)+" — "+DATA.GENRES[f.genre].name+"/"+f.scale+", "+dateLabel(f.week)).join("<br>"):"nothing dated")+"</div></div>";
-  h+="<div class='card' style='margin-top:8px'><b class='small'>Recent releases ("+done.length+")</b>"+
-    "<div class='tiny muted'>"+(done.length?done.map(f=>"• "+esc(f.title)+" — "+fmtG(f.dom||0)+" dom"+((f.dom||0)>=(f.opening||0)*2.5?" 🔥":"")).join("<br>"):"no releases yet")+"</div></div>";
-  h+="<div class='card' style='margin-top:8px'><b class='small'>Head-to-head vs you</b>"+
-    "<div class='cost-line'><span>Their YTD</span><b>"+fmtM(r.ytd||0)+"</b></div>"+
-    "<div class='cost-line'><span>Your YTD</span><b>"+fmtM(G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0))+"</b></div>"+
-    "<div class='cost-line'><span>Share gap</span><b class='"+(r.ytd>0?"neg":"pos")+"'>"+(r.ytd>0?"−":"+")+Math.abs(Math.round((r.ytd||0)/Math.max(1,(r.ytd||0)+G.films.filter(f=>f.year===yearOf(G.week)).reduce((a,f)=>a+(f.ww||0),0))*100))+"%</b></div></div>";
-  openModal(h,{onClose:()=>{}});
+  const kpi=(label,value,note)=>'<div class="bo-kpi"><small>'+label+'</small><b>'+value+'</b><span>'+note+'</span></div>';
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">COMPETITION / STUDIO DOSSIER</span>'+
+    '<h3><span style="color:'+(r.color||"#edc47c")+'">●</span> '+esc(r.name)+'</h3>'+
+    '<p>'+esc(r.blurb||"")+' · ranked #'+rank+' of '+all.length+' studios · '+share+'% market share · reputation '+rep+'</p></div>';
+
+  let body='<div class="produce-modal-body">';
+  body+='<div class="bo-kpis">'+
+    kpi("YEAR TO DATE",fmtM(r.ytd||0),"worldwide gross")+
+    kpi("MARKET SHARE",share+"%","you: "+myShare+"%")+
+    kpi("REPUTATION",String(rep),"out of 100")+
+    kpi("CASH / DEBT",fmtM(cash)+" / "+fmtM(debt),cash>=debt?"solvent":"leveraged",cash>=debt?"good":"bad")+
+  '</div>';
+
+  body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>HOW THEY COMPETE</b><span>'+esc(String(style||"balanced").toUpperCase())+'</span></div>'+
+    '<p class="bo-figure-cap">'+esc(meta.strategy)+'</p>'+
+    '<div class="bo-track-rows">'+
+      '<div class="bo-track-row"><span class="bo-track-label">Strength</span><span class="bo-track-val pos">'+esc(meta.strength)+'</span></div>'+
+      '<div class="bo-track-row"><span class="bo-track-label">Weakness</span><span class="bo-track-val neg">'+esc(meta.weakness)+'</span></div>'+
+    '</div></div>';
+
+  const slateRow=(f)=>'<div class="bo-track-row"><span class="bo-track-label">'+esc(f.title)+'<small>'+DATA.GENRES[f.genre].name+' / '+f.scale+'</small></span>'+
+    '<span class="bo-track-val">'+dateLabel(f.week)+'</span></div>';
+  body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>DATED SLATE</b><span>'+up.length+' upcoming</span></div>'+
+    (up.length?'<div class="bo-track-rows">'+up.map(slateRow).join("")+'</div>':'<p class="bo-figure-cap">Nothing dated — this studio is holding its corridor cards.</p>')+'</div>';
+
+  const doneRow=(f)=>'<div class="bo-track-row"><span class="bo-track-label">'+esc(f.title)+'<small>opened '+fmtG(f.opening||0)+'</small></span>'+
+    '<span class="bo-track-val">'+fmtG(f.dom||0)+((f.dom||0)>=(f.opening||0)*2.5?'<small>strong legs</small>':'')+'</span></div>';
+  body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>RECENT RELEASES</b><span>'+done.length+' on record</span></div>'+
+    (done.length?'<div class="bo-track-rows">'+done.map(doneRow).join("")+'</div>':'<p class="bo-figure-cap">No releases yet this career.</p>')+'</div>';
+
+  const hasYtd=(r.ytd||0)+(myYtd||0)>0;
+  body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>HEAD TO HEAD</b><span>this year</span></div>'+
+    (hasYtd?((typeof BOCharts!=="undefined")?BOCharts.split([
+      {label:esc(r.name),value:Math.max(0,r.ytd||0),tone:"muted"},
+      {label:"You",value:Math.max(0,myYtd),tone:"gold"}
+    ],{format:BOCharts.money}):''):
+      '<p class="bo-figure-cap">Neither studio has banked a release yet this year — the first opening weekend sets this market.</p>')+
+    (hasYtd?'<p class="bo-figure-cap">Year-to-date worldwide gross across every studio in the market.</p>':'')+'</div>';
+  body+='</div>';
+
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+fmtM(r.ytd||0)+' YTD · #'+rank+' of '+all.length+' · '+share+'% share</span>'+
+    '<div class="row" style="margin:0;gap:8px"><button class="produce-ghost" onclick="closeModal()">Close</button></div></div>';
+
+  openModal(head+body+foot,{className:"command-produce-modal"});
 }
 
 /* Audience demo panel — pre-release estimates vs post-release actuals:
@@ -5193,12 +5327,17 @@ function rivalProfileModal(r){
 function demoPanel(f){
   let pr;
   try{ pr=demoProfile(f); }catch(e){ return ""; }
-  let h="<div class='card' style='margin:8px 0 0'><b class='small'>👥 Audience profile</b><div class='tiny muted'>Reach index "+pr.potential+"/100 · converts the core at "+pr.conversion+" · retains at "+pr.retention+".</div>";
+  let h="<p class='bo-figure-cap'>Reach index <b>"+pr.potential+"/100</b> · converts the core at <b>"+pr.conversion+"</b> · retains at <b>"+pr.retention+"</b>.</p><div class='bo-track-rows'>";
   pr.rows.forEach(r=>{
-    h+="<div class='cost-line'><span>"+r.icon+" "+r.name+" <span class='tiny muted'>"+r.size+"% of market</span></span><b class='"+(r.appeal>=70?"pos":r.appeal<45?"neg":"")+"'>"+r.appeal+"</b></div>";
+    const pct=Math.max(2,clamp(r.appeal,0,100));
+    const tone=r.appeal>=70?"":r.appeal<45?" bad":"";
+    h+="<div class='bo-track-row'>"+
+      "<span class='bo-track-label'>"+r.icon+" "+esc(r.name)+"<small>"+r.size+"% of market</small></span>"+
+      "<span class='bo-track"+tone+"'><i style='width:"+pct+"%'></i></span>"+
+      "<span class='bo-track-val'>"+r.appeal+"</span>"+
+    "</div>";
   });
-  h+="<div class='tiny muted' style='margin-top:4px'>Strongest: <b class='pos'>"+pr.strongest.icon+" "+pr.strongest.name+"</b> · weakest: "+pr.weakest.icon+" "+pr.weakest.name+". "+
-    "Aim pitch angles + campaign channels at the strongest crowd — matched channels hit ×1.5 hype.</div></div>";
+  h+="</div><p class='bo-figure-cap'>Strongest: <b>"+pr.strongest.icon+" "+esc(pr.strongest.name)+"</b> · weakest: "+pr.weakest.icon+" "+esc(pr.weakest.name)+". Aim pitch angles and campaign channels at the strongest crowd — matched channels hit ×1.5 hype.</p>";
   return h;
 }
 /* Social buzz panel: hype/memes/theories/controversy/sentiment from the film's
@@ -5208,14 +5347,19 @@ function socialPanel(f){
   const s=f.social||{hype:0, memes:0, theories:0, controversy:0};
   const pos=(s.hype||0)+(s.memes?2:0)+(s.theories?1:0), neg=(s.controversy||0)+((f.cast||[]).some(c=>c.scandal>0)?1:0)+(f.reviewBombed?2:0);
   const sent=pos-neg>=2?"Positive":neg-pos>=2?"Negative":"Mixed";
-  return "<div class='card' style='margin:8px 0 0'><b class='small'>📣 Social buzz</b>"+
-    "<div class='cost-line'><span>Hype</span><b class='"+(pos>neg?"pos":neg>pos?"neg":"")+"'>"+sent+" ("+pos+"👍 / "+neg+"👎)</b></div>"+
-    (s.memes?"<div class='tiny pos'>🐸 Meme machine — fan theories everywhere.</div>":"")+
-    (s.theories&&!s.memes?"<div class='tiny pos'>🔍 Fan theories brewing.</div>":"")+
-    (s.controversy?"<div class='tiny neg'>🔥 Controversy level "+s.controversy+" — mainstream is watching.</div>":"")+
-    ((f.cast||[]).some(c=>c.scandal>0)?"<div class='tiny neg'>📰 Star scandal is the conversation.</div>":"")+
-    (f.reviewBombed?"<div class='tiny neg'>🍅 Brigaded score under review.</div>":"")+
-    ((!s.memes&&!s.controversy)?"<div class='tiny muted'>Quiet feeds. Big openings, beloved films and hot casts make noise.</div>":"")+"</div>";
+  let h="<div class='bo-split'>";
+  h+=(typeof BOCharts!=="undefined")?BOCharts.split([
+    {label:"Positive signal",value:Math.max(0,pos),tone:"teal"},
+    {label:"Negative signal",value:Math.max(0,neg),tone:"bad"}
+  ],{format:v=>Math.round(v)+" pts"}):"";
+  h+="</div><div class='bo-chip-row'><span class='bo-chip "+(sent==="Positive"?"good":sent==="Negative"?"bad":"gold")+"'>"+sent.toUpperCase()+"</span>";
+  if(s.memes) h+="<span class='bo-chip good'>MEME MACHINE</span>";
+  if(s.theories&&!s.memes) h+="<span class='bo-chip'>FAN THEORIES</span>";
+  if(s.controversy) h+="<span class='bo-chip bad'>CONTROVERSY "+s.controversy+"</span>";
+  if((f.cast||[]).some(c=>c.scandal>0)) h+="<span class='bo-chip bad'>STAR SCANDAL</span>";
+  if(f.reviewBombed) h+="<span class='bo-chip bad'>BRIGADED SCORE</span>";
+  h+="</div><p class='bo-figure-cap'>"+(pos+neg===0?"Quiet feeds. Big openings, beloved films and hot casts make noise.":"Hype is a leading indicator: it lifts the opening and the first two weekends.")+"</p>";
+  return h;
 }
 function topRegionLine(f){
   try{
@@ -5261,75 +5405,140 @@ function boxOfficeVaultBrowser(){
   return fold("vault-browser", "🏛 Acquired Library Vault ("+films.length+" titles)", h, {open:false});
 }
 
-function viewBoxOffice(){
-  if(typeof BOXOFFICE_SUB === "undefined") BOXOFFICE_SUB = "chart";
-  let h = "<div class='subnav-pills'>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chart"?"active":"")+"' data-bosub='chart'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-ticket-100.png' alt='' /><span>Theatrical Runs</span></button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="chains"?"active":"")+"' data-bosub='chains'><img class='subtab-pixel-icon' src='assets/2d/cinema_theater.png' alt='' /><span>Mega-Chains</span></button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="plf"?"active":"")+"' data-bosub='plf'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-movie-ticket-100.png' alt='' /><span>PLF &amp; Concessions</span></button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="blitz"?"active":"")+"' data-bosub='blitz'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/beat.png' alt='' /><span>Marketing Blitz</span></button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="territories"?"active":"")+"' data-bosub='territories'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-biometric-passport-100.png' alt='' /><span>Territory Deals</span></button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="awards"?"active":"")+"' data-bosub='awards'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_12.png' alt='' /><span>Awards Circuit</span></button>"+
-    "<button class='subnav-pill "+(BOXOFFICE_SUB==="clash"?"active":"")+"' data-bosub='clash'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_06.png' alt='' /><span>Clash Radar</span></button>"+
-    "<button class='subnav-pill' onclick='switchTab(\"library\")'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Film Library</span></button>"+
-  "</div>";
+/* ═══════════ VIEW: box office — one market desk, seven readings ═══════════
+   Story Department rules apply here too: a single branded header, one numbered
+   section rail, and produce panels inside. Every figure is read from the live
+   career — runs, rival slates, chain relations and settled regions. */
+const BOXOFFICE_SECTIONS = [
+  ["chart","Theatrical chart"],
+  ["chains","Mega-chains"],
+  ["plf","PLF & concessions"],
+  ["blitz","Marketing blitz"],
+  ["territories","Territory deals"],
+  ["awards","Awards circuit"],
+  ["clash","Clash radar"]
+];
+const BOXOFFICE_COPY = {
+  chart: ["03 / THE WEEKEND","What the town is paying to see","Every screen reports on Monday morning. This is who won the weekend, who is still earning, and where your own runs stand against the town."],
+  chains: ["03 / SCREENS","The circuits decide how wide you open","Five chains hold most of the domestic screens. Booking relations set your print count; court them before the next date, not after."],
+  plf: ["03 / PREMIUM","Large format is where the margin lives","IMAX and Dolby screens carry ticket surcharges and concession splits. Master the deliverables and the premium run pays for itself."],
+  blitz: ["03 / CAMPAIGN","Marketing is a spend curve, not a switch","Outdoor, digital, radio and premieres each buy a different kind of attention. Pace the blitz against the corridor you actually dated."],
+  territories: ["03 / TERRITORIES","Where the money crosses borders","Regional splits, local audience scores and city-level grosses. A strong domestic run still only tells half of the story."],
+  awards: ["03 / SEASON","Awards are a second release","Bodies and festivals run on their own calendar. A campaign that lands in the right week reopens a picture that already closed."],
+  clash: ["03 / COLLISION","Read the corridor before you date","Twelve weekends of seasonality, holidays and rival slates. Two tentpoles on one date costs both of them screens."]
+};
+function boxOfficeHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  const copy=BOXOFFICE_COPY[BOXOFFICE_SUB]||BOXOFFICE_COPY.chart;
+  return `<header class="command-heading"><div><span class="command-edition">BOX OFFICE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">${copy[0]}</span><h1>${copy[1]}</h1><p>${copy[2]}</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function boxOfficeTelemetry(){
+  let chart=[]; try{ chart=weeklyChart()||[]; }catch(e){ chart=[]; }
+  const weekDom=chart.reduce((a,c)=>a+(c.gross||0),0);
+  let live=[]; try{ live=activeFilms()||[]; }catch(e){ live=[]; }
+  const yourWw=live.reduce(function(a,f){ let sp={dom:f.dom||0,intl:0}; try{ sp=boSplit(f); }catch(e){} return a+(sp.dom||0)+(sp.intl||0); },0);
+  return `<div class="command-telemetry">${commandMetric("DOMESTIC / WEEK",fmtG(weekDom),"Every picture")}${commandMetric("YOUR RUNS",String(live.length),"In theaters")}${commandMetric("YOUR WW",fmtG(yourWw),"Domestic + intl")}${commandMetric("ON THE BOARD",String(chart.length),"Films this week")}</div>`;
+}
+function boxOfficeNav(){
+  const active=BOXOFFICE_SECTIONS.some(s=>s[0]===BOXOFFICE_SUB)?BOXOFFICE_SUB:"chart";
+  return `<nav class="command-section-nav command-boxoffice-nav" aria-label="Box office sections"><div class="command-nav-brand"><span>BOX OFFICE DESK</span><small>CHART / SCREENS / TERRITORIES</small></div><div class="command-nav-items">${BOXOFFICE_SECTIONS.map(([key,label],i)=>`<button data-bosub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div><div class="command-nav-tools"><button id="btnBoScreenings" aria-label="Audience screenings — festival and press screenings"><small>TOOL / AUDIENCE</small><span>Screenings</span></button><button id="btnBoTheaters" aria-label="Theater chains desk"><small>TOOL / CIRCUITS</small><span>Theater chains</span></button><button id="btnBoGrosses" aria-label="Weekend grosses analytics"><small>TOOL / ANALYTICS</small><span>Weekend grosses</span></button><button id="btnBoLibrary" aria-label="Film library — open the catalogue"><small>TOOL / CATALOGUE</small><span>Film library</span></button></div></nav>`;
+}
+function boxOfficePanel(eyebrow,title,description,content,stamp){
+  return `<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${stamp?`<span class="produce-stamp">${stamp}</span>`:""}</div>${content}</section>`;
+}
+function boxOfficeChartPanel(){
+  let chart=[]; try{ chart=weeklyChart()||[]; }catch(e){ chart=[]; }
+  if(!chart.length){
+    return boxOfficePanel("THE WEEKEND CHART","Where the money went","Nothing is playing this week. A film earns nothing until it is dated.","<div class='bo-empty'><b>The multiplex is dark.</b><p>No picture is on screens right now. Finish a film, then date it from Productions to open a run.</p><button class='produce-action' onclick=\"switchTab('productions')\">Open productions →</button></div>","NO RUNS");
+  }
+  const max=Math.max(1,...chart.map(c=>c.gross||0));
+  const rows=chart.map((c,i)=>`<div class="bo-chart-row${c.mine?" mine":""}"><span class="bo-rank">${String(i+1).padStart(2,"0")}</span><div class="bo-chart-name"><b>${c.mine?"🎬 ":""}${esc(c.title)}</b><small>${(DATA.GENRES[c.genre]||{}).name||esc(c.genre||"Feature")} · wk ${c.weeksOut}${c.mine?"":" · "+esc(c.studio||"independent")}</small></div><span class="bo-chart-bar"><i style="width:${Math.max(4,(c.gross||0)/max*100)}%${c.mine?"":";background:"+(c.color||"#4a5570")}"></i></span><b class="bo-chart-gross">${fmtG(c.gross||0)}</b></div>`).join("");
+  const mine=chart.filter(c=>c.mine).length;
+  return boxOfficePanel("THE WEEKEND CHART","Where the money went","Domestic gross for the current weekend, ranked. Gold bars are your pictures.","<div class=\"bo-chart\">"+rows+"</div><footer class=\"bo-foot\"><span>"+mine+" of yours on the board</span><b>Leader: "+esc(chart[0].title)+" · "+fmtG(chart[0].gross||0)+"</b></footer>",chart.length+" FILMS");
+}
+function boxOfficeCompetitionPanel(){
+  const intel=(G.intel&&G.intel.until>G.week)?`<p class="produce-note">🕵 Intel active on ${esc(G.intel.name)} — ${G.intel.until-G.week} weeks left.</p>`:"";
+  return boxOfficePanel("COMPETITION","The other studios","They date corridors by style, blink when you out-muscle their weekend, poach hot free talent and launch streamers. Slates re-seed yearly.",`<div class="produce-filters bo-actions"><button class="produce-ghost" id="btnDeployCounterIntel">🛡️ Counter-intel ($2M)</button><button class="produce-ghost" data-intel="1">🕵 Buy intel ($8M)</button></div>${intel}<div class="produce-cards bo-rivals">${(G.rivals||[]).map(rivalProfile).join("")}</div>`,`${(G.rivals||[]).length} RIVALS`);
+}
+/* The corridor as twelve weekend cells — seasonality, holiday lift and who is
+   already dated. Same numbers as the legacy forecast, without its section title. */
+function boxOfficeCorridorGrid(){
+  const cells=[];
+  for(let i=1;i<=12;i++){
+    const w=G.week+i, seas=DATA.seasonOf(woyOf(w));
+    const mine=(G.projects||[]).filter(p=>p.releaseWeek===w).length;
+    const rivals=(G.rivals||[]).reduce((sum,r)=>sum+(r.slate||[]).filter(f=>f.week===w).length,0);
+    const peak=seas.season>=1.15||!!seas.holiday;
+    cells.push(`<div class="bo-weekend${peak?" peak":""}"><small>${seas.month} W${woyOf(w)}</small><b>×${seas.season.toFixed(2)}</b><span>${mine?`<em class="mine">${mine} yours</em>`:""}${rivals?`<em class="rivals">${rivals} rival</em>`:""}${!mine&&!rivals?`<em class="open">open</em>`:""}</span></div>`);
+  }
+  return `<div class="bo-weekends">${cells.join("")}</div>`;
+}
+function boxOfficeCorridorPanel(){
+  return boxOfficePanel("CORRIDOR","The next twelve weekends","Seasonality, holiday lifts and who is already dated. A quiet weekend is an invitation; a crowded one costs you screens.",boxOfficeCorridorGrid(),"12 WEEKS");
+}
+function boxOfficeRunsPanel(){
+  let live=[]; try{ live=activeFilms()||[]; }catch(e){ live=[]; }
+  return boxOfficePanel("LIVE RUNS","Your films in theaters","Week-by-week gross, screen count and audience word of mouth for every picture still earning.","<div class=\"bo-runs\">"+boxOfficeRuns()+"</div>",`${live.length} RUNNING`);
+}
+function boxOfficeLibraryPanel(){
+  return boxOfficePanel("CATALOGUE","Every picture you have released","Sort by worldwide gross, compare two titles, or open a dossier. Rename, re-release and reboot live here.","<div class=\"bo-lib\">"+boxOfficeLibrary()+"</div>",`${(G.films||[]).length} TITLES`);
+}
+function boxOfficeChainsPanel(){
+  const cards=(DATA.CHAINS||[]).map(dc=>{
+    const c=(typeof chainById==="function"?chainById(dc.id):null)||dc;
+    const rel=Math.round(c.rel);
+    const cost=(typeof chainCourtCost==="function")?chainCourtCost(c):0;
+    const taste=(c.taste?Object.keys(c.taste):[]).slice(0,3).map(g=>(DATA.GENRES[g]||{}).name||g).join(", ");
+    return `<article class="bo-chain-card"><header><div><h3>${c.emoji} ${esc(c.name)}</h3><small>${Math.round((c.screens||0)*100)}% of domestic screens</small></div><span class="bo-chain-rel ${rel>=65?"good":rel<40?"bad":""}">${rel}/100</span></header><p>${esc(c.blurb||"")}</p><dl><div><dt>Books generously</dt><dd>${esc(taste||"—")}</dd></div><div><dt>Court cost</dt><dd>${fmtM(cost)}</dd></div></dl><button class="produce-ghost" data-court="${c.id}">🤝 Court the circuit</button></article>`;
+  }).join("");
+  const circuits=(typeof FilmLocationsTax!=="undefined"&&typeof FilmLocationsTax.renderTheaterChainsSection==="function")?`<div class="bo-module">${FilmLocationsTax.renderTheaterChainsSection()}</div>`:"";
+  return boxOfficePanel("MEGA-CHAINS","Booking relations decide your print count","A warm circuit gives you screens in the first week; a cold one buries you on two shows a day.",`<div class="produce-cards bo-chains">${cards||"<div class='bo-empty'><b>No circuits loaded.</b><p>The booking desk did not report.</p></div>"}</div>${circuits}`,`${(DATA.CHAINS||[]).length} CIRCUITS`);
+}
+function boxOfficeModulePanel(eyebrow,title,description,html,stamp){
+  const body=html?`<div class="bo-module">${html}</div>`:`<div class="bo-empty"><b>This desk did not load.</b><p>The specialist module is unavailable in this build — nothing has been lost from your save.</p></div>`;
+  return boxOfficePanel(eyebrow,title,description,body,stamp);
+}
+function boxOfficeTerritoriesPanel(){
+  let summary=""; try{ summary=regionSummaryPanel()||""; }catch(e){}
+  const body=summary||`<div class="bo-empty"><b>No settled international grosses yet.</b><p>Regional splits appear once a release starts reporting outside the domestic market.</p></div>`;
+  return boxOfficePanel("TERRITORY DEALS","How the international split settles","Aggregated across every released picture. Open a run's dossier from the chart for city-level detail.",`<div class="bo-module bo-territories">${body}</div>`,`${(G.films||[]).filter(f=>f.ww>0).length} FILMS`);
+}
+function boxOfficeClashPanel(){
+  return boxOfficePanel("CLASH RADAR","Where the next collision sits","Dated pictures on both sides of the aisle, plus the seasonality behind each weekend.",boxOfficeCorridorGrid()+"<div class=\"produce-cards bo-rivals\">"+(G.rivals||[]).map(rivalProfile).join("")+"</div>",`${(G.rivals||[]).length} RIVALS`);
+}
 
-  if(BOXOFFICE_SUB === "chains"){
-    if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.renderTheaterChainsSection === "function") return h + FilmLocationsTax.renderTheaterChainsSection();
+/* Weekly curve for a run: screen reports first, then the raw weekly ledger.
+   Labels carry the real week number so a run read mid-flight still lines up. */
+/* Charts render on the client, so the desk can hand the kit a narrow viewBox
+   on phones instead of shrinking a 640-wide drawing until the axis is unreadable. */
+function boCompact(){ try{ return (typeof window!=="undefined" && window.innerWidth) ? window.innerWidth<760 : false; }catch(e){ return false; } }
+function boRunSeries(f, limit){
+  limit=limit||12;
+  let rows=[];
+  try{ rows=screenWeeks(f)||[]; }catch(e){ rows=[]; }
+  if(rows.length){
+    return rows.slice(-limit).map(r=>({ label:"W"+Math.max(1,(r.w||0)-(f.releaseWeek||0)+1), value:r.gross||0, note:(r.screens?Number(r.screens).toLocaleString("en-US")+" screens":"") }));
   }
-  if(BOXOFFICE_SUB === "plf"){
-    if(typeof ExhibitionPLF !== "undefined" && typeof ExhibitionPLF.renderExhibitionPLFSection === "function") return h + ExhibitionPLF.renderExhibitionPLFSection();
-  }
-  if(BOXOFFICE_SUB === "blitz"){
-    if(typeof MarketingBlitz !== "undefined" && typeof MarketingBlitz.renderMarketingBlitzSection === "function") return h + MarketingBlitz.renderMarketingBlitzSection();
-  }
-  if(BOXOFFICE_SUB === "awards"){
-    if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.renderAwardCircuitSection === "function") return h + FilmLocationsTax.renderAwardCircuitSection();
-  }
-  if(BOXOFFICE_SUB === "territories"){
-    return h + fold("intl-summary", "Regional box office summary", regionSummaryPanel(), {open:true});
-  }
-  if(BOXOFFICE_SUB === "clash"){
-    return h + boxOfficeCorridorForecast() + "<div class='section-title'>Rival Studios</div><div class='grid g3'>" + G.rivals.map(rivalProfile).join("") + "</div>";
-  }
-
-  const chart = weeklyChart();
-  h+="<div class='section-title'>This week's chart</div><div class='card chart-bars'>";
-  if(!chart.length) h+="<div class='muted small'>Nothing in theaters — the multiplex is a graveyard.</div>";
-  const max=Math.max(1,...chart.map(c=>c.gross));
-  chart.forEach((c,i)=>{
-    h+="<div class='chart-bar'><div class='cb-rank'>"+(i+1)+"</div><div><div class='cb-name'>"+(c.mine?"🎬 ":"")+esc(c.title)+(c.mine?"":" <span class='tiny muted'>— "+esc(c.studio||"")+"</span>")+"</div>"+
-      "<div class='cb-sub'>"+DATA.GENRES[c.genre].name+" · wk "+c.weeksOut+"</div></div>"+
-      "<div class='cb-track'><div class='cb-fill' style='width:"+Math.max(7,c.gross/max*100)+"%;background:"+(c.mine?"linear-gradient(90deg,var(--gold),var(--gold2))":(c.color||"#4a5570"))+"'>"+fmtG(c.gross)+"</div></div></div>";
-  });
-  h+="</div>";
-	h+="<div class='spread'><div class='section-title' style='margin:0'>Rival studios ("+G.rivals.length+")</div>"+
-	  "<div class='row' style='gap:6px'><button class='btn btn-sm btn-alt' id='btnDeployCounterIntel'>🛡️ Counter-Intel ($2M)</button>"+
-	  "<button class='btn btn-sm btn-alt' data-intel='1'>🕵 Buy intel — $8M</button></div></div>"+
-	  "<div class='tiny muted' style='margin:-4px 0 8px'>They date corridors by style, blink when you out-muscle their weekend, poach hot free talent, outbid you on sports, and launch streamers. Slates re-seed yearly; heat follows genre trends like yours."+
-	  (G.intel&&G.intel.until>G.week? " <b class='gold'>🕵 Intel active on "+esc(G.intel.name)+" ("+(G.intel.until-G.week)+" wks left).</b>":" They play dirty too — guard your scripts.")+"</div>"+
-	  fold("rivals", "🏢 The competition", "<div class='grid g3'>"+G.rivals.map(rivalProfile).join("")+"</div>", {open:true, hint:G.rivals.length+" studios"})+
-	  fold("intl-summary", "🌍 Regional box office summary", regionSummaryPanel(), {open:false});
-  /* v12: theater chains (§22) — booking relation decides the screens a release gets */
-  h+=fold("chains", "🎞 Theater chains",
-    "<div class='tiny muted' style='margin:-2px 0 8px'>Five chains control ~90% of domestic screens (independents hold the rest). Booking relation decides how many screens — and how big an opening — a release gets. Court a chain to warm it up; chains book their favorite genres generously.</div><div class='grid g3'>"+
-    (DATA.CHAINS||[]).map(dc=>{
-      const c=chainById(dc.id)||dc;
-      const rel=Math.round(c.rel);
-      const cost=chainCourtCost(c);
-      const taste=(c.taste?Object.keys(c.taste):[]).slice(0,3).map(g=>(DATA.GENRES[g]||{}).name||g).join(", ");
-      return "<div class='card'><div class='spread'><b>"+c.emoji+" "+esc(c.name)+"</b><span class='tag'>"+Math.round(c.screens*100)+"% screens</span></div>"+
-        "<div class='tiny muted' style='margin-top:2px'>"+esc(c.blurb)+"</div>"+
-        "<div class='cost-line'><span>Books generously</span><b class='tiny'>"+taste+"</b></div>"+
-        "<div class='cost-line'><span>Booking relation</span><b class='"+(rel>=65?"pos":rel<40?"neg":"")+"'>"+rel+"/100</b></div>"+
-        "<div class='row' style='margin-top:6px'><button class='btn btn-sm' data-court='"+c.id+"'>🤝 Court — "+fmtM(cost)+"</button></div></div>";
-    }).join("")+"</div>", {open:true, hint:"court them for screens"});
-
-  h+=boxOfficeCorridorForecast();
-
+  const all=f.weekly||[];
+  const start=Math.max(0, all.length-limit);
+  return all.slice(-limit).map((x,i)=>({ label:"W"+(start+i+1), value:x.gross||0 }));
+}
+function boWeekRows(f){
+  let rows=[];
+  try{ rows=screenWeeks(f)||[]; }catch(e){ rows=[]; }
+  if(!rows.length) return "<p class='bo-figure-cap'>No weekly reports filed yet — the first one lands after the opening weekend.</p>";
+  const body=rows.slice(-8).map(r=>{
+    const wk=Math.max(1,(r.w||0)-(f.releaseWeek||0)+1);
+    const wow = r.wow==null ? "<span class='bo-weeks-open'>opening</span>" : "<span class='"+(r.wow>=0?"pos":"neg")+"'>"+(r.wow>=0?"+":"")+r.wow+"%</span>";
+    const psa = r.psa>=1000 ? "$"+(Math.round(r.psa/100)/10)+"M" : "$"+Math.round(r.psa||0)+"K";
+    return "<div class='bo-weeks-row'><span>Wk "+wk+"</span><span>"+fmtG(r.gross||0)+"</span><span>"+Number(r.screens||0).toLocaleString("en-US")+"</span><span>"+psa+"</span><span>"+(r.occ||0)+"%</span><span>"+wow+"</span></div>";
+  }).join("");
+  return "<div class='bo-weeks'><div class='bo-weeks-head'><span>WEEK</span><span>GROSS</span><span>SCREENS</span><span>PER SCREEN</span><span>FULL</span><span>WOW</span></div>"+body+"</div>";
+}
+function boxOfficeRuns(){
+  let h="";
   const live=activeFilms();
-  h+="<div class='section-title'>Your films in theaters ("+live.length+")</div>";
-  if(!live.length) h+="<div class='card muted small'>No active runs. A film without a release date earns nothing.</div>";
+  if(!live.length) h+="<div class='bo-empty'><b>No active runs.</b><p>A film without a release date earns nothing — date a finished picture and the run opens here.</p><button class='produce-action' onclick=\"switchTab('productions')\">Go to productions →</button></div>";
   for(const f of live){
     const be=breakevenWW(f);
     const projWW=(f.dom/(1-DATA.GENRES[f.genre].intlShare));
@@ -5338,62 +5547,81 @@ function viewBoxOffice(){
     const crit=f.criticAvg!=null?f.criticAvg:f.quality.critic;
     const daily=weekendDaily(f), weeks=screenWeeks(f);
     const lastWk = weeks.length ? weeks[weeks.length-1] : null;
-    const wowBadge = lastWk && lastWk.wow != null ? (lastWk.wow >= 0 ? "<span class='tag green'>+"+lastWk.wow+"% WoW</span>" : "<span class='tag "+(lastWk.wow>-45?"gold":"red")+"'>"+lastWk.wow+"% WoW</span>") : "";
-    const psaBadge = lastWk ? "<span class='tag' title='Per screen average'>🎟 "+(lastWk.psa>=1000?"$"+(Math.round(lastWk.psa/100)/10)+"M":"$"+Math.round(lastWk.psa)+"K")+"/scr</span>" : "";
     const domPct = Math.round((sp.dom / Math.max(0.1, sp.ww)) * 100);
-    const intlPct = 100 - domPct;
+    const health=Math.round(clamp((lastWk?lastWk.gross:0)/Math.max(1,f.opening)*100,0,100));
+    const paceOk = projWW>=be;
+    const series=boRunSeries(f);
+    const chart=(typeof BOCharts!=="undefined")?BOCharts.area(series,{aria:"Weekly gross for "+f.title,format:BOCharts.money,compact:boCompact()}):"";
+    const splitFig=(typeof BOCharts!=="undefined")?BOCharts.split([
+      {label:"Domestic",value:sp.dom,tone:"gold"},
+      {label:"International",value:sp.intl,tone:"teal"}
+    ],{format:BOCharts.money}):"";
+    const kpi=(label,value,note,tone)=>"<div class='bo-kpi"+(tone?" "+tone:"")+"'><small>"+label+"</small><b>"+value+"</b>"+(note?"<span>"+note+"</span>":"")+"</div>";
+    const dailyBars=(typeof BOCharts!=="undefined")?BOCharts.bars(daily.map(d=>({label:d.day,value:d.gross||0})),{aria:"Opening weekend by day",format:BOCharts.money,compact:boCompact()}):"";
 
-    const panelFolds=(function(){ let s=""; const rp=regionPanel(f); if(rp) s+=fold("regions:"+f.id,"🌍 International markets & cities",rp,{open:false});
-      const dp=demoPanel(f); if(dp) s+=fold("demo:"+f.id,"🎯 Audience demographics",dp,{open:false});
-      const sp=socialPanel(f); if(sp) s+=fold("social:"+f.id,"📣 Social buzz",sp,{open:false}); return s; })();
-    h+="<div class='card'><div class='spread'><div><b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b> "+wowBadge+" "+psaBadge+
-      "<button class='btn btn-xs btn-primary' style='margin-left:6px' data-dossier='"+f.id+"'>📊 Breakdown</button>"+
-      "<div class='tiny muted'>wk "+f.weeksOut+" out · opened "+fmtG(f.opening)+" · "+scoreBadge(f.quality.overall)+"</div></div>"+
-      "<div style='text-align:right'><b class='gold'>"+fmtG(f.dom)+"</b><div class='tiny muted'>domestic</div></div></div>"+
-      "<div class='stat-hero' style='margin-top:8px'>"+
-        statCard(fmtG(f.opening),"Opening wknd")+
-        statCard(fmtG(sp.dom),"Domestic")+
-        statCard(fmtG(sp.intl),"International"+(f.presales?" (pre-sold)":""))+
-        statCard(fmtG(sp.ww),"Worldwide")+
-        statCard(mult+"×","Multiplier",0,"Total WW ÷ opening weekend. >2.5× = strong legs (animation, horror). <2× = front-loaded (concert, horror).")+
-        statCard(legs+"×","Legs",0,"Projected total ÷ opening. Driven by quality, genre, audience score. Horror ~1.5×, Animation ~3×.")+
-        statCard(crit+"%","Critics",0,"Named critic consensus (5 reviewers). Higher = better awards odds, stronger streaming appetite.")+
-        statCard(aud+"%","Audience · WOM",0,"Audience score (Word of Mouth). Drives legs & streaming. Review bombing tanks this.")+
+    const panelFolds=(function(){
+      let out="";
+      const rp=regionPanel(f); if(rp) out+=fold("regions:"+f.id,"🌍 International markets & cities",rp,{open:false});
+      const dp=demoPanel(f); if(dp) out+=fold("demo:"+f.id,"🎯 Audience demographics",dp,{open:false});
+      const soc=socialPanel(f); if(soc) out+=fold("social:"+f.id,"📣 Social buzz",soc,{open:false});
+      return out;
+    })();
+
+    h+="<article class='produce-release bo-run'>"+
+      "<header class='bo-run-head'><div><span class='command-eyebrow'>"+esc(DATA.GENRES[f.genre].name)+" / LIVE RUN</span>"+
+        "<h3>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</h3>"+
+        "<p class='produce-release-meta'>Week "+f.weeksOut+" on screens · opened "+fmtG(f.opening||0)+" · critics "+crit+"% · audience "+aud+"%</p>"+
+        "<div class='produce-release-flags'>"+
+          "<span class='bo-chip "+(aud>=70?"good":aud<50?"bad":"")+"'>AUDIENCE "+aud+"%</span>"+
+          "<span class='bo-chip "+(crit>=70?"good":crit<50?"bad":"")+"'>CRITICS "+crit+"%</span>"+
+          (f.premium||f.imax?"<span class='bo-chip gold'>PREMIUM SCREENS</span>":"")+
+          (f.reviewBombed?"<span class='bo-chip bad'>REVIEW BOMBED −"+f.reviewBombed+"</span>":"")+
+        "</div></div>"+
+        "<div class='bo-run-stamp'><b class='"+(paceOk?"pos":"neg")+"'>"+(paceOk?"ON PACE":"BELOW BREAKEVEN")+"</b><span>tracking "+fmtG(projWW)+" vs "+fmtG(be)+"</span><small>run health "+health+"% of opening</small></div>"+
+      "</header>"+
+      "<div class='bo-kpis'>"+
+        kpi("Opening weekend",fmtG(f.opening||0),"wide release")+
+        kpi("Domestic",fmtG(sp.dom),domPct+"% of worldwide")+
+        kpi("International",fmtG(sp.intl),(100-domPct)+"% of worldwide"+(f.presales?" · pre-sold":""))+
+        kpi("Worldwide",fmtG(sp.ww),"all territories")+
+        kpi("Multiplier",mult+"×","total ÷ opening",mult>=2.5?"good":mult<1.6?"bad":"")+
+        kpi("Legs",legs+"×","projected total ÷ opening")+
       "</div>"+
-      "<div style='margin-top:8px'><div class='cost-line'><span class='tiny muted'>Domestic vs International gross split</span><b class='tiny'>Dom "+domPct+"% · Intl "+intlPct+"%</b></div>"+
-      "<div style='display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,.08);margin-top:2px'>"+
-      "<div style='width:"+domPct+"%;background:linear-gradient(90deg,var(--gold),var(--gold2))' title='Domestic "+domPct+"%'></div>"+
-      "<div style='width:"+intlPct+"%;background:var(--cyan)' title='International "+intlPct+"%'></div>"+
-      "</div></div>"+
-      "<div class='weekly-gross-chart' style='margin-top:8px'>"+f.weekly.slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/f.opening*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Weekly rentals (53% dom, paid weekly): "+f.weekly.slice(-6).map(x=>fmtG(x.gross*0.53)).join(" · ")+"</div>"+
-      fold("daily:"+f.id, "🎟 Opening weekend — daily",
-        "<div class='weekly-gross-chart' style='margin-top:6px'>"+daily.map(d=>"<div class='wg' style='height:"+Math.max(4,d.gross/Math.max(0.001,f.opening||1)*100)+"%' title='"+d.day+" "+fmtG(d.gross)+"'></div>").join("")+"</div>"+
-        "<div class='tiny muted' style='margin-top:4px'>"+daily.map(d=>d.day+" "+fmtG(d.gross)).join(" · ")+"</div>", {open:false})+
-      fold("weeks:"+f.id, "📊 Week-by-week",
-        weeks.slice(-8).map((r,i)=>"<div class='cost-line'><span>Wk "+(r.w-f.releaseWeek+1)+" · "+(r.wow==null?"<b>opening</b>":(r.wow>=0?"<b class='pos'>+":"<b class='neg'>")+r.wow+"% WoW</b>")+"</span>"+
-        "<b class='tiny'>"+fmtG(r.gross)+" · "+r.screens.toLocaleString("en-US")+" scr · "+(r.psa>=1000?"$"+(Math.round(r.psa/100)/10)+"M":"$"+Math.round(r.psa)+"K")+"/scr · "+r.occ+"% full</b></div>").join("")+
-        "<div class='tiny muted' style='margin-top:4px'>Screens shrink as the run winds down; per-screen average and occupancy follow the gross.</div>", {open:false})+
-      "<div class='spread small' style='margin-top:6px'><span class='muted'>Tracking ≈ "+fmtG(projWW)+" WW vs "+fmtG(be)+" breakeven · run health "+Math.round(clamp((f.weekly.length?f.weekly[f.weekly.length-1].gross:0)/Math.max(1,f.opening)*100,0,100))+"% of opening</span>"+
-      "<span class='"+(projWW>=be?"pos":"neg")+"'>"+(projWW>=be?"on pace to profit":"below breakeven")+"</span></div>"+
-      fold("why:"+f.id, "🧐 Why is this performing this way?", boWhy(f), {open:false})+
+      "<div class='bo-run-figures'>"+
+        "<figure class='bo-figure'><div class='bo-figure-head'><b>WEEKLY GROSS</b><span>"+(series.length?series[series.length-1].label+" · "+fmtG(series[series.length-1].value):"—")+"</span></div>"+chart+
+          "<p class='bo-figure-cap'>Domestic gross per week on screens. A long flat tail is healthy; a cliff after week one is front-loading.</p></figure>"+
+        "<figure class='bo-figure'><div class='bo-figure-head'><b>DOMESTIC / INTERNATIONAL</b><span>"+fmtG(sp.ww)+" total</span></div>"+splitFig+
+          "<p class='bo-figure-cap'>Rentals land at roughly 53% of domestic gross, paid weekly: <b>"+fmtM(f.rentalsDom||0)+"</b> received so far.</p></figure>"+
+      "</div>"+
+      "<div class='produce-release-actions'>"+
+        "<button class='produce-action' data-dossier='"+f.id+"'>📊 Open the full breakdown</button>"+
+        "<button class='produce-ghost' data-reviews='"+f.id+"'>🗞 Read the reviews</button>"+
+      "</div>"+
+      fold("daily:"+f.id,"🎟 Opening weekend — daily",
+        dailyBars+"<p class='bo-figure-cap'>"+daily.map(d=>"<b>"+d.day+"</b> "+fmtG(d.gross)).join(" · ")+"</p>",{open:false})+
+      fold("weeks:"+f.id,"📊 Week-by-week",
+        boWeekRows(f)+"<p class='bo-figure-cap'>Screens shrink as the run winds down; per-screen average and occupancy follow the gross.</p>",{open:false})+
+      fold("why:"+f.id,"🧐 Why is this performing this way?",boWhy(f),{open:false})+
       panelFolds+
-      (f.reviewBombed? "<div class='card' style='margin:6px 0;border-left:3px solid var(--red);padding:8px 10px'><b class='neg small'>🍅 REVIEW BOMBING in progress</b><div class='tiny muted'>Audience score has taken −"+f.reviewBombed+" pts from brigading. "+(f.bombCountered? "Your fan-activation blunted the worst of it.":"Ride it out, or let counter-campaigns do their work next time.")+"</div></div>":"")+
-      (G.piracy>=45? "<div class='tiny neg' style='margin:2px 0'>🏴‍☠️ Piracy is draining this run (−"+Math.round(clamp(G.piracy/100,0,1)*(DATA.PIRACY?DATA.PIRACY.maxGrossDamage:0.1)*100)+"% weekly gross).</div>":"")+
+      (f.reviewBombed? "<div class='bo-callout bad'><b>REVIEW BOMBING IN PROGRESS</b><p>Audience score has taken −"+f.reviewBombed+" pts from brigading. "+(f.bombCountered?"Your fan-activation blunted the worst of it.":"Ride it out, or let counter-campaigns do their work next time.")+"</p></div>":"")+
+      (G.piracy>=45? "<div class='bo-callout bad'><b>PIRACY</b><p>Draining this run by about "+Math.round(clamp(G.piracy/100,0,1)*(DATA.PIRACY?DATA.PIRACY.maxGrossDamage:0.1)*100)+"% of weekly gross.</p></div>":"")+
       scoreSplit(f)+
-      "<div class='row' style='margin-top:4px'><button class='btn btn-sm btn-ghost' data-reviews='"+f.id+"'>🗞 Read the reviews</button></div>"+
-      "<div class='tiny' style='margin-top:4px'>💰 Rentals received to date: <b class='gold'>"+fmtM(f.rentalsDom||0)+"</b> <span class='muted'>(~53% of domestic gross, paid weekly)</span>"+(f.presales?" · <span class='muted'>intl pre-sold</span>":"")+"</div>"+
-      (f.advanceTotal? "<div class='tiny' style='margin-top:4px'>🎟 Advance tickets banked: <b class='gold'>"+fmtM(f.advanceTotal)+"</b> <span class='muted'>(sold before opening day)</span></div>":"")+
-      (f.locCost? "<div class='tiny' style='margin-top:4px'>🌍 Dubbing & localization: <b>"+fmtM(f.locCost)+"</b> <span class='muted'>(dubs, subs, local P&A — itemized at release)</span></div>":"")+
-      "</div>";
+      (f.advanceTotal? "<p class='bo-figure-cap'>🎟 Advance tickets banked: <b>"+fmtM(f.advanceTotal)+"</b> — sold before opening day.</p>":"")+
+      (f.locCost? "<p class='bo-figure-cap'>🌍 Dubbing &amp; localization: <b>"+fmtM(f.locCost)+"</b> — dubs, subs and local P&amp;A, itemized at release.</p>":"")+
+    "</article>";
   }
+  return h;
+}
+
+function boxOfficeLibrary(){
+  let h="";
   const lib=G.films.slice().sort((a,b)=>(b.ww||0)-(a.ww||0));
   const compareSel = G.compareSel || [];
-  h+="<div class='spread'><div class='section-title'>Library ("+lib.length+")</div>"+
+  h+="<div class='spread bo-lib-head'><div><span class='command-eyebrow'>SORTED BY WORLDWIDE GROSS</span><h2>Library ("+lib.length+")</h2></div>"+
     (compareSel.length>=2? "<button class='btn btn-sm btn-primary' id='btnCompareFilms'>⚖ Compare "+compareSel.length+" films</button>" : "")+"</div>";
-  if(!lib.length) h+="<div class='card muted small'>Your trophy shelf is empty. For now.</div>";
+  if(!lib.length) h+="<div class='bo-empty'><b>Your trophy shelf is empty.</b><p>Release a picture and its full box-office record files itself here.</p></div>";
   h+=boxOfficeVaultBrowser();
-  h+="<div class='card'>";
+  h+="<div class='bo-library'>";
   lib.slice(0,15).forEach(f=>{
     const be=f.ww? breakevenWW(f):1;
     const verdict = f.streamingOriginal? "<span class='tag purple'>streaming original</span>" :
@@ -5430,6 +5658,52 @@ function viewBoxOffice(){
   h+="</div>";
   return h;
 }
+
+
+/* Weekend grosses — the Monday-morning report as a branded dialog. Reads the
+   same weekly chart the desk renders, plus screens and per-screen average for
+   your own runs, so the numbers can never drift from the page behind it. */
+function boxOfficeWeekendModal(){
+  let chart=[]; try{ chart=weeklyChart()||[]; }catch(e){ chart=[]; }
+  const live=(typeof activeFilms==="function")?activeFilms()||[]:[];
+  const rows=chart.map((c,i)=>{
+    const f=c.mine?(G.films||[]).find(x=>x.title===c.title):null;
+    let wow=null, screens=null;
+    try{
+      if(f&&typeof screenWeeks==="function"){
+        const w=screenWeeks(f);
+        const last=w[w.length-1];
+        if(last){ wow=last.wow; screens=last.screens; }
+      }
+    }catch(e){}
+    return `<div class="produce-modal-card bo-weekend-report-row"><div class="bo-rank">${String(i+1).padStart(2,"0")}</div><div><h4>${c.mine?"🎬 ":""}${esc(c.title)}</h4><p>${(DATA.GENRES[c.genre]||{}).name||esc(c.genre||"Feature")} · week ${c.weeksOut}${c.mine?" · your release":" · "+esc(c.studio||"independent")}${screens?` · ${Number(screens).toLocaleString("en-US")} screens`:""}${wow!=null?` · ${wow>=0?"+":""}${wow}% WoW`:""}</p></div><b class="bo-weekend-report-gross">${fmtG(c.gross||0)}</b></div>`;
+  }).join("");
+  const total=chart.reduce((a,c)=>a+(c.gross||0),0);
+  const mine=chart.filter(c=>c.mine).reduce((a,c)=>a+(c.gross||0),0);
+  const head=`<div class="produce-modal-head"><span class="command-eyebrow">BOX OFFICE / WEEKEND GROSSES</span><h3>Weekend ${woyOf(G.week)}, Year ${yearOf(G.week)}</h3><p>Domestic gross for the weekend just closed, ranked across the whole town. Your pictures carry the film glyph; screens and week-on-week movement come from your own run reports.</p></div>`;
+  const body=chart.length
+    ? `<div class="produce-modal-body">${rows}</div>`
+    : `<div class="produce-modal-body"><div class="produce-modal-card"><h4>Nothing played this weekend.</h4><p>The town reported no theatrical gross. Date a finished picture from Productions and the report fills itself in on Monday.</p></div></div>`;
+  const foot=`<div class="produce-modal-actions"><span class="bo-rebrand-note">${chart.length} title${chart.length===1?"":"s"} · ${fmtG(total)} domestic · ${fmtG(mine)} yours</span><div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="boWeekendClose">Close</button></div></div>`;
+  const v=openModal(head+body+foot,{className:"command-produce-modal"});
+  const cl=v.querySelector("#boWeekendClose"); if(cl) cl.onclick=()=>closeModal();
+  v.querySelectorAll(".bo-weekend-report-row").forEach(r=>{ r.onclick=()=>{ beep("click"); switchTab("library"); closeModal(); }; });
+}
+
+function viewBoxOffice(){
+  if(typeof BOXOFFICE_SUB==="undefined" || !BOXOFFICE_SECTIONS.some(s=>s[0]===BOXOFFICE_SUB)) BOXOFFICE_SUB="chart";
+  const head=boxOfficeHead()+boxOfficeTelemetry()+boxOfficeNav();
+  let body="";
+  if(BOXOFFICE_SUB==="chains") body=boxOfficeChainsPanel();
+  else if(BOXOFFICE_SUB==="plf") body=boxOfficeModulePanel("PREMIUM FORMAT","PLF mastering & the concession stand","Large-format deliverables, screen scheduling and popcorn splits — the premium margin in one desk.",(typeof ExhibitionPLF!=="undefined"&&typeof ExhibitionPLF.renderExhibitionPLFSection==="function")?ExhibitionPLF.renderExhibitionPLFSection():"","PLF");
+  else if(BOXOFFICE_SUB==="blitz") body=boxOfficeModulePanel("CAMPAIGN","Marketing blitz engine","Budget, channels and timing. Every spend line below moves the opening and the legs.",(typeof MarketingBlitz!=="undefined"&&typeof MarketingBlitz.renderMarketingBlitzSection==="function")?MarketingBlitz.renderMarketingBlitzSection():"","BLITZ");
+  else if(BOXOFFICE_SUB==="awards") body=boxOfficeModulePanel("SEASON","The awards circuit","Bodies, festivals and the weeks they vote. A campaign here is a second release for a picture that already closed.",(typeof FilmLocationsTax!=="undefined"&&typeof FilmLocationsTax.renderAwardCircuitSection==="function")?FilmLocationsTax.renderAwardCircuitSection():"","SEASON");
+  else if(BOXOFFICE_SUB==="territories") body=boxOfficeTerritoriesPanel();
+  else if(BOXOFFICE_SUB==="clash") body=boxOfficeClashPanel();
+  else body=boxOfficeChartPanel()+boxOfficeCompetitionPanel()+boxOfficeCorridorPanel()+boxOfficeRunsPanel()+boxOfficeLibraryPanel();
+  return `<section class="command-deck command-produce command-boxoffice">${head}${body}</section>`;
+}
+
 
 /* ═══════════ VIEW: ott ═══════════ */
 /* Streaming market dashboard: platform subs/ARPU/churn/spend/revenue/share
@@ -5473,7 +5747,7 @@ function ownStreamerBoard(){
   const spark = hist.length>=2 ? "<div class='weekly-gross-chart' style='height:36px;margin:8px 0'>"+hist.map(x=>"<div class='wg' style='height:"+Math.max(8,x.subs/maxSubs*100)+"%;background:var(--purple)' title='Wk "+x.w+": "+x.subs.toFixed(1)+"M subs'></div>").join("")+"</div>" : "";
   const totalLib = (G.films||[]).length;
   const utilPct = totalLib ? Math.round(lib.length / totalLib * 100) : 0;
-  return "<div class='section-title'>▶ Your platform — "+esc(st.name)+"</div>"+
+  return "<div class='bo-platform-head'><div class='section-title'>▶ Your platform — "+esc(st.name)+"</div><button class='bo-rebrand-btn' type='button' data-rebrand-streamer='1' aria-label='Rebrand your platform'>✏️ Rebrand</button></div>"+
     "<div class='card'><div class='stat-hero' style='margin:0'>"+
       statCard(st.subs.toFixed(1)+"M","Subscribers","var(--purple)")+
       statCard(((st.churn||0)*100).toFixed(2)+"%","Weekly churn")+
@@ -5551,7 +5825,7 @@ function viewOTT(){
   }else{
     const st=G.streamer;
     const ceil=streamerCeiling();
-    h+="<div class='card' style='border-left:3px solid var(--purple)'><div class='spread'><div><b>📱 "+esc(st.name)+"</b> <span class='tag purple'>your platform</span></div>"+
+    h+="<div class='card' style='border-left:3px solid var(--purple)'><div class='spread'><div><b>📱 "+esc(st.name)+"</b> <span class='tag purple'>your platform</span> <button class='btn btn-xs btn-ghost' type='button' data-rebrand-streamer='1' title='Rebrand platform' aria-label='Rebrand your platform'>✏️ Rebrand</button></div>"+
       "<div style='text-align:right'><b class='gold'>"+st.subs.toFixed(1)+"M subs</b><div class='tiny muted'>+$"+st.income+"/wk</div></div></div>"+
       "<div class='tiny muted' style='margin-top:6px'>Content ceiling: <b>"+ceil+"M</b> · churn "+((st.churn||0.008)*100).toFixed(1)+"%/wk · sport power "+st.sportsPower.toFixed(1)+"</div>"+
       "<div style='margin-top:6px'>"+meter(st.subs, Math.max(ceil,1))+"</div>"+
@@ -6035,6 +6309,7 @@ function bindView(){
   $$("[data-ownprem]").forEach(b=>b.onclick=()=>{ beep("click"); ownPremiereModal(+b.dataset.ownprem); });
   $$("[data-ending]").forEach(b=>b.onclick=()=>{ if(applyAltEnding(+b.dataset.eid, b.dataset.ending)){ beep("gold"); flashes(G.flash); render(); } });
   $$("[data-rename]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); const p=b.dataset.rename.split(":"); beep("click"); renameModal(p[0], p[1]); });
+  $$("[data-rebrand-streamer]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); beep("click"); rebrandStreamerModal(); });
   $$("[data-btlhire]").forEach(b=>b.onclick=()=>{ const [r,id]=b.dataset.btlhire.split(":"); if(hireBTL(r,+id)){ beep("gold"); flashes(G.flash); render(); } });
   $$("[data-btlfire]").forEach(b=>b.onclick=()=>{ if(fireBTL(b.dataset.btlfire)){ beep("click"); flashes(G.flash); render(); } });
   $$("[data-madate]").forEach(b=>b.onclick=()=>{ const p=b.dataset.madate.split(":"); beep("click"); maDateModal(p[0], p.slice(1).join(":")); });
@@ -6194,15 +6469,27 @@ function bindView(){
   /* ── v14 bindings: intel, label, what-if ── */
   $$("[data-intel]").forEach(b=>b.onclick=()=>{
     const rs=(G.rivals||[]);
-    let h="<h3>🕵 Industrial espionage</h3><div class='tiny muted'>$8M to the right bagman buys a rival's next moves — dated slate, scales, and where they're strong. Intel holds for 8 weeks and shows on their card.</div><div class='plan-pick' style='margin-top:10px'>";
-    rs.forEach(r=>{
-      const active=G.intel&&G.intel.until>G.week&&G.intel.name===r.name;
-      h+="<div class='plan-opt'><div class='spread'><h5><span style='color:"+(r.color||"#fff")+"'>●</span> "+esc(r.name)+"</h5>"+
-        (active? "<span class='tag gold'>active</span>" : "<button class='btn btn-sm btn-alt' data-buyintel='"+esc(r.name)+"'>Buy — $8M</button>")+"</div><div class='p-sub'>"+esc(r.blurb||"")+" · "+fmtM(r.ytd||0)+" YTD</div></div>";
-    });
-    h+="</div><div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";
-    openModal(h);
-    $$("[data-buyintel]").forEach(bb=>bb.onclick=()=>{ if(buyIntel(bb.dataset.buyintel)){ closeModal(); beep("gold"); flashes(G.flash); render(); } });
+    const activeName=(G.intel&&G.intel.until>G.week)?G.intel.name:null;
+    const head='<div class="produce-modal-head"><span class="command-eyebrow">COMPETITION / INTEL</span>'+
+      '<h3>Industrial espionage</h3>'+
+      '<p>$8M to the right bagman buys a rival\'s next moves — dated slate, scales and where they are strong. Intel holds for eight weeks and shows on their card.</p></div>';
+    const rows=rs.map(r=>{
+      const active=activeName===r.name;
+      return '<div class="bo-intel-row">'+
+        '<div><h4><span style="color:'+(r.color||"#edc47c")+'">●</span> '+esc(r.name)+'</h4>'+
+        '<p>'+esc(r.blurb||"")+' · '+fmtM(r.ytd||0)+' YTD</p></div>'+
+        (active? '<span class="bo-chip gold">ACTIVE</span>'
+               : '<button class="produce-ghost" data-buyintel="'+esc(r.name)+'">Buy · $8M</button>')+
+      '</div>';
+    }).join("");
+    const body='<div class="produce-modal-body"><div class="bo-intel-list">'+rows+'</div>'+
+      (activeName? '<p class="bo-figure-cap">Intel active on <b>'+esc(activeName)+'</b> — '+(G.intel.until-G.week)+' weeks of coverage left.</p>'
+                 : '<p class="bo-figure-cap">Every purchase is booked against the studio cash, not the film budget.</p>')+'</div>';
+    const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+rs.length+' rival studios tracked</span>'+
+      '<div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="intelClose">Close</button></div></div>';
+    const v=openModal(head+body+foot,{className:"command-produce-modal"});
+    const cl=v.querySelector("#intelClose"); if(cl) cl.onclick=()=>closeModal();
+    v.querySelectorAll("[data-buyintel]").forEach(bb=>bb.onclick=()=>{ if(buyIntel(bb.dataset.buyintel)){ closeModal(); beep("gold"); flashes(G.flash); render(); } });
   });
   $$("[data-label]").forEach(b=>b.onclick=()=>{ if(unlockLabel()){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
   $$("[data-sign]").forEach(b=>b.onclick=()=>{ if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
@@ -6297,6 +6584,14 @@ function bindView(){
   const devLocDesk=$("#btnDevelopLocationDesk");
   if(devLocDesk) devLocDesk.onclick=()=>{ beep("click"); LOC_DESK.focus=null; openLocationDesk(); };
   $$("[data-bosub]").forEach(b=>b.onclick=()=>{ BOXOFFICE_SUB=b.dataset.bosub; beep("click"); render(); });
+  const boLib=$("#btnBoLibrary");
+  if(boLib) boLib.onclick=()=>{ beep("click"); switchTab("library"); };
+  const boGross=$("#btnBoGrosses");
+  if(boGross) boGross.onclick=()=>{ beep("click"); boxOfficeWeekendModal(); };
+  const boTheaters=$("#btnBoTheaters");
+  if(boTheaters) boTheaters.onclick=()=>{ beep("click"); if(typeof openTheaterChainsModal==="function") openTheaterChainsModal(); };
+  const boScreen=$("#btnBoScreenings");
+  if(boScreen) boScreen.onclick=()=>{ beep("click"); if(typeof openFestivalPrModal==="function") openFestivalPrModal(); else if(typeof festivalPrModal==="function") festivalPrModal(); else toast("The festival desk is unavailable in this build.","bad"); };
   $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
   $$("[data-libsub]").forEach(b=>b.onclick=()=>{ LIBRARY_SUB=b.dataset.libsub; beep("click"); render(); });
   $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ GAMES_SUB=b.dataset.gamestab; beep("click"); render(); });
@@ -7278,11 +7573,17 @@ function pips(n,max){ let s="<span class='pips'>"; for(let i=1;i<=max;i++) s+= i
 /* ═══════════ choice / report / gameover modals ═══════════ */
 function choiceModal(){
   const c=G.pendingChoice; if(!c) return;
-  let h="<div style='text-align:center;font-size:44px'>"+c.icon+"</div><h3 style='text-align:center'>"+esc(c.title)+"</h3>"+
-    "<p class='small muted' style='text-align:center'>"+esc(c.text)+"</p><div class='modal-actions'>";
-  c.choices.forEach(ch=>{ h+="<button class='btn btn-alt' data-ch='"+ch.i+"'>"+esc(ch.label)+"</button>"; });
-  h+="</div>";
-  const v=openModal(h,{noX:true,locked:true});
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">'+(c.icon? c.icon+" · " : "")+"STUDIO DECISION"+
+      (c.kind? " / "+esc(String(c.kind).toUpperCase()) : "")+'</span>'+
+    '<h3>'+esc(c.title)+'</h3>'+
+    '<p>'+esc(c.text)+'</p></div>';
+  const body='<div class="produce-modal-body"><div class="bo-choice-list">'+
+    c.choices.map(ch=>'<button class="produce-ghost bo-choice" data-ch="'+ch.i+'"><b>'+esc(ch.label)+'</b>'+
+      (ch.hint?'<small>'+esc(ch.hint)+'</small>':'')+'</button>').join("")+
+  '</div></div>';
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+
+      (c.choices.length>1? "Pick one — the room is watching." : "Only one way out.")+'</span></div>';
+  const v=openModal(head+body+foot,{noX:true,locked:true,className:"command-produce-modal"});
   v.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{
     resolveChoice(+b.dataset.ch); closeModal(); beep("click"); flashes(G.flash); render();
     if(G.pendingDeepfake) deepfakeModal();                 // v5: mini-game
@@ -7293,22 +7594,51 @@ function choiceModal(){
 function reportModal(){
   const r=G.pendingReport; if(!r) return;
   G.pendingReport=null;
-  let h="<div style='text-align:center'><div style='font-size:44px'>🏆</div><h3>Year "+r.year+" — "+DATA.AWARDS+"</h3></div>";
-  h+="<div class='card'><div class='cost-line'><span>Your worldwide gross</span><b>"+fmtM(r.myWW)+"</b></div>"+
-    "<div class='cost-line'><span>Films released</span><b>"+r.filmsReleased+"</b></div>"+
-    "<div class='cost-line'><span>Film net (released this yr)</span><b class='"+(r.profit>=0?"pos":"neg")+"'>"+(r.profit>=0?"+":"")+fmtM(r.profit)+"</b></div></div>";
-  h+="<div class='section-title'>Market share</div><div class='card'>";
-  r.standings.forEach((s,i)=>{ h+="<div class='cost-line'><span>"+(i+1)+". "+(s.me?"⭐ ":"")+esc(s.name)+"</span><b>"+fmtM(s.ww)+"</b></div>"; });
-  h+="</div>";
-  h+="<div class='section-title'>Nominations & wins</div><div class='card'>";
-  if(r.awards.noms.length){
-    r.awards.noms.forEach(n=>{ h+="<div class='cost-line'><span>"+(n.mine?"🎬 ":"🎞 ")+esc(n.title)+(n.mine?"":" <span class='tiny muted'>— "+esc(n.studio||"")+"</span>")+"</span>"+(n.mine?"<span class='tag gold'>nominee</span>":"")+"</div>"; });
-    r.awards.wins.forEach(w=>{ h+="<div class='cost-line'><span>🏆 "+w.cat+"</span><b>"+esc(w.film)+(w.mine?" 🎉":"")+"</b></div>"; });
-  }else h+="<div class='muted small'>No nominations.</div>";
-  h+="</div><div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Roll credits → Year "+(r.year+1)+"</button></div>";
-  openModal(h,{noX:true});
+  const mine=(r.awards&&r.awards.wins)?r.awards.wins.filter(w=>w.mine):[];
+  const kpi=(label,value,note,tone)=>'<div class="bo-kpi'+(tone?" "+tone:"")+'"><small>'+label+'</small><b>'+value+'</b><span>'+note+'</span></div>';
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">YEAR IN REVIEW / '+esc(String(DATA.AWARDS||"AWARDS"))+'</span>'+
+    '<h3>Year '+r.year+' — the ledger closes</h3>'+
+    '<p>Twelve months of releases, market share and the ceremony that settles the argument.</p></div>';
+
+  let body='<div class="produce-modal-body">';
+  body+='<div class="bo-kpis">'+
+    kpi("WORLDWIDE",fmtM(r.myWW),"all pictures this year")+
+    kpi("RELEASES",String(r.filmsReleased),"pictures shipped")+
+    kpi("FILM NET",(r.profit>=0?"+":"")+fmtM(r.profit),r.profit>=0?"above breakeven":"below breakeven",r.profit>=0?"good":"bad")+
+    kpi("TROPHIES",String(mine.length),mine.length?"won "+mine.map(w=>w.cat).join(", "):"no wins this year",mine.length?"good":"")+
+  '</div>';
+
+  if(r.standings && r.standings.length){
+    const maxWW=Math.max.apply(null,r.standings.map(x=>x.ww||0).concat([0.1]));
+    const rows=r.standings.map((x,i)=>{
+      const pct=Math.max(2,(x.ww||0)/maxWW*100);
+      return '<div class="bo-track-row"><span class="bo-track-label">'+(x.me?"★ ":"")+esc(x.name)+'<small>#'+(i+1)+'</small></span>'+
+        '<span class="bo-track'+(x.me?"":" teal")+'"><i style="width:'+pct.toFixed(1)+'%"></i></span>'+
+        '<span class="bo-track-val">'+fmtM(x.ww||0)+'</span></div>';
+    }).join("");
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>MARKET SHARE</b><span>year '+r.year+'</span></div><div class="bo-track-rows">'+rows+'</div>'+
+      '<p class="bo-figure-cap">Gold bar is your studio. Share is measured on worldwide gross, not cash in hand.</p></div>';
+  }
+
+  const noms=(r.awards&&r.awards.noms)||[], wins=(r.awards&&r.awards.wins)||[];
+  if(noms.length||wins.length){
+    let rows="";
+    wins.forEach(w=>{ rows+='<div class="bo-track-row"><span class="bo-track-label">🏆 '+esc(w.cat)+(w.mine?" <small>you</small>":"")+'</span><span class="bo-track-val">'+esc(w.film)+'</span></div>'; });
+    noms.forEach(n=>{ rows+='<div class="bo-track-row"><span class="bo-track-label">'+esc(n.title)+(n.mine?' <small>you</small>':'<small>'+esc(n.studio||"")+'</small>')+'</span><span class="bo-track-val">nominee</span></div>'; });
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>NOMINATIONS &amp; WINS</b><span>'+wins.length+' won · '+noms.length+' nominated</span></div><div class="bo-track-rows">'+rows+'</div></div>';
+  } else {
+    body+='<div class="produce-modal-card"><h4>No nominations</h4><p>Nothing on the slate caught the voters this year. Prestige pictures and award campaigns change that.</p></div>';
+  }
+  body+='</div>';
+
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+fmtM(r.myWW)+' worldwide · '+r.filmsReleased+' release'+(r.filmsReleased===1?"":"s")+' · '+(mine.length?mine.length+" win"+(mine.length===1?"":"s"):"no wins")+'</span>'+
+    '<div class="row" style="margin:0;gap:8px"><button class="produce-action" id="reportGo">Roll credits → Year '+(r.year+1)+'</button></div></div>';
+
+  const v=openModal(head+body+foot,{noX:true,className:"command-produce-modal"});
+  const go=v.querySelector("#reportGo"); if(go) go.onclick=()=>closeModal();
   beep("drums");
-  if(r.awards && r.awards.wins && r.awards.wins.some(function(w){ return w.mine; })) confetti({count:200});
+  if(mine.length) confetti({count:200});
 }
 function documentaryRetrospective(o){
   const hits = o.stats.hits || 0;

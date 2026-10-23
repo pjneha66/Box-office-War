@@ -130,34 +130,39 @@
     return { ok: true, msg: camp.name + " launched (+ " + camp.buzzBonus + " Buzz)!" };
   }
 
-  // UI Renderer Section
-  function renderMarketingBlitzSection(state){
+  // UI Renderer Section — produce desk skin, shared with the box office tab.
+  function renderMarketingBlitzSection(state, opts){
+    opts = opts || {};
     const S = _getG(state);
     if(!S) return "";
     initMarketingBlitz(S);
 
-    let h = "<div class='card' style='margin-bottom:12px'>";
-    h += "<div class='spread'><b>High-Impact Marketing Blitz Campaigns</b><span class='tag gold'>$" + S.marketingBlitz.totalMarketingSpend.toFixed(1) + "M Spent</span></div>";
-    h += "<div class='tiny muted' style='margin:4px 0 10px'>Super Bowl prime-time spots, San Diego Comic-Con Hall H showcases, and viral guerrilla street campaigns (Box Office Inc parity).</div>";
+    const spent = S.marketingBlitz.totalMarketingSpend || 0;
+    const kpi = (label, value, note) =>
+      "<div class='bo-kpi'><small>" + label + "</small><b>" + value + "</b><span>" + note + "</span></div>";
 
-    h += "<div class='stat-hero' style='margin-bottom:10px'>" +
-      "<div class='stat'><div class='s-v' style='color:var(--gold)'>" + S.marketingBlitz.superBowlSpotsAired + "</div><div class='s-l'>Super Bowl Commercials</div></div>" +
-      "<div class='stat'><div class='s-v'>" + S.marketingBlitz.hallHAppearances + "</div><div class='s-l'>Hall H Showcases</div></div>" +
-      "<div class='stat'><div class='s-v'>" + S.marketingBlitz.executedCampaigns.length + "</div><div class='s-l'>Total Campaigns Deployed</div></div>" +
+    let h = "<div class='bo-kpis'>" +
+      kpi("SPENT", "$" + spent.toFixed(1) + "M", "lifetime blitz budget") +
+      kpi("SUPER BOWL", String(S.marketingBlitz.superBowlSpotsAired || 0), "prime-time spots aired") +
+      kpi("HALL H", String(S.marketingBlitz.hallHAppearances || 0), "showcase panels") +
+      kpi("CAMPAIGNS", String((S.marketingBlitz.executedCampaigns || []).length), "deployed to date") +
     "</div>";
 
-    h += "<div class='grid g2' style='gap:8px;margin-bottom:10px'>";
+    h += "<div class='bo-campaigns'>";
     MARKETING_TIERS.forEach(c => {
-      h += "<div style='background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:4px;border-left:3px solid var(--gold)'>" +
-        "<div class='spread'><b>" + c.name.split(" ")[0] + " " + (c.name.split(" ")[1]||"") + "</b><span class='tag gold'>$" + c.costM + "M</span></div>" +
-        "<div class='tiny muted' style='margin-top:2px'>" + c.desc + "</div>" +
-        "<div class='tiny' style='color:var(--green);margin-top:4px'>Buzz Boost: +" + c.buzzBonus + " pts | Target: " + c.demographicFocus.toUpperCase() + "</div>" +
-      "</div>";
+      h += "<article class='bo-campaign'>" +
+        "<header><h3>" + c.name + "</h3><span class='bo-campaign-cost'>$" + c.costM + "M</span></header>" +
+        "<p>" + c.desc + "</p>" +
+        "<dl><div><dt>Buzz</dt><dd>+" + c.buzzBonus + " pts</dd></div>" +
+        "<div><dt>Targets</dt><dd>" + String(c.demographicFocus).replace(/_/g, " ").toLowerCase() + "</dd></div></dl>" +
+      "</article>";
     });
     h += "</div>";
 
-    h += "<button class='btn btn-sm btn-primary' id='btnOpenMarketingBlitzModal' style='width:100%'>Open Marketing Blitz Command</button>";
-    h += "</div>";
+    if(!opts.embedded){
+      h += "<div class='bo-campaign-foot'><p>Blitz budget, channels and timing live in the command desk. Every spend line below moves the opening and the legs.</p>" +
+        "<button class='produce-action' id='btnOpenMarketingBlitzModal'>Open marketing blitz command →</button></div>";
+    }
     return h;
   }
 
@@ -170,38 +175,48 @@
     const unreleased = (S.projects || []).filter(p => !p.released);
 
     function renderInner(){
-      let h = "<h3>Marketing Blitz &amp; Fandom Command Center</h3>";
-      h += "<p class='tiny muted' style='margin-bottom:12px'>Deploy high-impact marketing packages to maximize opening weekend awareness, fan fever, and trailer view records.</p>";
+      const kpi = (label, value, note) =>
+        "<div class='bo-kpi'><small>" + label + "</small><b>" + value + "</b><span>" + note + "</span></div>";
+      let h = "<div class='produce-modal-head'><span class='command-eyebrow'>CAMPAIGN / MARKETING BLITZ</span>" +
+        "<h3>Marketing blitz &amp; fandom command</h3>" +
+        "<p>Deploy high-impact packages to lift opening-weekend awareness, fan fever and trailer records. Each campaign is booked against one picture.</p></div>" +
+        "<div class='produce-modal-body'>";
 
       if(!unreleased.length){
-        h += "<div class='card' style='text-align:center;padding:16px'><div class='tiny muted'>No active unreleased projects available to market. Start a film in development first.</div></div>";
+        h += "<div class='produce-modal-card'><h4>No picture waiting to be marketed</h4><p>Every unreleased project is already on the slate's poster wall. Start a film in development and it appears here with its campaign desk.</p></div>";
       } else {
-        h += "<div class='section-title'>Active Slate Projects &amp; Poster Artwork Studio</div>";
+        h += "<div class='bo-blitz-projects'>";
         unreleased.forEach(p => {
           const activeCamps = p.activeCampaigns || [];
           const frameStyle = p.posterFrame || "film-frame-cell";
-          h += "<div class='card " + frameStyle + "' style='margin-bottom:12px;padding:12px;transition:box-shadow 0.2s ease'>" +
-            "<div class='spread'><b>" + p.title + "</b><span class='tag gold'>Buzz: " + (p.buzz || 50) + "/100</span></div>" +
-            "<div class='tiny muted' style='margin:4px 0 8px'>Genre: <span class='tag'>" + (p.genre || "Action").toUpperCase() + "</span> | Cast: " + (p.director || "A-List") + " | Active Campaigns: " + (activeCamps.length ? activeCamps.join(", ") : "None") + "</div>" +
-            "<div style='display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11px'>" +
-              "<span class='tiny muted'>Poster Frame:</span>" +
-              "<button class='btn btn-xs " + (frameStyle === "film-frame-cell" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-cell' data-pid='" + p.id + "'>35mm Cell</button>" +
-              "<button class='btn btn-xs " + (frameStyle === "film-frame-gold" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-gold' data-pid='" + p.id + "'>Gold Prestige</button>" +
-              "<button class='btn btn-xs " + (frameStyle === "film-frame-neon" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-neon' data-pid='" + p.id + "'>Neon Sci-Fi</button>" +
-              "<button class='btn btn-xs " + (frameStyle === "film-frame-vhs" ? "btn-primary" : "btn-alt") + "' data-setframe='film-frame-vhs' data-pid='" + p.id + "'>Retro VHS</button>" +
+          const frameBtn = (val, label) =>
+            "<button class='bo-chip " + (frameStyle === val ? "gold" : "") + "' data-setframe='" + val + "' data-pid='" + p.id + "' style='cursor:pointer;background:" + (frameStyle === val ? "#2a443a" : "transparent") + "'>" + label + "</button>";
+          h += "<article class='bo-blitz-project'>" +
+            "<header><div><h4>" + p.title + "</h4><small>" + ((p.genre || "Action") + " · " + (p.director || "A-list cast")).toUpperCase() + "</small></div>" +
+              "<span class='bo-campaign-cost'>BUZZ " + (p.buzz || 50) + "/100</span></header>" +
+            "<div class='bo-blitz-rows'>" +
+              "<div class='bo-track-row'><span class='bo-track-label'>Poster frame</span><span class='bo-blitz-frames'>" +
+                frameBtn("film-frame-cell", "35mm cell") + frameBtn("film-frame-gold", "Gold prestige") +
+                frameBtn("film-frame-neon", "Neon sci-fi") + frameBtn("film-frame-vhs", "Retro VHS") +
+              "</span></div>" +
+              "<div class='bo-track-row'><span class='bo-track-label'>Active campaigns</span><span class='bo-track-val'>" + (activeCamps.length ? esc(activeCamps.join(", ")) : "none yet") + "</span></div>" +
             "</div>" +
-            "<div style='display:flex;gap:6px;flex-wrap:wrap'>" +
+            "<div class='produce-modal-grid'>" +
               MARKETING_TIERS.map(c => {
                 const already = activeCamps.includes(c.id);
-                return already ? "<button class='btn btn-xs' disabled>" + c.name.split(" ")[0] + " Active</button>"
-                               : "<button class='btn btn-xs btn-alt btnLaunchCamp' data-proj-id='" + p.id + "' data-camp-id='" + c.id + "'>Deploy " + c.name.split(" ")[0] + " ($" + c.costM + "M)</button>";
+                return already
+                  ? "<button class='produce-ghost' disabled style='opacity:.55;cursor:not-allowed'><b>" + c.name + "</b><small>active · +" + c.buzzBonus + " buzz</small></button>"
+                  : "<button class='produce-ghost btnLaunchCamp' data-proj-id='" + p.id + "' data-camp-id='" + c.id + "'><b>" + c.name + " · $" + c.costM + "M</b><small>+" + c.buzzBonus + " buzz · " + String(c.demographicFocus).replace(/_/g, " ").toLowerCase() + "</small></button>";
               }).join("") +
             "</div>" +
-          "</div>";
+          "</article>";
         });
+        h += "</div>";
       }
 
-      h += renderMarketingBlitzSection(S);
+      h += renderMarketingBlitzSection(S,{embedded:true});
+      h += "</div><div class='produce-modal-actions'><span class='bo-rebrand-note'>Spend is booked to the picture, not the studio.</span>" +
+        "<div class='row' style='margin:0;gap:8px'><button class='produce-ghost' onclick='closeModal()'>Close</button></div></div>";
       return h;
     }
 
@@ -237,7 +252,7 @@
 
     const initialHtml = "<div id='mktgModalInner'>" + renderInner() + "</div>";
     if(typeof openModal === "function"){
-      const v = openModal(initialHtml);
+      const v = openModal(initialHtml,{className:'command-produce-modal'});
       if(v){
         const inner = v.querySelector("#mktgModalInner") || v;
         wireEvents(inner);

@@ -243,40 +243,44 @@
   };
 
   // Film Festival circuit modal
+  /* Festival circuit — command-produce dialog shared by the box office desk,
+     the dashboard shortcut and the marquee banner. The submission used to run
+     through window.prompt(), which browsers block and which forced the player
+     to type an index; each festival now carries a real film picker and its own
+     submit button, with empty / insufficient-cash / submitted states in place. */
   global.openFestivalPrModal = function(){
     const g = BOW_FESTIVAL_PR._getG();
     if(!g) return;
     const candidates = (g.projects || []).filter(p => p.phase === "ready").concat((g.films || []).slice(-4));
     const activeScandals = g.scandals || [];
+    const fmtMFn = (typeof fmtM === "function") ? fmtM : (x => "$" + x + "M");
+    const escFn = (typeof esc === "function") ? esc : (x => String(x));
 
-    let h = "<h3>Film Festival Circuit & Premieres</h3>";
-    h += "<p class='tiny muted'>Premier prestige pictures on global festival circuits to capture Grand Jury honors, Oscar buzz precursors, and international critical acclaim.</p>";
+    let h = "<div class='produce-modal-head'><span class='command-eyebrow'>BOX OFFICE / AWARDS SEASON</span><h3>Festival circuit &amp; premieres</h3><p>Premier prestige pictures on the global circuit to capture Grand Jury honours, Academy precursors and international critical attention. Each entry costs a fee whether or not the jury bites.</p></div>";
+    h += "<div class='produce-modal-body'>";
 
     if(activeScandals.length){
-      h += "<div class='card' style='margin-bottom:12px;border-left:3px solid var(--red)'>";
-      h += "<div class='row' style='justify-content:space-between;align-items:center'>";
-      h += "<div><b class='neg'>[CRISIS] " + activeScandals.length + " Active Scandal Alert(s)</b><div class='tiny muted'>" + activeScandals[0].headline + "</div></div>";
-      h += "<button class='btn btn-sm btn-alt' id='btnGoCrisisDesk'>Open PR War Room</button>";
-      h += "</div></div>";
+      h += "<div class='produce-modal-card'><h4>Press crisis running</h4><p>" + escFn(activeScandals[0].headline || "An active scandal is draining prestige.") + " — " + activeScandals.length + " open. Festival juries notice.</p><div class='produce-modal-actions' style='padding:12px 0 0;border:0;background:transparent'><button class='produce-ghost' id='btnGoCrisisDesk'>Open the PR war room</button></div></div>";
     }
 
-    h += "<div class='small' style='margin-bottom:6px'><b>Submit Pictures to Festival Circuit:</b></div>";
-    h += "<div class='grid g2' style='gap:8px'>";
-    BOW_FESTIVAL_PR.FESTIVALS.forEach(fest => {
-      h += "<div class='card'>";
-      h += "<b>" + fest.name + "</b>";
-      h += "<div class='tiny muted' style='margin:4px 0'>" + fest.desc + "</div>";
-      h += "<div class='cost-line'><span>Entry Fee</span><b>$" + fest.entryCost + "M</b></div>";
-      if(candidates.length){
-        h += "<button class='btn btn-sm btn-primary' data-fest='" + fest.id + "' style='margin-top:8px;width:100%'>Submit Selection</button>";
-      } else {
-        h += "<div class='tiny muted' style='margin-top:8px'>No completed films currently ready for circuit submission.</div>";
-      }
-      h += "</div>";
-    });
-    h += "</div>";
+    if(!candidates.length){
+      h += "<div class='produce-modal-card'><h4>Nothing is ready for the circuit.</h4><p>A submission needs a finished picture. Finish a shoot, then come back — festivals will not consider a project still in production.</p></div>";
+    }
 
-    const v = (typeof global.openModal === "function") ? global.openModal(h) : null;
+    BOW_FESTIVAL_PR.FESTIVALS.forEach(fest => {
+      const pick = candidates.length
+        ? "<select class='bo-fest-pick' data-fest-film='" + fest.id + "' aria-label='Picture to submit to " + escFn(fest.name) + "'>" +
+            candidates.map((c, i) => "<option value='" + c.id + "'>" + escFn(c.title) + "</option>").join("") +
+          "</select>" +
+          "<button class='produce-action' data-fest='" + fest.id + "'>Submit entry</button>"
+        : "";
+      h += "<div class='produce-modal-card'><div class='spread'><h4>" + escFn(fest.name) + "</h4><b class='gold'>" + fmtMFn(fest.entryCost) + "</b></div><p>" + escFn(fest.desc || "") + "</p>" + (pick ? "<div class='bo-fest-actions'>" + pick + "</div>" : "") + "</div>";
+    });
+
+    h += "</div>";
+    h += "<div class='produce-modal-actions'><span class='tiny muted'>" + candidates.length + " picture" + (candidates.length === 1 ? "" : "s") + " eligible · prestige campaign</span><div class='row' style='margin:0;gap:8px'><button class='produce-ghost' onclick='closeModal()'>Close</button></div></div>";
+
+    const v = (typeof global.openModal === "function") ? global.openModal(h, {className:"command-produce-modal"}) : null;
     if(!v) return;
 
     const btnCrisis = v.querySelector("#btnGoCrisisDesk");
@@ -289,18 +293,25 @@
     v.querySelectorAll("[data-fest]").forEach(b => {
       b.onclick = function(){
         const fid = b.dataset.fest;
-        const pick = prompt("Enter number of film to submit:\n" +
-          candidates.map((c, idx) => (idx+1) + ". " + c.title).join("\n"));
-        if(pick && candidates[parseInt(pick,10)-1]){
-          const film = candidates[parseInt(pick,10)-1];
-          if(BOW_FESTIVAL_PR.submitFestival(film.id, fid)){
-            if(typeof global.beep === "function") global.beep("gold");
-            if(typeof global.render === "function") global.render();
-            global.openFestivalPrModal();
-          }
+        const picker = v.querySelector("[data-fest-film='" + fid + "']");
+        /* project ids can be numeric or string keys — compare as text */
+        const filmId = picker ? String(picker.value) : "";
+        const film = candidates.find(c => String(c.id) === filmId);
+        if(!film){
+          if(typeof global.toast === "function") global.toast("Pick a picture before submitting to the circuit.", "bad");
+          return;
+        }
+        if(BOW_FESTIVAL_PR.submitFestival(film.id, fid)){
+          if(typeof global.beep === "function") global.beep("gold");
+          if(typeof global.render === "function") global.render();
+          global.openFestivalPrModal();
+        } else {
+          if(typeof global.toast === "function") global.toast("That entry was refused — check cash on hand and that the picture is finished.", "bad");
         }
       };
     });
   };
+  /* Short alias used by the marquee banner and dashboard shortcut. */
+  global.festivalPrModal = global.openFestivalPrModal;
 
 })(typeof window !== "undefined" ? window : global);
