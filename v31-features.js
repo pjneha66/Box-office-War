@@ -349,7 +349,7 @@ const TAB_META = {
   ott:         [["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]],
   live:        [["linear","Linear Channels"],["stream","Live Stream Hub"],["events","Live Events"],["studio","Host Studio"]],
   library:     [["films","Films"],["series","Series"],["physical","Physical 4K Media"],["vault","Restoration Vault"]],
-  empire:      [["franchises","Franchises"],["music","Music"],["games","Games"],["comics","Comics"]],
+  empire:      [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]],
   games:       [["dev","In Dev"],["released","Released"],["hardware","Hardware Platforms"],["greenlight","Greenlight"]],
 };
 /* which live filter var holds the active sub-tab per section — read as
@@ -364,7 +364,7 @@ const TAB_SUB_ACTIVE = {
   ott:         ()=>OTT_SUB||"home",
   live:        ()=>(G.live?(G.live.activeSub||G.live.subTab||"linear"):"linear"),
   library:     ()=>(typeof LIBRARY_SUB!=="undefined"?LIBRARY_SUB:"films"),
-  empire:      ()=>(typeof EMPIRE_SUB!=="undefined"?EMPIRE_SUB:"franchises"),
+  empire:      ()=>(G.empire?(G.empire.activeSub||G.empire.subTab||"franchises"):"franchises"),
   games:       ()=>(typeof GAMES_SUB!=="undefined"?GAMES_SUB:"dev"),
 };
 /* which data-* attribute each section's chips carry */
@@ -378,7 +378,7 @@ const TAB_SUB_ATTR = {
   ott:         "data-ottsub",
   live:        "data-livesub",
   library:     "data-libsub",
-  empire:      "data-empiretab",
+  empire:      "data-empiresub",
   games:       "data-gamestab",
 };
 const TAB_SUB_DEFAULT = {

@@ -1990,10 +1990,11 @@ const SUBTAB_PIXEL_ICONS = {
   "library:physical": "assets/itch-ui/icons/Icon_02.png",
   "library:vault": "assets/itch-ui/icons/Icon_08.png",
   // empire
+  "empire:home": "assets/2d/executive.png",
   "empire:franchises": "assets/bos2-icons/logos/icons8-queen-crown-100.png",
-  "empire:music": "assets/bos2-icons/genres/icons8-musical-100.png",
-  "empire:games": "assets/pixel-characters/char-robot.png",
-  "empire:comics": "assets/bos2-icons/general/icons8-art-64.png",
+  "empire:universes": "assets/bos2-icons/logos/icons8-starburst-shape-100.png",
+  "empire:divisions": "assets/itch-ui/icons/Icon_02.png",
+  "empire:endgame": "assets/bos2-icons/logos/icons8-prism-96.png",
   // games
   "games:dev": "assets/pixel-characters/char-robot.png",
   "games:released": "assets/itch-ui/icons/Icon_09.png",
@@ -2042,7 +2043,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -7066,7 +7067,22 @@ function bindView(){
   /* ── Mobile sub-tab strip (rendered at the top of bindView so the
        data-* bindings above and below attach to the live chips) ── */
   $$("[data-fanfilter]").forEach(b=>b.onclick=()=>{ FAN_MAIL_FILTER=b.dataset.fanfilter; beep("click"); render(); });
-  $$("[data-empiretab]").forEach(b=>b.onclick=()=>{ /* Empire tabs are view-only for now; could switch sub-views later */ beep("click"); });
+  $$("[data-empiresub]").forEach(b=>b.onclick=()=>{
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+    else if(!G.empire) G.empire={subTab:"franchises",activeSub:"franchises"};
+    G.empire.subTab = b.dataset.empiresub;
+    G.empire.activeSub = b.dataset.empiresub;
+    if(typeof saveGame==="function") saveGame();
+    beep("click"); render();
+  });
+  $$("[data-empire-goto]").forEach(b=>b.onclick=()=>{
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+    else if(!G.empire) G.empire={subTab:"franchises",activeSub:"franchises"};
+    G.empire.subTab = b.dataset.empireGoto;
+    G.empire.activeSub = b.dataset.empireGoto;
+    if(typeof saveGame==="function") saveGame();
+    beep("click"); render();
+  });
   $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ /* Games tabs are view-only for now */ beep("click"); });
 
   /* Financial Analysis Lab bindings */
@@ -7608,52 +7624,108 @@ function viewGames(){
 }
 
 /* ═══════════ EMPIRE view ═══════════ */
+const EMPIRE_SECTIONS = [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]];
+function empireSub(){
+  if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+  const emp=(G&&G.empire)||{};
+  const want=emp.activeSub||emp.subTab||"franchises";
+  return EMPIRE_SECTIONS.some(s=>s[0]===want)?want:"franchises";
+}
+function empireNav(){
+  const active=empireSub();
+  return `<nav class="command-section-nav command-empire-nav" aria-label="Empire desk sections"><div class="command-nav-brand"><span>EMPIRE DESK</span><small>HOME / FRANCHISES / UNIVERSES / DIVISIONS / ENDGAME</small></div><div class="command-nav-items">${EMPIRE_SECTIONS.map(([key,label],i)=>{
+    const icon=getSubTabPixelIcon("empire",key);
+    return `<button data-empiresub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+  }).join("")}</div></nav>`;
+}
 function viewEmpire(){
-  let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-queen-crown-100.png' alt='' /><span>Franchises</span></button>"+
-    "<button class='subnav-pill' id='btnOpenUniverses'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-starburst-shape-100.png' alt='' /><span>Cinematic Universes</span></button>"+
-    "<button class='subnav-pill' id='btnOpenMerch'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_02.png' alt='' /><span>Merch &amp; Licensing</span></button>"+
-    "<button class='subnav-pill' id='btnOpenFanClub'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/icons8-red-carpet-100.png' alt='' /><span>Fan Conventions</span></button>"+
-    "<button class='subnav-pill' onclick='switchTab(\"games\")'><img class='subtab-pixel-icon' src='assets/pixel-characters/char-robot.png' alt='' /><span>Game Studio</span></button>"+
-  "</div>";
+  if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+  const active=empireSub();
+  let h=empireNav();
   const weekly=G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0);
   const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
-  const ww=G.franchises.reduce((a,f)=>a+f.ww,0);
+  const ww=G.franchises.reduce((a,f)=>a+(f.ww||0),0);
   h+="<div class='stat-hero'>"+
     statCard(G.franchises.length,"Franchises")+
     statCard("+"+fmtM(weekly)+"/wk","Empire income","var(--green)")+
     statCard(fmtM(earned),"Empire earnings")+
     statCard(fmtG(ww),"Franchise WW gross")+
   "</div>";
-  /* v14: music label division (§32) */
-  try{
+
+  if(active==="home"){
+    let goalsDone=0;
+    try{ goalsDone=(endgameGoals()||[]).filter(g=>g.prog>=1).length; }catch(e){}
     const L=G.label||{unlocked:false, artists:[]};
-    h+="<div class='section-title'>🎵 Music label</div>";
-    if(!L.unlocked){
-      h+="<div class='card'><div class='spread'><div><b>Launch the "+esc(G.studio.name)+" music label</b><div class='tiny muted'>Sign up to 3 acts. Each earns weekly; when one charts, money ×3 for a month and your in-production musicals & concert films get +2% buzz. Charts also feed the trending board's ecosystem.</div></div>"+
-        "<button class='btn btn-primary' data-label='1'>Launch — "+fmtM(60)+"</button></div>"+
-        "<div class='tiny muted' style='margin-top:6px'>+$0.3M/wk overhead once live. Sign artists from the roster below.</div></div>";
-    }else{
-      h+="<div class='card'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/3 acts</span></div>";
-      (L.artists||[]).forEach(a=>{
-        const def=(DATA.ARTISTS||[]).find(x=>x.id===a.id)||{};
-        const charting=a.chartUntil>G.week;
-        const chartPos = charting? (a.chartPos || ((G.week*7+a.id.charCodeAt(0))%12+1)) : null;
-        const scandalRisk = Math.round((a.scandal||0.15)*100);
-        h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+(charting?" · <b class='pos'>#"+chartPos+" ON TOP 50 (×3)</b>":"")+" · scandal risk "+scandalRisk+"%</span></span>"+
-          "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10)+"/wk</b>"+
-          "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='Concert tour: $5M upfront, +15% buzz for musicals'>🎤 World Tour ($5M)</button>"+
-          " <button class='btn btn-sm btn-ghost' data-dropartist='"+a.id+"'>✕</button></div></div>";
-      });
-      if(!L.artists.length) h+="<div class='tiny muted'>Empty roster — sign your first act below.</div>";
-      h+="<div class='tiny muted' style='margin-top:6px'>Available acts:</div>";
-      (DATA.ARTISTS||[]).filter(a=>!L.artists.some(x=>x.id===a.id)).forEach(a=>{
-        h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(a.blurb)+"</span></span>"+
-          "<button class='btn btn-sm "+(G.studio.cash>=a.fee?"btn-primary":"")+"' data-sign='"+a.id+"'>Sign — "+fmtM(a.fee)+"</button></div>";
-      });
-      h+="</div>";
+    h+="<div class='section-title'>🏰 Empire home</div>"+
+      "<div class='card'><div class='spread'><b>Empire overview</b><span class='tag gold'>"+goalsDone+"/6 endgame</span></div>"+
+      "<div class='tiny muted' style='margin-top:4px'>"+G.franchises.length+" franchise(s) · "+(G.universes||[]).length+" shared universe(s) · Music label "+(L.unlocked?"live ("+(L.artists||[]).length+"/3 acts)":"locked")+"</div>"+
+      "<div class='row' style='margin-top:8px;gap:6px;flex-wrap:wrap'>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='franchises'>Franchises</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='universes'>Universes</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='divisions'>Divisions</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='endgame'>Endgame</button>"+
+        "<button class='btn btn-sm btn-alt' id='btnOpenFanClub'>Fan Conventions ↗</button>"+
+        "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
+      "</div></div>";
+    if(!G.franchises.length){
+      h+="<div class='card muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
     }
-  }catch(e){}
+    try{ h+=crossMediaTimeline(); }catch(e){}
+    return h;
+  }
+
+  if(active==="universes"){
+    h+="<div class='row' style='margin-bottom:8px;gap:6px'><button class='btn btn-sm btn-alt' id='btnOpenUniverses'>Cinematic Universes Charter ↗</button></div>";
+    try{ if(typeof uniBoard==="function") h+=uniBoard(); }catch(e){}
+    return h;
+  }
+
+  if(active==="divisions"){
+    h+="<div class='row' style='margin-bottom:8px;gap:6px;flex-wrap:wrap'>"+
+      "<button class='btn btn-sm btn-alt' id='btnOpenMerch'>Merch &amp; Licensing Deals ↗</button>"+
+      "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
+    "</div>";
+    /* v14: music label division (§32) */
+    try{
+      const L=G.label||{unlocked:false, artists:[]};
+      h+="<div class='section-title'>🎵 Music label</div>";
+      if(!L.unlocked){
+        h+="<div class='card'><div class='spread'><div><b>Launch the "+esc(G.studio.name)+" music label</b><div class='tiny muted'>Sign up to 3 acts. Each earns weekly; when one charts, money ×3 for a month and your in-production musicals & concert films get +2% buzz. Charts also feed the trending board's ecosystem.</div></div>"+
+          "<button class='btn btn-primary' data-label='1'>Launch — "+fmtM(60)+"</button></div>"+
+          "<div class='tiny muted' style='margin-top:6px'>+$0.3M/wk overhead once live. Sign artists from the roster below.</div></div>";
+      }else{
+        h+="<div class='card'><div class='spread'><b>🎧 "+esc(G.studio.name)+" Records</b><span class='tag'>"+L.artists.length+"/3 acts</span></div>";
+        (L.artists||[]).forEach(a=>{
+          const def=(DATA.ARTISTS||[]).find(x=>x.id===a.id)||{};
+          const charting=a.chartUntil>G.week;
+          const chartPos = charting? (a.chartPos || ((G.week*7+a.id.charCodeAt(0))%12+1)) : null;
+          const scandalRisk = Math.round((a.scandal||0.15)*100);
+          h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(def.vibe||"")+(charting?" · <b class='pos'>#"+chartPos+" ON TOP 50 (×3)</b>":"")+" · scandal risk "+scandalRisk+"%</span></span>"+
+            "<div class='row' style='gap:6px;align-items:center'><b class='"+(charting?"pos":"")+"'>+"+fmtM(Math.round((0.08+0.14*(a.heat||1))*(charting?3:1)*10)/10)+"/wk</b>"+
+            "<button class='btn btn-xs btn-alt' data-tour='"+a.id+"' title='Concert tour: $5M upfront, +15% buzz for musicals'>🎤 World Tour ($5M)</button>"+
+            " <button class='btn btn-sm btn-ghost' data-dropartist='"+a.id+"'>✕</button></div></div>";
+        });
+        if(!L.artists.length) h+="<div class='tiny muted'>Empty roster — sign your first act below.</div>";
+        h+="<div class='tiny muted' style='margin-top:6px'>Available acts:</div>";
+        (DATA.ARTISTS||[]).filter(a=>!L.artists.some(x=>x.id===a.id)).forEach(a=>{
+          h+="<div class='cost-line'><span>🎤 <b>"+esc(a.name)+"</b> <span class='tiny muted'>"+esc(a.blurb)+"</span></span>"+
+            "<button class='btn btn-sm "+(G.studio.cash>=a.fee?"btn-primary":"")+"' data-sign='"+a.id+"'>Sign — "+fmtM(a.fee)+"</button></div>";
+        });
+        h+="</div>";
+      }
+    }catch(e){}
+    try{ h+=merchBoard(); }catch(e){}
+    try{ h+=divisionsPanel(); }catch(e){}
+    return h;
+  }
+
+  if(active==="endgame"){
+    try{ if(typeof endgameBoard==="function") h+=endgameBoard(); }catch(e){}
+    return h;
+  }
+
+  h+="<div class='spread' style='margin-bottom:8px'><div class='section-title' style='margin:0'>🏰 Franchises</div>"+
+    "<button class='btn btn-sm btn-alt' id='btnOpenFanClub'>Fan Conventions ↗</button></div>";
   if(!G.franchises.length){
     h+="<div class='card muted small'>No franchises yet. Land a theatrical <b>hit</b> — roughly 2× breakeven worldwide with reviews ≥66 — and the brand unlocks here: sequels, 🧸 merchandise, 🎮 game licenses and 🎡 theme-park attractions. Animation & fantasy merchandise best; parks need a tier-2 franchise.</div>";
   }
@@ -7709,12 +7781,6 @@ function viewEmpire(){
       "</div></div>";
   }
   h+="<div class='card'><b>How the empire works</b><div class='small muted' style='margin-top:4px'>Every entry adds <b>franchise fatigue</b> (smaller openings, weaker reviews) that only heals if you rest the brand for about half a year or perform an active Brand Reboot. Merch & parks pay every week and spike again whenever a franchise film hits theaters. Game rights are one-time cash per tier.</div></div>";
-  try{ h+=merchBoard(); }catch(e){}
-  try{ if(typeof uniBoard==="function") h+=uniBoard(); }catch(e){}
-  try{ if(typeof endgameBoard==="function") h+=endgameBoard(); }catch(e){}
-  /* ── v25: Cross-Media Timeline & Shared Universe Dashboard ── */
-  try{ h+=crossMediaTimeline(); }catch(e){}
-  try{ h+=sharedUniverseDashboard(); }catch(e){}
   if(((G.licensedOut||[]).length)){
     h+="<div class='section-title'>📦 Brands licensed out</div><div class='card'>";
     (G.licensedOut||[]).forEach(function(L){

@@ -83,6 +83,7 @@ function newGame(archId, name, opts){
     try{ claimLegacy(opts.legacy); }catch(e){}
   }
   if(typeof initLiveState==="function") initLiveState(G);
+  if(typeof ensureEmpireState==="function") ensureEmpireState(G);
   G.log = log;
   log("🎬 "+G.studio.name+" is founded ("+DATA.SCENARIOS[G.scenario].name+" · "+DATA.DIFFICULTIES[G.difficulty].name+(G.sandbox?" · sandbox":"")+") . "+arch.sub, "gold");
   log("💡 Tip: Greenlight a film in the Develop tab, or pitch a series in OTT & Series.", "");
@@ -551,6 +552,7 @@ function loadGame(){
     if(typeof window !== "undefined") window.G = G;
     if(typeof global !== "undefined") global.G = G;
     if(typeof ensureLiveState==="function") ensureLiveState(G);
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
     G.log = log;
     if(applied.length) log("💾 Save upgraded from schema v"+fromV+" → v"+G.v+". Your studio carried over intact.","");
     return G;
@@ -568,6 +570,8 @@ function importCode(code){
     G = g;
     if(typeof window !== "undefined") window.G = G;
     if(typeof global !== "undefined") global.G = G;
+    if(typeof ensureLiveState==="function") ensureLiveState(G);
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
     G.log = log; saveGame(); return true;
   }catch(e){ return false; }
 }
@@ -4944,6 +4948,15 @@ function tickSportsAuctions(){
 }
 
 /* ═══════════ franchise empire (merch · games · parks) ═══════════ */
+const EMPIRE_SUB_KEYS = ["home","franchises","universes","divisions","endgame"];
+function ensureEmpireState(g){
+  if(!g) return null;
+  if(!g.empire || typeof g.empire !== "object") g.empire = { subTab:"franchises", activeSub:"franchises" };
+  const want = g.empire.activeSub || g.empire.subTab || "franchises";
+  g.empire.subTab = EMPIRE_SUB_KEYS.indexOf(want) >= 0 ? want : "franchises";
+  g.empire.activeSub = g.empire.subTab;
+  return g.empire;
+}
 function upsertFranchise(f){
   let fr = G.franchises.find(x=>x.name===(f.franchiseName||f.title));
   if(!fr){
