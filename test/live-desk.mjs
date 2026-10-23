@@ -246,8 +246,120 @@ try{
   assert(/off air|offline|not live/i.test(viewText()),'offline state is explained');
   console.log('PASS A9: hours≠money, real quality/topic, honest offline controls');
 
+
+  /* ── B — command shell on every reading, no legacy chrome ── */
+  for(const key of Object.keys(panels)){
+    fresh(key);
+    assert($('#view .command-live'),`${key}: command shell missing`);
+    assert.equal($$('#view .card').length,0,`${key}: no legacy .card in the Live Desk`);
+    assert.equal($$('#view .section-title').length,0,`${key}: no legacy .section-title`);
+    assert.equal($$('#view .cost-line').length,0,`${key}: no legacy .cost-line`);
+    assert(viewText().includes('LIVE DESK / YEAR'),`${key}: LIVE DESK eyebrow`);
+    assert(viewText().includes('The broadcast command desk.'),`${key}: command heading`);
+    assert(viewText().includes('Broadcast & Live Entertainment Network'),`${key}: network subtitle preserved`);
+    assert.equal($$('#view .command-telemetry .command-metric').length,4,`${key}: four shared telemetry metrics`);
+    const head=$('#view .command-heading'), nav=$('#view .command-live-nav'), tel=$('#view .command-telemetry'), panel=$('#view .produce-panel');
+    assert(head&&nav&&tel&&panel,`${key}: shell parts render`);
+    const after=(a,b)=>Boolean(a.compareDocumentPosition(b)&w.Node.DOCUMENT_POSITION_FOLLOWING);
+    assert(after(head,nav)&&after(nav,tel)&&after(tel,panel),`${key}: order is header → nav → telemetry → body`);
+  }
+  console.log('PASS B: LIVE DESK shell, order, four telemetry metrics, no legacy chrome');
+
+  /* ── C1 — broadcast home reads the real network state ── */
+  fresh('home');
+  w.eval(`G.films.push(${FILM});G.live.events.submissions['venice']=99001;G.live.events.premieres.push({filmId:99001,city:'nyc',week:G.week});G.live.stats.totalBroadcastRev=42.5;G.live.stats.festivalsWon=2;render();`);
+  assert(viewText().includes('2 / 8 unlocked'),'home counts unlocked channels');
+  assert(viewText().includes('EPG Probe'),'home pending tray names the submitted film');
+  assert(viewText().includes('Venice Film Festival'),'home pending tray names the festival');
+  assert(viewText().includes('NYC'),'home pending tray names the premiere city');
+  assert(viewText().includes('$42.5M')||viewText().includes('42.5'),'home lifetime broadcast profit is the real stat');
+  assert(viewText().includes('Cumulative weekly viewers')||viewText().includes('CUMULATIVE WEEKLY VIEWERS'),'lifetime viewers labelled as a career sum');
+  const nx=w.eval(`(function(){const d=DATA.LIVE_EVENTS.filter(e=>e.week>0).map(e=>({n:e.name,a:(e.week-woyOf(G.week)+52)%52})).sort((x,y)=>x.a-y.a)[0];return d.n;})()`);
+  assert(viewText().includes(nx),'home names the actual next dated event');
+  console.log('PASS C1: broadcast home — counts, next event, pending tray, honest lifetime labels');
+
+  /* ── C2/C3/C4/C10 — channels desk ── */
+  fresh('linear');
+  assert.equal($$('#view .live-channel').length,8,'portfolio compares all eight channels');
+  assert(viewText().includes('Prime programmed'),'portfolio shows scheduled prime-time counts');
+  assert.equal($$('#view .live-epg-row').length,24,'EPG renders all 24 slots');
+  assert(viewText().includes('Apex Automotive'),'EPG shows the default prime-time sponsor from engine state');
+  assert(/ad tier/.test(viewText())&&/weight ×/.test(viewText()),'EPG shows slot weight and block ad tier separately');
+  assert(/2h block/.test(viewText()),'EPG shows block duration metadata');
+  for(const copy of ['Prime Movies','Overnight Infomercials','Library Reruns','Full Syndication','6pm–10pm','12am–5am'])
+    assert(viewText().includes(copy),`strategy desk explains: ${copy}`);
+  /* ledger is reference-only and reads live sponsors */
+  assert(viewText().includes('Reference only'),'ledger separates reference data from actions');
+  assert(viewText().includes('spot30'),'ledger lists the AD_INVENTORY rate cards');
+  assert(viewText().includes('Pay-1 (First Window)'),'ledger lists RIGHTS_MARKET windows');
+  assert(viewText().includes('Broadcast Rights'),'ledger explains EVENT_PARTICIPATION');
+  assert(viewText().includes('GlowLife Supplements'),'ledger lists sponsors actually present in schedules');
+  /* selecting a channel opens its real schedule */
+  w.eval(`scheduleChannelSlot('bow_news',20,'live_event',null,'Newsroom Special');render();`);
+  $('[data-live-ch="bow_news"]').click();
+  assert.equal(w.eval('G.live.activeChannel'),'bow_news','portfolio selection uses the existing channel selector');
+  assert(viewText().includes('Newsroom Special'),'the selected channel schedule is what renders');
+  console.log('PASS C2/C3/C4/C10: portfolio, 24-slot EPG, strategy dayparts, read-only ledger');
+
+  /* ── C5 — stream control room wires topic/quality into toggleLiveStream ── */
+  fresh('stream');
+  assert($('#liveStreamTopic')&&$('#liveStreamQuality'),'stream desk exposes topic and quality controls');
+  w.eval(`document.querySelector('#liveStreamTopic').value='sports_desk';document.querySelector('#liveStreamQuality').value='4K';`);
+  $('[data-live-stream-toggle]').click();
+  assert.equal(w.eval('G.live.streaming.topic'),'sports_desk','starting the stream stores the chosen topic');
+  assert.equal(w.eval('G.live.streaming.quality'),'4K','starting the stream stores the chosen quality');
+  assert.equal($('#liveStreamTopic').disabled,true,'topic locks while on air (it applies at start)');
+  w.eval(`G.live.streaming.chatMessages.push({user:'WhaleFan',text:'Take my money',isSuperChat:true,amount:50});render();`);
+  assert(viewText().includes('Super Chat'),'super chats render in the feed');
+  assert(viewText().includes('CinemaBuff99'),'seeded chat renders');
+  console.log('PASS C5: topic/quality apply at start, chat + super chats, real metrics');
+
+  /* ── C6 — calendar sorted by countdown; filters are view-only ── */
+  fresh('events');
+  const stateBefore=w.eval(`JSON.stringify(G.live)`);
+  const firstCard=$('#view .live-event b').textContent;
+  const nearest=w.eval(`(function(){const d=DATA.LIVE_EVENTS.filter(e=>e.week>0).map(e=>({n:e.name,a:(e.week-woyOf(G.week)+52)%52}));const m=Math.min(...d.map(x=>x.a));return d.filter(x=>x.a===m).map(x=>x.n);})()`);
+  assert(nearest.some(n=>firstCard.includes(n)),'calendar leads with a nearest event');
+  $('[data-live-event-filter="sports"]').click();
+  assert(viewText().includes('Super Bowl')&&!viewText().includes('Academy Awards'),'sports filter narrows the calendar');
+  assert.equal(w.eval(`JSON.stringify(G.live)`),stateBefore,'calendar filters never write simulation state');
+  $('[data-live-event-filter="all"]').click();
+  assert(viewText().includes('Every 208 weeks'),'recurrence renders for quadrennial events');
+  assert(viewText().includes('Rights cost'),'rights-cost metadata renders');
+  console.log('PASS C6: countdown order, view-only filters, recurrence + rights metadata');
+
+  /* ── C7/C8 — tracker + premiere desk with city selection ── */
+  fresh('events');
+  w.eval(`G.films.push(${FILM});G.projects.push({id:99077,title:'Gala Probe',genre:'drama',buzzBonus:0});G.studio.cash=30;render();`);
+  assert(viewText().includes('Festival submission tracker'),'festival tracker renders');
+  assert($('#livePremiereCity'),'premiere desk offers city selection');
+  assert.equal($$('#livePremiereCity option').length,4,'all four DATA premiere cities are offered');
+  w.eval(`document.querySelector('#livePremiereCity').value='london';`);
+  $('[data-live-premiere-host="99077"]').click();
+  assert.equal(w.eval(`G.live.events.premieres[0].city`),'london','desk hosting passes the chosen city to hostRedCarpetPremiere');
+  assert.equal(w.eval(`G.live.events.premieres[0].filmId`),99077,'desk hosting queues the chosen film');
+  assert(viewText().includes('Scheduled premieres'),'scheduled premieres are reviewable');
+  w.eval(`G.studio.cash=0.2;render();`);
+  assert($('[data-live-premiere-host="99077"]').disabled,'premiere hosting disables below $1.5M');
+  /* save/load keeps the whole live picture */
+  w.eval(`G.studio.cash=50;G.live.events.submissions['tiff']=99001;scheduleChannelSlot('bow_movies',19,'movie',99001,'EPG Probe');saveGame();loadGame();render();`);
+  assert.equal(w.eval(`G.live.events.submissions['tiff']`),99001,'pending submission survives save/load');
+  assert.equal(w.eval(`G.live.events.premieres.length`),1,'pending premiere survives save/load');
+  assert.equal(w.eval(`G.live.channels.find(c=>c.id==='bow_movies').schedule[19].block`),'movie','scheduled film survives save/load');
+  console.log('PASS C7/C8: tracker states, city selection, scheduled review, save/load integrity');
+
+  /* ── C9 — host progression uses the engine level threshold ── */
+  fresh('studio');
+  assert(viewText().includes('0 / 100 XP to Lv.2'),'level 1 progress reads against level × 100');
+  w.eval(`G.live.hosts.rex.level=3;G.live.hosts.rex.xp=250;render();`);
+  assert(viewText().includes('250 / 300 XP to Lv.4'),'level 3 progress reads against 300 XP');
+  assert(viewText().includes('Listed perk'),'host perks are labelled as DATA flavour');
+  assert(viewText().includes('Gravitas')&&viewText().includes('Good evening, Hollywood'),'trait and quote render');
+  assert(/energy does not drain/i.test(viewText()),'no invented energy-drain claim');
+  console.log('PASS C9: real XP thresholds, honest perk/energy copy');
+
   assert.equal(errors.length,0,'no console errors during the live-desk suite: '+errors.join(' ; '));
-  console.log('PASS live-desk A-suites: navigation, EPG schema, strategies, events, results, fees, premiere-once, stream metrics');
+  console.log('PASS live-desk A+B+C suites: navigation, EPG schema, strategies, events, results, fees, premiere-once, stream metrics');
 }catch(e){
   console.error('FAIL live-desk:',e.message);
   if(errors.length) console.error('console errors:',errors.join(' ; '));
