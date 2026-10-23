@@ -2587,3 +2587,9 @@
   #app #view[data-screen="live"] .command-live .live-channels,#app #view[data-screen="live"] .command-live .live-events,#app #view[data-screen="live"] .command-live .live-hosts,#app #view[data-screen="live"] .command-live .live-strategies{grid-template-columns:1fr}
   #app #view[data-screen="live"] .command-live .live-epg-time small{display:none}
 }
+#app #view[data-screen="live"] .command-live .live-panel-body>*{min-width:0}
+#app #view[data-screen="live"] .command-live .live-row>*{min-width:0}
+#app #view[data-screen="live"] .command-live .live-city-pick{max-width:100%}
+#app #view[data-screen="live"] .command-live .live-city-pick select{width:100%}
+#app #view[data-screen="live"] .command-live .live-row .produce-ghost{flex:0 1 auto}
+#app #view[data-screen="live"] .command-live-nav .command-nav-items button{flex:0 0 auto}

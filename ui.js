@@ -10466,7 +10466,7 @@ function renderCharReely(){
     // Backdrop Filmstrip Glow
     "<rect x='20' y='16' width='120' height='130' rx='6' fill='#17120a' stroke='#382a15' stroke-width='2'/>"+
     // Reely the Mascot Reel
-    "<g class='char-reely-body' transform='origin: 80 80'>"+
+    "<g class='char-reely-body' style='transform-origin:80px 80px'>"+
     // Outer 35mm Gold Reel
     "<circle class='char-wheel' cx='80' cy='80' r='46' fill='#f59e0b' stroke='#d97706' stroke-width='4'/>"+
     "<circle cx='80' cy='80' r='36' fill='#1f2937'/>"+
