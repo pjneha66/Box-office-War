@@ -189,5 +189,62 @@ assert($('#modalRoot #compareClose'),'close action preserved');
 w.eval(`closeModal();`);
 console.log('PASS shared chrome: legacy dialogs, decisions, year report, comparison');
 
+/* 9 — the What's next roadmap card on the Fans desk (v34.6).
+   Hardcoded, offline, read-only: it closes the desk after the audience pulse. */
+const updates=w.eval('NEXT_UPDATES');
+assert(Array.isArray(updates)&&updates.length>=4,'NEXT_UPDATES is seeded');
+updates.forEach((it,i)=>{
+  assert.equal(typeof it.version,'string','item '+i+' carries a version string');
+  assert(it.label&&it.label.length>3,'item '+i+' carries a label');
+  assert(['shipped','active','planned'].includes(it.status),'item '+i+' has a known status: '+it.status);
+});
+assert.equal(updates.filter(u=>u.status==='shipped').length>=2,true,'at least the two shipped seeds');
+assert(updates.some(u=>u.version==='34.5'&&u.status==='shipped'),'34.5 is seeded as shipped');
+assert(updates.some(u=>u.version==='34.4'&&u.status==='shipped'),'34.4 is seeded as shipped');
+
+w.eval(`G.mail=G.mail||[];G.mail.push({kind:'love',from:'Ravi Mehta',text:'Loved it twice.',w:G.week,unread:true,film:'Every Berlin'},{kind:'angry',from:'Nia Okonkwo',text:'Where is the sequel?',w:G.week,unread:true});
+  FAN_MAIL_FILTER='all';switchTab('fans');render();`);
+const fans=$('#view');
+assert(fans,'the Fans desk renders');
+const panel=$('#view .bo-next');
+assert(panel,'the What\'s next card renders on the Fans desk');
+assert.equal(panel.classList.contains('produce-panel'),true,'the card wears the produce panel');
+const kids=[...fans.children];
+assert.equal(kids[kids.length-1],panel,'the roadmap card is the last block on the desk');
+assert($('#view .bo-next .produce-panel-head h2').textContent.includes("WHAT'S NEXT"),'the panel is titled WHAT\'S NEXT');
+assert.equal($$('#view .bo-next .bo-kpi').length,3,'the strip carries app version, item count and shipped count');
+
+const metaVersion=$('meta[name="app-version"]').getAttribute('content');
+assert(metaVersion&&metaVersion.length>2,'index.html still declares app-version');
+const kpis=$$('#view .bo-next .bo-kpi b').map(b=>b.textContent.trim());
+assert.equal(kpis[0],metaVersion,'the app-version KPI matches index.html app-version');
+assert.equal(kpis[1],String(updates.length),'the item count matches the array');
+assert.equal(kpis[2],String(updates.filter(u=>u.status==='shipped').length),'the shipped count matches the array');
+assert($('#view .bo-next .produce-stamp').textContent.includes(metaVersion),'the stamp names the running build');
+
+assert.equal($$('#view .bo-next .bo-next-item').length,updates.length,'one line per item');
+assert.equal($$('#view .bo-next .bo-next-item .bo-chip').length,updates.length,'one status chip per item');
+const TONE={shipped:'gold',active:'teal',planned:'muted'};
+$$('#view .bo-next .bo-next-item').forEach((li,i)=>{
+  assert.equal(li.querySelectorAll('.bo-chip').length,1,'exactly one chip on item '+i);
+  assert(li.querySelector('.bo-next-ver').textContent.includes(updates[i].version),'item '+i+' shows its version');
+  assert.equal(li.querySelector('.bo-next-label').textContent,updates[i].label,'item '+i+' shows its label');
+  assert(li.querySelector('.bo-chip').classList.contains(TONE[updates[i].status]),'item '+i+' chip tone for '+updates[i].status);
+});
+/* the desk's own bindings survive the new block */
+assert.equal($$('#view [data-mail-cat]').length,6,'mail category pills preserved');
+assert($('#btnMailRead'),'mark-all-read preserved');
+assert.equal($$('#view [data-mail-reply]').length,1,'reply binding preserved');
+assert.equal($$('#view [data-mail-apology]').length,1,'apology binding preserved');
+console.log('PASS what\'s next: panel closes the Fans desk, one chip per item, version from the document head');
+
+/* the empty state still renders a full panel instead of collapsing */
+const empty=w.eval('nextUpdatesPanel([])');
+assert(empty.includes('bo-next-empty'),'an empty roadmap renders its empty state');
+assert.equal(empty.includes('bo-next-item'),false,'no item lines when the array is empty');
+assert(empty.includes('bo-kpis'),'the empty panel keeps its KPI strip');
+assert(empty.includes('>0<'),'the empty panel reports zero items');
+console.log('PASS what\'s next: offline empty state');
+
 assert.deepEqual(errors,[]);
 console.log('BOX OFFICE FIGURES PASSED ✅');

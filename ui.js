@@ -1262,6 +1262,59 @@ function _renderImpl(){
 /* ═══════════ VIEW: fans (v15) — the audience-facing desk ═══════════ */
 let FAN_MAIL_FILTER = "all";
 
+/* v34.6: what's next — a hardcoded changelog for the Fans desk. No network,
+   no game state: the list ships with the build, newest version first.
+   status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
+const NEXT_UPDATES = [
+  { version:"34.7", label:"Streamer sub-tabs — deals, sports and finance", status:"planned" },
+  { version:"34.6", label:"Fans desk roadmap card + fan-mail polish", status:"active" },
+  { version:"34.5", label:"Box office charts + produce dialogs", status:"shipped" },
+  { version:"34.4", label:"Legacy dialog chrome", status:"shipped" }
+];
+/* chip class + label per status; unknown statuses fall back to "planned". */
+const NEXT_UPDATE_STATUS = {
+  shipped: ["gold","SHIPPED"],
+  active:  ["teal","IN PROGRESS"],
+  planned: ["muted","PLANNED"]
+};
+/* the running build's version, straight from the document head. */
+function nextAppVersion(){
+  try{
+    if(typeof document==="undefined") return "";
+    const m=document.querySelector('meta[name="app-version"]');
+    return m ? String(m.getAttribute("content")||"").trim() : "";
+  }catch(e){ return ""; }
+}
+function nextUpdatesPanel(items){
+  const list = Array.isArray(items) ? items : NEXT_UPDATES;
+  const shipped = list.filter(it=>it && it.status==="shipped").length;
+  const version = nextAppVersion();
+  const rows = list.length
+    ? "<ol class='bo-next-list'>"+list.map(it=>{
+        const st = NEXT_UPDATE_STATUS[it && it.status] || NEXT_UPDATE_STATUS.planned;
+        return "<li class='bo-next-item "+esc((it&&it.status)||"planned")+"'>"+
+          "<span class='bo-next-ver'>v"+esc((it&&it.version)||"—")+"</span>"+
+          "<span class='bo-next-label'>"+esc((it&&it.label)||"Untitled update")+"</span>"+
+          "<span class='bo-chip "+st[0]+"'>"+st[1]+"</span>"+
+        "</li>";
+      }).join("")+"</ol>"
+    : "<div class='bo-next-empty'><b>The roadmap is empty.</b>"+
+      "<p>Nothing is queued in this build. What ships next gets written here first.</p></div>";
+  return "<section class='produce-panel bo-next' aria-label=\"What's next roadmap\">"+
+    "<div class='produce-panel-head'><div>"+
+      "<span class='command-eyebrow'>ROADMAP / FANS DESK</span>"+
+      "<h2>📌 WHAT'S NEXT</h2>"+
+      "<p>What already shipped and what is being built next — read-only, straight from this build.</p>"+
+    "</div><span class='produce-stamp'>"+(version? "v"+esc(version) : "v—")+"</span></div>"+
+    "<div class='bo-next-body'>"+
+      "<div class='bo-kpis'>"+
+        "<div class='bo-kpi'><small>APP VERSION</small><b>"+(version? esc(version):"—")+"</b><span>meta app-version</span></div>"+
+        "<div class='bo-kpi'><small>ON THE LIST</small><b>"+list.length+"</b><span>updates tracked</span></div>"+
+        "<div class='bo-kpi'><small>SHIPPED</small><b>"+shipped+"</b><span>of "+list.length+" done</span></div>"+
+      "</div>"+rows+
+    "</div></section>";
+}
+
 function viewFans(){
   let h="";
   const unread=unreadMail();
@@ -1346,6 +1399,9 @@ function viewFans(){
       "<div class='cost-line'><span>Current fan favorite</span><b>"+esc(fav.title)+"</b></div>"+
       "<div class='tiny muted'>Fan letters with real love behind them pay +1% buzz to a film still in theaters — once per film.</div></div>";
   }
+
+  /* v34.6: what's next — the last block on the desk, after the audience pulse */
+  h+=nextUpdatesPanel();
   return h;
 }
 
