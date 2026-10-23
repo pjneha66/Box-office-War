@@ -656,7 +656,9 @@ try{
   `);
   for(const sub of allSubs) w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
   assert.equal(w.eval('window.__kairoCalls'),0,'empire renders no Kairo banner on any sub-tab');
-  w.eval(`TAB='games'; render();`);
+  /* games is now a command desk and, like empire/library, is intentionally
+     excluded from the Kairo banner — use finance (a plain tab) as the control. */
+  w.eval(`TAB='finance'; render();`);
   assert(w.eval('window.__kairoCalls')>0,'Kairo banner still renders on non-excluded tabs');
   w.eval(`KairoTheme.renderBanner=window.__kairoOrig; TAB='empire'; G.empire.subTab='franchises'; G.empire.activeSub='franchises'; render();`);
   console.log('PASS B4: empire excluded from the Kairo banner everywhere, other tabs unaffected');
@@ -699,7 +701,12 @@ try{
 
   /* Scoped CSS discipline */
   const css=fs.readFileSync('command-deck.css','utf8');
-  const block=(css.split('EMPIRE DESK — shell chrome')[1]||'').replace(/^[^]*?\*\//,'').replace(/\/\*[^]*?\*\//g,'');
+  const afterEmpire=css.split('EMPIRE DESK — shell chrome')[1]||'';
+  /* Bound the empire block at the next major ═══ section divider so later
+     desks (e.g. the v37 Game Studio desk appended below) aren't swept in. */
+  const nextSection=afterEmpire.search(/\/\*\s*═{3,}/);
+  const empireCss=nextSection>=0?afterEmpire.slice(0,nextSection):afterEmpire;
+  const block=empireCss.replace(/^[^]*?\*\//,'').replace(/\/\*[^]*?\*\//g,'');
   assert(block.length>200,'empire shell CSS block exists');
   assert(!/\.(card|section-title|cost-line|stat-hero|fr-meter)\b/.test(block),'empire CSS never restyles legacy content classes');
   assert(!/overflow\s*:/.test(block),'empire CSS adds no overflow masking');
