@@ -9896,9 +9896,9 @@ function viewLiveLinear(){
 
   const schedule = ch.schedule || [];
   for(let hour = 0; hour < 24; hour++){
-    const slot = schedule[hour] || { hour, blockId: "movie", contentId: null, customTitle: null };
+    const slot = schedule[hour] || { hour, block: "rerun", contentId: null, title: null, sponsor: null, rating: null };
     const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => (s.hour === hour || s.h === hour)) || { name: hour + ":00", label: hour + ":00", weight: 1.0, isPrimeTime: hour >= 20 && hour <= 22 };
-    const blockMeta = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === slot.blockId) || { name: "General Broadcast", label: "General Broadcast", adTier: 1.0 };
+    const blockMeta = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === slot.block) || { name: "General Broadcast", label: "General Broadcast", adTier: 1.0 };
 
     let filmTitle = null;
     let filmQuality = null;
@@ -9914,7 +9914,9 @@ function viewLiveLinear(){
       "<div style='width:100px;font-family:var(--font-mono);font-weight:600'>" + esc(slotMeta.name) + (isPrime ? " <span class='tag gold' style='font-size:8px;padding:1px 3px'>PRIME</span>" : "") + "</div>"+
       "<div style='width:150px;color:var(--muted)'>" + esc(blockMeta.name) + "</div>"+
       "<div style='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+
-      (filmTitle ? "<b>" + esc(filmTitle) + "</b> <span class='tag' style='font-size:9px'>Q: " + filmQuality + "</span>" : (slot.customTitle ? "<b>" + esc(slot.customTitle) + "</b>" : "<span class='muted'>Syndicated Block</span>"))+
+      (filmTitle ? "<b>" + esc(filmTitle) + "</b> <span class='tag' style='font-size:9px'>Q: " + filmQuality + "</span>" : (slot.title ? "<b>" + esc(slot.title) + "</b>" : "<span class='muted'>Syndicated Block</span>"))+
+      (slot.sponsor ? " <span class='tiny muted'>· " + esc(slot.sponsor) + "</span>" : "") +
+      (slot.rating != null ? " <span class='tiny muted'>· ★" + slot.rating + "</span>" : "") +
       "</div>"+
       "<div style='width:90px;text-align:right;font-family:var(--font-mono)'>" + mult + "x</div>"+
       "<div style='width:80px;text-align:right'>"+
@@ -10168,7 +10170,7 @@ function liveSlotModal(channelId, hour){
   if(!ch) return;
   const chDef = (typeof DATA.liveChannel === "function" ? DATA.liveChannel(channelId) : (DATA.LIVE_CHANNELS || []).find(c => c.id === channelId)) || {};
   const chName = chDef.name || ch.name || channelId;
-  const currentSlot = (ch.schedule || [])[hour] || { hour, blockId: "movie", contentId: null, customTitle: null };
+  const currentSlot = (ch.schedule || [])[hour] || { hour, block: "rerun", contentId: null, title: null };
   const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => (s.hour === hour || s.h === hour)) || { name: hour + ":00", label: hour + ":00" };
 
   let h = "<h3>Program Slot: " + esc(chName) + " (" + esc(slotMeta.name || slotMeta.label) + ")</h3>"+
@@ -10178,7 +10180,7 @@ function liveSlotModal(channelId, hour){
   h += "<div class='card' style='margin-bottom:12px'><b>Programming Format Block</b>"+
     "<div class='row' style='gap:6px;flex-wrap:wrap;margin-top:8px'>";
   for(const block of DATA.PROGRAM_BLOCKS || []){
-    const isSel = currentSlot.blockId === block.id && !currentSlot.contentId;
+    const isSel = currentSlot.block === block.id && !currentSlot.contentId;
     const bName = block.name || block.label || block.id;
     const bTier = block.adTier !== undefined ? block.adTier : (block.dur ? block.dur + "x" : "1.0x");
     h += "<button class='btn btn-sm " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotBlock_" + block.id + "'>" + esc(bName) + " (" + bTier + (typeof bTier === "number" ? "x" : "") + ")</button>";
@@ -10227,7 +10229,7 @@ function liveSlotModal(channelId, hour){
     const btn = v.querySelector("#slotFilm_" + f.id);
     if(btn){
       btn.onclick = () => {
-        scheduleChannelSlot(channelId, hour, "primetime_movie", f.id, f.title);
+        scheduleChannelSlot(channelId, hour, "movie", f.id, f.title);
         beep("gold");
         closeModal();
         render();
