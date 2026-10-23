@@ -46,6 +46,20 @@ try{
   $('[data-ottsub="home"]').click();
   console.log('PASS A2: nav leads content, all chips switch panels, Market is not duplicated');
 
+  /* A3 — sports power uses the documented single 1.5% weekly decay. */
+  const decay=w.eval(`(function(){
+    G.streamer={name:'Decay Test',subs:10,peak:10,sportsPower:10,churn:.008,totalRev:0,lastContent:G.week,tier:'premium',history:[],subHistory:[]};
+    G.studio.cash=1000;let min=10;
+    for(let i=0;i<10;i++){tickStreamer();min=Math.min(min,G.streamer.sportsPower);}
+    return {power:G.streamer.sportsPower,min:min};
+  })()`);
+  const expected=10*Math.pow(.985,10);
+  assert(Math.abs(decay.power-expected)<=.5,`10 ticks at 1.5%/wk should land near ${expected.toFixed(3)}, got ${decay.power}`);
+  assert(decay.min>=0,'sports power never goes negative');
+  const floor=w.eval(`G.streamer.sportsPower=.0001;for(let i=0;i<200;i++)tickStreamer();G.streamer.sportsPower`);
+  assert(floor>=0,'sports power remains clamped at zero');
+  console.log('PASS A3: one 1.5%/wk sports decay, non-negative floor');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');
 }catch(e){

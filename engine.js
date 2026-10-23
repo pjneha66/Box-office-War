@@ -4793,8 +4793,7 @@ function tickStreamer(){
   if(!G.streamer) return;
   const st=G.streamer;
   const tier = (typeof DATA.tier==="function")? DATA.tier(st.tier||"premium") : {ceil:1, arpu:0.5, churn:0.008};
-  // decay sports power
-  if(st.sportsPower>0) st.sportsPower = Math.max(0, st.sportsPower - st.sportsPower*0.015 - 0.02);
+  // decay sports power once, at the documented ~1.5% per week
   st.sportsPower = Math.max(0, (st.sportsPower||0)*0.985);
   const ce=streamerCeiling();
   let churn = tier.churn||0.006;
