@@ -9960,7 +9960,7 @@ function viewLiveStream(){
     "<span class='live-dot-pulse' style='width:8px;height:8px;border-radius:50%;background:" + (isStreaming ? "var(--live-red)" : "#666") + "'></span>"+
     "<b style='font-size:11px;letter-spacing:1px;color:" + (isStreaming ? "var(--live-red)" : "var(--muted)") + "'>" + (isStreaming ? "LIVE ON AIR" : "OFF AIR") + "</b>"+
     "</div>"+
-    "<div class='tiny muted' style='font-family:var(--font-mono)'>1080p 60FPS · STEREO</div>"+
+    "<div class='tiny muted' style='font-family:var(--font-mono)'>" + esc(stream.quality || "1080p") + " · " + esc(stream.topic || "feature_premiere") + "</div>"+
     "</div>";
 
   // Host Stage in Monitor
@@ -9993,13 +9993,15 @@ function viewLiveStream(){
   h += "<div class='stat-hero' style='margin:10px 0'>";
   h += statCard((isStreaming ? (stream.ccv || 0) + "M" : "0"), "Current CCV");
   h += statCard((stream.peakCcv || 0) + "M", "Peak CCV");
-  h += statCard("+" + fmtM((stream.totalHours || 0)), "Stream Hours");
+  h += statCard((stream.totalHours || 0).toLocaleString() + " hrs", "Stream Hours");
+  h += statCard(((stream.subConversions || 0)).toFixed(1) + "M", "Sub Conversions");
   h += "</div>";
 
   h += "<div class='row' style='gap:8px;margin-top:8px'>"+
     "<button class='btn " + (isStreaming ? "btn-danger" : "btn-primary") + "' data-live-stream-toggle='1' style='flex:1'>" + (isStreaming ? "End Live Stream" : "Start Live Stream") + "</button>"+
-    "<button class='btn btn-alt' data-live-adbreak='1' " + (isStreaming ? "" : "disabled") + " style='flex:1'>Run Ad Break (+$K)</button>"+
-    "</div>";
+    "<button class='btn btn-alt' data-live-adbreak='1' " + (isStreaming ? "" : "disabled") + " style='flex:1'>Run Ad Break</button>"+
+    "</div>"+
+    (isStreaming ? "" : "<div class='tiny muted' style='margin-top:6px'>Off air — start the live stream to enable ad breaks. Earnings depend on live CCV when the break airs.</div>");
 
   if(G.streamer){
     h += "<div class='tiny muted' style='margin-top:10px;padding-top:8px;border-top:1px solid var(--line)'>"+
