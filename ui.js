@@ -7213,13 +7213,15 @@ function auctionModal(){
 
 /* v28: franchise transfer modal — rival buy-out offers for one of your brands */
 function franchiseSaleModal(frId){
-  const fr=(G.franchises||[]).find(x=>x.id===frId); if(!fr) return;
+  const fr=frById(frId); if(!fr) return;
   const offs=franchiseOffers(fr);
+  const exp=offs[0]&&offs[0].expires ? " · valid through "+dateLabel(offs[0].expires) : "";
+  const lostWk=frWeeklyIncome(fr);
   let h="<h3>🤝 Sell the “"+esc(fr.name)+"” franchise?</h3>"+
-    "<div class='tiny muted' style='margin-bottom:6px'>Selling banks cash today but kills its merch/park income forever, hands the brand to a rival, and costs a little rep.</div>";
+    "<div class='tiny muted' style='margin-bottom:6px'>Selling banks cash today, forfeits "+(lostWk>0?"+"+fmtM(lostWk)+"/wk":"all future")+" merch &amp; park income forever, hands the brand to a rival, and costs −2 rep"+exp+".</div>";
   offs.forEach((o,i)=>{
     h+="<div class='bid-card'><div class='platform-logo' style='background:#2a3142'>🏢</div>"+
-      "<div style='flex:1'><b>"+esc(o.rival? o.rival.name : "Unnamed buyer")+"</b><div class='tiny muted'>Outright purchase of all rights and future entries.</div></div>"+
+      "<div style='flex:1'><b>"+esc(o.rival? o.rival.name : "Unnamed buyer")+"</b><div class='tiny muted'>Outright purchase of all rights and future entries"+exp+".</div></div>"+
       "<b class='modal-offer-val'>"+fmtM(o.value)+"</b>"+
       "<button class='btn btn-primary btn-sm' data-froff='"+i+"'>Sell</button></div>";
   });
@@ -7833,7 +7835,7 @@ function viewEmpire(){
       ((fr.fatigue||0)>0.1? "<button class='btn btn-sm btn-alt' data-fr-reboot='"+fr.id+"'>✨ Brand Reboot ($25M)</button>":"")+
       "<button class='btn btn-sm btn-alt' data-fr-spin='"+fr.id+"'>🎬 Spin-off film</button>"+
       (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-tv='"+fr.id+"'>📺 TV spin-off</button>":"")+
-      "<button class='btn btn-sm btn-alt' data-fr-sell='"+fr.id+"'>🤝 Sell IP · from "+fmtM((franchiseOffers(fr)[0]||{}).value||0)+"</button>"+
+      "<button class='btn btn-sm btn-alt' data-fr-sell='"+fr.id+"'>🤝 Sell IP · top bid "+fmtM((franchiseOffers(fr)[0]||{}).value||0)+"</button>"+
       "<button class='btn btn-sm' data-fr-more='"+fr.id+"'>⋯ More moves</button>"+
       "</div></div>";
   }

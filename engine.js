@@ -6105,22 +6105,50 @@ function genIpItem(){
 
 /* ── v28: IP transfer market — rival buy-out offers for one of your franchises ── */
 function franchiseOffers(fr){
+  if(!fr) return [];
+  const wk = (G && G.week) || 1;
+  const basis = [fr.tier||0, Math.round((fr.ww||0)*10), fr.merch||0, fr.park||0].join(":");
+  if(fr.saleOffers && Array.isArray(fr.saleOffers.offers) && fr.saleOffers.offers.length && fr.saleOffers.expires > wk && fr.saleOffers.basis === basis){
+    return fr.saleOffers.offers.map(o=>{
+      const rv = (G.rivals||[]).find(r=>r.name===o.rivalName) || (o.rivalName ? { name:o.rivalName } : null);
+      return { rival:rv, rivalName:o.rivalName||"", value:o.value, expires:fr.saleOffers.expires };
+    });
+  }
   const base = Math.max(6, Math.round(((fr.ww||0)*0.07 + (fr.merch||0)*0.4 + (fr.tier||0)*3)*10)/10);
+  const pool = (G.rivals||[]).slice();
   const offs=[];
   for(let i=0;i<2;i++){
-    const r=(G.rivals||[]).length? pick(G.rivals) : null;
-    offs.push({ rival:r, value: Math.round(base*(0.75+rnd()*0.5)*10)/10 });
+    let r=null;
+    if(pool.length){
+      const idx=Math.floor(rnd()*pool.length);
+      r=pool.splice(idx,1)[0];
+    }else if((G.rivals||[]).length){
+      r=pick(G.rivals);
+    }
+    offs.push({ rival:r, rivalName:r?r.name:"", value: Math.round(base*(0.75+rnd()*0.5)*10)/10 });
   }
-  return offs.sort((a,b)=>b.value-a.value);
+  offs.sort((a,b)=>b.value-a.value);
+  const expires = wk + 8;
+  fr.saleOffers = {
+    expires,
+    basis,
+    offers: offs.map(o=>({ rivalName:o.rivalName, value:o.value }))
+  };
+  return offs.map(o=>({ rival:o.rival, rivalName:o.rivalName, value:o.value, expires }));
 }
 function sellFranchise(frId, offer){
-  const fr=G.franchises.find(x=>x.id===frId); if(!fr || !offer) return false;
+  const fr=frById(frId); if(!fr || !offer) return false;
   const o=offer;
+  const rv=(G.rivals||[]).find(r=>r.name===(o.rivalName||(o.rival&&o.rival.name))) || o.rival;
   earn("other", o.value);
   G.studio.rep=clamp(G.studio.rep-2,5,99);
-  if(o.rival) o.rival.ytd=(o.rival.ytd||0);
+  if(rv) rv.ytd=(rv.ytd||0);
   G.franchises=G.franchises.filter(x=>x!==fr);
-  log("🤝 Sold the \""+fr.name+"\" franchise to "+(o.rival? o.rival.name : "a rival studio")+" for "+fmtM(o.value)+". The merch checks stop coming — rep takes a small hit.","gold");
+  (G.universes||[]).forEach(u=>{
+    if(Array.isArray(u.frIds)) u.frIds=u.frIds.filter(id=>String(id)!==String(fr.id));
+    if(Array.isArray(u.subFranchises)) u.subFranchises=u.subFranchises.filter(id=>String(id)!==String(fr.id) && id!==fr.name);
+  });
+  log("🤝 Sold the \""+fr.name+"\" franchise to "+(rv? rv.name : "a rival studio")+" for "+fmtM(o.value)+". The merch checks stop coming — rep takes a small hit.","gold");
   saveGame(); return true;
 }
 /* v28: rival-held legacy franchises occasionally hit the transfer market */

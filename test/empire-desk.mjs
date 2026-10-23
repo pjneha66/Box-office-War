@@ -264,6 +264,36 @@ try{
   assert.equal(w.eval('G.streamer.subs'),8.0,'12 podcast weeks add +6.0M subs when G.streamer is active');
   console.log('PASS A5: Podcast $500K formatting, wired launchPodcast(), 12-wk run, honest streamer sub conversion');
 
+  /* ── A6 — franchiseOffers(fr) persisted; card == modal == sellFranchise() across renders & save/load ── */
+  fresh('franchises');
+  w.eval(`
+    G.franchises=[{id:401,name:'Iron Horizon',tier:2,entries:[{filmId:1,title:'Iron Horizon',ww:420,week:1}],ww:420,merch:2,park:1,gameSold:0,decay:1,genre:'action',earned:55,built:1}];
+    render();
+  `);
+  const sellBtn1=$('[data-fr-sell="401"]').textContent;
+  assert(!/from\s+\$/i.test(sellBtn1),`[data-fr-sell] "${sellBtn1}" must not mislabel highest offer as "from $X"`);
+  w.eval('render(); render();');
+  const sellBtn2=$('[data-fr-sell="401"]').textContent;
+  assert.equal(sellBtn1,sellBtn2,'[data-fr-sell] offer label stays stable across repeated render() calls');
+
+  /* Survives save/load round-trip and matches franchiseSaleModal() + sellFranchise() */
+  const cachedTop=w.eval('franchiseOffers(G.franchises[0])[0].value');
+  w.eval('saveGame(); loadGame(); render();');
+  assert.equal(w.eval('franchiseOffers(G.franchises[0])[0].value'),cachedTop,'top offer persists across saveGame/loadGame');
+  assert($('[data-fr-sell="401"]').textContent.includes(w.fmtM(cachedTop)),'card button shows persisted top offer');
+
+  $('[data-fr-sell="401"]').click();
+  assert($('.modal-veil'),'franchiseSaleModal opened');
+  const modalTopText=$('.modal-veil .modal-offer-val').textContent;
+  assert.equal(modalTopText,w.fmtM(cachedTop),'modal top offer matches card top offer');
+  const cashBeforeSell=w.eval('G.studio.cash');
+  const repBeforeSell=w.eval('G.studio.rep');
+  $('[data-froff="0"]').click();
+  assert.equal(Math.round((w.eval('G.studio.cash')-cashBeforeSell)*10)/10,cachedTop,'sellFranchise credits exact modal/card offer');
+  assert.equal(w.eval('G.studio.rep'),Math.max(5,repBeforeSell-2),'sellFranchise applies -2 rep penalty');
+  assert.equal(w.eval('G.franchises.length'),0,'sold franchise removed from G.franchises');
+  console.log('PASS A6: franchiseOffers(fr) persisted across renders & save/load; card == modal == sellFranchise()');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){
