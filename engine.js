@@ -8853,7 +8853,8 @@ function hostRedCarpetPremiere(filmId, cityId){
   });
   G.live.stats.premieresHosted = (G.live.stats.premieresHosted || 0) + 1;
   const film = (G.projects || []).find(p => p.id === filmId) || (G.films || []).find(f => f.id === filmId);
-  if(film) film.buzzBonus = (film.buzzBonus || 0) + 0.25;
+  // Buzz is applied exactly once, when the queued premiere broadcasts in
+  // tickLiveEvents — applying it here as well double-counted the gala.
   log("Red carpet premiere scheduled in " + (cityId || "LA").toUpperCase() + " for “" + (film ? film.title : "film") + "”!", "gold");
   sfx("hit");
   return { ok:true };
