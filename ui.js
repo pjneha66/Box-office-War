@@ -7030,6 +7030,38 @@ function bindView(){
     if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
     else toast((r && r.reason) || "Gala premiere failed.", "bad");
   });
+  $$("[data-show-field]").forEach(el=>el.onchange=()=>{
+    LIVE_SHOW_DRAFT[el.dataset.showField] = el.dataset.showField === "hour" ? +el.value : el.value;
+    beep("click"); render();
+  });
+  $$("[data-live-show-create]").forEach(b=>b.onclick=()=>{
+    const nameEl = document.querySelector("#liveShowName");
+    const r = developLiveShow({ ...LIVE_SHOW_DRAFT, hour:+LIVE_SHOW_DRAFT.hour, name:nameEl ? nameEl.value : "" });
+    if(r && r.ok){ beep("gold"); flashes(G.flash); toast("“"+r.show.name+"” is in the grid — first episode airs next week.", "good"); }
+    else toast((r && r.reason) || "Could not develop that show.", "bad");
+    render();
+  });
+  $$("[data-live-show-cancel]").forEach(b=>b.onclick=()=>{
+    const show = getLiveShow(+b.dataset.liveShowCancel);
+    if(show && !confirm("Cancel “"+show.name+"”? Its slot returns to filler and the season ends.")) return;
+    const r = cancelLiveShow(+b.dataset.liveShowCancel);
+    if(r && r.ok){ beep("click"); flashes(G.flash); render(); }
+    else toast((r && r.reason) || "Could not cancel that show.", "bad");
+  });
+  $$("[data-live-show-renew]").forEach(b=>b.onclick=()=>{
+    const r = renewLiveShow(+b.dataset.liveShowRenew);
+    if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast((r && r.reason) || "Could not renew that show.", "bad");
+  });
+  $$("[data-live-show-reschedule]").forEach(b=>b.onclick=()=>{
+    const r = rescheduleLiveShow(+b.dataset.liveShowReschedule);
+    if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast((r && r.reason) || "Could not reschedule that show.", "bad");
+  });
+  $$("[data-live-show-view]").forEach(b=>b.onclick=()=>{
+    const show = getLiveShow(+b.dataset.liveShowView);
+    if(show && G.live){ G.live.activeChannel = show.channel; G.live.activeSub = "linear"; G.live.subTab = "linear"; beep("click"); render(); }
+  });
 
   /* ── Mobile sub-tab strip (rendered at the top of bindView so the
        data-* bindings above and below attach to the live chips) ── */
@@ -9786,7 +9818,7 @@ function coppaModal(){
    reading. Every figure is read from G.live / DATA exactly as the engine
    writes it (slot.block, slot.title, ev.type, ev.desc, DATA.LIVE_COSTS);
    the view adds no simulation state or economics of its own. */
-const LIVE_SECTIONS = [["home","Home"],["linear","Channels"],["stream","Live Stream"],["events","Events"],["studio","Hosts"]];
+const LIVE_SECTIONS = [["home","Home"],["linear","Channels"],["shows","Shows"],["stream","Live Stream"],["events","Events"],["studio","Hosts"]];
 let LIVE_EVENT_FILTER = "all"; // view-only calendar filter; never written to the save
 const LIVE_STREAM_TOPICS = [["feature_premiere","Feature premiere"],["behind_scenes","Behind the scenes"],["awards_watch","Awards watch"],["sports_desk","Sports desk"],["catalog_marathon","Catalog marathon"]];
 const LIVE_STREAM_QUALITIES = ["720p","1080p","4K"];
@@ -9850,7 +9882,7 @@ function liveHead(){
 }
 function liveNav(){
   const active=liveSub();
-  return `<nav class="command-section-nav command-live-nav" aria-label="Live desk sections"><div class="command-nav-brand"><span>LIVE DESK</span><small>HOME / CHANNELS / STREAM / EVENTS / HOSTS</small></div><div class="command-nav-items">${LIVE_SECTIONS.map(([key,label],i)=>{
+  return `<nav class="command-section-nav command-live-nav" aria-label="Live desk sections"><div class="command-nav-brand"><span>LIVE DESK</span><small>HOME / CHANNELS / SHOWS / STREAM / EVENTS / HOSTS</small></div><div class="command-nav-items">${LIVE_SECTIONS.map(([key,label],i)=>{
     const icon=getSubTabPixelIcon("live",key);
     return `<button data-livesub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
   }).join("")}</div></nav>`;
@@ -9875,6 +9907,7 @@ function viewLive(){
   const active=liveSub();
   let body="";
   if(active==="linear") body=viewLiveLinear();
+  else if(active==="shows") body=viewLiveShows();
   else if(active==="stream") body=viewLiveStream();
   else if(active==="events") body=viewLiveEvents();
   else if(active==="studio") body=viewLiveStudio();
@@ -9895,7 +9928,8 @@ function viewLiveHome(){
     ["AD REVENUE",fmtM(t.adRev)+" / wk","Before operating costs settle weekly"],
     ["LIVE STREAM",stream.live?"ON AIR":"OFF AIR",stream.live?(stream.ccv||0)+"M CCV · peak "+(stream.peakCcv||0)+"M":"No broadcast running"],
     ["ACTIVE HOST",host?esc(host.name):"—",host?"Level "+(liveHostStats(host.id).level||1):"Pick one in Hosts"],
-    ["NEXT LIVE EVENT",next?esc(next.ev.name):"—",next?(next.away===0?"Happening this week":"In "+next.away+" wk · week "+next.ev.week):"No dated events"]
+    ["NEXT LIVE EVENT",next?esc(next.ev.name):"—",next?(next.away===0?"Happening this week":"In "+next.away+" wk · week "+next.ev.week):"No dated events"],
+    ["SHOWS ON AIR",String((live.shows||[]).filter(x=>x.status==="active").length),(function(){const top=(live.shows||[]).filter(x=>x.status==="active").sort((a,b)=>(b.lastRating||0)-(a.lastRating||0))[0];return top?"Top: "+esc(top.name)+(top.lastRating?" · rating "+top.lastRating:""):"Develop one in Shows";})()]
   ]);
   const pendingRows=[
     ...subs.map(([festId,filmId])=>{
@@ -10028,6 +10062,126 @@ function viewLiveLinear(){
     + liveStrategyDesk(ch)
     + livePanel("24-HOUR GRID","24-Hour Electronic Program Guide",`The live grid for ${esc(def.name||ch.id)} — block, title, sponsor and rating exactly as the engine stores them. Edit any hour to reprogram it.`,liveEpg(ch),esc((def.name||ch.id).toUpperCase()),"live-epg-panel")
     + liveLedger();
+}
+
+/* ── D · Develop-a-Show lab ── */
+let LIVE_SHOW_DRAFT = { format:"talk", theme:"cinema", host:"rex", set:"livingroom", audience:"adults", tier:"standard", sponsor:"none", channel:"bow_movies", hour:20 };
+function liveShowMeter(label, val){
+  const v=Math.max(0,Math.min(99,Number(val)||0));
+  return `<div class="live-meter"><div><span>${label}</span><span>${Math.round(v)}</span></div><i role="meter" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="99" aria-valuenow="${Math.round(v)}"><b style="width:${v.toFixed(0)}%"></b></i></div>`;
+}
+function liveShowField(label, field, options){
+  return `<label class="live-field">${label}<select data-show-field="${field}">${options}</select></label>`;
+}
+function liveShowLab(){
+  const d=LIVE_SHOW_DRAFT;
+  const rep=G.studio.rep||0;
+  const lock=def=>def.minRep&&rep<def.minRep;
+  const fmtOpts=(DATA.SHOW_FORMATS||[]).map(f=>`<option value="${f.id}" ${d.format===f.id?"selected":""} ${lock(f)?"disabled":""}>${esc(f.label)}${lock(f)?" — 🔒 Rep "+f.minRep:""}</option>`).join("");
+  const themeOpts=(DATA.SHOW_THEMES||[]).map(t=>`<option value="${t.id}" ${d.theme===t.id?"selected":""}>${esc(t.label)} · Lv.${showCraftLevel("themes",t.id)}</option>`).join("");
+  const hostOpts=(DATA.LIVE_HOSTS||[]).map(h=>{const s=liveHostStats(h.id);return `<option value="${h.id}" ${d.host===h.id?"selected":""}>${esc(h.name)} — ${esc(h.specialty||"")} · Lv.${s.level||1} · Cha ${s.charisma||75}</option>`;}).join("");
+  const setOpts=(DATA.SHOW_SETS||[]).map(st=>`<option value="${st.id}" ${d.set===st.id?"selected":""} ${lock(st)?"disabled":""}>${esc(st.label)}${st.cost?" · +"+liveMoney(st.cost):" · included"}${lock(st)?" — 🔒 Rep "+st.minRep:""}</option>`).join("");
+  const audOpts=(DATA.SHOW_AUDIENCES||[]).map(a=>`<option value="${a.id}" ${d.audience===a.id?"selected":""}>${esc(a.label)}</option>`).join("");
+  const tierOpts=(DATA.SHOW_TIERS||[]).map(t=>`<option value="${t.id}" ${d.tier===t.id?"selected":""} ${lock(t)?"disabled":""}>${esc(t.label)} — dev ${liveMoney(t.dev)} · ${liveMoney(t.epCost)}/ep${lock(t)?" — 🔒 Rep "+t.minRep:""}</option>`).join("");
+  const sponOpts=(DATA.SHOW_SPONSORS||[]).map(sp=>`<option value="${sp.id}" ${d.sponsor===sp.id?"selected":""} ${lock(sp)?"disabled":""}>${esc(sp.label)}${sp.bonus?" · +"+liveMoney(sp.bonus)+" up front · −"+sp.penalty+" rating":""}${lock(sp)?" — 🔒 Rep "+sp.minRep:""}</option>`).join("");
+  const chOpts=((G.live||{}).channels||[]).map(c=>{const def=DATA.liveChannel(c.id)||{};return `<option value="${c.id}" ${d.channel===c.id?"selected":""} ${c.unlocked?"":"disabled"}>${esc(def.name||c.id)}${c.unlocked?(c.active?"":" · off-air"):" — locked "+fmtM(def.cost||0)}</option>`;}).join("");
+  const hourOpts=(DATA.CHANNEL_SLOTS||[]).map(s=>`<option value="${s.hour}" ${Number(d.hour)===s.hour?"selected":""}>${esc(s.label)}${s.prime?" · PRIME":""} · ×${(s.mult||1).toFixed(2)}</option>`).join("");
+  const preview=(typeof scoreShowConcept==="function")?scoreShowConcept({...d,hour:Number(d.hour)}):null;
+  const ch=(getLiveChannel?getLiveChannel(d.channel):null);
+  const canCreate=!!(preview&&preview.ok&&ch&&ch.unlocked&&G.studio.cash>=preview.totalDev);
+  const previewHtml=preview?`<aside class="live-show-preview">
+      <header><b>Concept preview</b><span class="live-chip ${preview.synergy==="Perfect combo"?"on":""}">${esc(preview.synergy||"")}</span></header>
+      ${liveShowMeter("Concept (format × theme"+(preview.craftBonus?" · +"+preview.craftBonus+" mastery":"")+")",preview.concept)}
+      ${liveShowMeter("Cast"+(preview.bestHost?" · born for this format":""),preview.cast)}
+      ${liveShowMeter("Production ("+esc(preview.setLabel||"")+")",preview.production)}
+      ${liveShowMeter("Audience fit",preview.audienceFit)}
+      <div class="live-show-appeal"><span>APPEAL</span><b>${preview.appeal}</b></div>
+      <dl>
+        <div><dt>Development</dt><dd>${liveMoney(preview.totalDev)}</dd></div>
+        <div><dt>Sponsor up front</dt><dd>${preview.sponsorBonus?"+"+liveMoney(preview.sponsorBonus):"—"}</dd></div>
+        <div><dt>Episode cost</dt><dd>${liveMoney(preview.epCost)} / wk</dd></div>
+        <div><dt>Season</dt><dd>12 episodes</dd></div>
+      </dl>
+      ${preview.reason?`<p class="live-note">🔒 ${esc(preview.reason)}</p>`:""}
+      ${ch&&!ch.unlocked?`<p class="live-note">That channel is locked — unlock it in Channels first.</p>`:""}
+      ${G.studio.cash<preview.totalDev?`<p class="live-note">Not enough cash — development needs ${liveMoney(preview.totalDev)}.</p>`:""}
+    </aside>`:"";
+  const form=`<div class="live-show-form">
+    ${liveShowField("Format (genre)","format",fmtOpts)}
+    ${liveShowField("Theme","theme",themeOpts)}
+    ${liveShowField("Host / star","host",hostOpts)}
+    ${liveShowField("Studio set","set",setOpts)}
+    ${liveShowField("Target audience","audience",audOpts)}
+    ${liveShowField("Production tier","tier",tierOpts)}
+    ${liveShowField("Sponsor deal","sponsor",sponOpts)}
+    ${liveShowField("Channel","channel",chOpts)}
+    ${liveShowField("Time slot","hour",hourOpts)}
+    <label class="live-field live-field-wide">Show name (blank = auto-name)<input id="liveShowName" type="text" maxlength="40" placeholder="e.g. Harbor Tonight" /></label>
+  </div>
+  <div class="live-show-create-row"><button class="produce-action" data-live-show-create="1" ${canCreate?"":"disabled"}>🎬 Develop show (${preview?liveMoney(preview.totalDev):"—"})</button><span>One episode airs every broadcast week on an active channel. Prime slots earn the most — and draw a rival show.</span></div>`;
+  return livePanel("SHOW LAB","Develop a show","The TV Studio Story loop, BOW-style: pair a format with a theme it loves, cast the right host, dress the right set, pick your audience — then fight for ratings in a real slot on your grid.",
+    `<div class="live-show-lab"><div>${form}</div>${previewHtml}</div>`,"12-EP SEASONS","live-show-lab-panel");
+}
+function liveShowCard(show){
+  const fmt=DATA.showFormat(show.format)||{}, th=DATA.showTheme(show.theme)||{}, host=DATA.liveHost(show.host)||{};
+  const chDef=DATA.liveChannel(show.channel)||{};
+  const slotMeta=(DATA.CHANNEL_SLOTS||[])[show.hour]||{};
+  const tier=DATA.showTier(show.tier)||{dev:3}, set=DATA.showSet(show.set)||{cost:0};
+  const renewCost=Math.round((tier.dev+(set.cost||0))*0.5*10)/10;
+  const profit=Math.round(((show.lifetimeRevenue||0)-(show.lifetimeCost||0))*10)/10;
+  const statusChip={active:["ON AIR","on"],resting:["BETWEEN SEASONS",""],unscheduled:["UNSCHEDULED",""],cancelled:["CANCELLED",""]}[show.status]||[String(show.status||"").toUpperCase(),""];
+  const bars=(show.history||[]).slice(-8).map(h=>`<i title="Rating ${h.rating} · ${h.viewers}M" style="height:${Math.max(8,h.rating)}%"></i>`).join("");
+  const actions=[`<button class="produce-ghost" data-live-show-view="${show.id}">View in grid</button>`];
+  if(show.status==="resting") actions.push(`<button class="produce-action" data-live-show-renew="${show.id}" ${G.studio.cash>=renewCost?"":"disabled"}>Renew S${show.season+1} (${liveMoney(renewCost)})</button>`);
+  if(show.status==="unscheduled") actions.push(`<button class="produce-action" data-live-show-reschedule="${show.id}">Back into ${esc(slotMeta.label||show.hour+":00")} slot</button>`);
+  if(show.status!=="cancelled") actions.push(`<button class="produce-ghost" data-live-show-cancel="${show.id}">Cancel…</button>`);
+  return `<article class="live-show ${show.status==="cancelled"?"cancelled":""}">
+    <header><b>${esc(show.name)}</b><span class="live-chip ${statusChip[1]}">${statusChip[0]}</span></header>
+    <p>${esc(fmt.label||show.format)} × ${esc(th.label||show.theme)} · ${esc(host.name||show.host)} · ${esc(chDef.name||show.channel)} ${esc(slotMeta.label||show.hour+":00")}${slotMeta.prime?" · PRIME":""}</p>
+    <div class="live-meter"><div><span>Season ${show.season} episodes</span><span>${show.episode} / 12</span></div><i><b style="width:${Math.min(100,show.episode/12*100).toFixed(0)}%"></b></i></div>
+    <dl>
+      <div><dt>Appeal</dt><dd>${show.scores?show.scores.appeal:0}</dd></div>
+      <div><dt>Popularity</dt><dd>${Math.round(show.popularity||0)}</dd></div>
+      <div><dt>Last rating</dt><dd>${show.lastRating?show.lastRating+" · "+show.lastViewers+"M":"—"}</dd></div>
+      <div><dt>Fans</dt><dd>${(show.fans||0).toFixed(2)}M</dd></div>
+      <div><dt>Last episode</dt><dd>${show.episode?liveMoney(show.lastRevenue||0)+" − "+liveMoney(show.lastCost||0):"airs next week"}</dd></div>
+      <div><dt>Lifetime</dt><dd>${profit>=0?"+":"−"}${liveMoney(Math.abs(profit))}</dd></div>
+    </dl>
+    ${slotMeta.prime&&show.rival?`<p class="live-show-rival">⚔ Rival: “${esc(show.rival.name)}” (strength ${show.rival.strength}) — winning ${show.rival.wins||0}/${show.rival.battles||0} slot battles</p>`:""}
+    ${bars?`<div class="live-show-bars" aria-label="Recent episode ratings">${bars}</div>`:""}
+    <footer>${actions.join("")}</footer>
+  </article>`;
+}
+function liveShowRoster(){
+  const all=((G.live||{}).shows||[]);
+  const order={active:0,resting:1,unscheduled:2,cancelled:3};
+  const sorted=all.slice().sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||(b.lastRating||0)-(a.lastRating||0));
+  const onAir=all.filter(s=>s.status==="active").length;
+  return livePanel("ON AIR","Your shows","Every original programme you have developed — ratings, fans, money and the rival across the street. Seasons run 12 episodes; renew the hits, cancel the flops.",
+    sorted.length?`<div class="live-shows">${sorted.map(liveShowCard).join("")}</div>`:liveEmpty("No original shows yet.","Use the Show Lab above: pick a format your host was born for, a theme it loves, and a prime-time slot. Your first hit starts paying for the second."),
+    onAir+" ON AIR","live-shows-panel");
+}
+function liveComboCodex(){
+  const rep=G.studio.rep||0;
+  const fmtRows=(DATA.SHOW_FORMATS||[]).map(f=>{
+    const locked=f.minRep&&rep<f.minRep;
+    const loves=(f.loves||[]).map(t=>esc((DATA.showTheme(t)||{}).label||t)).join(", ");
+    return `<div class="live-row"><div><b>${esc(f.label)}</b><small>${esc(f.desc||"")} · loves: ${loves}</small></div><span>${locked?"🔒 Rep "+f.minRep:"Lv."+showCraftLevel("formats",f.id)+" mastery"}</span></div>`;
+  }).join("");
+  const themeChips=(DATA.SHOW_THEMES||[]).map(t=>`<span class="live-chip">${esc(t.label)} · Lv.${showCraftLevel("themes",t.id)}</span>`).join(" ");
+  const setRows=(DATA.SHOW_SETS||[]).map(st=>{
+    const locked=st.minRep&&rep<st.minRep;
+    const loves=(st.loves||[]).map(f=>esc((DATA.showFormat(f)||{}).label||f)).join(", ");
+    return `<div class="live-row"><div><b>${esc(st.label)}</b><small>${esc(st.desc||"")} · built for: ${loves}</small></div><span>${locked?"🔒 Rep "+st.minRep:(st.cost?"+"+liveMoney(st.cost):"included")}</span></div>`;
+  }).join("");
+  const body=`<p class="live-note">Mastery is earned by making television: every episode aired adds format and theme XP (Lv.5 max), and higher mastery lifts the concept score of future shows.</p>`
+    +`<h3 class="live-subhead">Formats &amp; the themes they love</h3><div class="live-rows">${fmtRows}</div>`
+    +`<h3 class="live-subhead">Theme mastery</h3><div class="live-theme-chips">${themeChips}</div>`
+    +`<h3 class="live-subhead">Studio sets</h3><div class="live-rows">${setRows}</div>`;
+  return livePanel("COMBO CODEX","Combo codex","What loves what, what is still locked, and how polished your studio has become at each format and theme.",body,"REFERENCE","live-codex");
+}
+function viewLiveShows(){
+  return liveShowLab()+liveShowRoster()+liveComboCodex();
 }
 
 /* ── C5 · Live stream control room ── */
@@ -10213,7 +10367,8 @@ function liveSlotModal(channelId, hour){
   const curBlock = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === currentSlot.block) || {};
 
   let h = "<h3>Program Slot: " + esc(chName) + " (" + esc(slotMeta.label || slotMeta.name) + ")</h3>"+
-    "<div class='tiny muted' style='margin-bottom:12px'>Now: <b>" + esc(currentSlot.title || "Syndicated Block") + "</b> · " + esc(curBlock.label || currentSlot.block || "") + (currentSlot.sponsor ? " · " + esc(currentSlot.sponsor) : "") + (currentSlot.rating != null ? " · ★" + currentSlot.rating : "") + ". Assign a programming format or broadcast a feature film from your studio catalog.</div>";
+    "<div class='tiny muted' style='margin-bottom:12px'>Now: <b>" + esc(currentSlot.title || "Syndicated Block") + "</b> · " + esc(curBlock.label || currentSlot.block || "") + (currentSlot.sponsor ? " · " + esc(currentSlot.sponsor) : "") + (currentSlot.rating != null ? " · ★" + currentSlot.rating : "") + ". Assign a programming format or broadcast a feature film from your studio catalog.</div>" +
+    ((typeof getLiveShow === "function" && currentSlot.contentId && getLiveShow(currentSlot.contentId)) ? "<div class='tiny' style='margin-bottom:10px'>📺 This hour carries one of your developed shows — reprogramming it will leave the show unscheduled (you can reschedule it from Shows).</div>" : "");
 
   h += "<div class='live-modal-group'><b>Programming Format Block</b>"+
     "<div class='row' style='gap:6px;flex-wrap:wrap;margin-top:8px'>";
