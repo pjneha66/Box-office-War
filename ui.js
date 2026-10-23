@@ -4319,10 +4319,11 @@ function produceBacklot(projs){
     "<div class='produce-crew'><i>🎭</i><small>LEAD</small><b>On set</b></div>"+
     "<div class='produce-crew'><i>🎬</i><small>CLAPPER</small><b>Take 1</b></div>";
   }
-  return "<div class='produce-backlot' role='img' aria-label='Studio backlot with four departments at work'><div class='produce-backlot-hero'>"+
+  const isRolling = rolling.length>0;
+  return "<div class='produce-backlot"+(isRolling?" rolling":" idle")+"' role='img' aria-label='Studio backlot with four departments at work'><div class='produce-backlot-hero'>"+
     crewHtml+
-    "<div class='produce-backlot-rec"+(rolling.length?"":" idle")+"'>"+(rolling.length?"REC":"STANDBY")+"</div></div>"+
-    "<div class='produce-backlot-foot'><b>"+caption+"</b><span>"+(rolling.length?rolling.length+" shooting":"lot dark")+"</span></div></div>";
+    "<div class='produce-backlot-rec"+(isRolling?"":" idle")+"'>"+(isRolling?"REC":"STANDBY")+"</div><div class='produce-track'><span></span><span></span><span></span></div></div>"+
+    "<div class='produce-backlot-foot'><b>"+caption+"</b><span>"+(isRolling?rolling.length+" shooting":"lot dark")+"</span></div></div>";
 }
 
 /* ── v28.17: animated backlot set — four crew characters (director, camera
