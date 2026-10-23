@@ -2642,6 +2642,12 @@
 #app #view[data-screen="library"] .command-library .command-eyebrow{display:block;margin:6px 0 4px}
 #app #view[data-screen="library"] .command-library .library-note{margin:8px 0 0;font:11px/1.7 system-ui,sans-serif;color:var(--cd-muted);max-width:78ch}
 #app #view[data-screen="library"] .command-library .library-note b{color:#e8e3ca}
+/* the shared .command-empty puts its 28px line in the >span slot (meant for an
+   icon); the desk passes real copy there, so the library scope re-states the
+   hierarchy — title first, body second. Other desks are untouched. */
+#app #view[data-screen="library"] .command-library .command-empty{min-height:130px;gap:6px;padding:20px 16px;background:#152b28}
+#app #view[data-screen="library"] .command-library .command-empty>b{font:500 14px/1.4 Georgia,serif;color:#f2edda}
+#app #view[data-screen="library"] .command-library .command-empty>span{font:11px/1.75 system-ui,sans-serif;color:#93a692;max-width:70ch}
 
 /* two-column desk layout */
 #app #view[data-screen="library"] .command-library .library-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}

@@ -360,15 +360,15 @@ try{
 
   /* ── release plumbing ── */
   assert.equal($('meta[name="app-version"]').content,'36.0','app-version is 36.0');
-  assert(rawIndex.includes('ui.js?v=51.1'),'ui.js is pinned to v51.1');
-  assert(rawIndex.includes('command-deck.css?v=51.1'),'command-deck.css is pinned to v51.1');
+  assert(rawIndex.includes('ui.js?v=51.2'),'ui.js is pinned to v51.2');
+  assert(rawIndex.includes('command-deck.css?v=51.2'),'command-deck.css is pinned to v51.2');
   assert(fs.readFileSync('sw.js','utf8').includes('bow-v96-cache'),'service-worker cache is bow-v96');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='36.0').status`),'shipped','36.0 Library Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='35.0').status`),'shipped','35.0 Empire Desk stays shipped');
 
   assert.equal(errors.length,0,'no console errors across the whole run: '+errors.join(' | '));
   console.log('PASS library desk: A1–A14 + shell + C1–C11 + zero-legacy sweep');
-  console.log('PASS release: 36.0 / 51.1 / bow-v96');
+  console.log('PASS release: 36.0 / 51.2 / bow-v96');
 } catch(err){
   console.error('\nFAIL:',err && err.message);
   if(errors.length) console.error('console errors:',errors.join('\n'));
