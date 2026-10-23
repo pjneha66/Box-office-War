@@ -328,6 +328,24 @@ try{
   w.eval('closeModal();');
   console.log('PASS A7: publishing, comics, and store pay weekly in tickEmpire() matching displayed total; resort labelled +5 rep / $0/wk');
 
+  /* ── A8 — Franchise heat unified across card, timeline, sequel advice, empireModal(), and frHeatMult() ── */
+  fresh('franchises');
+  for(const [decay,expectedPct,expectedMult] of [[1,100,1.18],[0.6,60,1.04],[0.25,25,0.91]]){
+    w.eval(`
+      G.films=[{id:601,title:'Heat Probe',ww:300,opening:85,profit:110,quality:{critic:78,overall:78}}];
+      G.franchises=[{id:601,name:'Heat Probe',tier:2,entries:[{filmId:601,title:'Heat Probe',ww:300,week:1}],ww:300,merch:0,park:0,gameSold:0,decay:${decay},genre:'action',earned:0,built:1,fatigue:0}];
+      render();
+    `);
+    assert.equal(w.eval('typeof frHeatPct==="function" ? frHeatPct(G.franchises[0]) : -1'), expectedPct, `frHeatPct(${decay}) === ${expectedPct}`);
+    assert.equal(Math.round(w.eval('frHeatMult({franchiseName:"Heat Probe"})')*100)/100, expectedMult, `frHeatMult(${decay}) === ${expectedMult}`);
+    assert(viewText().includes(`heat ${expectedPct}%`) || viewText().includes(`Heat${expectedPct}%`), `card/timeline shows ${expectedPct}% heat for decay=${decay}`);
+    w.eval('empireModal(601);');
+    const modalTxt=$('.modal-veil').textContent;
+    assert(modalTxt.includes(`heat ${expectedPct}%`), `empireModal text "${modalTxt}" must show heat ${expectedPct}% (never inverted ${100-expectedPct}%)`);
+    w.eval('closeModal();');
+  }
+  console.log('PASS A8: franchise heat unified across card, timeline, sequel advice, empireModal(), and frHeatMult()');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

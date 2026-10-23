@@ -6075,11 +6075,21 @@ function fmtSubs(v){ // subscribers in millions
   return Math.round(v*1000)+"K";
 }
 
+function frHeatPct(fr){
+  if(!fr) return 100;
+  const d = fr.decay==null ? 1 : clamp(fr.decay, 0, 1);
+  return Math.round(d*100);
+}
+function frHeatMultOf(fr){
+  if(!fr) return 1;
+  const d = fr.decay==null ? 1 : fr.decay;
+  return 0.82 + 0.36*d;
+}
 function frHeatMult(p){
   if(!p.franchiseName) return 1;
   const fr=G.franchises.find(x=>x.name===p.franchiseName);
   if(!fr) return 1;
-  return 0.82 + 0.36*fr.decay;   // v3: cold franchises open weak, hot ones soar
+  return frHeatMultOf(fr);   // v3: cold franchises open weak, hot ones soar
 }
 
 function franchiseTvSpinoff(fid){

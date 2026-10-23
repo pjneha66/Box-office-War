@@ -7789,7 +7789,7 @@ function viewEmpire(){
       (isShared? " <span class='tag purple'>🌌 Shared Universe (+10% cross-pollination)</span>":"")+
       "<div class='tiny muted'>"+fr.entries.length+" franchise hit"+(fr.entries.length>1?"s":"")+" · "+fmtG(fr.ww)+" WW · merch potential "+Math.round(g.merch*100)+"%</div></div>"+
       "<div style='text-align:right'><b class='"+(inc>=0.1?"pos":"muted")+"'>"+(inc>=0.1?"+"+fmtM(inc)+"/wk":"—")+"</b>"+
-      "<div class='tiny muted'>"+(fr.decay<0.95? "cooling · "+Math.round(fr.decay*100)+"%":"hot")+"</div></div></div>"+
+      "<div class='tiny muted'>"+(frHeatPct(fr)<95? "cooling · "+frHeatPct(fr)+"%":"hot · "+frHeatPct(fr)+"%")+"</div></div></div>"+
       
       // Fatigue meter & resting countdown
       "<div style='margin-top:6px'><div class='spread tiny'><span>😴 Franchise Fatigue: "+Math.round((fr.fatigue||0)*100)+"%</span><span class='muted'>"+(restWks? "Resting: ~"+restWks+" wks to heal":"Brand rested & fresh")+"</span></div>"+
@@ -7798,7 +7798,7 @@ function viewEmpire(){
       "<div class='fr-meters' style='margin-top:8px'>"+
         frMeter("💎 Value", fmtM(frValue(fr)))+
         frMeter("👥 Fanbase", "<span class='tiny'>"+frFanbase(fr)+"</span>")+
-        frMeter("🔥 Heat", Math.round((fr.decay||0)*100)+"%")+
+        frMeter("🔥 Heat", frHeatPct(fr)+"%")+
         frMeter("😴 Fatigue", "<span class='"+((fr.fatigue||0)>0.3?"neg":(fr.fatigue||0)>0.15?"":"pos")+"'>"+Math.round((fr.fatigue||0)*100)+"%</span>")+
         frMeter("🧸 Merchandise", merchTier.icon+" "+merchTier.name)+
         frMeter("🎡 Park Attendance", fr.tier>=2? "<span class='stat-bar' style='display:inline-block;width:36px;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;vertical-align:middle'><span style='display:block;width:"+parkAtt+"%;height:100%;background:var(--pos)'></span></span> "+parkAtt+"%" : "<span class='tiny muted'>needs tier 2</span>")+
@@ -7951,9 +7951,9 @@ function frSequel(fr){
   if(!frResolvableFilm(fr)) return "New IP — greenlight entry 1";
   const fat=fr.fatigue||0;
   if(fat>0.45) return "Rest it — fatigue "+Math.round(fat*100)+"%";
-  if((fr.decay||0)<0.6) return "Cooling — rebuild heat first";
+  if(frHeatPct(fr)<60) return "Cooling — heat "+frHeatPct(fr)+"%";
   if((fr.tier||0)>=4) return "Eventize it — saga tier";
-  return "Ready — heat "+Math.round((fr.decay||0)*100)+"%";
+  return "Ready — heat "+frHeatPct(fr)+"%";
 }
 function frSpinoff(fr){
   if((fr.tier||0)<2) return "Needs tier 2";
@@ -7970,7 +7970,7 @@ function frStreamVal(fr){
 }
 function frTimeline(fr){
   const ents=(fr.entries||[]).slice().sort((a,b)=>a.week-b.week);
-  let h="<div class='fr-timeline' style='margin-top:8px'><div class='tl-header'><b>🕰 Timeline</b> <span class='tiny muted'>(fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+Math.round((fr.decay||1)*100)+"%)</span></div>";
+  let h="<div class='fr-timeline' style='margin-top:8px'><div class='tl-header'><b>🕰 Timeline</b> <span class='tiny muted'>(fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+frHeatPct(fr)+"%)</span></div>";
   if(!ents.length){
     h+="<div class='tl-empty'>No films yet — greenlight the first entry</div>";
   }else{
@@ -9107,7 +9107,7 @@ function empireModal(frId){
   const others=G.franchises.filter(x=>x!==fr);
   const canCollab=G.studio.cash>=6, canDtv=G.studio.cash>=12, canPub=G.studio.cash>=15, canResort=G.studio.cash>=400, canCross=G.studio.cash>=40, canMerge=G.studio.cash>=150;
   let h="<h3>🏰 "+esc(fr.name)+" — empire moves</h3>"+
-    "<div class='tiny muted'>Tier "+fr.tier+" · fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+Math.round(clamp(1-(fr.decay||0),0,1)*100)+"%</div>";
+    "<div class='tiny muted'>Tier "+fr.tier+" · fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+frHeatPct(fr)+"% (×"+frHeatMultOf(fr).toFixed(2)+" opening)</div>";
   h+="<div class='card' style='margin-top:8px'><div class='row'>"+
     (((fr.collabAt||0)>G.week)? "<span class='tag green'>🤝 collab live</span>" : "<button class='btn btn-sm btn-alt' id='emCollab'"+(canCollab?"":" disabled title='Requires $6M cash'")+">🤝 Brand collab · $6M"+(canCollab?"":" (need $6M)")+"</button>")+
     (((fr.dtvAt||0)>G.week)? "<span class='tag green'>📀 DTV in stores</span>" : "<button class='btn btn-sm btn-alt' id='emDtv'"+(canDtv?"":" disabled title='Requires $12–22M cash'")+">📀 DTV sequel · $12–22M"+(canDtv?"":" (need $12M+)")+"</button>")+
