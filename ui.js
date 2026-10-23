@@ -1229,7 +1229,7 @@ function _renderImpl(){
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -7019,6 +7019,16 @@ function bindView(){
     if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
     else toast((r && r.reason) || "Host training failed.", "bad");
   });
+  $$("[data-live-goto]").forEach(b=>b.onclick=()=>{
+    if(G.live){ G.live.activeSub = b.dataset.liveGoto; G.live.subTab = b.dataset.liveGoto; beep("click"); render(); }
+  });
+  $$("[data-live-event-filter]").forEach(b=>b.onclick=()=>{ LIVE_EVENT_FILTER = b.dataset.liveEventFilter; beep("click"); render(); });
+  $$("[data-live-premiere-host]").forEach(b=>b.onclick=()=>{
+    const cityEl = document.querySelector("#livePremiereCity");
+    const r = hostRedCarpetPremiere(+b.dataset.livePremiereHost, cityEl ? cityEl.value : undefined);
+    if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast((r && r.reason) || "Gala premiere failed.", "bad");
+  });
 
   /* ── Mobile sub-tab strip (rendered at the top of bindView so the
        data-* bindings above and below attach to the live chips) ── */
@@ -9771,405 +9781,421 @@ function coppaModal(){
    v30: LIVE BROADCASTING, STREAMING, EVENTS & ANIMATED CHARACTERS
    ═══════════════════════════════════════════════════════════════════ */
 
+/* v34.9 LIVE DESK — one command shell and one navigation across every Live TV
+   reading. Every figure is read from G.live / DATA exactly as the engine
+   writes it (slot.block, slot.title, ev.type, ev.desc, DATA.LIVE_COSTS);
+   the view adds no simulation state or economics of its own. */
+const LIVE_SECTIONS = [["home","Home"],["linear","Channels"],["stream","Live Stream"],["events","Events"],["studio","Hosts"]];
+let LIVE_EVENT_FILTER = "all"; // view-only calendar filter; never written to the save
+const LIVE_STREAM_TOPICS = [["feature_premiere","Feature premiere"],["behind_scenes","Behind the scenes"],["awards_watch","Awards watch"],["sports_desk","Sports desk"],["catalog_marathon","Catalog marathon"]];
+const LIVE_STREAM_QUALITIES = ["720p","1080p","4K"];
+const LIVE_STRATEGIES = [
+  ["prime_movies","Prime Movies","Prime time · 6pm–10pm","Your top-grossing films rotate through the five prime-time hours as Feature Film blocks.","films"],
+  ["infomercials","Overnight Infomercials","Overnight · 12am–5am","Paid Programming fills the six overnight hours with sponsor blocks. No library needed.","none"],
+  ["library_reruns","Library Reruns","Daytime · 6am–5pm","Series episodes and film encores alternate through the daytime hours from your library.","library"],
+  ["full_syndication","Full Syndication","All 24 hours","The whole grid at once: infomercials overnight, films in prime time, series and reruns between.","library"]
+];
+
+function liveMoney(v){ v=Number(v)||0; return (v>0 && v<1) ? "$"+v+"M" : fmtM(v); }
+function liveSub(){
+  const live=G.live||{};
+  const want=live.activeSub||live.subTab||"home";
+  return LIVE_SECTIONS.some(s=>s[0]===want)?want:"home";
+}
+function liveStream(){
+  const live=G.live||{};
+  return live.streaming||live.stream||{};
+}
+function liveActiveChannels(){ return ((G.live||{}).channels||[]).filter(c=>c.unlocked&&c.active); }
+function liveTotals(){
+  const act=liveActiveChannels();
+  return {
+    viewers: act.reduce((s,c)=>s+(c.weeklyViewers||0),0),
+    adRev: act.reduce((s,c)=>s+(c.weeklyAdRev||0),0),
+    active: act.length,
+    unlocked: ((G.live||{}).channels||[]).filter(c=>c.unlocked).length,
+    total: ((G.live||{}).channels||[]).length
+  };
+}
+function liveHostDef(){ const live=G.live||{}; return DATA.liveHost(live.activeHost||"rex")||(DATA.LIVE_HOSTS&&DATA.LIVE_HOSTS[0])||null; }
+function liveHostStats(id){ return (((G.live||{}).hosts||{})[id])||{level:1,xp:0,charisma:75,energy:90}; }
+function liveHostStage(host){
+  if(!host) return "<div class='live-note'>No host active on stage</div>";
+  if(host.id==="rex") return renderCharRex();
+  if(host.id==="chloe") return renderCharChloe();
+  if(host.id==="buck") return renderCharBuck();
+  return renderCharReely();
+}
+function liveTitleOf(id){
+  const f=(G.films||[]).find(x=>x.id===id)||(G.projects||[]).find(x=>x.id===id)||(G.series||[]).find(x=>x.id===id);
+  return f?f.title:null;
+}
+function liveWeeksAway(ev){
+  if(!ev||!ev.week) return null;
+  return (ev.week - woyOf(G.week) + 52) % 52;
+}
+function liveNextEvent(){
+  const dated=(DATA.LIVE_EVENTS||[]).filter(e=>e.week>0)
+    .map(e=>({ev:e,away:liveWeeksAway(e)})).sort((a,b)=>a.away-b.away);
+  return dated[0]||null;
+}
+function livePrimeProgrammed(ch){
+  const prog=["movie","double_feature","marathon","series","live_event","special"];
+  return (ch.schedule||[]).filter(s=>s.hour>=18&&s.hour<=22&&(s.contentId||prog.includes(s.block))).length;
+}
+function liveHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return `<header class="command-heading"><div><span class="command-edition">LIVE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">BROADCAST / STREAM / EVENTS / HOSTS</span><h1>The broadcast command desk.</h1><p>Broadcast &amp; Live Entertainment Network — channels, the 24-hour grid, the live stream, the event calendar and your on-air hosts — every broadcast decision in one place.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function liveNav(){
+  const active=liveSub();
+  return `<nav class="command-section-nav command-live-nav" aria-label="Live desk sections"><div class="command-nav-brand"><span>LIVE DESK</span><small>HOME / CHANNELS / STREAM / EVENTS / HOSTS</small></div><div class="command-nav-items">${LIVE_SECTIONS.map(([key,label],i)=>{
+    const icon=getSubTabPixelIcon("live",key);
+    return `<button data-livesub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+  }).join("")}</div></nav>`;
+}
+function liveTelemetry(){
+  const t=liveTotals(), stream=liveStream(), onAir=!!stream.live, host=liveHostDef();
+  const hs=host?liveHostStats(host.id):{level:1};
+  return `<div class="command-telemetry">${commandMetric("LINEAR REACH / WEEK",t.viewers>0?t.viewers.toFixed(1)+"M":"0M",t.active+" active channel"+(t.active===1?"":"s"))}${commandMetric("LINEAR AD REVENUE / WEEK",fmtM(t.adRev),"Before weekly operating costs settle")}${commandMetric("LIVE STREAM",onAir?"ON AIR · "+(stream.ccv||0)+"M CCV":"OFF AIR",onAir?esc(stream.quality||"1080p")+" · "+esc(stream.topic||"feature_premiere"):"Start it from the Live Stream desk")}${commandMetric("ACTIVE HOST",host?esc(host.name):"—",host?"Level "+(hs.level||1)+" · "+esc(host.role||""):"No host selected")}</div>`;
+}
+function livePanel(eyebrow,title,description,content,stamp,cls){
+  return `<section class="produce-panel ${cls||""}"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${stamp?`<div class="live-panel-aside">${stamp}</div>`:""}</div><div class="live-panel-body">${content}</div></section>`;
+}
+function liveEmpty(title,copy,action){
+  return `<div class="live-empty"><b>${title}</b><p>${copy}</p>${action||""}</div>`;
+}
+function liveKpis(items){
+  return `<div class="live-kpis">${items.map(([k,v,n])=>`<div class="live-kpi"><small>${k}</small><b>${v}</b><span>${n}</span></div>`).join("")}</div>`;
+}
+
 function viewLive(){
   if(typeof ensureLiveState==="function") ensureLiveState(G);
-  const live = G.live || {};
-  const activeSub = live.activeSub || live.subTab || "linear";
-
-  // Aggregate metrics
-  const activeChannels = (live.channels || []).filter(c => c.unlocked && c.active);
-  const totalViewers = activeChannels.reduce((sum, c) => sum + (c.weeklyViewers || 0), 0);
-  const totalAdRev = activeChannels.reduce((sum, c) => sum + (c.weeklyAdRev || 0), 0);
-  const stream = live.streaming || live.stream || {};
-  const isStreaming = !!(stream.live || stream.active);
-  const activeHostId = live.activeHost || "rex";
-  const activeHost = DATA.liveHost(activeHostId) || (DATA.LIVE_HOSTS && DATA.LIVE_HOSTS[0]);
-  const activeHostStats = (live.hosts && live.hosts[activeHostId]) || { level: 1 };
-
-  let h = "<div class='section-title'>Broadcast & Live Entertainment Network</div>";
-
-  // Top broadcast telemetry bar
-  h += "<div class='stat-hero' style='margin-bottom:12px'>"+
-    statCard((totalViewers > 0 ? (totalViewers).toFixed(1) + "M" : "0"), "Linear Reach / Wk")+
-    statCard("+" + fmtM(totalAdRev), "Linear Ad Rev / Wk")+
-    statCard(isStreaming ? "<span style='color:var(--live-red);font-weight:700'>ON AIR</span> (" + (stream.ccv || 0) + "M CCV)" : "<span class='muted'>OFFLINE</span>", "Live Stream Status")+
-    statCard(activeHost ? esc(activeHost.name) + " (Lv." + (activeHostStats.level || 1) + ")" : "None", "Active On-Air Host")+
-    "</div>";
-
-  // Sub-tabs
-  const subs = [
-    ["home", "Home"],
-    ["linear", "Channels"],
-    ["stream", "Live Stream"],
-    ["events", "Events"],
-    ["studio", "Hosts"]
-  ];
-  h += "<div class='subnav-pills'>"+
-    subs.map(s => {
-      const ic = getSubTabPixelIcon("live", s[0]);
-      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
-      return `<button class='subnav-pill ${activeSub === s[0] ? "active" : ""}' data-livesub='${s[0]}'>${img}<span>${s[1]}</span></button>`;
-    }).join("")+
-    "</div>";
-
-  if(activeSub === "linear") h += viewLiveLinear();
-  else if(activeSub === "stream") h += viewLiveStream();
-  else if(activeSub === "events") h += viewLiveEvents();
-  else if(activeSub === "studio") h += viewLiveStudio();
-  else h += viewLiveHome();
-
-  return h;
+  const active=liveSub();
+  let body="";
+  if(active==="linear") body=viewLiveLinear();
+  else if(active==="stream") body=viewLiveStream();
+  else if(active==="events") body=viewLiveEvents();
+  else if(active==="studio") body=viewLiveStudio();
+  else body=viewLiveHome();
+  return `<section class="command-deck command-produce command-live">${liveHead()}${liveNav()}${liveTelemetry()}${body}</section>`;
 }
 
+/* ── C1 · Broadcast home ── */
 function viewLiveHome(){
-  const live = G.live || {};
-  const unlocked = (live.channels || []).filter(c => c.unlocked);
-  return "<div class='section-title'>Broadcast home</div>"+
-    "<div class='card small muted'>"+unlocked.length+" of "+((live.channels||[]).length)+" channels unlocked. Pick Channels to run the 24-hour grid, Live Stream to go on air, Events for the festival calendar, or Hosts to pick your on-air lead.</div>";
+  const live=G.live||{}, t=liveTotals(), stream=liveStream(), host=liveHostDef();
+  const stats=live.stats||{}, evs=live.events||{submissions:{},premieres:[]};
+  const next=liveNextEvent();
+  const subs=Object.entries(evs.submissions||{});
+  const prems=evs.premieres||[];
+  const kpis=liveKpis([
+    ["CHANNELS",t.unlocked+" / "+t.total+" unlocked",t.active+" broadcasting now"],
+    ["LINEAR REACH",t.viewers>0?t.viewers.toFixed(1)+"M / wk":"0M / wk","Summed weekly viewers, active channels"],
+    ["AD REVENUE",fmtM(t.adRev)+" / wk","Before operating costs settle weekly"],
+    ["LIVE STREAM",stream.live?"ON AIR":"OFF AIR",stream.live?(stream.ccv||0)+"M CCV · peak "+(stream.peakCcv||0)+"M":"No broadcast running"],
+    ["ACTIVE HOST",host?esc(host.name):"—",host?"Level "+(liveHostStats(host.id).level||1):"Pick one in Hosts"],
+    ["NEXT LIVE EVENT",next?esc(next.ev.name):"—",next?(next.away===0?"Happening this week":"In "+next.away+" wk · week "+next.ev.week):"No dated events"]
+  ]);
+  const pendingRows=[
+    ...subs.map(([festId,filmId])=>{
+      const ev=DATA.liveEvent(festId);
+      return `<div class="live-row"><div><b>${esc(liveTitleOf(filmId)||"Submitted film")}</b><small>Festival submission · ${esc(ev?ev.name:festId)}${ev?" · week "+ev.week:""}</small></div><span class="live-chip">PENDING</span></div>`;
+    }),
+    ...prems.map(pr=>`<div class="live-row"><div><b>${esc(liveTitleOf(pr.filmId)||"Premiere film")}</b><small>Red carpet premiere · ${esc(String(pr.city||"la").toUpperCase())} · broadcasts on the next weekly tick</small></div><span class="live-chip">SCHEDULED</span></div>`)
+  ].join("");
+  const pending=pendingRows
+    ? `<div class="live-rows">${pendingRows}</div>`
+    : liveEmpty("Nothing in the pending tray.","Festival submissions and scheduled premieres queue here until their week arrives. Enter a film from the Events desk to see one tracked live.");
+  const lifetime=liveKpis([
+    ["BROADCAST PROFIT BANKED",fmtM(stats.totalBroadcastRev||0),"Lifetime net broadcast revenue kept by weekly ticks"],
+    ["CUMULATIVE WEEKLY VIEWERS",((stats.totalViewersReached||0)).toFixed(1)+"M","Each week's reach added up over the whole career"],
+    ["AWARDS WON",String(stats.awardsWon||0),"Via live awards broadcasts"],
+    ["FESTIVALS WON",String(stats.festivalsWon||0),"Grand Jury wins from submissions"],
+    ["PREMIERES HOSTED",String(stats.premieresHosted||0),"Red carpet galas staged"]
+  ]);
+  const guidance=[];
+  if(!(G.films||[]).length && !(G.series||[]).length)
+    guidance.push("Your library is empty: schedule strategies need released films or series. Until then the grid runs its default syndicated blocks.");
+  if(!t.unlocked) guidance.push("No channel is unlocked yet — open Channels to launch your first network.");
+  if(!stream.live) guidance.push("The live stream is off air. Going live earns weekly stream ad revenue and can convert viewers into streamer subscribers.");
+  const guide=guidance.length?`<div class="live-guide">${guidance.map(g=>`<p>${g}</p>`).join("")}</div>`:"";
+  const jumps=`<div class="live-jumps"><button class="produce-ghost" data-live-goto="linear">Open channels &amp; the grid</button><button class="produce-ghost" data-live-goto="stream">Open the stream control room</button><button class="produce-ghost" data-live-goto="events">Open the event calendar</button><button class="produce-ghost" data-live-goto="studio">Open the host studio</button></div>`;
+  return livePanel("BROADCAST HOME","Broadcast home","The whole network at a glance — channels, reach, the stream, your host, and everything waiting in the pending tray.",kpis+guide+jumps,"WEEK "+woyOf(G.week),"live-home")
+    + livePanel("PENDING TRAY","Pending submissions & premieres","Queued with the engine now; each resolves when its week or broadcast tick arrives.",pending,(subs.length+prems.length)+" PENDING","live-pending")
+    + livePanel("LIFETIME RECORD","Lifetime broadcast record","Career totals from live.stats, labelled for exactly what the weekly ticks accumulate.",lifetime,"CAREER","live-lifetime");
 }
 
-function viewLiveLinear(){
-  const live = G.live || {};
-  const channels = live.channels || [];
-  const activeId = live.activeChannel || (channels[0] && channels[0].id) || "bow_movies";
-  const ch = channels.find(c => c.id === activeId) || channels[0];
-
-  let h = "";
-
-  // Channel switcher pills
-  h += "<div class='section-title'>Broadcast Channels (" + channels.filter(c => c.unlocked).length + "/" + channels.length + " Unlocked)</div>";
-  h += "<div class='channel-pills-row' style='display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px'>";
-  for(const c of channels){
-    const isSel = c.id === activeId;
-    const isAct = c.unlocked && c.active;
-    const def = DATA.liveChannel(c.id) || {};
-    h += "<div class='channel-pill " + (isSel ? "active" : "") + "' data-live-ch='" + c.id + "' style='cursor:pointer;min-width:140px;padding:8px 12px;border-radius:var(--radius-sm);background:" + (isSel ? "var(--card-hover)" : "var(--card)") + ";border:1px solid " + (isSel ? "var(--gold)" : "var(--line)") + "'>"+
-      "<div class='spread'><b class='small' style='color:" + (isSel ? "var(--gold)" : "var(--text)") + "'>" + esc(def.name || c.id) + "</b>"+
-      "<span class='tiny tag' style='font-size:9px'>" + esc(def.type || "general") + "</span></div>"+
-      "<div class='tiny muted' style='margin-top:4px'>" +
-      (c.unlocked ? (isAct ? "<span style='color:var(--green)'>● Active</span> · " + ((c.weeklyViewers || 0)).toFixed(1) + "M" : "<span class='muted'>○ Off-Air</span>") : "<span style='color:var(--dim)'>Locked (" + fmtM(def.cost || 0) + ")</span>") +
-      "</div></div>";
-  }
-  h += "</div>";
-
-  if(!ch) return h;
-  const chDef = DATA.liveChannel(ch.id) || {};
-
-  // Selected Channel Detail Card
-  h += "<div class='card' style='margin-bottom:14px;border-left:3px solid var(--gold)'>";
-  h += "<div class='spread'><div><h3 style='margin:0 0 4px 0'>" + esc(chDef.name || ch.id) + " <span class='tag gold'>" + esc(chDef.type || "general") + "</span></h3>"+
-    "<div class='small muted'>" + esc(chDef.desc || "") + "</div></div>";
-
-  if(!ch.unlocked){
-    const canUnlock = G.studio.cash >= (chDef.cost || 0);
-    h += "<div><button class='btn btn-primary btn-sm' data-live-unlock='" + ch.id + "' " + (canUnlock ? "" : "disabled") + ">Unlock Network (" + fmtM(chDef.cost || 0) + ")</button>"+
-      "<div class='tiny muted' style='text-align:right;margin-top:4px'>" + (canUnlock ? "Cash available" : "Need " + fmtM(chDef.cost || 0)) + "</div></div>";
-  } else {
-    h += "<div style='display:flex;gap:6px;align-items:center'>"+
-      "<button class='btn btn-sm " + (ch.active ? "btn-alt" : "btn-primary") + "' data-live-toggle='" + ch.id + "'>" + (ch.active ? "Pause Broadcast" : "Resume Broadcast") + "</button>"+
-      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":prime_movies'>Prime Movies</button>"+
-      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":infomercials'>Overnight Infomercials</button>"+
-      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":library_reruns'>Library Reruns</button>"+
-      "<button class='btn btn-sm btn-alt' data-live-autofill='" + ch.id + ":full_syndication'>Full Syndication</button>"+
-      "<button class='btn btn-sm btn-ghost' data-live-clear='" + ch.id + "'>Clear Grid</button>"+
-      "</div>";
-  }
-  h += "</div>";
-
-  if(ch.unlocked){
-    h += "<div class='row' style='margin-top:10px;gap:16px;font-size:12px;border-top:1px solid var(--line);padding-top:8px'>"+
-      "<div>Audience: <b class='gold'>" + ((ch.weeklyViewers || 0)).toFixed(1) + "M/wk</b></div>"+
-      "<div>Est. Ad Gross: <b style='color:var(--green)'>+" + fmtM(ch.weeklyAdRev || 0) + "/wk</b></div>"+
-      "<div>Operating Cost: <b style='color:var(--red)'>-" + fmtM(ch.operatingCost || 0) + "/wk</b></div>"+
-      "</div>";
-  }
-  h += "</div>";
-
-  if(!ch.unlocked){
-    h += "<div class='card muted small' style='text-align:center;padding:24px'>This linear network is currently locked. Acquire rights and transmission towers to access 24/7 programmatic scheduling.</div>";
-    return h;
-  }
-
-  // 24-Hour EPG Schedule Grid
-  h += "<div class='section-title spread'><span>24-Hour Electronic Program Guide (EPG)</span><span class='tiny muted'>Click any slot to schedule content</span></div>";
-  h += "<div class='card' style='padding:0;overflow:hidden'>";
-  h += "<div class='epg-table' style='width:100%;font-size:12px'>";
-  h += "<div class='epg-header row' style='padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--line);font-weight:600;color:var(--muted)'>"+
-    "<div style='width:100px'>Time Slot</div>"+
-    "<div style='width:150px'>Block Category</div>"+
-    "<div style='flex:1'>Scheduled Content</div>"+
-    "<div style='width:90px;text-align:right'>Multiplier</div>"+
-    "<div style='width:80px;text-align:right'>Action</div>"+
-    "</div>";
-
-  const schedule = ch.schedule || [];
-  for(let hour = 0; hour < 24; hour++){
-    const slot = schedule[hour] || { hour, block: "rerun", contentId: null, title: null, sponsor: null, rating: null };
-    const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => (s.hour === hour || s.h === hour)) || { name: hour + ":00", label: hour + ":00", weight: 1.0, isPrimeTime: hour >= 20 && hour <= 22 };
-    const blockMeta = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === slot.block) || { name: "General Broadcast", label: "General Broadcast", adTier: 1.0 };
-
-    let filmTitle = null;
-    let filmQuality = null;
+/* ── C2/C3/C4/C10 · Channels desk ── */
+function liveChannelCard(c){
+  const def=DATA.liveChannel(c.id)||{};
+  const live=G.live||{};
+  const selected=c.id===(live.activeChannel||"bow_movies");
+  const state=!c.unlocked?"LOCKED":(c.active?"ON AIR":"OFF-AIR");
+  const canUnlock=G.studio.cash>=(def.cost||0);
+  const figs=!c.unlocked
+    ? `<div><dt>Unlock cost</dt><dd>${fmtM(def.cost||0)}</dd></div><div><dt>Base viewers</dt><dd>${def.baseViewers||0}M</dd></div><div><dt>Ad rate</dt><dd>${def.adRate||0}</dd></div>`
+    : `<div><dt>Viewers / wk</dt><dd>${(c.weeklyViewers||0).toFixed(1)}M</dd></div><div><dt>Ad revenue / wk</dt><dd>${fmtM(c.weeklyAdRev||0)}</dd></div><div><dt>Operating cost</dt><dd>${fmtM(c.operatingCost||0)}</dd></div><div><dt>Prime programmed</dt><dd>${livePrimeProgrammed(c)} / 5</dd></div>`;
+  const actions=[`<button class="${selected?"produce-action":"produce-ghost"}" data-live-ch="${c.id}">${selected?"Selected — schedule below":"Open schedule"}</button>`];
+  if(!c.unlocked) actions.push(`<button class="produce-ghost" data-live-unlock="${c.id}" ${canUnlock?"":"disabled"}>Unlock (${fmtM(def.cost||0)})</button>`);
+  else actions.push(`<button class="produce-ghost" data-live-toggle="${c.id}">${c.active?"Pause broadcast":"Resume broadcast"}</button>`);
+  return `<article class="live-channel ${selected?"selected":""}">
+    <header><b>${esc(def.emoji||"")} ${esc(def.name||c.id)}</b><span class="live-chip ${c.unlocked&&c.active?"on":""}">${state}</span></header>
+    <p>${esc(def.desc||"")}</p>
+    <dl><div><dt>Type</dt><dd>${esc(def.type||"general")}</dd></div>${figs}</dl>
+    <footer>${actions.join("")}</footer>
+  </article>`;
+}
+function liveStrategyDesk(ch){
+  const films=(G.films||[]).length, series=(G.series||[]).length;
+  const cards=LIVE_STRATEGIES.map(([id,name,daypart,desc,needs])=>{
+    const needCopy=needs==="films"?films+" film"+(films===1?"":"s")+" in library":needs==="library"?films+" films · "+series+" series in library":"No library needed";
+    const starved=(needs==="films"&&!films)||(needs==="library"&&!films&&!series&&id!=="full_syndication");
+    return `<article class="live-strategy"><header><b>${name}</b><span class="live-chip">${esc(daypart)}</span></header><p>${desc}</p><small>${needCopy}${starved?" — this strategy cannot change the grid yet":""}</small><button class="produce-ghost" data-live-autofill="${ch.id}:${id}">Run on ${esc((DATA.liveChannel(ch.id)||{}).name||ch.id)}</button></article>`;
+  }).join("");
+  const controls=`<div class="live-controls"><button class="produce-ghost" data-live-toggle="${ch.id}">${ch.active?"Pause broadcast":"Resume broadcast"}</button><button class="produce-ghost" data-live-clear="${ch.id}">Clear Grid…</button><span>Clear replaces all 24 slots with Network Off-Air Filler and asks first.</span></div>`;
+  return livePanel("SCHEDULE STRATEGY","Schedule strategy desk","The four auto-fill strategies autoFillSchedule actually implements — each card names the daypart it rewrites. A run only reports success when the grid really changes.",controls+`<div class="live-strategies">${cards}</div>`,"4 STRATEGIES","live-strategies-panel");
+}
+function liveEpg(ch){
+  const rows=[];
+  for(let hour=0;hour<24;hour++){
+    const slot=(ch.schedule||[])[hour]||{hour,block:"rerun",contentId:null,title:null,sponsor:null,rating:null};
+    const meta=(DATA.CHANNEL_SLOTS||[]).find(s=>(s.hour===hour||s.h===hour))||{label:hour+":00",weight:1,mult:1,prime:false,isPrimeTime:false};
+    const block=(DATA.PROGRAM_BLOCKS||[]).find(b=>b.id===slot.block)||{label:"General Broadcast",name:"General Broadcast",adTier:1,dur:1};
+    let quality=null;
     if(slot.contentId){
-      const f = (G.films || []).find(x => x.id === slot.contentId);
-      if(f){ filmTitle = f.title; filmQuality = (f.quality && f.quality.overall) || 50; }
+      const f=(G.films||[]).find(x=>x.id===slot.contentId);
+      if(f) quality=(f.quality&&f.quality.overall)||null;
     }
-
-    const isPrime = slotMeta.isPrimeTime;
-    const mult = ((slotMeta.weight || 1.0) * (blockMeta.adTier || 1.0)).toFixed(1);
-
-    h += "<div class='epg-row row " + (isPrime ? "primetime-row" : "") + "' style='padding:7px 12px;border-bottom:1px solid var(--line);align-items:center;background:" + (isPrime ? "rgba(245,185,66,0.04)" : "transparent") + "'>"+
-      "<div style='width:100px;font-family:var(--font-mono);font-weight:600'>" + esc(slotMeta.name) + (isPrime ? " <span class='tag gold' style='font-size:8px;padding:1px 3px'>PRIME</span>" : "") + "</div>"+
-      "<div style='width:150px;color:var(--muted)'>" + esc(blockMeta.name) + "</div>"+
-      "<div style='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"+
-      (filmTitle ? "<b>" + esc(filmTitle) + "</b> <span class='tag' style='font-size:9px'>Q: " + filmQuality + "</span>" : (slot.title ? "<b>" + esc(slot.title) + "</b>" : "<span class='muted'>Syndicated Block</span>"))+
-      (slot.sponsor ? " <span class='tiny muted'>· " + esc(slot.sponsor) + "</span>" : "") +
-      (slot.rating != null ? " <span class='tiny muted'>· ★" + slot.rating + "</span>" : "") +
-      "</div>"+
-      "<div style='width:90px;text-align:right;font-family:var(--font-mono)'>" + mult + "x</div>"+
-      "<div style='width:80px;text-align:right'>"+
-      "<button class='btn btn-xs btn-alt' data-live-slot='" + ch.id + ":" + hour + "'>Edit</button>"+
-      "</div>"+
-      "</div>";
+    const prime=!!(meta.prime||meta.isPrimeTime);
+    const bits=[esc(block.label||block.name||slot.block), (block.dur||1)+"h block", "ad tier "+(block.adTier!=null?block.adTier:1)+"×"];
+    if(slot.sponsor) bits.push(esc(slot.sponsor));
+    if(slot.rating!=null) bits.push("★"+slot.rating);
+    if(quality!=null) bits.push("Q "+quality);
+    rows.push(`<div class="live-epg-row ${prime?"prime":""}"><div class="live-epg-time"><b>${esc(meta.label||meta.name||hour+":00")}</b>${prime?'<span class="live-chip on">PRIME</span>':""}<small>weight ×${(meta.weight!=null?meta.weight:meta.mult||1).toFixed(2)}</small></div><div class="live-epg-main"><b>${esc(slot.title||"Syndicated Block")}</b><span>${bits.join(" · ")}</span></div><button class="produce-ghost" data-live-slot="${ch.id}:${hour}">Edit</button></div>`);
   }
-
-  h += "</div></div>";
-  return h;
+  return `<div class="live-epg">${rows.join("")}</div>`;
+}
+function liveLedger(){
+  const channels=((G.live||{}).channels||[]);
+  const sponsors={};
+  let paidTotal=0;
+  const paidRows=channels.map(ch=>{
+    const def=DATA.liveChannel(ch.id)||{};
+    let paid=0;
+    (ch.schedule||[]).forEach(s=>{
+      if(s.sponsor) sponsors[s.sponsor]=(sponsors[s.sponsor]||0)+1;
+      if(s.block==="infomercial") paid++;
+    });
+    paidTotal+=paid;
+    return `<div class="live-row"><div><b>${esc(def.name||ch.id)}</b><small>${ch.unlocked?(ch.active?"On air":"Off-air"):"Locked"}</small></div><span>${paid} paid-programming slot${paid===1?"":"s"}</span></div>`;
+  }).join("");
+  const sponsorRows=Object.entries(sponsors).sort((a,b)=>b[1]-a[1])
+    .map(([name,n])=>`<div class="live-row"><div><b>${esc(name)}</b><small>Sponsor currently in your schedules</small></div><span>${n} slot${n===1?"":"s"}</span></div>`).join("")
+    || liveEmpty("No sponsors on the grid.","Schedule prime-time or paid-programming blocks and the engine attaches sponsors to those slots.");
+  const tv=DATA.AD_INVENTORY&&DATA.AD_INVENTORY.tv||{}, streaming=DATA.AD_INVENTORY&&DATA.AD_INVENTORY.streaming||{};
+  const rateRows=[
+    ...Object.entries(tv).map(([k,v])=>`<div class="live-row"><div><b>TV · ${esc(k)}</b><small>Reference rate card</small></div><span>base ${fmtM(v.base||0)} · prime ×${v.primeMult||1}</span></div>`),
+    ...Object.entries(streaming).map(([k,v])=>`<div class="live-row"><div><b>Streaming · ${esc(k)}</b><small>Reference rate card</small></div><span>base ${fmtM(v.base||0)} · CPM ${v.cpm||0}</span></div>`)
+  ].join("");
+  const windows=((DATA.RIGHTS_MARKET||{}).windows||[]).map(win=>`<div class="live-row"><div><b>${esc(win.name)}</b><small>${esc(win.desc||"")}</small></div><span>opens wk ${win.weeks} · ×${win.mult}</span></div>`).join("");
+  const genrePremium=Object.entries((DATA.RIGHTS_MARKET||{}).genrePremium||{}).map(([g,m])=>`${esc(g)} ×${m}`).join(" · ");
+  const participation=(DATA.EVENT_PARTICIPATION||[]).map(p=>`<div class="live-row"><div><b>${esc(p.label)}</b><small>${esc(p.desc||"")}</small></div><span>cost ×${p.costMult} · ${esc(p.revenue||"")}</span></div>`).join("");
+  const body=`<p class="live-note"><b>Reference only.</b> Nothing is bought or sold from this ledger — it reads the sponsors your schedules already carry and the static DATA rate cards. Actual weekly ad revenue still settles in tickLiveBroadcasting.</p>`
+    +`<h3 class="live-subhead">Sponsors on air now</h3><div class="live-rows">${sponsorRows}</div>`
+    +`<h3 class="live-subhead">Paid programming by channel (${paidTotal} slots)</h3><div class="live-rows">${paidRows}</div>`
+    +`<h3 class="live-subhead">Ad inventory rate cards (DATA)</h3><div class="live-rows">${rateRows}</div>`
+    +`<h3 class="live-subhead">Rights windows (DATA)</h3><div class="live-rows">${windows}</div>${genrePremium?`<p class="live-note">Genre premiums: ${genrePremium}</p>`:""}`
+    +`<h3 class="live-subhead">Event participation (DATA)</h3><div class="live-rows">${participation}</div>`;
+  return livePanel("REFERENCE LEDGER","Sponsor, ad & rights reference ledger","What your grid already carries, plus the published rate cards — clearly separated from anything you can buy.",body,"READ-ONLY","live-ledger");
+}
+function viewLiveLinear(){
+  const live=G.live||{};
+  const channels=live.channels||[];
+  const activeId=live.activeChannel||(channels[0]&&channels[0].id)||"bow_movies";
+  const ch=channels.find(c=>c.id===activeId)||channels[0];
+  const portfolio=livePanel("CHANNEL PORTFOLIO","Channel portfolio desk","Every network side by side — real type, state, unlock cost and weekly performance. Selecting a channel opens its actual schedule below.",
+    channels.length?`<div class="live-channels">${channels.map(liveChannelCard).join("")}</div>`:liveEmpty("No channels exist yet.","Channel state initialises with your career; if this persists, the live state failed to load."),
+    channels.filter(c=>c.unlocked).length+" / "+channels.length+" UNLOCKED","live-portfolio");
+  if(!ch) return portfolio+liveLedger();
+  const def=DATA.liveChannel(ch.id)||{};
+  if(!ch.unlocked){
+    return portfolio
+      + livePanel("24-HOUR GRID","24-Hour Electronic Program Guide",esc(def.name||ch.id)+" is locked.",liveEmpty("This network is locked.",`Unlock ${esc(def.name||ch.id)} for ${fmtM(def.cost||0)} from the portfolio above to open its 24-hour program grid.`),"LOCKED","live-epg-panel")
+      + liveLedger();
+  }
+  return portfolio
+    + liveStrategyDesk(ch)
+    + livePanel("24-HOUR GRID","24-Hour Electronic Program Guide",`The live grid for ${esc(def.name||ch.id)} — block, title, sponsor and rating exactly as the engine stores them. Edit any hour to reprogram it.`,liveEpg(ch),esc((def.name||ch.id).toUpperCase()),"live-epg-panel")
+    + liveLedger();
 }
 
+/* ── C5 · Live stream control room ── */
 function viewLiveStream(){
-  const live = G.live || {};
-  const stream = live.streaming || live.stream || {};
-  const isStreaming = !!(stream.live || stream.active);
-  const activeHostId = live.activeHost || "rex";
-  const activeHost = DATA.liveHost(activeHostId) || (DATA.LIVE_HOSTS && DATA.LIVE_HOSTS[0]);
-
-  let h = "";
-  h += "<div class='section-title spread'><span>Live Studio Streaming Broadcast</span>"+
-    "<span class='tiny muted'>Direct Interactive Transmission to Global Audiences</span></div>";
-
-  h += "<div class='row' style='gap:14px;flex-wrap:wrap;align-items:flex-start'>";
-
-  // Left column: Broadcast Monitor & Controls
-  h += "<div style='flex:1;min-width:320px'>";
-
-  // Broadcast Monitor CRT
-  h += "<div class='card crt-screen' style='position:relative;background:#06080d;border:2px solid var(--line2);border-radius:var(--radius-md);padding:14px;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,0.8)'>";
-  h += "<div class='spread' style='margin-bottom:8px'>"+
-    "<div class='on-air-badge " + (isStreaming ? "active" : "") + "' style='display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:3px;background:" + (isStreaming ? "rgba(255,45,85,0.2)" : "rgba(100,100,100,0.15)") + ";border:1px solid " + (isStreaming ? "var(--live-red)" : "var(--line)") + "'>"+
-    "<span class='live-dot-pulse' style='width:8px;height:8px;border-radius:50%;background:" + (isStreaming ? "var(--live-red)" : "#666") + "'></span>"+
-    "<b style='font-size:11px;letter-spacing:1px;color:" + (isStreaming ? "var(--live-red)" : "var(--muted)") + "'>" + (isStreaming ? "LIVE ON AIR" : "OFF AIR") + "</b>"+
-    "</div>"+
-    "<div class='tiny muted' style='font-family:var(--font-mono)'>" + esc(stream.quality || "1080p") + " · " + esc(stream.topic || "feature_premiere") + "</div>"+
-    "</div>";
-
-  // Host Stage in Monitor
-  h += "<div class='stream-viewport' style='height:210px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center, #141b2d 0%, #080c14 100%);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden'>";
-  if(activeHost){
-    h += "<div style='transform:scale(1.1)'>";
-    if(activeHost.id === "rex") h += renderCharRex();
-    else if(activeHost.id === "chloe") h += renderCharChloe();
-    else if(activeHost.id === "buck") h += renderCharBuck();
-    else h += renderCharReely();
-    h += "</div>";
-  } else {
-    h += "<div class='muted small'>No host active on stage</div>";
-  }
-
-  // Scanline overlay effect
-  h += "<div class='crt-scanlines' style='position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%);background-size:100% 4px'></div>";
-  h += "</div>";
-
-  // Monitor Ticker
-  h += "<div class='stream-ticker' style='margin-top:8px;padding:6px 10px;background:var(--bg);border-radius:var(--radius-sm);font-size:11px;font-family:var(--font-mono);color:var(--gold);overflow:hidden;white-space:nowrap'>"+
-    "BROADCASTING: " + esc(G.studio.name.toUpperCase()) + " LIVE NETWORK · " + (activeHost ? esc((activeHost.role||"").toUpperCase()) : "OFFICIAL STREAM") + " · ACTIVE HOST: " + (activeHost ? esc(activeHost.name.toUpperCase()) : "NONE") +
-    "</div>";
-
-  h += "</div>";
-
-  // Stream Metrics & Action Panel
-  h += "<div class='card' style='margin-top:12px'>";
-  h += "<div class='spread'><b>Broadcast Control Deck</b><span class='tiny muted'>Topic: " + (stream.topic || "feature_premiere") + "</span></div>";
-  h += "<div class='stat-hero' style='margin:10px 0'>";
-  h += statCard((isStreaming ? (stream.ccv || 0) + "M" : "0"), "Current CCV");
-  h += statCard((stream.peakCcv || 0) + "M", "Peak CCV");
-  h += statCard((stream.totalHours || 0).toLocaleString() + " hrs", "Stream Hours");
-  h += statCard(((stream.subConversions || 0)).toFixed(1) + "M", "Sub Conversions");
-  h += "</div>";
-
-  h += "<div class='row' style='gap:8px;margin-top:8px'>"+
-    "<button class='btn " + (isStreaming ? "btn-danger" : "btn-primary") + "' data-live-stream-toggle='1' style='flex:1'>" + (isStreaming ? "End Live Stream" : "Start Live Stream") + "</button>"+
-    "<button class='btn btn-alt' data-live-adbreak='1' " + (isStreaming ? "" : "disabled") + " style='flex:1'>Run Ad Break</button>"+
-    "</div>"+
-    (isStreaming ? "" : "<div class='tiny muted' style='margin-top:6px'>Off air — start the live stream to enable ad breaks. Earnings depend on live CCV when the break airs.</div>");
-
-  if(G.streamer){
-    h += "<div class='tiny muted' style='margin-top:10px;padding-top:8px;border-top:1px solid var(--line)'>"+
-      "Direct-to-Consumer Synergy: High live stream viewership feeds subscriber growth for your streamer <b>" + esc(G.streamer.name) + "</b>."+
-      "</div>";
-  }
-
-  h += "</div></div>";
-
-  // Right column: Live Chat Feed
-  h += "<div style='flex:1;min-width:300px;max-width:440px'>";
-  h += "<div class='card' style='display:flex;flex-direction:column;height:430px;padding:10px 12px'>";
-  h += "<div class='spread' style='padding-bottom:8px;border-bottom:1px solid var(--line)'>"+
-    "<b>Live Chat Feed</b>"+
-    "<span class='tiny tag'>" + (isStreaming ? "Active" : "Chat Paused") + "</span>"+
-    "</div>";
-
-  h += "<div class='stream-chat-feed' style='flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:6px'>";
-  const msgs = stream.chatMessages || [];
-  if(!msgs.length){
-    h += "<div class='tiny muted' style='text-align:center;margin-top:40px'>No chat messages yet. Start a live broadcast to engage viewers.</div>";
-  } else {
-    for(const m of msgs.slice(-15)){
-      if(m.isSuperChat){
-        h += "<div class='superchat-bubble' style='background:linear-gradient(135deg, rgba(245,185,66,0.18), rgba(245,185,66,0.06));border:1px solid var(--gold);padding:6px 8px;border-radius:var(--radius-sm);font-size:11px'>"+
-          "<div class='spread'><b class='gold'>" + esc(m.user) + "</b><span class='gold font-mono'>$" + m.amount + " Super Chat</span></div>"+
-          "<div style='margin-top:2px;color:var(--text)'>" + esc(m.text) + "</div>"+
-          "</div>";
-      } else {
-        h += "<div class='chat-bubble' style='font-size:11px;line-height:1.4'>"+
-          "<span style='color:var(--muted);font-weight:600;margin-right:6px'>" + esc(m.user) + ":</span>"+
-          "<span>" + esc(m.text) + "</span>"+
-          "</div>";
-      }
-    }
-  }
-  h += "</div>";
-
-  h += "<div class='tiny muted' style='padding-top:8px;border-top:1px solid var(--line);text-align:center'>"+
-    "Chat auto-updates each week as viewers react to on-air talent and studio events."+
-    "</div>";
-
-  h += "</div></div>";
-  h += "</div>";
-
-  return h;
+  const stream=liveStream(), onAir=!!stream.live, host=liveHostDef();
+  const topic=stream.topic||"feature_premiere", quality=stream.quality||"1080p";
+  const topics=LIVE_STREAM_TOPICS.some(t=>t[0]===topic)?LIVE_STREAM_TOPICS:[[topic,topic],...LIVE_STREAM_TOPICS];
+  const qualities=LIVE_STREAM_QUALITIES.includes(quality)?LIVE_STREAM_QUALITIES:[quality,...LIVE_STREAM_QUALITIES];
+  const monitor=`<div class="live-monitor">
+    <div class="live-monitor-top"><span class="live-onair ${onAir?"on":""}"><i></i>${onAir?"LIVE ON AIR":"OFF AIR"}</span><span class="live-monitor-meta">${esc(quality)} · ${esc(topic)}</span></div>
+    <div class="live-stage">${liveHostStage(host)}</div>
+    <div class="live-ticker">BROADCASTING: ${esc((G.studio.name||"Studio").toUpperCase())} LIVE NETWORK · ${host?esc((host.role||"").toUpperCase()):"OFFICIAL STREAM"} · ACTIVE HOST: ${host?esc(host.name.toUpperCase()):"NONE"}</div>
+  </div>`;
+  const kpis=liveKpis([
+    ["CURRENT CCV",onAir?(stream.ccv||0)+"M":"0M",onAir?"Concurrent viewers right now":"No audience while off air"],
+    ["PEAK CCV",(stream.peakCcv||0)+"M","Best concurrent audience so far"],
+    ["TOTAL HOURS",(stream.totalHours||0).toLocaleString()+" hrs","Streamed hours accumulated weekly"],
+    ["SUB CONVERSIONS",((stream.subConversions||0)).toFixed(1)+"M","Viewers converted to streamer subs"],
+    ["ACTIVE HOST",host?esc(host.name):"—",host?"Level "+(liveHostStats(host.id).level||1):"None selected"]
+  ]);
+  const controls=`<div class="live-stream-controls">
+    <label>Topic<select id="liveStreamTopic" ${onAir?"disabled":""}>${topics.map(([v,l])=>`<option value="${esc(v)}" ${v===topic?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+    <label>Quality<select id="liveStreamQuality" ${onAir?"disabled":""}>${qualities.map(q=>`<option value="${esc(q)}" ${q===quality?"selected":""}>${esc(q)}</option>`).join("")}</select></label>
+    <button class="produce-action" data-live-stream-toggle="1">${onAir?"End Live Stream":"Start Live Stream"}</button>
+    <button class="produce-ghost" data-live-adbreak="1" ${onAir?"":"disabled"}>Run Ad Break</button>
+  </div>
+  <p class="live-note">${onAir?"Topic and quality apply when a stream starts — end this broadcast to change them. Ad-break earnings depend on live CCV when the break airs and are reported exactly.":"Off air — pick a topic and quality, then start the stream. Ad breaks unlock while you are live; earnings depend on CCV at the moment the break airs."}</p>
+  ${G.streamer?`<p class="live-note">Direct-to-Consumer Synergy: High live stream viewership feeds subscriber growth for your streamer <b>${esc(G.streamer.name)}</b>.</p>`:""}`;
+  const msgs=stream.chatMessages||[];
+  const chat=msgs.length
+    ? `<div class="live-chat">${msgs.slice(-15).map(m=>m.isSuperChat
+        ? `<div class="live-superchat"><div><b>${esc(m.user)}</b><span>$${m.amount} Super Chat</span></div><p>${esc(m.text)}</p></div>`
+        : `<div class="live-chat-msg"><b>${esc(m.user)}:</b><span>${esc(m.text)}</span></div>`).join("")}</div>`
+    : liveEmpty("No chat messages yet.","Start a live broadcast to engage viewers; chat and Super Chats land here as they arrive.");
+  return livePanel("CONTROL ROOM","Live Studio Streaming Broadcast","Direct interactive transmission to global audiences — real CCV, hours and conversions from the stream state.",
+    `<div class="live-stream-grid"><div>${monitor}${kpis}${controls}</div><div class="live-chat-col"><div class="live-chat-head"><b>Live Chat Feed</b><span class="live-chip ${onAir?"on":""}">${onAir?"Active":"Chat Paused"}</span></div>${chat}<p class="live-note">Chat auto-updates each week as viewers react to on-air talent and studio events.</p></div></div>`,
+    onAir?"ON AIR":"OFF AIR","live-stream-panel");
 }
 
+/* ── C6/C7/C8 · Events desk ── */
+function liveEventCard(ev){
+  const away=liveWeeksAway(ev);
+  const isNow=away===0;
+  const live=G.live||{};
+  const submittedId=((live.events||{}).submissions||{})[ev.id];
+  let status;
+  if(ev.type==="premiere") status="Any week — you schedule it";
+  else if(!ev.week) status=ev.freq?("Every "+ev.freq+" weeks"):"No fixed week";
+  else if(isNow) status="HAPPENING THIS WEEK";
+  else status="In "+away+" wk"+(away===1?"":"s")+" · Week "+ev.week;
+  const figs=[
+    ["Prestige",String(ev.prestige||0)],
+    ["Expected viewers",(ev.viewers||0)+"M"],
+    ["Ad rate",String(ev.adRate||0)],
+    ["Rights cost",ev.rightsCost?fmtM(ev.rightsCost):"—"],
+    ["Duration",(ev.dur||1)+"d"],
+    ["Event week",ev.week?String(ev.week):"—"]
+  ].map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  const extra=[
+    ev.freq?"Recurs every "+ev.freq+" weeks":null,
+    ev.market?"Market · "+(ev.buyers||0)+" buyers":null,
+    ev.exclusive?"Exclusive rights":null,
+    ev.categories&&ev.categories.length?"Categories: "+ev.categories.join(", "):null
+  ].filter(Boolean).join(" · ");
+  let action="";
+  if(ev.type==="festival"){
+    action=submittedId
+      ? `<span class="live-chip on">SUBMITTED: ${esc(liveTitleOf(submittedId)||"Film")}</span><button class="produce-ghost" data-live-fest-submit="${ev.id}">Change submission ($${((DATA.LIVE_COSTS||{}).festivalFee)||0.25}M)</button>`
+      : `<button class="produce-ghost" data-live-fest-submit="${ev.id}">Submit Film ($${((DATA.LIVE_COSTS||{}).festivalFee)||0.25}M)</button>`;
+  } else if(ev.type==="premiere"){
+    action=`<button class="produce-ghost" data-live-premiere="1">Host in this city (${liveMoney((DATA.LIVE_COSTS||{}).premiere||1.5)})</button>`;
+  } else if(ev.type==="awards"){
+    action=`<span class="live-chip">FYC CAMPAIGN READY</span>`;
+  } else {
+    action=`<span class="live-chip">AD SURGE WINDOW</span>`;
+  }
+  return `<article class="live-event ${isNow?"now":""}">
+    <header><b>${esc(ev.emoji||"")} ${esc(ev.name)}</b><span class="live-chip ${isNow?"on":""}">${status}</span></header>
+    <p>${esc(ev.desc||"")}</p>
+    <dl>${figs}</dl>
+    ${extra?`<small>${esc(extra)}</small>`:""}
+    <footer><span class="live-chip">${esc(String(ev.type||"").toUpperCase())}</span>${action}</footer>
+  </article>`;
+}
+function liveFestivalTracker(){
+  const live=G.live||{}, fee=(DATA.LIVE_COSTS||{}).festivalFee||0.25;
+  const eligible=(G.films||[]).filter(f=>!f.unreleased&&(f.quality&&f.quality.overall>=45));
+  const subs=Object.entries(((live.events||{}).submissions)||{});
+  const stats=live.stats||{};
+  const eligRows=eligible.length
+    ? eligible.slice(0,10).map(f=>`<div class="live-row"><div><b>${esc(f.title)}</b><small>${esc((DATA.GENRES[f.genre]||{}).name||f.genre||"")} · Quality ${(f.quality&&f.quality.overall)||50}</small></div><span>${G.studio.cash>=fee?"Entry "+liveMoney(fee):"Need "+liveMoney(fee)}</span></div>`).join("")
+    : liveEmpty("No eligible films.","Festival entry needs a released film with Quality 45 or better. Release stronger pictures, then submit them from any festival card above.");
+  const pendRows=subs.length
+    ? subs.map(([festId,filmId])=>{
+        const ev=DATA.liveEvent(festId), away=ev?liveWeeksAway(ev):null;
+        return `<div class="live-row"><div><b>${esc(liveTitleOf(filmId)||"Submitted film")}</b><small>${esc(ev?ev.name:festId)}${ev?" · week "+ev.week+(away===0?" · judging this week":" · in "+away+" wks"):""}</small></div><span class="live-chip on">PENDING</span></div>`;
+      }).join("")
+    : liveEmpty("No pending submissions.","Submitted films appear here against their festival until the festival week processes them.");
+  const body=`<p class="live-note">Entry fee ${liveMoney(fee)} per submission, charged once by submitFilmToFestival. Wins so far: <b>${stats.festivalsWon||0}</b> festival prize${(stats.festivalsWon||0)===1?"":"s"} — results are decided in the festival's own week and reported in the log.</p>`
+    +`<h3 class="live-subhead">Eligible films</h3><div class="live-rows">${eligRows}</div>`
+    +`<h3 class="live-subhead">Pending submissions</h3><div class="live-rows">${pendRows}</div>`;
+  return livePanel("FESTIVAL TRACKER","Festival submission tracker","Eligible pictures, the real entry fee, and every film currently waiting on a jury.",body,subs.length+" PENDING","live-festival-tracker");
+}
+function livePremiereDesk(){
+  const live=G.live||{}, cost=(DATA.LIVE_COSTS||{}).premiere||1.5;
+  const cities=(DATA.LIVE_EVENTS||[]).filter(e=>e.type==="premiere");
+  const candidates=(G.projects||[]).concat((G.films||[]).filter(f=>!f.archived)).slice(0,15);
+  const scheduled=((live.events||{}).premieres)||[];
+  const citySelect=`<label class="live-city-pick">Premiere city<select id="livePremiereCity">${cities.map(c=>`<option value="${esc(c.id.replace("premiere_",""))}">${esc(c.name)} — prestige ${c.prestige||0} · ${c.viewers||0}M viewers</option>`).join("")}</select></label>`;
+  const rows=candidates.length
+    ? candidates.map(f=>`<div class="live-row"><div><b>${esc(f.title)}</b><small>${esc((DATA.GENRES[f.genre]||{}).name||f.genre||"")} · current buzzBonus ${((f.buzzBonus||0)).toFixed(2)}</small></div><button class="produce-ghost" data-live-premiere-host="${f.id}" ${G.studio.cash>=cost?"":"disabled"}>Host Gala (${liveMoney(cost)})</button></div>`).join("")
+    : liveEmpty("No pictures available for a premiere.","Active projects and released films can walk the red carpet. Develop or release a film first.");
+  const schedRows=scheduled.length
+    ? scheduled.map(pr=>`<div class="live-row"><div><b>${esc(liveTitleOf(pr.filmId)||"Premiere film")}</b><small>${esc(String(pr.city||"la").toUpperCase())} · queued week ${pr.week} · +0.25 buzzBonus when it broadcasts</small></div><span class="live-chip on">SCHEDULED</span></div>`).join("")
+    : liveEmpty("No premieres scheduled.","Host a gala above and it queues here until the next weekly broadcast tick airs it.");
+  const body=`<p class="live-note">A gala costs ${liveMoney(cost)}. It is queued immediately and broadcasts on the next weekly tick, applying <b>+0.25 buzzBonus exactly once</b> — no immediate double-count.</p>`
+    +citySelect
+    +`<div class="live-rows">${rows}</div>`
+    +`<h3 class="live-subhead">Scheduled premieres</h3><div class="live-rows">${schedRows}</div>`;
+  return livePanel("PREMIERE DESK","Premiere desk","Choose a city, pick a picture, and review what is already on the carpet calendar.",body,`<button class="produce-action" data-live-premiere="1">Host Red Carpet Premiere (${liveMoney(cost)})</button>`,"live-premiere-desk");
+}
 function viewLiveEvents(){
-  const live = G.live || {};
-  const currentWoy = woyOf(G.week);
-  const events = DATA.LIVE_EVENTS || [];
-
-  let h = "";
-  h += "<div class='section-title spread'><span>Major Live Events, Festivals & Red Carpets</span>"+
-    "<button class='btn btn-sm btn-primary' data-live-premiere='1'>Host Red Carpet Premiere (" + fmtM((DATA.LIVE_COSTS||{}).premiere || 1.5) + ")</button>"+
-    "</div>";
-
-  h += "<div class='tiny muted' style='margin-bottom:12px'>"+
-    "Current Week: " + currentWoy + " of the annual broadcast calendar. Enter films into A-list festival competitions, campaign for the Academy Awards, and capitalize on live sports finals."+
-    "</div>";
-
-  // Grid of event categories
-  const cats = [
-    { id: "awards", title: "Academy & Guild Awards", icon: "Awards" },
-    { id: "festival", title: "A-List International Film Festivals", icon: "Festivals" },
-    { id: "sports", title: "Major Live Sports Finals", icon: "Sports" },
-    { id: "cultural", title: "Cultural & Comic Galas", icon: "Culture" },
-    { id: "premiere", title: "Red Carpet Premiere Cities", icon: "Premieres" }
-  ];
-
-  for(const cat of cats){
-    const list = events.filter(e => e.type === cat.id);
-    if(!list.length) continue;
-
-    h += "<div class='card' style='margin-bottom:14px'>";
-    h += "<div class='spread' style='margin-bottom:8px'><b>" + cat.title + "</b><span class='tiny muted'>" + list.length + " Events</span></div>";
-
-    h += "<div class='events-grid' style='display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px'>";
-    for(const ev of list){
-      const weeksAway = (ev.week - currentWoy + 52) % 52;
-      const isNow = currentWoy === ev.week;
-      const statusTag = isNow ? "<span class='tag gold' style='font-weight:700'>HAPPENING THIS WEEK</span>" : (weeksAway <= 4 ? "<span class='tag' style='color:var(--gold)'>In " + weeksAway + " wks</span>" : "<span class='tag muted'>Week " + ev.week + "</span>");
-
-      h += "<div class='card' style='padding:10px 12px;background:var(--bg2);border:1px solid " + (isNow ? "var(--gold)" : "var(--line)") + "'>"+
-        "<div class='spread'><b>" + esc(ev.name) + "</b>" + statusTag + "</div>"+
-        "<div class='tiny muted' style='margin:4px 0'>" + esc(ev.desc || "") + "</div>"+
-        "<div class='row' style='margin-top:8px;justify-content:space-between;align-items:center;font-size:11px'>"+
-        "<span class='muted'>Prestige: <b>" + (ev.prestige || 0) + "</b> · " + (ev.viewers || 0) + "M viewers · " + (ev.dur || 1) + "d</span>";
-
-      if(ev.type === "festival"){
-        h += "<button class='btn btn-xs btn-alt' data-live-fest-submit='" + ev.id + "'>Submit Film (" + fmtM((DATA.LIVE_COSTS||{}).festivalFee || 0.25) + ")</button>";
-      } else if(ev.type === "awards"){
-        h += "<span class='tag' style='font-size:9px'>FYC Campaign Ready</span>";
-      } else {
-        h += "<span class='tag' style='font-size:9px'>Ad Surge Window</span>";
-      }
-
-      h += "</div></div>";
-    }
-    h += "</div></div>";
-  }
-
-  return h;
+  const events=(DATA.LIVE_EVENTS||[]).slice().sort((a,b)=>{
+    const aw=a.week?liveWeeksAway(a):999, bw=b.week?liveWeeksAway(b):999;
+    return aw-bw || (b.prestige||0)-(a.prestige||0);
+  });
+  const filters=[["all","All"],["awards","Awards"],["festival","Festivals"],["sports","Sports"],["cultural","Cultural"],["premiere","Premieres"]];
+  const active=filters.some(f=>f[0]===LIVE_EVENT_FILTER)?LIVE_EVENT_FILTER:"all";
+  const shown=active==="all"?events:events.filter(e=>e.type===active);
+  const chips=`<div class="produce-filters live-event-filters" role="group" aria-label="Filter events by type">${filters.map(([k,l])=>{
+    const n=k==="all"?events.length:events.filter(e=>e.type===k).length;
+    return `<button data-live-event-filter="${k}" class="${active===k?"active":""}" aria-pressed="${active===k}">${l} <b>${n}</b></button>`;
+  }).join("")}</div>`;
+  const calendar=livePanel("ANNUAL CALENDAR","Major Live Events, Festivals & Red Carpets","Every dated event on the broadcast calendar, nearest first — prestige, expected viewers and rights metadata straight from DATA. Filters are view-only.",
+    chips+(shown.length?`<div class="live-events">${shown.map(liveEventCard).join("")}</div>`:liveEmpty("No events of this type.","Try another filter — the full calendar is one tap away.")),
+    "WEEK "+woyOf(G.week)+" / 52","live-calendar");
+  return calendar+liveFestivalTracker()+livePremiereDesk();
 }
 
+/* ── C9 · Host progression studio ── */
 function viewLiveStudio(){
-  const live = G.live || {};
-  const hosts = DATA.LIVE_HOSTS || [];
-  const activeHostId = live.activeHost || "rex";
-
-  let h = "";
-  h += "<div class='section-title spread'><span>On-Air Personalities & Broadcast Studio</span>"+
-    "<span class='tiny muted'>Animated Anchors, Red Carpet Hosts & Mascots</span></div>";
-
-  h += "<div class='cards-grid' style='display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px'>";
-
-  for(const host of hosts){
-    const isActive = host.id === activeHostId;
-    const stats = (live.hosts && live.hosts[host.id]) || { level: 1, xp: 0, charisma: 75, energy: 90 };
-    const xpPercent = Math.min(100, Math.round(((stats.xp % 100) / 100) * 100));
-
-    h += "<div class='card host-character-card " + (isActive ? "active-host" : "") + "' style='border:1px solid " + (isActive ? "var(--gold)" : "var(--line)") + ";position:relative;overflow:hidden;padding:12px'>";
-    if(isActive){
-      h += "<div style='position:absolute;top:8px;right:8px'><span class='tag gold' style='font-weight:700'>ON-AIR LEAD</span></div>";
-    }
-
-    // Host Stage / Avatar Viewport
-    h += "<div class='host-stage' style='height:160px;background:radial-gradient(circle at center, #161e30 0%, #0a0e17 100%);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:10px;border:1px solid rgba(255,255,255,0.06)'>";
-    if(host.id === "rex") h += renderCharRex();
-    else if(host.id === "chloe") h += renderCharChloe();
-    else if(host.id === "buck") h += renderCharBuck();
-    else h += renderCharReely();
-    h += "</div>";
-
-    // Host Identity
-    h += "<h4 style='margin:0 0 2px 0'>" + esc(host.name) + "</h4>"+
-      "<div class='tiny muted' style='margin-bottom:8px'>" + esc(host.role || "") + " · <span class='gold'>Lv. " + (stats.level || 1) + "</span></div>";
-
-    // XP Bar
-    h += "<div class='tiny muted spread' style='margin-bottom:2px'><span>Experience</span><span>" + (stats.xp % 100) + "/100 XP</span></div>"+
-      "<div style='height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:10px'>"+
-      "<div style='width:" + xpPercent + "%;height:100%;background:var(--gold)'></div></div>";
-
-    // Stats
-    h += "<div class='row' style='gap:12px;font-size:11px;margin-bottom:10px'>"+
-      "<div>Charisma: <b>" + (stats.charisma || 70) + "</b></div>"+
-      "<div>Energy: <b>" + (stats.energy || 70) + "</b></div>"+
-      "<div>Trait: <b class='gold'>" + esc(host.trait || "") + "</b></div>"+
-      "</div>";
-
-    // Catchphrase Quote
-    if(host.quote){
-      h += "<div class='host-quote' style='font-style:italic;font-size:11px;color:var(--muted);background:var(--bg2);padding:6px 8px;border-radius:var(--radius-sm);border-left:2px solid var(--gold);margin-bottom:10px'>"+
-        "“" + esc(host.quote) + "”</div>";
-    }
-
-    // Action Buttons
-    h += "<div class='row' style='gap:6px'>"+
-      (isActive ? "<button class='btn btn-xs btn-ghost' disabled style='flex:1'>Active on Air</button>" : "<button class='btn btn-xs btn-primary' data-live-host-select='" + host.id + "' style='flex:1'>Set Active Host</button>")+
-      "<button class='btn btn-xs btn-alt' data-live-host-train='" + host.id + "' title='Media Training: Charisma +4, Energy +5' " + (G.studio.cash >= ((DATA.LIVE_COSTS||{}).hostTrain || 1.0) ? "" : "disabled") + ">Train (" + fmtM((DATA.LIVE_COSTS||{}).hostTrain || 1.0) + ")</button>"+
-      "</div>";
-
-    h += "</div>";
-  }
-
-  h += "</div>";
-  return h;
+  const live=G.live||{}, hosts=DATA.LIVE_HOSTS||[], activeId=live.activeHost||"rex";
+  const trainCost=(DATA.LIVE_COSTS||{}).hostTrain||1.0;
+  const cards=hosts.map(host=>{
+    const stats=liveHostStats(host.id);
+    const level=stats.level||1, xp=stats.xp||0, threshold=level*100;
+    const pct=Math.max(0,Math.min(100,xp/Math.max(1,threshold)*100));
+    const isActive=host.id===activeId;
+    const factor=(1+((stats.charisma||75)-50)*0.003).toFixed(2);
+    return `<article class="live-host ${isActive?"active":""}">
+      <div class="live-host-stage">${liveHostStage(host)}${isActive?'<span class="live-chip on">ON-AIR LEAD</span>':""}</div>
+      <h3>${esc(host.name)}</h3>
+      <p class="live-host-role">${esc(host.role||"")} · Lv. ${level}</p>
+      <div class="live-xp"><div><span>Experience</span><span>${level>=10?xp+" XP · MAX LEVEL":xp+" / "+threshold+" XP to Lv."+(level+1)}</span></div><i role="meter" aria-label="Host experience" aria-valuemin="0" aria-valuemax="${threshold}" aria-valuenow="${Math.min(xp,threshold)}"><b style="width:${pct.toFixed(1)}%"></b></i></div>
+      <dl>
+        <div><dt>Charisma</dt><dd>${stats.charisma||70}</dd></div>
+        <div><dt>Energy</dt><dd>${stats.energy||70}</dd></div>
+        <div><dt>Trait</dt><dd>${esc(host.trait||"")}</dd></div>
+        <div><dt>Specialty</dt><dd>${esc(host.specialty||"")}</dd></div>
+        ${isActive?`<div><dt>On-air factor</dt><dd>×${factor}</dd></div>`:""}
+      </dl>
+      ${host.perk?`<p class="live-host-perk">Listed perk: ${esc(host.perk)}</p>`:""}
+      ${host.quote?`<blockquote>“${esc(host.quote)}”</blockquote>`:""}
+      <footer>${isActive?`<button class="produce-ghost" disabled>Active on Air</button>`:`<button class="produce-action" data-live-host-select="${host.id}">Set Active Host</button>`}<button class="produce-ghost" data-live-host-train="${host.id}" title="Media Training: Charisma +4, Energy +5" ${G.studio.cash>=trainCost?"":"disabled"}>Train (${liveMoney(trainCost)})</button></footer>
+    </article>`;
+  }).join("");
+  return livePanel("HOST STUDIO","On-Air Personalities & Broadcast Studio","Levels use the engine's real threshold — a host levels up when XP passes level × 100. Perks and specialties are DATA flavour; the broadcast bonus in tickLiveBroadcasting comes from the active host's charisma, and energy does not drain.",
+    hosts.length?`<div class="live-hosts">${cards}</div>`:liveEmpty("No hosts on the roster.","Host data ships with the game; if this persists, DATA failed to load."),
+    hosts.length+" HOSTS","live-hosts-panel");
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -10183,32 +10209,31 @@ function liveSlotModal(channelId, hour){
   const chName = chDef.name || ch.name || channelId;
   const currentSlot = (ch.schedule || [])[hour] || { hour, block: "rerun", contentId: null, title: null };
   const slotMeta = (DATA.CHANNEL_SLOTS || []).find(s => (s.hour === hour || s.h === hour)) || { name: hour + ":00", label: hour + ":00" };
+  const curBlock = (DATA.PROGRAM_BLOCKS || []).find(b => b.id === currentSlot.block) || {};
 
-  let h = "<h3>Program Slot: " + esc(chName) + " (" + esc(slotMeta.name || slotMeta.label) + ")</h3>"+
-    "<div class='tiny muted' style='margin-bottom:12px'>Assign a programming format or broadcast a feature film from your studio catalog.</div>";
+  let h = "<h3>Program Slot: " + esc(chName) + " (" + esc(slotMeta.label || slotMeta.name) + ")</h3>"+
+    "<div class='tiny muted' style='margin-bottom:12px'>Now: <b>" + esc(currentSlot.title || "Syndicated Block") + "</b> · " + esc(curBlock.label || currentSlot.block || "") + (currentSlot.sponsor ? " · " + esc(currentSlot.sponsor) : "") + (currentSlot.rating != null ? " · ★" + currentSlot.rating : "") + ". Assign a programming format or broadcast a feature film from your studio catalog.</div>";
 
-  // Option 1: Pick Program Block Type
-  h += "<div class='card' style='margin-bottom:12px'><b>Programming Format Block</b>"+
+  h += "<div class='live-modal-group'><b>Programming Format Block</b>"+
     "<div class='row' style='gap:6px;flex-wrap:wrap;margin-top:8px'>";
   for(const block of DATA.PROGRAM_BLOCKS || []){
     const isSel = currentSlot.block === block.id && !currentSlot.contentId;
     const bName = block.name || block.label || block.id;
-    const bTier = block.adTier !== undefined ? block.adTier : (block.dur ? block.dur + "x" : "1.0x");
-    h += "<button class='btn btn-sm " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotBlock_" + block.id + "'>" + esc(bName) + " (" + bTier + (typeof bTier === "number" ? "x" : "") + ")</button>";
+    const bTier = block.adTier !== undefined ? block.adTier : 1.0;
+    h += "<button class='btn btn-sm " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotBlock_" + block.id + "'>" + esc(bName) + " (" + bTier + "x)</button>";
   }
   h += "</div></div>";
 
-  // Option 2: Pick Studio Film from Catalog
   const eligibleFilms = (G.films || []).filter(f => !f.unreleased);
-  h += "<div class='card' style='margin-bottom:12px'><b>Broadcast Studio Catalog Film (" + eligibleFilms.length + " Available)</b>";
+  h += "<div class='live-modal-group'><b>Broadcast Studio Catalog Film (" + eligibleFilms.length + " Available)</b>";
   if(!eligibleFilms.length){
     h += "<div class='tiny muted' style='margin-top:4px'>No released films in your library yet. Release films to air them on linear TV.</div>";
   } else {
     h += "<div style='max-height:160px;overflow-y:auto;margin-top:6px;display:flex;flex-direction:column;gap:4px'>";
     for(const f of eligibleFilms.slice(0, 20)){
       const isSel = currentSlot.contentId === f.id;
-      h += "<div class='row spread' style='padding:5px 8px;border-radius:var(--radius-sm);background:" + (isSel ? "var(--card-hover)" : "var(--bg2)") + ";border:1px solid " + (isSel ? "var(--gold)" : "transparent") + "'>"+
-        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + " · Score: " + (f.quality && f.quality.overall || 50) + "</span></div>"+
+      h += "<div class='row spread' style='padding:5px 8px;border-radius:var(--radius-sm);background:var(--bg2);border:1px solid " + (isSel ? "var(--gold)" : "transparent") + "'>"+
+        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + esc((DATA.GENRES[f.genre]||{}).name || "") + " · Score: " + ((f.quality && f.quality.overall) || 50) + "</span></div>"+
         "<button class='btn btn-xs " + (isSel ? "btn-primary" : "btn-alt") + "' id='slotFilm_" + f.id + "'>" + (isSel ? "Scheduled" : "Select") + "</button>"+
         "</div>";
     }
@@ -10222,7 +10247,6 @@ function liveSlotModal(channelId, hour){
 
   const v = openModal(h);
 
-  // Wire block buttons
   for(const block of DATA.PROGRAM_BLOCKS || []){
     const btn = v.querySelector("#slotBlock_" + block.id);
     if(btn){
@@ -10235,7 +10259,6 @@ function liveSlotModal(channelId, hour){
     }
   }
 
-  // Wire film buttons
   for(const f of eligibleFilms.slice(0, 20)){
     const btn = v.querySelector("#slotFilm_" + f.id);
     if(btn){
@@ -10254,23 +10277,26 @@ function liveFestSubmitModal(eventId){
   if(!ev) return;
 
   const eligibleFilms = (G.films || []).filter(f => !f.unreleased && (f.quality && f.quality.overall >= 45));
-
   const festFee = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.festivalFee) || 0.25;
+  const existing = ((G.live.events || {}).submissions || {})[eventId];
+
   let h = "<h3>Festival Competition: " + esc(ev.name) + "</h3>"+
-    "<div class='tiny muted' style='margin-bottom:12px'>" + esc(ev.desc || "") + " · Entry Fee: $" + festFee + "M · Week " + ev.week + " · Prestige " + (ev.prestige || 0) + "</div>";
+    "<div class='tiny muted' style='margin-bottom:12px'>" + esc(ev.desc || "") + " · Entry Fee: $" + festFee + "M · Week " + ev.week + " · Prestige " + (ev.prestige || 0) + "</div>"+
+    (existing ? "<div class='tiny' style='margin-bottom:10px'>Already submitted: <b>" + esc(liveTitleOf(existing) || "Film") + "</b>. Submitting another film replaces it and charges the fee again.</div>" : "");
 
   if(!eligibleFilms.length){
-    h += "<div class='card muted small'>No films meet the minimum festival submission quality standard (Quality >= 45). Produce higher quality pictures to enter competition.</div>";
+    h += "<div class='live-modal-group muted small'>No films meet the minimum festival submission quality standard (Quality &gt;= 45). Produce higher quality pictures to enter competition.</div>";
   } else {
-    h += "<div class='card' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px'>";
+    h += "<div class='live-modal-group' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px'>";
     for(const f of eligibleFilms){
-      const qual = f.quality && f.quality.overall || 50;
+      const qual = (f.quality && f.quality.overall) || 50;
       h += "<div class='row spread' style='padding:6px 10px;background:var(--bg2);border-radius:var(--radius-sm)'>"+
-        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + " · Score: " + qual + "</span></div>"+
+        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + esc((DATA.GENRES[f.genre]||{}).name || "") + " · Score: " + qual + "</span></div>"+
         "<button class='btn btn-xs btn-primary' id='festSub_" + f.id + "' " + (G.studio.cash >= festFee ? "" : "disabled") + ">Submit ($" + festFee + "M)</button>"+
         "</div>";
     }
     h += "</div>";
+    if(G.studio.cash < festFee) h += "<div class='tiny muted' style='margin-top:8px'>Not enough cash for the $" + festFee + "M entry fee.</div>";
   }
 
   h += "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Cancel</button></div>";
@@ -10296,22 +10322,26 @@ function liveFestSubmitModal(eventId){
 
 function livePremiereModal(){
   const upcomingFilms = (G.projects || []).concat((G.films || []).filter(f => !f.archived)).slice(0, 15);
-
   const premCost = (DATA.LIVE_COSTS && DATA.LIVE_COSTS.premiere) || 1.5;
+  const cities = (DATA.LIVE_EVENTS || []).filter(e => e.type === "premiere");
+
   let h = "<h3>Host Red Carpet Star Gala Premiere</h3>"+
-    "<div class='tiny muted' style='margin-bottom:12px'>Gala premieres cost " + fmtM(premCost) + " cash. The premiere is queued now and broadcasts on the next weekly tick, applying +0.25 buzzBonus to the film exactly once.</div>";
+    "<div class='tiny muted' style='margin-bottom:12px'>Gala premieres cost " + liveMoney(premCost) + " cash. The premiere is queued now and broadcasts on the next weekly tick, applying +0.25 buzzBonus to the film exactly once.</div>"+
+    "<label class='tiny muted' style='display:block;margin-bottom:12px'>Premiere city "+
+    "<select id='premCity'>" + cities.map(c => "<option value='" + esc(c.id.replace("premiere_","")) + "'>" + esc(c.name) + " — prestige " + (c.prestige || 0) + "</option>").join("") + "</select></label>";
 
   if(!upcomingFilms.length){
-    h += "<div class='card muted small'>No active projects or theatrical titles available for a premiere gala.</div>";
+    h += "<div class='live-modal-group muted small'>No active projects or theatrical titles available for a premiere gala.</div>";
   } else {
-    h += "<div class='card' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px'>";
+    h += "<div class='live-modal-group' style='max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px'>";
     for(const f of upcomingFilms){
       h += "<div class='row spread' style='padding:6px 10px;background:var(--bg2);border-radius:var(--radius-sm)'>"+
-        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + DATA.GENRES[f.genre].name + "</span></div>"+
-        "<button class='btn btn-xs btn-primary' id='premGo_" + f.id + "' " + (G.studio.cash >= premCost ? "" : "disabled") + ">Host Gala (" + fmtM(premCost) + ")</button>"+
+        "<div><b>" + esc(f.title) + "</b> <span class='tiny muted'>" + esc((DATA.GENRES[f.genre]||{}).name || "") + "</span></div>"+
+        "<button class='btn btn-xs btn-primary' id='premGo_" + f.id + "' " + (G.studio.cash >= premCost ? "" : "disabled") + ">Host Gala (" + liveMoney(premCost) + ")</button>"+
         "</div>";
     }
     h += "</div>";
+    if(G.studio.cash < premCost) h += "<div class='tiny muted' style='margin-top:8px'>Not enough cash — a gala needs " + liveMoney(premCost) + ".</div>";
   }
 
   h += "<div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Cancel</button></div>";
