@@ -8681,7 +8681,7 @@ function viewStreamerCard(){
       statCard(fmtSubs(ceil),"Subscriber ceiling")+
       statCard("+"+fmtM(s.subs*0.5)+"/wk","Streamer revenue","var(--green)")+
       statCard(fmtM(s.totalRev),"Lifetime revenue")+
-      statCard(Math.round(G.sportsPower||0),"Sports power")+
+      statCard(Math.round(G.streamer.sportsPower||0),"Sports power")+
       statCard((G.mySports.length? G.mySports.map(x=>DATA.SPORTS.find(d=>d.id===x.kind).emoji).join(" "):"—"),"Sports held")+
     "</div>"+
     "<div class='card'>"+meter(s.subs, ceil, "linear-gradient(90deg,#b48bff,#e0c3ff)")+

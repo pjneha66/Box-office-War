@@ -83,6 +83,15 @@ try{
   assert($$('#view [data-live-event]').every(b=>b.disabled),'live-event licenses are disabled without a streamer');
   console.log('PASS A4: crackdown and live-event buttons call their engine actions with disabled states');
 
+  /* A5 — legacy dashboard telemetry reads the real nested streamer field. */
+  const uiSource=fs.readFileSync('ui.js','utf8');
+  assert(!/\bG\.sportsPower\b/.test(uiSource),'UI must not read the non-existent legacy G.sportsPower field');
+  w.eval(`G.streamer={name:'Sports Stat',subs:8,peak:8,income:4,totalRev:20,sportsPower:7,churn:.008,lastContent:G.week,tier:'premium',history:[],subHistory:[]};`);
+  assert(w.eval('viewStreamerCard()').includes('Sports power'),'legacy dashboard still labels its sports-power stat');
+  w.eval(`G.streamer=null;`);
+  assert(w.eval('viewStreamerCard()')!==null,'empty streamer dashboard card remains safe');
+  console.log('PASS A5: no legacy G.sportsPower reads remain');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');
 }catch(e){
