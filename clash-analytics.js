@@ -156,4 +156,7 @@
   global.ClashAnalyticsModule = ClashAnalyticsModule;
   global.analyzeReleaseCongestion = analyzeReleaseCongestion;
   global.openClashAnalyticsModal = openClashAnalyticsModal;
+  /* The dashboards and the marquee banner call this by its short name; without
+     the alias those buttons were silently dead. One function, both names. */
+  global.clashAnalyticsModal = openClashAnalyticsModal;
 })(typeof window !== "undefined" ? window : global);

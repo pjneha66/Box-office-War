@@ -167,23 +167,27 @@
   global.openTheaterChainsModal = function(){
     if(!global.G) return;
     BOW_THEATERS.init(global.G);
-    const chains = (global.DATA && global.DATA.CHAINS) || [];
+    /* DATA is declared with const in data.js, so it lives in the global lexical
+       scope and is NOT a window property — read the bare binding first. */
+    const chains = (typeof DATA !== "undefined" && DATA.CHAINS) || (global.DATA && global.DATA.CHAINS) || [];
     const owned = global.G.ownedChains || [];
     const share = Math.round(global.G.exhibition.ownedScreenShare * 100);
 
-    let h = "<h3>Exhibition Empire & Theater Chains</h3>";
-    h += "<p class='tiny muted'>Acquire national cinema circuits to capture 100% box office splits on your screens and earn weekly concession revenues.</p>";
-
-    h += "<div class='card' style='margin-bottom:12px;border-left:3px solid var(--gold2)'>";
-    h += "<div class='spread'><b>Domestic Screen Ownership: " + share + "%</b><span class='pos'>Concessions: +" + (typeof global.fmtM === "function" ? global.fmtM(global.G.exhibition.weeklyConcessions || 0) : "$" + (global.G.exhibition.weeklyConcessions || 0) + "M") + "/wk</span></div>";
-    h += "<div class='tiny muted'>Owned screens pay 100% of box office to you instead of standard 50% distributor split.</div>";
+    /* Command-produce shell: branded head, card body, foot. The circuit cards
+       below keep their data-buychain / data-upchain hooks untouched. */
+    let h = "<div class='produce-modal-head'><span class='command-eyebrow'>BOX OFFICE / EXHIBITION</span><h3>Exhibition empire &amp; theater chains</h3><p>Acquire national circuits to capture the full box-office split on your own screens and bank weekly concession revenue. Owned auditoriums pay you 100% instead of the standard distributor share.</p></div>";
+    h += "<div class='produce-modal-body'>";
+    h += "<div class='produce-modal-card'>";
+    h += "<div class='spread'><h4>Domestic screen ownership — " + share + "%</h4><b class='gold'>Concessions +" + (typeof global.fmtM === "function" ? global.fmtM(global.G.exhibition.weeklyConcessions || 0) : "$" + (global.G.exhibition.weeklyConcessions || 0) + "M") + "/wk</b></div>";
+    h += "<p>Tickets on owned screens return the exhibitor share as well as the distributor share. Concessions settle every week whether or not you have a picture playing.</p>";
     h += "</div>";
 
-    h += "<div class='grid g2' style='gap:10px'>";
+    h += "<div class='produce-modal-card'><h4>The five circuits</h4><p>Each acquisition is a one-off price plus weekly upkeep — the screens keep earning while you hold them.</p>";
+    h += "<div class='grid g2' style='gap:10px;margin-top:10px'>";
     chains.forEach(c => {
       const isOwned = owned.includes(c.id);
       const p = BOW_THEATERS.CHAIN_PRICING[c.id] || { price: 150, screensCount: 1500 };
-      const ups = (global.G.chainUpgrades[c.id] || []);
+      const ups = ((global.G.chainUpgrades && global.G.chainUpgrades[c.id]) || []);
 
       h += "<div class='card' style='" + (isOwned ? "border:1px solid var(--green);" : "") + "'>";
       h += "<div class='spread'><b>" + c.name + "</b>" + (isOwned ? "<span class='tag green'>OWNED</span>" : "<span class='tag'>" + (typeof global.fmtM === "function" ? global.fmtM(p.price) : "$" + p.price + "M") + "</span>") + "</div>";
@@ -210,9 +214,11 @@
       }
       h += "</div>";
     });
+    h += "</div></div>";
     h += "</div>";
+    h += "<div class='produce-modal-actions'><span class='tiny muted'>" + owned.length + " of " + chains.length + " circuits owned</span><button class='produce-ghost' onclick='closeModal()'>Close</button></div>";
 
-    const v = (typeof global.openModal === "function") ? global.openModal(h) : null;
+    const v = (typeof global.openModal === "function") ? global.openModal(h, {className:"command-produce-modal"}) : null;
     if(!v) return;
 
     v.querySelectorAll("[data-buychain]").forEach(b => {

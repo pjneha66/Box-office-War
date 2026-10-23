@@ -8938,12 +8938,33 @@ function fmtNum(v, dec){
   return _nf(LOCALE(), {minimumFractionDigits:d, maximumFractionDigits:d}).format(num(v));
 }
 function fmtPct(v, dec){ return fmtNum(v, dec==null?0:dec)+"%"; }
+/* Currency-aware money formatters. These must never print a placeholder
+   symbol: when the player picks a non-USD display currency we hand the whole
+   figure to fmtIntlCurrency (INR crores, JPY oku, EUR/GBP millions), and
+   otherwise we print the USD figure with locale-aware digits. */
+function _nonUsdCurrency(){
+  try{
+    return (typeof getActiveCurrencyCode==="function" && getActiveCurrencyCode()!=="USD" && typeof fmtIntlCurrency==="function");
+  }catch(e){ return false; }
+}
 function fmtMoney(v){
-  const n=num(v), s=n<0?"−":"";
+  const n=num(v);
+  if(_nonUsdCurrency()) return fmtIntlCurrency(n);
+  const s=n<0?"−":"";
   return s+"$"+fmtNum(Math.abs(n), (Math.abs(n)<1&&n!==0)?2:1)+"M";
 }
-function fmtM(v){ const n=num(v); return "$"+fmtNum(Math.abs(n),1)+"M"; }
-function fmtG(v){ const n=num(v); return "∅"+fmtNum(Math.abs(n),1); }
+function fmtM(v){
+  const n=num(v);
+  if(_nonUsdCurrency()) return fmtIntlCurrency(n);
+  return (n<0?"−":"")+"$"+fmtNum(Math.abs(n),1)+"M";
+}
+function fmtG(v){ // gross: scaled to B / M with sensible decimals
+  const n=num(v), a=Math.abs(n), s=n<0?"−":"";
+  if(_nonUsdCurrency()) return fmtIntlCurrency(n);
+  if(a>=1000) return s+"$"+fmtNum(a/1000,2)+"B";
+  if(a>=100)  return s+"$"+fmtNum(a,0)+"M";
+  return s+"$"+fmtNum(a,1)+"M";
+}
 function fmtSubs(v){
   const n=num(v);
   if(n>=1e9) return fmtNum(n/1e9,1)+"B";

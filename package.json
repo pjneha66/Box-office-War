@@ -42,10 +42,12 @@
     "test:start:layout": "node test/start-landscape-browser.cjs",
     "test:lot:hiring": "node test/lot-hiring-browser.cjs",
     "test:start:theme": "node test/start-theme-browser.cjs",
-    "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs",
+    "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs && node test/boxoffice-deck.mjs && node test/rebrand-streamer.mjs && node test/cost-sheet.mjs",
     "test:pitch": "node test/pitch-location-inbox-browser.cjs",
     "serve": "python3 -m http.server 8080 --bind 0.0.0.0",
-    "test:rebrand": "node test/pitch-studio-greenlight-browser.cjs"
+    "test:rebrand": "node test/pitch-studio-greenlight-browser.cjs",
+    "test:boxoffice": "node test/boxoffice-deck.mjs && node test/rebrand-streamer.mjs && node test/cost-sheet.mjs",
+    "serve:nocache": "python3 scripts/serve-nocache.py 3000"
   },
   "keywords": [
     "game",

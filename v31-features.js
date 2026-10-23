@@ -344,7 +344,7 @@ const TAB_META = {
   studio:      [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"]],
   develop:     [["scripts","Scripts"],["demographics","Audience lab"],["creativity","Craft & vault"],["ip","Rights market"],["talent","Talent desk"],["combos","Combos codex"],["tax","Locations & partners"]],
   productions: [["all","All"],["pre","Pre"],["shoot","Shoot"],["post","Post"],["ready","Ready"],["dated","Dated"]],
-  boxoffice:   [["chart","Theatrical Charts"],["chains","Mega-Chains and PLF"],["territories","Territory Deals"],["awards","Awards Circuit"],["clash","Clash Radar"]],
+  boxoffice:   [["chart","Theatrical chart"],["chains","Mega-chains"],["plf","PLF & concessions"],["blitz","Marketing blitz"],["territories","Territory deals"],["awards","Awards circuit"],["clash","Clash radar"]],
   fans:        [["all","All"],["mail","Mail"],["trending","Trending"],["viral","Viral"]],
   ott:         [["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]],
   live:        [["linear","Linear Channels"],["stream","Live Stream Hub"],["events","Live Events"],["studio","Host Studio"]],
