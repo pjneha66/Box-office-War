@@ -227,6 +227,43 @@ try{
   assert.equal(w.eval('G.label.artists[0].chartUntil === G.week + 8'), true, 'tourArtist grants 8-week chart window');
   console.log('PASS A4: World Tour button/tooltip/disabled state match tourArtist() ($8M, +6% buzz, 8-wk chart)');
 
+  /* ── A5 — Podcast formatting ($500K not $500KM), wired launchPodcast(), 12-wk duration, G.streamer honesty ── */
+  fresh('franchises');
+  w.eval(`
+    G.streamer=null;
+    G.studio.cash=10;
+    G.franchises=[{id:301,name:'Echo Files',tier:1,entries:[],ww:120,merch:0,park:0,gameSold:0,decay:1,genre:'thriller',earned:0,built:1}];
+    render();
+  `);
+  assert.equal(w.eval('DATA.PODCAST.duration'),12,'DATA.PODCAST.duration matches 12-week tickPodcasts run');
+  const podBtn=$('[data-fr-podcast="301"]');
+  assert(podBtn,'[data-fr-podcast="301"] exists');
+  assert(podBtn.textContent.includes(w.fmtM(0.5)) && !podBtn.textContent.includes('$0.5MM') && !podBtn.textContent.includes('$500KM'),
+    `podcast label "${podBtn.textContent}" must render ${w.fmtM(0.5)} without duplicate M`);
+  assert.match(podBtn.textContent+" "+(podBtn.title||"")+" "+viewText(),/12\s*wk|12-wk|12 week/i,'podcast states 12-week duration');
+  assert.match(podBtn.textContent+" "+(podBtn.title||"")+" "+viewText(),/streamer/i,'podcast honestly states G.streamer requirement for sub conversion');
+
+  /* Disabled when cash < $0.5M; mid-render cash loss refuses via launchPodcast().err */
+  w.eval(`G.studio.cash=0.1; render();`);
+  assert.equal($('[data-fr-podcast="301"]').disabled,true,'[data-fr-podcast] disabled when cash < $0.5M');
+  w.eval(`G.studio.cash=5; render(); G.studio.cash=0.1;`);
+  clearBeeps(); clearToasts();
+  $('[data-fr-podcast="301"]').click();
+  assert(!beeps().includes('gold') && !beeps().includes('cash'),'[data-fr-podcast] refusal must not play gold/cash');
+  assert.match(toastText(),/fund|cash|\$0\.5M/i,'[data-fr-podcast] refusal toasts launchPodcast error');
+
+  /* Clicking funded button calls real launchPodcast(), ticks 12 weeks, converts subs iff G.streamer exists */
+  w.eval(`G.studio.cash=5; G.streamer={name:'EchoPlus',subs:2.0,peak:2.0,churn:0.01,income:0,totalRev:0,lastContent:G.week}; render();`);
+  const repBeforePod=w.eval('G.studio.rep');
+  $('[data-fr-podcast="301"]').click();
+  assert.equal(w.eval('G.franchises[0].podcast'),true,'clicking [data-fr-podcast] sets fr.podcast via launchPodcast()');
+  assert.equal(w.eval('G.franchises[0].podcastWeeks'),0,'launchPodcast initialises podcastWeeks = 0');
+  assert.equal(w.eval('G.studio.rep'),Math.min(99,repBeforePod+1),'launchPodcast grants +1 rep');
+  w.eval(`for(let i=0;i<12;i++) tickPodcasts();`);
+  assert.equal(w.eval('G.franchises[0].podcastDone'),true,'podcast completes after 12 ticks');
+  assert.equal(w.eval('G.streamer.subs'),8.0,'12 podcast weeks add +6.0M subs when G.streamer is active');
+  console.log('PASS A5: Podcast $500K formatting, wired launchPodcast(), 12-wk run, honest streamer sub conversion');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

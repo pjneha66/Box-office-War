@@ -6611,6 +6611,11 @@ function bindView(){
   $$("[data-seq]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.seq); if(s) startSequel(s); beep("click"); });
   $$("[data-spin]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.spin); if(s) startSpinoff(s); beep("click"); });
   $$("[data-fr]").forEach(b=>b.onclick=()=>{ viewFranchiseDetail(b.dataset.fr); beep("click"); });
+  $$("[data-fr-podcast]").forEach(b=>b.onclick=()=>{
+    const r=launchPodcast(b.dataset.frPodcast);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&(r.err||r.reason))||"Cannot launch podcast right now.","bad"); render(); }
+  });
   $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{
     const r=upgradeMerch(b.dataset.frMerch);
     if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
@@ -7806,8 +7811,12 @@ function viewEmpire(){
       ((G.licensedOut||[]).filter(L=>L.name===fr.name).length? "<div class='tiny gold' style='margin-top:6px'>📦 Licensed out to "+(G.licensedOut.filter(L=>L.name===fr.name).map(L=>L.rival).join(", "))+" — backend pending; merch shelf sags while away.</div>":"")+
       "<div class='fr-actions'>"+
       "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ "+(frResolvableFilm(fr)? "Greenlight Sequel":"Greenlight First Entry")+"</button>"+
-      (fr.podcast? "<span class='tag green' style='align-self:center'>🎙️ Podcast live</span>"
-        : "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"'>🎙️ Launch Podcast · "+fmtM(DATA.PODCAST?.cost||0.5)+"M</button>")+
+      (fr.podcast? (fr.podcastDone? "<span class='tag' style='align-self:center'>🎙️ Podcast complete</span>" : "<span class='tag green' style='align-self:center'>🎙️ Podcast live · "+Math.max(0,(DATA.PODCAST?.duration||12)-(fr.podcastWeeks||0))+" wks left</span>")
+        : (function(){
+          const pc=DATA.PODCAST?.cost||0.5, dur=DATA.PODCAST?.duration||12, subs=DATA.PODCAST?.subsPerWeek||0.5, ok=G.studio.cash>=pc;
+          const subCopy=G.streamer? "+"+subs+"M subs/wk to "+esc(G.streamer.name) : "needs own streamer for +"+subs+"M subs/wk";
+          return "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"' title='"+dur+" wks · +1 rep · "+subCopy+"'"+(ok?"":" disabled")+">🎙️ Launch Podcast · "+fmtM(pc)+" ("+dur+" wks · "+(G.streamer?"+"+subs+"M subs/wk":"+1 rep, streamer req. for subs")+")</button>";
+        })())+
       (fr.merch<3? (function(){
         const mc=merchCost(fr), ok=G.studio.cash>=mc;
         return "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(mc)+" cash'")+">🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(mc)+(ok?"":" (need "+fmtM(mc)+")")+"</button>";

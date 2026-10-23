@@ -1250,8 +1250,8 @@ DATA.DOCUMENTARY = {
 /* ── Podcast / Audio Drama ── */
 DATA.PODCAST = {
   cost: 0.5,         // $500K
-  duration: 4,       // weeks to produce
-  subsPerWeek: 0.5,  // +0.5M subs/week for 12 weeks
+  duration: 12,      // 12-week audio run
+  subsPerWeek: 0.5,  // +0.5M subs/week for 12 weeks (when own streamer is live)
   repGain: 1,
   awarenessBoost: 5, // franchise awareness +5%
 };

@@ -2963,21 +2963,28 @@ function greenlightDocumentary(cfg){
 
 /* ── v20: Podcast / Audio Drama ── */
 function launchPodcast(franchiseId){
-  const fr = G.franchises.find(x=>x.id===franchiseId);
-  if(!fr) return {ok:false, err:"Franchise not found"};
-  if(fr.podcast) return {ok:false, err:"Podcast already launched"};
+  const fr = frById(franchiseId);
+  if(!fr) return {ok:false, err:"Franchise not found", reason:"Franchise not found"};
+  if(fr.podcast) return {ok:false, err:"Podcast already launched", reason:"Podcast already launched"};
   const cost = DATA.PODCAST?.cost||0.5;
-  if(G.studio.cash < cost) return {ok:false, err:"Insufficient funds"};
+  const dur = DATA.PODCAST?.duration||12;
+  const subsWk = DATA.PODCAST?.subsPerWeek||0.5;
+  if(G.studio.cash < cost) return {ok:false, err:"Insufficient funds ("+fmtM(cost)+" required)", reason:"Insufficient funds ("+fmtM(cost)+" required)"};
   spend("marketing", cost);
   fr.podcast = true;
   fr.podcastWeeks = 0;
   G.studio.rep = clamp(G.studio.rep + (DATA.PODCAST.repGain||1), 5, 99);
-  log("🎙️ PODCAST LAUNCHED: "+fr.name+" — $"+cost+"M, +0.5M subs/wk for 12 weeks.","gold");
+  if(G.streamer){
+    log("🎙️ PODCAST LAUNCHED: "+fr.name+" — "+fmtM(cost)+", +"+subsWk+"M subs/wk to "+G.streamer.name+" for "+dur+" weeks.","gold");
+  }else{
+    log("🎙️ PODCAST LAUNCHED: "+fr.name+" — "+fmtM(cost)+", "+dur+"-week audio run (+1 rep; launch your own streamer to convert +"+subsWk+"M subs/wk).","gold");
+  }
   saveGame();
   return {ok:true};
 }
 
 function tickPodcasts(){
+  const dur = (DATA.PODCAST && DATA.PODCAST.duration) || 12;
   for(const fr of G.franchises){
     if(fr.podcast && !fr.podcastDone){
       fr.podcastWeeks = (fr.podcastWeeks||0) + 1;
@@ -2985,9 +2992,9 @@ function tickPodcasts(){
         const boost = DATA.PODCAST.subsPerWeek||0.5;
         G.streamer.subs = Math.round((G.streamer.subs + boost)*100)/100;
       }
-      if(fr.podcastWeeks >= 12){
+      if(fr.podcastWeeks >= dur){
         fr.podcastDone = true;
-        log("🎙️ "+fr.name+" podcast completed its run.","gold");
+        log("🎙️ "+fr.name+" podcast completed its "+dur+"-week run.","gold");
       }
     }
   }
