@@ -6611,12 +6611,24 @@ function bindView(){
   $$("[data-seq]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.seq); if(s) startSequel(s); beep("click"); });
   $$("[data-spin]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.spin); if(s) startSpinoff(s); beep("click"); });
   $$("[data-fr]").forEach(b=>b.onclick=()=>{ viewFranchiseDetail(b.dataset.fr); beep("click"); });
-  $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{ upgradeMerch(+b.dataset.frMerch); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-park]").forEach(b=>b.onclick=()=>{ buildPark(+b.dataset.frPark); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-sell]").forEach(b=>b.onclick=()=>{ franchiseSaleModal(+b.dataset.frSell); beep("click"); });
-  $$("[data-fr-game]").forEach(b=>b.onclick=()=>{ sellGameRights(+b.dataset.frGame); beep("cash"); flashes(G.flash); render(); });
+  $$("[data-fr-merch]").forEach(b=>b.onclick=()=>{
+    const r=upgradeMerch(b.dataset.frMerch);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Cannot upgrade merchandise right now.","bad"); render(); }
+  });
+  $$("[data-fr-park]").forEach(b=>b.onclick=()=>{
+    const r=buildPark(b.dataset.frPark);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Cannot build park attraction right now.","bad"); render(); }
+  });
+  $$("[data-fr-sell]").forEach(b=>b.onclick=()=>{ franchiseSaleModal(b.dataset.frSell); beep("click"); });
+  $$("[data-fr-game]").forEach(b=>b.onclick=()=>{
+    const r=sellGameRights(b.dataset.frGame);
+    if(r&&r.ok){ beep("cash"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Game rights unavailable for this tier.","bad"); render(); }
+  });
   $$("[data-fr-seq]").forEach(b=>b.onclick=()=>{
-    const fr=frById(+b.dataset.frSeq);
+    const fr=frById(b.dataset.frSeq);
     const f=frResolvableFilm(fr);
     if(f){ beep("click"); startSequel(f); }
     else if(fr){ beep("click"); startSpinoff(fr); }   // no original on file (purchased IP) — open the wizard as the franchise's first entry
@@ -6711,10 +6723,14 @@ function bindView(){
   $$("[data-agdeal]").forEach(b=>b.onclick=()=>{ if(signAgencyDeal(b.dataset.agdeal)){ beep("gold"); flashes(G.flash); } render(); });
   $$("[data-ma]").forEach(b=>b.onclick=()=>{ if(maBuy(+b.dataset.ma)){ beep("gold"); flashes(G.flash); } render(); });
   $$("[data-fyc]").forEach(b=>b.onclick=()=>{ beep("click"); fycModal(+b.dataset.fyc); });
-  $$("[data-fr-toys]").forEach(b=>b.onclick=()=>{ signToyLine(+b.dataset.frToys); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-spin]").forEach(b=>b.onclick=()=>{ const fr=frById(+b.dataset.frSpin); if(fr){ beep("click"); startSpinoff(fr); } });
-  $$("[data-fr-tv]").forEach(b=>b.onclick=()=>{ franchiseTvSpinoff(+b.dataset.frTv); beep("gold"); flashes(G.flash); render(); });
-  $$("[data-fr-more]").forEach(b=>b.onclick=()=>{ beep("click"); empireModal(+b.dataset.frMore); });
+  $$("[data-fr-toys]").forEach(b=>b.onclick=()=>{
+    const r=signToyLine(b.dataset.frToys);
+    if(r&&r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r&&r.reason)||"Cannot sign toy line right now.","bad"); render(); }
+  });
+  $$("[data-fr-spin]").forEach(b=>b.onclick=()=>{ const fr=frById(b.dataset.frSpin); if(fr){ beep("click"); startSpinoff(fr); } });
+  $$("[data-fr-tv]").forEach(b=>b.onclick=()=>{ franchiseTvSpinoff(b.dataset.frTv); beep("gold"); flashes(G.flash); render(); });
+  $$("[data-fr-more]").forEach(b=>b.onclick=()=>{ beep("click"); empireModal(b.dataset.frMore); });
   $$("[data-merchline]").forEach(b=>b.onclick=()=>{ const [fid,lid]=b.dataset.merchline.split(":"); if(launchMerchLine(+fid,lid)){ beep("cash"); flashes(G.flash); render(); } else beep("bad"); });
   $$("[data-rerelease]").forEach(b=>b.onclick=()=>{ rereleaseFilm(+b.dataset.rerelease); beep("gold"); flashes(G.flash); render(); });
   $$("[data-court]").forEach(b=>b.onclick=()=>{ courtChain(b.dataset.court); beep("gold"); flashes(G.flash); render(); });   // v12: warm up a theater chain
@@ -7769,10 +7785,19 @@ function viewEmpire(){
       "<button class='btn btn-sm btn-primary' data-fr-seq='"+fr.id+"'>⚡ "+(frResolvableFilm(fr)? "Greenlight Sequel":"Greenlight First Entry")+"</button>"+
       (fr.podcast? "<span class='tag green' style='align-self:center'>🎙️ Podcast live</span>"
         : "<button class='btn btn-sm btn-alt' data-fr-podcast='"+fr.id+"'>🎙️ Launch Podcast · "+fmtM(DATA.PODCAST?.cost||0.5)+"M</button>")+
-      (fr.merch<3? "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'>🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(merchCost(fr))+"</button>" : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
-      (fr.park<3? (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'>🎡 "+(fr.park?(fr.park===2?"Resort district":"Expand park"):"Build attraction")+" · "+fmtM(parkCost(fr))+"</button>" : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
+      (fr.merch<3? (function(){
+        const mc=merchCost(fr), ok=G.studio.cash>=mc;
+        return "<button class='btn btn-sm btn-alt' data-fr-merch='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(mc)+" cash'")+">🧸 "+(fr.merch?"Upgrade merch":"Launch merch")+" · "+fmtM(mc)+(ok?"":" (need "+fmtM(mc)+")")+"</button>";
+      })() : "<span class='tag green' style='align-self:center'>merch maxed</span>")+
+      (fr.park<3? (fr.tier>=2? (function(){
+        const pc=parkCost(fr), ok=G.studio.cash>=pc;
+        return "<button class='btn btn-sm btn-alt' data-fr-park='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(pc)+" cash'")+">🎡 "+(fr.park?(fr.park===2?"Resort district":"Expand park"):"Build attraction")+" · "+fmtM(pc)+(ok?"":" (need "+fmtM(pc)+")")+"</button>";
+      })() : "<span class='tag' style='align-self:center'>🎡 park unlocks at tier 2</span>") : "<span class='tag green' style='align-self:center'>park maxed</span>")+
       (fr.gameSold!==fr.tier? "<button class='btn btn-sm btn-alt' data-fr-game='"+fr.id+"'>🎮 License game rights (Tier "+fr.tier+": +"+fmtM(fr.tier*20)+")</button>":"")+
-      (!fr.toys && fr.merch>=1? "<button class='btn btn-sm btn-alt' data-fr-toys='"+fr.id+"'>🧒 Toy line · "+fmtM(DATA.MERCH_V2? DATA.MERCH_V2.toyCost(fr.tier):45)+"</button>":"")+
+      (!fr.toys && fr.merch>=1? (function(){
+        const tc=DATA.MERCH_V2? DATA.MERCH_V2.toyCost(fr.tier):45, ok=G.studio.cash>=tc;
+        return "<button class='btn btn-sm btn-alt' data-fr-toys='"+fr.id+"'"+(ok?"":" disabled title='Requires "+fmtM(tc)+" cash'")+">🧒 Toy line · "+fmtM(tc)+(ok?"":" (need "+fmtM(tc)+")")+"</button>";
+      })() : "")+
       ((fr.fatigue||0)>0.1? "<button class='btn btn-sm btn-alt' data-fr-reboot='"+fr.id+"'>✨ Brand Reboot ($25M)</button>":"")+
       "<button class='btn btn-sm btn-alt' data-fr-spin='"+fr.id+"'>🎬 Spin-off film</button>"+
       (fr.tier>=2? "<button class='btn btn-sm btn-alt' data-fr-tv='"+fr.id+"'>📺 TV spin-off</button>":"")+
@@ -9045,15 +9070,16 @@ function fycModal(fid){
 function empireModal(frId){
   const fr=frById(frId); if(!fr) return;
   const others=G.franchises.filter(x=>x!==fr);
+  const canCollab=G.studio.cash>=6, canDtv=G.studio.cash>=12, canPub=G.studio.cash>=15, canResort=G.studio.cash>=400, canCross=G.studio.cash>=40, canMerge=G.studio.cash>=150;
   let h="<h3>🏰 "+esc(fr.name)+" — empire moves</h3>"+
     "<div class='tiny muted'>Tier "+fr.tier+" · fatigue "+Math.round((fr.fatigue||0)*100)+"% · heat "+Math.round(clamp(1-(fr.decay||0),0,1)*100)+"%</div>";
   h+="<div class='card' style='margin-top:8px'><div class='row'>"+
-    (((fr.collabAt||0)>G.week)? "<span class='tag green'>🤝 collab live</span>" : "<button class='btn btn-sm btn-alt' id='emCollab'>🤝 Brand collab · $6M</button>")+
-    (((fr.dtvAt||0)>G.week)? "<span class='tag green'>📀 DTV in stores</span>" : "<button class='btn btn-sm btn-alt' id='emDtv'>📀 DTV sequel · $12–22M</button>")+
-    (fr.publishing? "<span class='tag green'>📚 publishing arm</span>" : "<button class='btn btn-sm btn-alt' id='emPub'>📚 Publishing arm · $15M</button>")+
+    (((fr.collabAt||0)>G.week)? "<span class='tag green'>🤝 collab live</span>" : "<button class='btn btn-sm btn-alt' id='emCollab'"+(canCollab?"":" disabled title='Requires $6M cash'")+">🤝 Brand collab · $6M"+(canCollab?"":" (need $6M)")+"</button>")+
+    (((fr.dtvAt||0)>G.week)? "<span class='tag green'>📀 DTV in stores</span>" : "<button class='btn btn-sm btn-alt' id='emDtv'"+(canDtv?"":" disabled title='Requires $12–22M cash'")+">📀 DTV sequel · $12–22M"+(canDtv?"":" (need $12M+)")+"</button>")+
+    (fr.publishing? "<span class='tag green'>📚 publishing arm</span>" : "<button class='btn btn-sm btn-alt' id='emPub'"+(canPub?"":" disabled title='Requires $15M cash'")+">📚 Publishing arm · $15M"+(canPub?"":" (need $15M)")+"</button>")+
   "</div></div>";
   h+="<div class='card'><div class='row'>"+
-    (fr.resort? "<span class='tag green'>🏝 resort open</span>" : (fr.park>=1? "<button class='btn btn-sm btn-gold' id='emResort'>🏝 Resort & cruise line · $400M</button>" : "<span class='tiny muted'>🏝 Resort unlocks after the first 🎡 attraction</span>"))+
+    (fr.resort? "<span class='tag green'>🏝 resort open</span>" : (fr.park>=1? "<button class='btn btn-sm btn-gold' id='emResort'"+(canResort?"":" disabled title='Requires $400M cash'")+">🏝 Resort & cruise line · $400M"+(canResort?"":" (need $400M)")+"</button>" : "<span class='tiny muted'>🏝 Resort unlocks after the first 🎡 attraction</span>"))+
   "</div></div>";
   h+="<div class='card'><b>📦 License it out</b><div class='tiny muted' style='margin:4px 0'>Hand the brand to a rival for a fat upfront fee + a backend settlement on “"+dateLabel(G.week+39)+"”-ish paper. Brand heat fades while it's away.</div><div class='row'>"+
     (((fr.licenseAt||0)>G.week)? "<span class='tag green'>already out</span>" :
@@ -9061,21 +9087,25 @@ function empireModal(frId){
       (fr.merch>=1? "<button class='btn btn-sm btn-alt' id='emLicGoods'>🥤 Consumer goods</button>" : ""))+
   "</div></div>";
   if(others.length && fr.tier>=3){
-    h+="<div class='card'><b>💥 Crossover film</b> <span class='tiny muted'>($40M · tentpole idea lands in Develop · both brands tier 3+)</b><div class='row' style='margin-top:6px'>"+
+    h+="<div class='card'><b>💥 Crossover film</b> <span class='tiny muted'>($40M · tentpole idea lands in Develop · both brands tier 3+)</span><div class='row' style='margin-top:6px'>"+
       others.filter(o=>o.tier>=3)
-        .map(o=>"<button class='btn btn-sm btn-alt' data-em-cross='"+o.id+"'>× "+esc(o.name)+"</button>").join("")+
+        .map(o=>"<button class='btn btn-sm btn-alt' data-em-cross='"+o.id+"'"+(canCross?"":" disabled title='Requires $40M cash'")+">× "+esc(o.name)+(canCross?"":" (need $40M)")+"</button>").join("")+
       (others.filter(o=>o.tier<3).length? "<span class='tiny muted'>"+others.filter(o=>o.tier<3).length+" brand(s) below tier 3</span>" : "")+
     "</div></div>";
   }
   if(others.length && !G.universeBonus){
-    h+="<div class='card'><b>🌌 Weave a shared universe</b> <span class='tiny muted'>($150M · all franchise income +15% forever · one-time)</b><div class='row' style='margin-top:6px'>"+
+    h+="<div class='card'><b>🌌 Weave a shared universe</b> <span class='tiny muted'>($150M · all franchise income +15% forever · one-time)</span><div class='row' style='margin-top:6px'>"+
       others
-        .map(o=>"<button class='btn btn-sm btn-alt' data-em-merge='"+o.id+"'>⚭ "+esc(o.name)+"</button>").join("")+
+        .map(o=>"<button class='btn btn-sm btn-alt' data-em-merge='"+o.id+"'"+(canMerge?"":" disabled title='Requires $150M cash'")+">⚭ "+esc(o.name)+(canMerge?"":" (need $150M)")+"</button>").join("")+
     "</div></div>";
   }
   h+="<div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>"+t("btn.close")+"</button></div>";
   const v=openModal(h);
-  const go=(fn,arg)=>()=>{ fn.call(null,arg); beep("gold"); closeModal(); flashes(G.flash); render(); };
+  const go=(fn,arg)=>()=>{
+    const r=fn.call(null,arg);
+    if(r && r.ok){ beep("gold"); closeModal(); flashes(G.flash); render(); }
+    else { beep("bad"); toast((r && r.reason) || "Requirements not met.", "bad"); }
+  };
   const grab=id=>v.querySelector(id);
   if(grab("#emCollab")) grab("#emCollab").onclick=go(brandCollab, fr.id);
   if(grab("#emDtv"))    grab("#emDtv").onclick=go(dtvSequel, fr.id);
@@ -9083,8 +9113,8 @@ function empireModal(frId){
   if(grab("#emResort")) grab("#emResort").onclick=go(buildResort, fr.id);
   if(grab("#emLicFilm"))  grab("#emLicFilm").onclick=go(()=>licenseOut(fr.id,"film"));
   if(grab("#emLicGoods")) grab("#emLicGoods").onclick=go(()=>licenseOut(fr.id,"goods"));
-  v.querySelectorAll("[data-em-cross]").forEach(b=>b.onclick=go(()=>crossoverEvent(fr.id,+b.dataset.emCross)));
-  v.querySelectorAll("[data-em-merge]").forEach(b=>b.onclick=go(()=>mergeUniverse(fr.id,+b.dataset.emMerge)));
+  v.querySelectorAll("[data-em-cross]").forEach(b=>b.onclick=go(()=>crossoverEvent(fr.id,b.dataset.emCross)));
+  v.querySelectorAll("[data-em-merge]").forEach(b=>b.onclick=go(()=>mergeUniverse(fr.id,b.dataset.emMerge)));
 }
 
 /* ═══════════ VIEW: 2D Studio Lot Simulation (Rust Core) ═══════════ */

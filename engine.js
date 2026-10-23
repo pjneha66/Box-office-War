@@ -4977,7 +4977,7 @@ function upsertFranchise(f){
   G.studio.rep = clamp(G.studio.rep+1, 5, 99);
   if(fr.entries.length===1) log("🏰 FRANCHISE ANNOUNCED: \""+fr.name+"\" is now a universe — sequels, merch, parks.","gold");
 }
-function frById(id){ return G.franchises.find(x=>x.id===id); }
+function frById(id){ return G.franchises.find(x=>x.id===id || String(x.id)===String(id)); }
 function merchCost(fr){ return [30+fr.tier*15, 80+fr.tier*20, 160+fr.tier*30][fr.merch] || 0; }
 function parkCost(fr){ return [180+fr.tier*50, 350, 520][fr.park] || 0; }
 function frWeeklyIncome(fr){
@@ -4995,38 +4995,54 @@ function frWeeklyIncome(fr){
 }
 /* v5: toy-line licensing deal — one-off fee, permanent merch multiplier */
 function signToyLine(id){
-  const fr=frById(id); if(!fr || fr.toys || fr.merch<1) return;
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if(fr.toys) return { ok:false, reason:"Toy line is already signed for "+fr.name+"." };
+  if((fr.merch||0)<1) return { ok:false, reason:"Launch tier-1 merchandise before signing a toy line." };
   const c=(DATA.MERCH_V2? DATA.MERCH_V2.toyCost(fr.tier) : 45);
-  if(G.studio.cash<c){ log("💸 Toy-line deal costs "+fmtM(c)+".","bad"); return; }
+  if(G.studio.cash<c){ log("💸 Toy-line deal costs "+fmtM(c)+".","bad"); return { ok:false, reason:"Need "+fmtM(c)+" cash for the toy-line deal (have "+fmtM(G.studio.cash)+")." }; }
   spend("empire", c); fr.toys=true;
   G.studio.rep=clamp(G.studio.rep+1,5,99);
   log("🧸 \""+fr.name+"\" toy line signed — action figures on shelves by the holidays (merch income ×1.3 forever).","gold");
   saveGame();
+  return { ok:true };
 }
 function upgradeMerch(id){
-  const fr=frById(id); if(!fr || fr.merch>=3) return;
-  const c=merchCost(fr); if(G.studio.cash<c) return;
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if((fr.merch||0)>=3) return { ok:false, reason:"Merchandise program is already maxed at tier 3." };
+  const c=merchCost(fr);
+  if(G.studio.cash<c) return { ok:false, reason:"Need "+fmtM(c)+" cash to upgrade merchandise (have "+fmtM(G.studio.cash)+")." };
   spend("studio", c); fr.merch++;
   G.studio.rep=clamp(G.studio.rep+1,5,99);
   const label=["","toy & apparel line","global merch program","full consumer-products empire"][fr.merch];
   log("🧸 \""+fr.name+"\": launched "+label+" (−"+fmtM(c)+", +weekly income).","gold");
   saveGame();
+  return { ok:true };
 }
 function buildPark(id){
-  const fr=frById(id); if(!fr || fr.park>=3 || fr.tier<2) return;
-  const c=parkCost(fr); if(G.studio.cash<c) return;
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if((fr.park||0)>=3) return { ok:false, reason:"Theme-park footprint is already maxed at tier 3." };
+  if((fr.tier||0)<2) return { ok:false, reason:"Theme-park attractions require franchise tier 2+." };
+  const c=parkCost(fr);
+  if(G.studio.cash<c) return { ok:false, reason:"Need "+fmtM(c)+" cash for park construction (have "+fmtM(G.studio.cash)+")." };
   spend("studio", c); fr.park++;
   G.studio.rep=clamp(G.studio.rep+3,5,99);
   const lvl=["","theme-park attraction built","second gate expansion opened","full resort district opened"][fr.park]||"expanded";
   log("🎡 \""+fr.name+"\": "+lvl+" (−"+fmtM(c)+"). A landmark for the studio.","gold");
   saveGame();
+  return { ok:true };
 }
 function sellGameRights(id){
-  const fr=frById(id); if(!fr || fr.gameSold===fr.tier) return;
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if(fr.gameSold===fr.tier) return { ok:false, reason:"Game rights for tier "+fr.tier+" are already licensed." };
   const v=Math.round(20 + fr.tier*12 + Math.min(40, fr.ww/50));
   earn("empire", v); fr.gameSold=fr.tier;
   log("🎮 \""+fr.name+"\" game rights licensed for "+fmtM(v)+".","gold");
   saveGame();
+  return { ok:true, value:v };
 }
 /* ── per-film merchandising: one-shot licensing lines for eligible releases ──
    Demand reuses genre merch factor, audience score, WW scale and franchise
@@ -5817,8 +5833,10 @@ function seasonDateLabel(w){ const s=DATA.seasonOf(woyOf(w)); return s.month+" Y
 /* removed: legacy sealed-bid pack flow superseded by tickSportsAuctions (v3)+v5 line-up */
 
 function brandCollab(id){
-  const fr=frById(id); if(!fr || (fr.collabAt||0)>G.week) return;
-  if(G.studio.cash<6){ log("💸 A brand collab event costs $6M.","bad"); return; }
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if((fr.collabAt||0)>G.week) return { ok:false, reason:"Brand collab is on cooldown until "+dateLabel(fr.collabAt)+"." };
+  if(G.studio.cash<6){ log("💸 A brand collab event costs $6M.","bad"); return { ok:false, reason:"Need $6M cash for a brand collaboration (have "+fmtM(G.studio.cash)+")." }; }
   spend("marketing", 6);
   fr.collabAt=G.week+26;
   fr.decay=Math.min(1, fr.decay+0.25);
@@ -5826,15 +5844,20 @@ function brandCollab(id){
   earn("empire", bump); G.studio.rep=clamp(G.studio.rep+1,5,99);
   log("🤝 \""+fr.name+"\" × global brand collab dropped — heat up, +"+fmtM(bump)+" merch spike.","good");
   saveGame();
+  return { ok:true, bump };
 }
 
 function buildResort(id){
-  const fr=frById(id); if(!fr || fr.resort || fr.park<1) return;
-  if(G.studio.cash<400){ log("💸 Resorts & cruises cost $400M.","bad"); return; }
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if(fr.resort) return { ok:false, reason:"Resort & cruise landmark is already open for "+fr.name+"." };
+  if((fr.park||0)<1) return { ok:false, reason:"Build at least one theme-park attraction before opening a resort." };
+  if(G.studio.cash<400){ log("💸 Resorts & cruises cost $400M.","bad"); return { ok:false, reason:"Need $400M cash for the resort & cruise landmark (have "+fmtM(G.studio.cash)+")." }; }
   spend("studio", 400); fr.resort=true;
   G.studio.rep=clamp(G.studio.rep+5,5,99);
   log("🏝 \""+fr.name+"\" resorts & cruise line opened (−$400M). Vacationers now live inside your IP.","gold");
   saveGame();
+  return { ok:true };
 }
 
 function buyIp(id){
@@ -5969,8 +5992,9 @@ function counterAuction(){
 
 function crossoverEvent(idA, idB){
   const a=frById(idA), b=frById(idB);
-  if(!a||!b||a===b||a.tier<3||b.tier<3) return;
-  if(G.studio.cash<40){ log("💸 A crossover event costs $40M to mount.","bad"); return; }
+  if(!a||!b||a===b) return { ok:false, reason:"Select two distinct franchises for a crossover event." };
+  if(a.tier<3||b.tier<3) return { ok:false, reason:"Both franchises must be tier 3+ to mount a crossover event." };
+  if(G.studio.cash<40){ log("💸 A crossover event costs $40M to mount.","bad"); return { ok:false, reason:"Need $40M cash to mount a crossover event (have "+fmtM(G.studio.cash)+")." }; }
   spend("development", 40);
   const idea = genIdea();
   idea.scale="tentpole"; idea.genre=a.genre;
@@ -5981,6 +6005,7 @@ function crossoverEvent(idA, idB){
   G.ideas.push(idea);
   log("💥 Crossover event greenlit-ready: \""+idea.title+"\" (+45% buzz tentpole) is in Develop.","gold");
   saveGame();
+  return { ok:true, ideaId:idea.id };
 }
 
 function doIPO(){
@@ -5991,9 +6016,11 @@ function doIPO(){
 }
 
 function dtvSequel(id){
-  const fr=frById(id); if(!fr || (fr.dtvAt||0)>G.week) return;
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if((fr.dtvAt||0)>G.week) return { ok:false, reason:"DTV sequel cooldown active until "+dateLabel(fr.dtvAt)+"." };
   const cost=rint(12,22);
-  if(G.studio.cash<cost){ log("💸 DTV sequels run "+fmtM(cost)+".","bad"); return; }
+  if(G.studio.cash<cost){ log("💸 DTV sequels run "+fmtM(cost)+".","bad"); return { ok:false, reason:"Need "+fmtM(cost)+" cash for this DTV sequel (have "+fmtM(G.studio.cash)+")." }; }
   spend("production", cost);
   fr.dtvAt=G.week+13;
   const rev=Math.round(cost*(1.25+rnd()*0.3));
@@ -6001,6 +6028,7 @@ function dtvSequel(id){
   fr.decay=Math.min(1, fr.decay+0.15);
   log("📀 \""+fr.name+" "+pick(DATA.SPINOFF_SUFFIX)+"\" went straight to video (−"+fmtM(cost)+", +"+fmtM(rev)+" sales, brand heat up).","good");
   saveGame();
+  return { ok:true, cost, rev };
 }
 
 
@@ -6108,11 +6136,14 @@ function intlShareOf(f){
 }
 
 function launchPublishing(id){
-  const fr=frById(id); if(!fr || fr.publishing) return;
-  if(G.studio.cash<15){ log("💸 A publishing arm costs $15M.","bad"); return; }
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if(fr.publishing) return { ok:false, reason:"Publishing arm is already active for "+fr.name+"." };
+  if(G.studio.cash<15){ log("💸 A publishing arm costs $15M.","bad"); return { ok:false, reason:"Need $15M cash to launch a publishing arm (have "+fmtM(G.studio.cash)+")." }; }
   spend("studio", 15); fr.publishing=true;
   log("📚 \""+fr.name+"\" publishing arm launched — novels, comics, lore books (−$15M, +weekly).","gold");
   saveGame();
+  return { ok:true };
 }
 
 function libraryMove(fid){
@@ -6132,8 +6163,12 @@ function moveToStreamer(fid){
 
 function licenseOut(id, kind){
   kind = kind||"film";
-  const fr=frById(id); if(!fr || (fr.licenseAt||0)>G.week) return;
-  const rival=pick(G.rivals);
+  const fr=frById(id);
+  if(!fr) return { ok:false, reason:"Franchise not found." };
+  if((fr.licenseAt||0)>G.week) return { ok:false, reason:"Brand is already licensed out until "+dateLabel(fr.licenseAt)+"." };
+  if(kind==="goods" && (fr.merch||0)<1) return { ok:false, reason:"Launch tier-1 merchandise before licensing consumer goods." };
+  const rival=pick(G.rivals||[]);
+  if(!rival) return { ok:false, reason:"No rival counterparty available." };
   G.licensedOut=G.licensedOut||[];
   if(kind==="goods"){
     // consumer-goods license: rich upfront, brand keeps control of the screen rights
@@ -6144,7 +6179,7 @@ function licenseOut(id, kind){
     G.licensedOut.push({ name:fr.name, tier:fr.tier, rival:rival.name+" Consumer Goods", kind:"goods", due:G.week+rint(8,12), flat:true });
     log("🥤 "+fr.name+" merchandise licensed to "+rival.name+" Consumer Goods — "+fmtM(upfront)+" upfront, royalties on top.","gold");
     saveGame();
-    return;
+    return { ok:true, upfront };
   }
   const upfront=Math.round(10+fr.tier*6+rnd()*8);
   earn("empire", upfront);
@@ -6153,6 +6188,7 @@ function licenseOut(id, kind){
   G.licensedOut.push({ name:fr.name, tier:fr.tier, rival:rival.name, kind:"film", due:G.week+rint(10,16) });
   log("🤝 "+rival.name+" licensed \""+fr.name+"\" — "+fmtM(upfront)+" upfront, backend if their film hits. (Your merch shelf sags while they hold the brand.)","gold");
   saveGame();
+  return { ok:true, upfront };
 }
 
 
@@ -6172,8 +6208,9 @@ function maybePay1(){
 
 function mergeUniverse(idA, idB){
   const a=frById(idA), b=frById(idB);
-  if(!a||!b||a===b||G.universeBonus) return;
-  if(G.studio.cash<150){ log("💸 Weaving a shared universe costs $150M.","bad"); return; }
+  if(!a||!b||a===b) return { ok:false, reason:"Select two distinct franchises to weave into a shared universe." };
+  if(G.universeBonus) return { ok:false, reason:"Shared universe +15% bonus is already active." };
+  if(G.studio.cash<150){ log("💸 Weaving a shared universe costs $150M.","bad"); return { ok:false, reason:"Need $150M cash to weave a shared universe (have "+fmtM(G.studio.cash)+")." }; }
   spend("studio", 150);
   a.name = a.name+" × "+b.name;
   a.tier += b.tier; a.ww += b.ww; a.entries=a.entries.concat(b.entries);
@@ -6185,6 +6222,7 @@ function mergeUniverse(idA, idB){
   G.studio.rep=clamp(G.studio.rep+4,5,99);
   log("🌌 SHARED UNIVERSE: \""+a.name+"\" — all franchise income +15%, forever.","gold");
   saveGame();
+  return { ok:true };
 }
 /* ── franchise universes: optional overlay, franchises stand alone fine ──
    A universe links 2+ franchises without merging them. Continuity rewards

@@ -75,6 +75,100 @@ try{
   assert.equal($('[data-empiresub].active').dataset.empiresub,'franchises','legacy save without G.empire defaults safely');
   console.log('PASS A1: one 5-chip Empire navigation, real panel switching, save/load persistence');
 
+  /* ── A2 — structured {ok, reason} returns; zero false-success audio or modal close ── */
+  fresh('franchises');
+  w.eval(`
+    G.franchises=[
+      {id:101,name:'Solar Crown',tier:3,entries:[{filmId:1,title:'Solar Crown',ww:300,week:1}],ww:300,merch:1,park:0,gameSold:3,decay:1,genre:'scifi',earned:0,built:1,fatigue:0.2},
+      {id:102,name:'Lunar Reign',tier:3,entries:[{filmId:2,title:'Lunar Reign',ww:260,week:2}],ww:260,merch:0,park:0,gameSold:0,decay:1,genre:'fantasy',earned:0,built:2,fatigue:0.1}
+    ];
+    G.studio.cash=0;
+    render();
+  `);
+
+  /* 1. All 11 engine helpers return {ok:false, reason} on refusal */
+  const refusals=w.eval(`({
+    merch: upgradeMerch(101),
+    park: buildPark(101),
+    game: sellGameRights(101),
+    toys: signToyLine(101),
+    collab: brandCollab(101),
+    dtv: dtvSequel(101),
+    resort: buildResort(101),
+    pub: launchPublishing(101),
+    cross: crossoverEvent(101,102),
+    merge: mergeUniverse(101,102),
+    lic: licenseOut(999999,'film')
+  })`);
+  for(const [k,r] of Object.entries(refusals)){
+    assert(r && typeof r==='object' && r.ok===false && typeof r.reason==='string' && r.reason.length>3,
+      `A2 engine helper ${k} must return {ok:false, reason}, got ${JSON.stringify(r)}`);
+  }
+
+  /* 2. Disabled state when requirements unmet on Franchise desk */
+  assert.equal($('[data-fr-merch="101"]').disabled,true,'[data-fr-merch] disabled when studio lacks cash');
+  assert.equal($('[data-fr-park="101"]').disabled,true,'[data-fr-park] disabled when studio lacks cash');
+  assert.equal($('[data-fr-toys="101"]').disabled,true,'[data-fr-toys] disabled when studio lacks cash');
+
+  /* 3. Mid-render cash loss or forced trigger never plays gold/cash sound and toasts refusal */
+  w.eval(`G.studio.cash=500; render(); G.studio.cash=0;`);
+  clearBeeps(); clearToasts();
+  $('[data-fr-merch="101"]').click();
+  assert(!beeps().includes('gold') && !beeps().includes('cash'),'[data-fr-merch] refusal must never play gold/cash audio');
+  assert.match(toastText(),/cash|need|\$/i,'[data-fr-merch] refusal toasts clear reason');
+
+  w.eval(`G.studio.cash=500; render(); G.studio.cash=0;`);
+  clearBeeps(); clearToasts();
+  $('[data-fr-park="101"]').click();
+  assert(!beeps().includes('gold') && !beeps().includes('cash'),'[data-fr-park] refusal must never play gold/cash audio');
+  assert.match(toastText(),/cash|need|\$/i,'[data-fr-park] refusal toasts clear reason');
+
+  w.eval(`G.studio.cash=500; render(); G.studio.cash=0;`);
+  clearBeeps(); clearToasts();
+  $('[data-fr-toys="101"]').click();
+  assert(!beeps().includes('gold') && !beeps().includes('cash'),'[data-fr-toys] refusal must never play gold/cash audio');
+  assert.match(toastText(),/cash|need|\$/i,'[data-fr-toys] refusal toasts clear reason');
+
+  /* 4. empireModal() actions stay open, play zero gold/cash audio, and toast reason on refusal */
+  for(const sel of ['#emCollab','#emDtv','#emPub','#emResort','[data-em-cross="102"]','[data-em-merge="102"]']){
+    w.eval(`G.studio.cash=900; G.franchises[0].park=2; empireModal(101); G.studio.cash=0;`);
+    assert($('.modal-veil'),'empireModal opened');
+    const btn=$(sel);
+    assert(btn,`empireModal control ${sel} exists`);
+    clearBeeps(); clearToasts();
+    btn.click();
+    assert($('.modal-veil'),`refused ${sel} must NOT close empireModal`);
+    assert(!beeps().includes('gold') && !beeps().includes('cash'),`refused ${sel} must NOT play gold/cash sound`);
+    assert(toastText().length>3,`refused ${sel} toasts refusal reason`);
+  }
+  /* Also test #emLicFilm / #emLicGoods refusal when cooldown starts mid-modal */
+  for(const sel of ['#emLicFilm','#emLicGoods']){
+    w.eval(`G.franchises[0].licenseAt=0; G.franchises[0].merch=1; empireModal(101); G.franchises[0].licenseAt=G.week+20;`);
+    const btn=$(sel);
+    assert(btn,`empireModal control ${sel} exists`);
+    clearBeeps(); clearToasts();
+    btn.click();
+    assert($('.modal-veil'),`refused ${sel} must NOT close empireModal`);
+    assert(!beeps().includes('gold') && !beeps().includes('cash'),`refused ${sel} must NOT play gold/cash sound`);
+    assert(toastText().length>3,`refused ${sel} toasts refusal reason`);
+  }
+  w.eval(`G.franchises[0].licenseAt=0; closeModal();`);
+
+  /* 5. Eligible calls return {ok:true} and apply real side effects */
+  w.eval(`G.studio.cash=2000; G.franchises[0].gameSold=0; G.franchises[0].park=2;`);
+  assert.equal(w.eval('upgradeMerch(101).ok'),true,'upgradeMerch ok when funded');
+  assert.equal(w.eval('buildPark(101).ok'),true,'buildPark ok when funded');
+  assert.equal(w.eval('sellGameRights(101).ok'),true,'sellGameRights ok when tier unclaimed');
+  assert.equal(w.eval('signToyLine(101).ok'),true,'signToyLine ok when funded');
+  assert.equal(w.eval('brandCollab(101).ok'),true,'brandCollab ok when funded');
+  assert.equal(w.eval('dtvSequel(101).ok'),true,'dtvSequel ok when funded');
+  assert.equal(w.eval('launchPublishing(101).ok'),true,'launchPublishing ok when funded');
+  assert.equal(w.eval('buildResort(101).ok'),true,'buildResort ok when park>=2 and funded');
+  assert.equal(w.eval('crossoverEvent(101,102).ok'),true,'crossoverEvent ok when both tier>=3 and funded');
+  assert.equal(w.eval('licenseOut(101,"goods").ok'),true,'licenseOut ok when rival exists');
+  assert.equal(w.eval('mergeUniverse(101,102).ok'),true,'mergeUniverse ok when funded');
+  console.log('PASS A2: 11 Empire helpers return {ok, reason}; zero false-success audio/flash/modal-close');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){
