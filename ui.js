@@ -1906,7 +1906,7 @@ function renderSubTabs(){
   const bar = $("#subTabs");
   if(!bar) return;
   // These screens own a single branded navigation, shared across all viewports.
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;

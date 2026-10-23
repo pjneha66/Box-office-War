@@ -25,9 +25,10 @@ assert($('.command-edition').textContent.includes('BOX OFFICE DESK'));
 assert($('.command-heading h1').textContent.length>10);
 assert.equal($$('.command-telemetry .command-metric').length,4);
 assert.equal($('#view').dataset.screen,'boxoffice');
-/* mobile sub-tab strip mirrors the same seven readings */
-assert.equal($$('#subTabs [data-bosub]').length,7,'mobile strip lists every reading');
-assert.equal($('#subTabs').style.display,'flex');
+/* one rail on every viewport — the desk no longer renders a second mobile strip */
+assert.equal($$('#subTabs [data-bosub]').length,0,'no duplicate mobile strip hooks');
+assert.equal($('#subTabs').style.display,'none','legacy strip stays collapsed on this desk');
+assert.equal($$('.command-boxoffice-nav [data-bosub]').length,7,'the branded rail carries every reading to mobile');
 
 /* 2 — each reading renders a branded panel and no bare legacy card stack */
 const labels={
@@ -48,13 +49,13 @@ for(const [key,label] of Object.entries(labels)){
   }
   assert($('.command-heading p').textContent.length>20,key+': reading has no editorial line');
 }
-/* the mobile strip drives the same reading as the desktop rail */
-$('#subTabs [data-bosub="clash"]').click();
-assert.equal(w.eval('BOXOFFICE_SUB'),'clash','mobile strip switches the reading');
+/* the branded rail drives the reading — it is the only strip on every viewport */
+$('.command-boxoffice-nav [data-bosub="clash"]').click();
+assert.equal(w.eval('BOXOFFICE_SUB'),'clash','rail switches the reading');
 assert.equal($('.command-boxoffice-nav .command-nav-items button.active span').textContent,'Clash radar');
-$('#subTabs [data-bosub="chart"]').click();
+$('.command-boxoffice-nav [data-bosub="chart"]').click();
 assert.equal(w.eval('BOXOFFICE_SUB'),'chart');
-console.log('PASS box office shell, rail, seven readings, mobile strip');
+console.log('PASS box office shell, single rail, seven readings');
 
 /* 3 — the chart reads live state, including rival pictures */
 w.eval(`BOXOFFICE_SUB='chart';switchTab('boxoffice');`);

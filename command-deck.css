@@ -1679,3 +1679,10 @@
 #modalRoot .command-produce-modal .bo-fest-pick:focus{border-color:#edc47c!important;box-shadow:0 0 0 2px #edc47c33!important}
 #modalRoot .command-produce-modal .bo-fest-pick option{background:#122823;color:#f3e8cc}
 @media(max-width:640px){#modalRoot .command-produce-modal .bo-fest-actions .produce-action{width:100%}}
+
+/* ── Mobile section strip ──────────────────────────────────────────────────
+   #subTabs is the phone-only strip for the screens that still use it. Its
+   buttons are nowrap, so letting flex shrink them made long labels overlap
+   and clip ("atrica | ega-cl | conce"). Keep their natural width and let the
+   strip scroll, as the pill rules already assume. */
+#subTabs .subtab-btn{flex:0 0 auto}
