@@ -189,8 +189,8 @@ assert($('#modalRoot #compareClose'),'close action preserved');
 w.eval(`closeModal();`);
 console.log('PASS shared chrome: legacy dialogs, decisions, year report, comparison');
 
-/* 9 — the What's next roadmap card on the Fans desk (v34.6).
-   Hardcoded, offline, read-only: it closes the desk after the audience pulse. */
+/* 9 — the Fans desk (v34.6): rebuilt on the management chrome, with the
+   What's next roadmap card closing it. Hardcoded, offline, read-only. */
 const updates=w.eval('NEXT_UPDATES');
 assert(Array.isArray(updates)&&updates.length>=4,'NEXT_UPDATES is seeded');
 updates.forEach((it,i)=>{
@@ -206,11 +206,42 @@ w.eval(`G.mail=G.mail||[];G.mail.push({kind:'love',from:'Ravi Mehta',text:'Loved
   FAN_MAIL_FILTER='all';switchTab('fans');render();`);
 const fans=$('#view');
 assert(fans,'the Fans desk renders');
+
+/* 9a — the desk wears the command shell, not the legacy stack */
+assert($('#view .command-fans'),'the Fans desk renders inside the command deck');
+assert.equal($('#view .command-fans').classList.contains('command-produce'),true,'the desk shares the produce chrome');
+assert($('#view .command-fans .command-heading h1'),'one command header');
+assert.equal($$('#view .command-fans .command-telemetry .command-metric').length,4,'a four-metric telemetry strip');
+assert.equal($$('#view .command-fans .produce-panel').length>=6,true,'the desk is built from produce panels');
+assert.equal($$('#view .card').length,0,'legacy cards are gone from the Fans desk');
+assert.equal($$('#view .section-title').length,0,'legacy section titles are gone from the Fans desk');
+assert.equal($$('#view .cost-line').length,0,'legacy cost lines are gone from the Fans desk');
+
+/* 9b — mailroom keeps every historic binding */
+assert($('#view .bo-mail'),'the mailroom panel renders');
+assert($('#view .bo-mail .produce-panel-head h2').textContent.includes('Fan mail'),'the mailroom is still Fan mail');
+assert.equal($$('#view [data-mail-cat]').length,6,'six mail category filters');
+assert.equal($$('#view .bo-mail .produce-filters button.active').length,1,'exactly one filter reads active');
+assert.equal($('#view .bo-mail .produce-filters [data-mail-cat="all"]').getAttribute('aria-pressed'),'true');
+assert($('#btnMailRead'),'mark-all-read preserved');
+assert.equal($$('#view [data-mail-reply]').length,1,'reply binding preserved');
+assert.equal($$('#view [data-mail-apology]').length,1,'apology binding preserved');
+assert.equal($$('#view .bo-mail .bo-mail-row').length,2,'one row per letter in the filter');
+assert.equal($$('#view .bo-mail .bo-mail-row.unread').length,2,'unread letters are marked');
+
+/* 9c — the rest of the desk survived the move */
+assert($('#btnFanGala'),'fan gala action preserved');
+assert($('#view .bo-gala .produce-action'),'the gala is a produce action now');
+assert($('#view [data-foldbox="fans-trending"]'),'trending fold preserved (fold state persists)');
+assert($('#view .bo-trending .bo-track-row'),'trending renders as desk rows');
+assert($('#view .bo-buzz-figure'),'a live run renders a buzz figure');
+assert.equal($$('#view .bo-pulse .bo-kpi').length>=2,true,'audience pulse carries KPIs');
+
+/* 9d — the What's next card closes the desk */
 const panel=$('#view .bo-next');
 assert(panel,'the What\'s next card renders on the Fans desk');
 assert.equal(panel.classList.contains('produce-panel'),true,'the card wears the produce panel');
-const kids=[...fans.children];
-assert.equal(kids[kids.length-1],panel,'the roadmap card is the last block on the desk');
+assert.equal($('#view .command-fans').lastElementChild,panel,'the roadmap card is the last block on the desk');
 assert($('#view .bo-next .produce-panel-head h2').textContent.includes("WHAT'S NEXT"),'the panel is titled WHAT\'S NEXT');
 assert.equal($$('#view .bo-next .bo-kpi').length,3,'the strip carries app version, item count and shipped count');
 
@@ -231,14 +262,14 @@ $$('#view .bo-next .bo-next-item').forEach((li,i)=>{
   assert.equal(li.querySelector('.bo-next-label').textContent,updates[i].label,'item '+i+' shows its label');
   assert(li.querySelector('.bo-chip').classList.contains(TONE[updates[i].status]),'item '+i+' chip tone for '+updates[i].status);
 });
-/* the desk's own bindings survive the new block */
-assert.equal($$('#view [data-mail-cat]').length,6,'mail category pills preserved');
-assert($('#btnMailRead'),'mark-all-read preserved');
-assert.equal($$('#view [data-mail-reply]').length,1,'reply binding preserved');
-assert.equal($$('#view [data-mail-apology]').length,1,'apology binding preserved');
-console.log('PASS what\'s next: panel closes the Fans desk, one chip per item, version from the document head');
+console.log('PASS fans desk: command shell, mailroom bindings, roadmap card last');
 
-/* the empty state still renders a full panel instead of collapsing */
+/* 9e — mail filters still route, and the empty roadmap state still renders */
+w.eval(`FAN_MAIL_FILTER='love';render();`);
+assert.equal($$('#view .bo-mail .bo-mail-row').length,1,'the love filter narrows the mailroom');
+assert.equal($('#view .bo-mail .produce-filters [data-mail-cat="love"]').getAttribute('aria-pressed'),'true');
+w.eval(`FAN_MAIL_FILTER='all';render();`);
+
 const empty=w.eval('nextUpdatesPanel([])');
 assert(empty.includes('bo-next-empty'),'an empty roadmap renders its empty state');
 assert.equal(empty.includes('bo-next-item'),false,'no item lines when the array is empty');

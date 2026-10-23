@@ -2036,17 +2036,82 @@
 #modalRoot .command-produce-modal .bo-compare-card .bo-figure-head{margin-bottom:2px}
 #modalRoot .command-produce-modal .bo-compare-card .bo-figure-head b{font:600 14px/1.3 Georgia,serif;letter-spacing:0;text-transform:none;color:#f3e8cc}
 
-/* ── What's next roadmap (Fans desk, v34.6) ─────────────────────────────────
-   A read-only changelog wearing the produce-panel chrome of the management
-   screens. The Fans tab lives outside .command-produce, so the --prod-* tokens
-   that .produce-panel/.produce-stamp rely on are re-declared here instead of
-   being inherited. Only the desk tokens: gold, muted, line, panel, inner. */
-#app #view[data-screen="fans"] .bo-next{--prod-line:#3e5551;--prod-panel:#1b312b;margin:18px 0 0;border:1px solid #3e5551;background:#1b312b;border-radius:3px;overflow:hidden}
-#app #view[data-screen="fans"] .bo-next .produce-panel-head{align-items:center;padding:18px 20px 14px}
-#app #view[data-screen="fans"] .bo-next .produce-panel-head h2{margin:5px 0 0;font:500 21px/1.25 Georgia,serif;color:#f3e8cc;letter-spacing:.2px}
-#app #view[data-screen="fans"] .bo-next .produce-panel-head p{margin:5px 0 0;font-size:11px;line-height:1.6;color:#93a692;max-width:60ch}
-#app #view[data-screen="fans"] .bo-next .command-eyebrow{font:700 9px/1.5 ui-monospace,monospace;letter-spacing:1.6px;color:#edc47c}
-#app #view[data-screen="fans"] .bo-next .produce-stamp{padding:5px 8px;border:1px solid #8a7748;border-radius:2px;font:700 9px/1.4 ui-monospace,monospace;letter-spacing:1px;color:#edc47c;white-space:nowrap}
+/* ═══════════════════════════════════════════════════════════════════════
+   FANS DESK — the audience tab under the same management rules as the box
+   office desk: one command header, one telemetry strip, produce panels below.
+   The legacy cards, section titles and cost lines are gone; the mailroom keeps
+   its IDs and data attributes (#btnMailRead, [data-mail-cat],
+   [data-mail-reply], [data-mail-apology], #btnFanGala), so no binding moved.
+   Palette: gold #edc47c, muted #93a692, line #3e5551, panel #1b312b,
+   inner #152b26.
+   ═══════════════════════════════════════════════════════════════════════ */
+#app #view[data-screen="fans"]{max-width:1640px!important;background:#142625!important}
+#app #view[data-screen="fans"] .command-fans{text-align:left;--prod-panel:#1b312b;--prod-line:#3e5551;--prod-soft:#152b26;--prod-scrim:#142a26}
+#app #view[data-screen="fans"] .command-fans .command-heading h1{max-width:24ch}
+#app #view[data-screen="fans"] .command-fans .command-edition{margin-bottom:10px}
+#app #view[data-screen="fans"] .command-fans .command-telemetry{margin-bottom:18px}
+#app #view[data-screen="fans"] .command-fans .command-metric{border-right:1px solid #3e5551}
+#app #view[data-screen="fans"] .command-fans .command-metric strong{font-size:clamp(19px,2vw,26px);overflow-wrap:anywhere}
+#app #view[data-screen="fans"] .command-fans .produce-panel{margin-bottom:18px}
+#app #view[data-screen="fans"] .command-fans .produce-panel-head{align-items:center;gap:14px}
+#app #view[data-screen="fans"] .command-fans .produce-panel-head h2{font:500 21px/1.25 Georgia,serif;color:#f3e8cc;margin:5px 0 0}
+#app #view[data-screen="fans"] .command-fans .produce-panel-head p{margin:5px 0 0;font-size:11px;line-height:1.65;color:#93a692;max-width:64ch}
+#app #view[data-screen="fans"] .command-fans .bo-panel-body{display:grid;gap:12px;padding:16px 20px 18px}
+#app #view[data-screen="fans"] .command-fans .bo-panel-aside{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#app #view[data-screen="fans"] .command-fans .produce-filters{margin:0;padding:14px 20px 4px}
+#app #view[data-screen="fans"] .command-fans .produce-filters button{border-radius:2px}
+#app #view[data-screen="fans"] .command-fans .produce-filters button b{font:700 9px ui-monospace,monospace;opacity:.7;margin-left:4px}
+/* Produce buttons: the shared skin only exists under productions, the box
+   office desk and dialogs, so the fans desk gets its own scoped copy. */
+#app #view[data-screen="fans"] .command-fans .produce-ghost{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:7px 12px;border:1px solid #3e5551;border-radius:2px;background:transparent;color:#e8e3ca;font:600 10.5px/1.3 system-ui,sans-serif;cursor:pointer;box-shadow:none}
+#app #view[data-screen="fans"] .command-fans .produce-ghost:hover{background:#20372f;border-color:#8fa47c}
+#app #view[data-screen="fans"] .command-fans .produce-ghost small{font:600 9px/1.4 ui-monospace,monospace;letter-spacing:.4px;color:#93a692}
+#app #view[data-screen="fans"] .command-fans .produce-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:9px 16px;border:1px solid #edc47c;border-radius:2px;background:#edc47c;color:#24332e;font:700 11px/1.3 system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;box-shadow:none}
+#app #view[data-screen="fans"] .command-fans .produce-action:hover{background:#f3d597;border-color:#f3d597}
+#app #view[data-screen="fans"] .command-fans .bo-empty{margin:16px 20px;padding:22px;background:#152b26;border:1px dashed #3e5551;border-radius:2px;text-align:center}
+#app #view[data-screen="fans"] .command-fans .bo-empty b{font:500 15px/1.3 Georgia,serif;color:#f3e8cc}
+#app #view[data-screen="fans"] .command-fans .bo-empty p{margin:5px 0 0;font-size:11px;line-height:1.65;color:#93a692}
+#app #view[data-screen="fans"] .command-fans .bo-empty .produce-action{margin-top:12px}
+/* Mailroom */
+#app #view[data-screen="fans"] .command-fans .bo-mail .produce-panel-head h2 small.bo-count{margin-left:8px;padding:2px 6px;border:1px solid #8a7748;border-radius:2px;font:700 9px/1.6 ui-monospace,monospace;letter-spacing:.8px;color:#edc47c;vertical-align:middle}
+#app #view[data-screen="fans"] .command-fans .bo-mail-list{display:grid;padding:4px 20px 8px}
+#app #view[data-screen="fans"] .command-fans .bo-mail-row{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;padding:12px 0;border-bottom:1px solid #2c4038}
+#app #view[data-screen="fans"] .command-fans .bo-mail-row:last-child{border-bottom:0}
+#app #view[data-screen="fans"] .command-fans .bo-mail-row.unread{padding-left:10px;box-shadow:inset 2px 0 0 #edc47c}
+#app #view[data-screen="fans"] .command-fans .bo-mail-icon{font-size:14px;line-height:1.5}
+#app #view[data-screen="fans"] .command-fans .bo-mail-main{min-width:0}
+#app #view[data-screen="fans"] .command-fans .bo-mail-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+#app #view[data-screen="fans"] .command-fans .bo-mail-top b{font:500 14px/1.4 Georgia,serif;color:#f3e8cc}
+#app #view[data-screen="fans"] .command-fans .bo-mail-top small{margin-left:auto;font:700 9px/1.4 ui-monospace,monospace;letter-spacing:.5px;color:#93a692}
+#app #view[data-screen="fans"] .command-fans .bo-mail-main p{margin:3px 0 0;font-size:11.5px;line-height:1.65;color:#c8d3ba;overflow-wrap:anywhere}
+#app #view[data-screen="fans"] .command-fans .bo-mail-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:7px}
+#app #view[data-screen="fans"] .command-fans .bo-mail-foot>small{font:600 9.5px/1.4 ui-monospace,monospace;letter-spacing:.3px;color:#93a692}
+#app #view[data-screen="fans"] .command-fans .bo-mail-more{padding:0 20px 14px;font-size:10px;color:#93a692}
+/* Fan gala */
+#app #view[data-screen="fans"] .command-fans .bo-gala-body{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px 16px}
+#app #view[data-screen="fans"] .command-fans .bo-gala-body .bo-chip-row{margin:0}
+/* Trending accordion — the fold state still persists under fans-trending */
+#app #view[data-screen="fans"] .command-fans .fold{margin:0;border:1px solid #3e5551;border-radius:2px;background:#152b26;overflow:hidden}
+#app #view[data-screen="fans"] .command-fans .fold-head{display:flex;align-items:center;gap:7px;padding:10px 12px;border:0;border-bottom:1px solid #3e5551;border-radius:0;background:#20372f;color:#f2edda;font:700 9.5px/1.4 ui-monospace,monospace;letter-spacing:.7px;flex-wrap:wrap}
+#app #view[data-screen="fans"] .command-fans .fold-head b{min-width:0;overflow-wrap:anywhere}
+#app #view[data-screen="fans"] .command-fans .fold-head .tiny{margin-left:auto;white-space:nowrap;letter-spacing:.4px}
+#app #view[data-screen="fans"] .command-fans .fold-caret{color:#93a692;text-shadow:none}
+#app #view[data-screen="fans"] .command-fans .fold-head .tiny{color:#93a692}
+#app #view[data-screen="fans"] .command-fans .fold-body{margin:0;padding:4px 12px;background:#152b26}
+#app #view[data-screen="fans"] .command-fans .bo-track-label>span:first-child{font-size:13px;line-height:1.4}
+#app #view[data-screen="fans"] .command-fans .bo-track-text{min-width:0;overflow-wrap:anywhere}
+/* Buzz figures */
+#app #view[data-screen="fans"] .command-fans .bo-buzz-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+#app #view[data-screen="fans"] .command-fans .bo-buzz-figure{display:grid;gap:8px;align-content:start}
+#app #view[data-screen="fans"] .command-fans .bo-buzz-figure .bo-figure-head b{font:500 15px/1.3 Georgia,serif;letter-spacing:0;text-transform:none;color:#f3e8cc}
+#app #view[data-screen="fans"] .command-fans .bo-buzz-momentum{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#app #view[data-screen="fans"] .command-fans .bo-buzz-momentum small{font:700 8px/1.4 ui-monospace,monospace;letter-spacing:.7px;color:#93a692}
+#app #view[data-screen="fans"] .command-fans .bo-buzz-momentum svg{flex:0 0 auto}
+#app #view[data-screen="fans"] .command-fans .bo-kpi-title{font:500 14px/1.35 Georgia,serif!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── What's next roadmap (v34.6) ────────────────────────────────────────────
+   A read-only changelog closing the desk. It inherits the deck's --prod-*
+   tokens now, so only its own body grammar lives here. */
 #app #view[data-screen="fans"] .bo-next-body{display:grid;gap:14px;padding:16px 20px 18px}
 #app #view[data-screen="fans"] .bo-next .bo-kpis{grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
 #app #view[data-screen="fans"] .bo-next .bo-kpi{min-width:0;padding:9px 11px;background:#152b26;border:1px solid #3e5551;border-radius:2px}
@@ -2065,17 +2130,31 @@
 #app #view[data-screen="fans"] .bo-next-empty{padding:16px;background:#152b26;border:1px dashed #3e5551;border-radius:2px;text-align:center}
 #app #view[data-screen="fans"] .bo-next-empty b{display:block;font:500 15px/1.3 Georgia,serif;color:#f3e8cc}
 #app #view[data-screen="fans"] .bo-next-empty p{margin:5px 0 0;font-size:11px;line-height:1.6;color:#93a692}
+
 /* The bottom nav is fixed and .view's reserved 124px of clearance is reset to
-   18px by lot-gameplay.css, so the last block on a tab ends up under the bar.
-   This card closes the Fans desk: give it the clearance back (scoped, so no
+   18px by lot-gameplay.css, so the last block of a tab ends up under the bar.
+   The deck closes the Fans tab: give it the clearance back (scoped, so no
    other screen's layout moves) and the final roadmap row stays readable. */
 @media(max-width:760px){
-  #app #view[data-screen="fans"] .bo-next{margin-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  #app #view[data-screen="fans"] .command-fans{margin-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+  #app #view[data-screen="fans"] .command-fans .produce-panel-head{padding:16px 16px 12px}
+  #app #view[data-screen="fans"] .command-fans .produce-filters{padding:12px 16px 2px}
+  #app #view[data-screen="fans"] .command-fans .bo-mail-list{padding:2px 16px 6px}
+  #app #view[data-screen="fans"] .command-fans .bo-mail-more{padding:0 16px 12px}
+  #app #view[data-screen="fans"] .command-fans .bo-panel-body{padding:14px 16px}
+  #app #view[data-screen="fans"] .command-fans .bo-gala-body{padding:12px 16px 14px}
+  #app #view[data-screen="fans"] .command-fans .bo-empty{margin:12px 16px}
+  #app #view[data-screen="fans"] .command-fans .bo-buzz-grid{grid-template-columns:minmax(0,1fr)}
+  #app #view[data-screen="fans"] .bo-next-body{padding:12px 14px 14px;gap:10px}
 }
 @media(max-width:560px){
-  #app #view[data-screen="fans"] .bo-next .produce-panel-head{padding:14px 14px 12px}
-  #app #view[data-screen="fans"] .bo-next .produce-panel-head h2{font-size:19px}
-  #app #view[data-screen="fans"] .bo-next-body{padding:12px 14px 14px;gap:10px}
+  #app #view[data-screen="fans"] .command-fans{padding:16px 12px}
+  #app #view[data-screen="fans"] .command-fans .command-heading h1{font-size:26px}
+  #app #view[data-screen="fans"] .command-fans .bo-mail-row{grid-template-columns:22px minmax(0,1fr);gap:8px}
+  #app #view[data-screen="fans"] .command-fans .bo-mail-foot{justify-content:flex-start}
+  #app #view[data-screen="fans"] .command-fans .bo-mail-act{width:100%;justify-content:center}
+  #app #view[data-screen="fans"] .command-fans .bo-track-row{grid-template-columns:minmax(0,1fr) auto}
+  #app #view[data-screen="fans"] .command-fans .bo-track{grid-column:1 / -1;order:3}
   #app #view[data-screen="fans"] .bo-next .bo-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   #app #view[data-screen="fans"] .bo-next .bo-kpi{padding:8px}
   #app #view[data-screen="fans"] .bo-next .bo-kpi small{font-size:7.5px;letter-spacing:.4px}

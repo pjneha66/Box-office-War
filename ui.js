@@ -1228,7 +1228,8 @@ function _renderImpl(){
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "notifications"].includes(TAB))
+    /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1266,8 +1267,9 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
-  { version:"34.7", label:"Streamer sub-tabs — deals, sports and finance", status:"planned" },
-  { version:"34.6", label:"Fans desk roadmap card + fan-mail polish", status:"active" },
+  { version:"34.8", label:"Board verdicts on pitches — pass, notes, re-pitch", status:"planned" },
+  { version:"34.7", label:"Streamer sub-tabs — originals, library, finance, sports, deals", status:"active" },
+  { version:"34.6", label:"Fans desk rebrand + what's next roadmap", status:"shipped" },
   { version:"34.5", label:"Box office charts + produce dialogs", status:"shipped" },
   { version:"34.4", label:"Legacy dialog chrome", status:"shipped" }
 ];
@@ -1315,94 +1317,161 @@ function nextUpdatesPanel(items){
     "</div></section>";
 }
 
-function viewFans(){
-  let h="";
-  const unread=unreadMail();
+/* ── v34.6 Fans desk ────────────────────────────────────────────────────────
+   Rebranded to the management chrome the other desks wear: one command header,
+   one telemetry strip, produce panels underneath. The mailroom's IDs, data
+   attributes and bindings are untouched (#btnMailRead, [data-mail-cat],
+   [data-mail-reply], [data-mail-apology], #btnFanGala) and nothing here writes
+   simulation state. Reads offline: trend tags, buzz and audience scores all
+   come from existing helpers. */
+const FAN_MAIL_CATS = [["all","All"],["love","💌 Love"],["demand","🙏 Demands"],["angry","😡 Angry"],["scandal","📰 Scandal"],["sub","📺 Subscribers"]];
+
+function fansHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  return "<header class='command-heading'><div>"+
+    "<span class='command-edition'>FANS DESK / YEAR "+yearOf(G.week)+"</span>"+
+    "<span class='command-eyebrow'>AUDIENCE RELATIONS</span>"+
+    "<h1>The fan desk</h1>"+
+    "<p>Letters, trending noise and the people who buy the tickets. Answer them here — every reply moves buzz.</p>"+
+    "</div><div class='command-date'><span>WEEK</span><b>"+String(w).padStart(2,"0")+"</b><small>"+esc(m.month)+"</small></div></header>";
+}
+/* one read of the audience numbers, shared by the telemetry strip and the pulse panel */
+function fansAudienceStats(){
+  const recent=(G.films||[]).filter(f=>f.ww>0).slice(-8);
+  const audOf=f=>(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
+  const avg=recent.length? Math.round(recent.reduce((a,f)=>a+audOf(f),0)/recent.length) : 0;
+  const fav=recent.length? recent.slice().sort((a,b)=>audOf(b)-audOf(a))[0] : null;
+  const replied=(G.mail||[]).filter(m=>m.replied).length;
+  return {recent:recent, audOf:audOf, avg:avg, fav:fav, replied:replied};
+}
+function fansTelemetry(){
   const rawMail=(G.mail||[]);
-  const mail = rawMail.filter(m => {
-    if(FAN_MAIL_FILTER==="all") return true;
-    return m.kind === FAN_MAIL_FILTER;
-  });
-
-  h+="<div class='spread'><div class='section-title' style='margin:0'>📬 Fan mail"+(unread? " ("+unread+" unread)":"")+"</div>"+
-    "<div class='row' style='gap:6px'>"+
-    (rawMail.length? "<button class='btn btn-sm btn-ghost' id='btnMailRead'>Mark all read</button>":"")+
-    "</div></div>";
-
-  // Fan mail category filter pills
-  h+="<div class='row' style='margin:6px 0 10px;flex-wrap:wrap;gap:4px'>"+
-    [["all","All ("+rawMail.length+")"],["love","💌 Love"],["demand","🙏 Demands"],["angry","😡 Angry"],["scandal","📰 Scandal"],["sub","📺 Subscribers"]].map(([k,label])=>
-      "<button class='btn btn-sm "+(FAN_MAIL_FILTER===k?"btn-primary":"btn-ghost")+"' data-mail-cat='"+k+"'>"+label+"</button>"
-    ).join("")+
+  let unread=0; try{ unread=unreadMail(); }catch(e){}
+  let trend=[]; try{ trend=trendingBoard()||[]; }catch(e){}
+  let live=[]; try{ live=activeFilms()||[]; }catch(e){}
+  const st=fansAudienceStats();
+  return "<div class='command-telemetry'>"+
+    commandMetric("UNREAD LETTERS", String(unread), rawMail.length+" in the pile")+
+    commandMetric("TRENDING TAGS", String(trend.length), "Across the platforms")+
+    commandMetric("LIVE RUNS", String(live.length), "Buzz on screens")+
+    commandMetric("AUDIENCE SCORE", st.recent.length? st.avg+"%" : "—", st.recent.length? "Recent films" : "No releases yet")+
   "</div>";
-
-  h+="<div class='card'>";
+}
+function fansPanel(eyebrow,title,description,content,stamp,cls){
+  return "<section class='produce-panel"+(cls? " "+cls:"")+"'><div class='produce-panel-head'><div>"+
+    "<span class='command-eyebrow'>"+eyebrow+"</span><h2>"+title+"</h2>"+
+    (description? "<p>"+description+"</p>":"")+
+    "</div>"+(stamp? "<span class='produce-stamp'>"+stamp+"</span>":"")+"</div>"+content+"</section>";
+}
+function fansMailPanel(){
+  const rawMail=(G.mail||[]);
+  let unread=0; try{ unread=unreadMail(); }catch(e){}
+  const mail=rawMail.filter(m=>FAN_MAIL_FILTER==="all"? true : m.kind===FAN_MAIL_FILTER);
+  const filters="<div class='produce-filters fans-mail-filters' role='group' aria-label='Filter fan mail'>"+
+    FAN_MAIL_CATS.map(function(cat){
+      const k=cat[0], label=cat[1];
+      const n = k==="all"? rawMail.length : rawMail.filter(m=>m.kind===k).length;
+      const on = FAN_MAIL_FILTER===k;
+      return "<button data-mail-cat='"+k+"' class='"+(on?"active":"")+"' aria-pressed='"+(on?"true":"false")+"'>"+label+"<b>"+n+"</b></button>";
+    }).join("")+"</div>";
+  const ICON={love:"💌", demand:"🙏", angry:"😡", scandal:"📰", sub:"📺"};
+  let rows="";
   if(!mail.length){
-    h+="<div class='tiny muted'>No letters in this category. Release something people love — or love to hate — and the letters come.</div>";
+    rows="<div class='bo-empty'><b>No letters in this category.</b><p>Release something people love — or love to hate — and the letters come.</p></div>";
   }else{
-    const ICON={love:"💌", demand:"🙏", angry:"😡", scandal:"📰", sub:"📺"};
-    mail.slice(0,14).forEach((m,idx)=>{
-      const realIdx = rawMail.indexOf(m);
-      let replyBtn = "";
-      if(m.kind==="love" && !m.replied){
-        replyBtn = "<button class='btn btn-xs btn-alt' data-mail-reply='"+realIdx+"'>💌 Send Thanks (+0.5% buzz)</button>";
-      } else if(m.kind==="angry" && !m.replied){
-        replyBtn = "<button class='btn btn-xs btn-alt' data-mail-apology='"+realIdx+"'>🕊️ Apologize (-scandal)</button>";
-      } else if(m.replied){
-        replyBtn = "<span class='tag green'>✓ replied</span>";
-      }
-
-      h+="<div class='mail-item"+(m.unread?" unread":"")+"'>"+
-        "<div class='spread'><span>"+(ICON[m.kind]||"✉️")+" <b>"+esc(m.from)+"</b>"+(m.unread?" <span class='tag gold'>new</span>":"")+"</span>"+
-        "<span class='tiny muted'>Y"+yearOf(m.w)+" W"+woyOf(m.w)+"</span></div>"+
-        "<div class='tiny' style='margin-top:2px'>"+esc(m.text)+"</div>"+
-        "<div class='spread' style='margin-top:4px'>"+
-          (m.film? "<div class='tiny muted'>re: "+esc(m.film)+"</div>":"<div></div>")+
-          replyBtn+
-        "</div></div>";
-    });
-    if(mail.length>14) h+="<div class='tiny muted' style='margin-top:6px'>+"+(mail.length-14)+" older letters in the pile.</div>";
+    rows="<div class='bo-mail-list'>"+mail.slice(0,14).map(function(m){
+      const realIdx=rawMail.indexOf(m);
+      let act="";
+      if(m.kind==="love" && !m.replied) act="<button class='produce-ghost bo-mail-act' data-mail-reply='"+realIdx+"'>💌 Send thanks <small>+0.5% buzz</small></button>";
+      else if(m.kind==="angry" && !m.replied) act="<button class='produce-ghost bo-mail-act' data-mail-apology='"+realIdx+"'>🕊️ Apologize <small>−scandal</small></button>";
+      else if(m.replied) act="<span class='bo-chip good'>✓ REPLIED</span>";
+      return "<article class='bo-mail-row"+(m.unread?" unread":"")+"'>"+
+        "<span class='bo-mail-icon' aria-hidden='true'>"+(ICON[m.kind]||"✉️")+"</span>"+
+        "<div class='bo-mail-main'>"+
+          "<div class='bo-mail-top'><b>"+esc(m.from)+"</b>"+
+            (m.unread? "<span class='bo-chip gold'>NEW</span>":"")+
+            "<small>Y"+yearOf(m.w)+" W"+woyOf(m.w)+"</small></div>"+
+          "<p>"+esc(m.text)+"</p>"+
+          "<div class='bo-mail-foot'>"+(m.film? "<small>re: "+esc(m.film)+"</small>" : "<span></span>")+act+"</div>"+
+        "</div></article>";
+    }).join("")+"</div>";
+    if(mail.length>14) rows+="<div class='bo-mail-more'>+"+(mail.length-14)+" older letters in the pile.</div>";
   }
-  h+="</div>";
-
-  // Fan Gala Event
-  h+="<div class='card' style='background:linear-gradient(135deg,rgba(255,107,107,0.1),rgba(254,202,87,0.1));border:1px solid rgba(255,107,107,0.3);margin-top:8px'>"+
-    "<div class='spread'><div><b>🎉 Host Fan Gala / Meet &amp; Greet</b><div class='tiny muted'>Boosts buzz +5% across all theatrical titles and lifts fan affection. Costs $2M.</div></div>"+
-    "<button class='btn btn-sm btn-primary' id='btnFanGala'>Host Gala ($2M)</button></div></div>";
-
-  /* trending board — moved off the control room in v15 */
-  let trendTags=[]; try{ trendTags=trendingBoard(); }catch(e){}
-  const trendingList=trendTags.length? trendTags.map(tg=>{
+  const aside="<div class='bo-panel-aside'>"+
+    "<span class='produce-stamp'>"+(rawMail.length? rawMail.length+" LETTERS" : "INBOX EMPTY")+"</span>"+
+    (rawMail.length? "<button class='produce-ghost' id='btnMailRead'>Mark all read</button>":"")+
+  "</div>";
+  const head="<div class='produce-panel-head'><div><span class='command-eyebrow'>MAILROOM</span>"+
+    "<h2>📬 Fan mail"+(unread? " <small class='bo-count'>"+unread+" unread</small>":"")+"</h2>"+
+    "<p>Love, demands and the occasional pile-on. Replying costs nothing and pays buzz.</p></div>"+aside+"</div>";
+  return "<section class='produce-panel bo-mail'>"+head+filters+rows+"</section>";
+}
+function fansGalaPanel(){
+  return "<section class='produce-panel bo-gala'>"+
+    "<div class='produce-panel-head'><div><span class='command-eyebrow'>EVENT</span>"+
+    "<h2>🎉 Host a fan gala</h2>"+
+    "<p>Meet &amp; greet the faithful. Every theatrical title gets a bump and the room remembers it.</p></div>"+
+    "<span class='produce-stamp'>$2M</span></div>"+
+    "<div class='bo-gala-body'>"+
+      "<div class='bo-chip-row'><span class='bo-chip gold'>+5% BUZZ</span><span class='bo-chip teal'>REP +1</span><span class='bo-chip muted'>ONE-OFF SPEND</span></div>"+
+      "<button class='produce-action' id='btnFanGala'>🎉 Host gala — $2M</button>"+
+    "</div></section>";
+}
+function fansTrendingPanel(){
+  let tags=[]; try{ tags=trendingBoard()||[]; }catch(e){}
+  const rows=tags.length? "<div class='bo-track-rows'>"+tags.map(function(tg){
     const soc=(DATA.SOCIALS||[]).find(s=>s.name===tg.plat);
-    return "<div class='cost-line'><span>"+(soc?soc.icon:"💬")+" <b>"+esc(tg.tag)+"</b> <span class='tiny muted'>"+esc(tg.why)+"</span></span><span class='tag'>"+esc(tg.plat)+"</span></div>";
-  }).join("") : "<div class='tiny muted'>Quiet feeds. Big openings, scandals and hot casts make noise.</div>";
-  h+="<div class='section-title'>📣 Trending</div>"+fold("fans-trending","What the platforms are talking about", trendingList, {open:true, hint:trendTags.length? trendTags.length+" tags":""});
-  
-  /* buzz on live films with sentiment timeline sparkline */
-  const live=activeFilms();
-  h+="<div class='section-title'>💬 Buzz on your films ("+live.length+")</div>";
-  if(!live.length) h+="<div class='card muted small'>Nothing in theaters — the feeds are quiet.</div>";
-  live.forEach(f=>{
-    const bHist = f.buzzHistory || [f.buzz||20, f.buzz||20, (f.buzz||20)+3, f.buzz||20];
-    h+="<div class='spread' style='margin:4px 0'><span class='tiny muted'>20-wk buzz momentum:</span>"+renderSparklineSVG(bHist,{color:'#ff7675',width:64,height:16})+"</div>";
-    h+=socialPanel(f);
-  });
-  
-  /* audience pulse */
-  const recent=G.films.filter(f=>f.ww>0).slice(-8);
-  if(recent.length){
-    const audOf=f=>(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
-    const avg=Math.round(recent.reduce((a,f)=>a+audOf(f),0)/recent.length);
-    const fav=recent.slice().sort((a,b)=>audOf(b)-audOf(a))[0];
-    h+="<div class='card' style='margin-top:8px'><b class='small'>⭐ Audience pulse</b>"+
-      "<div class='cost-line'><span>Audience score, recent films</span><b class='"+(avg>=70?"pos":avg<50?"neg":"")+"'>"+avg+"%</b></div>"+
-      "<div class='cost-line'><span>Current fan favorite</span><b>"+esc(fav.title)+"</b></div>"+
-      "<div class='tiny muted'>Fan letters with real love behind them pay +1% buzz to a film still in theaters — once per film.</div></div>";
-  }
+    const heat=Math.max(1,Math.min(3, tg.heat||1));
+    return "<div class='bo-track-row'>"+
+      "<div class='bo-track-label'><span aria-hidden='true'>"+(soc? soc.icon : "💬")+"</span><span class='bo-track-text'>"+esc(tg.tag)+"<small>"+esc(tg.why)+"</small></span></div>"+
+      "<div class='bo-track teal'><i style='width:"+Math.round(heat/3*100)+"%'></i></div>"+
+      "<div class='bo-track-val'>"+esc(tg.plat)+"</div></div>";
+  }).join("")+"</div>" : "<div class='bo-empty'><b>Quiet feeds.</b><p>Big openings, scandals and hot casts make noise. Nothing is loud this week.</p></div>";
+  const body=fold("fans-trending","What the platforms are talking about", rows, {open:true, hint:tags.length? tags.length+" tags":""});
+  return fansPanel("SOCIAL","📣 Trending",
+    "Hashtags driven by real state — chart leaders, memes, scandals and feuds.",
+    "<div class='bo-panel-body'>"+body+"</div>",
+    tags.length? tags.length+" TAGS" : "QUIET", "bo-trending");
+}
+function fansBuzzPanel(){
+  let live=[]; try{ live=activeFilms()||[]; }catch(e){}
+  const figures=live.map(function(f){
+    const buzz=Math.round(f.buzz||20);
+    const bHist=(f.buzzHistory && f.buzzHistory.length>1)? f.buzzHistory : [buzz,buzz,buzz+3,buzz];
+    return "<div class='bo-figure bo-buzz-figure'>"+
+      "<div class='bo-figure-head'><b>"+esc(f.title)+"</b>"+
+        "<span class='bo-chip "+(buzz>=60?"good":buzz<35?"bad":"gold")+"'>BUZZ "+buzz+"</span></div>"+
+      "<div class='bo-buzz-momentum'><small>20-WK BUZZ MOMENTUM</small>"+
+        renderSparklineSVG(bHist,{color:'#edc47c',width:96,height:18})+"</div>"+
+      socialPanel(f)+"</div>";
+  }).join("");
+  const body=live.length? "<div class='bo-panel-body'><div class='bo-buzz-grid'>"+figures+"</div></div>"
+    : "<div class='bo-empty'><b>The feeds are quiet.</b><p>Nothing is in theaters. Finish a picture and date it — buzz only moves when people can buy a ticket.</p><button class='produce-action' onclick=\"switchTab('productions')\">Open productions →</button></div>";
+  return fansPanel("BUZZ","💬 Buzz on your films",
+    "What each live run is doing to the timeline, week by week.",
+    body, live.length? live.length+" LIVE" : "NO RUNS", "bo-buzz");
+}
+function fansPulsePanel(){
+  const st=fansAudienceStats();
+  const body=st.recent.length
+    ? "<div class='bo-panel-body'><div class='bo-kpis'>"+
+        "<div class='bo-kpi"+(st.avg>=70?" good":st.avg<50?" bad":"")+"'><small>AUDIENCE SCORE</small><b>"+st.avg+"%</b><span>Recent "+st.recent.length+" film"+(st.recent.length===1?"":"s")+"</span></div>"+
+        "<div class='bo-kpi'><small>FAN FAVOURITE</small><b class='bo-kpi-title'>"+esc(st.fav.title)+"</b><span>Highest audience score</span></div>"+
+        "<div class='bo-kpi'><small>REPLIES SENT</small><b>"+st.replied+"</b><span>Thanks and apologies</span></div>"+
+      "</div><p class='bo-figure-cap'>Fan letters with real love behind them pay <b>+1% buzz</b> to a film still in theaters — once per film.</p></div>"
+    : "<div class='bo-empty'><b>No audience yet.</b><p>Once a picture starts reporting, its audience score lands here.</p></div>";
+  return fansPanel("AUDIENCE","⭐ Audience pulse",
+    "How the people who actually bought tickets feel about the slate.",
+    body, st.recent.length? st.avg+"%" : "NO DATA", "bo-pulse");
+}
 
-  /* v34.6: what's next — the last block on the desk, after the audience pulse */
-  h+=nextUpdatesPanel();
-  return h;
+function viewFans(){
+  return "<section class='command-deck command-produce command-fans'>"+
+    fansHead()+fansTelemetry()+
+    fansMailPanel()+fansGalaPanel()+
+    fansTrendingPanel()+fansBuzzPanel()+fansPulsePanel()+
+    nextUpdatesPanel()+
+  "</section>";
 }
 
 /* ═══════════ VIEW: studio ═══════════ */
@@ -1970,7 +2039,9 @@ function renderSubTabs(){
   const bar = $("#subTabs");
   if(!bar) return;
   // These screens own a single branded navigation, shared across all viewports.
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice"){
+  // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
+  // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
