@@ -294,6 +294,40 @@ try{
   assert.equal(w.eval('G.franchises.length'),0,'sold franchise removed from G.franchises');
   console.log('PASS A6: franchiseOffers(fr) persisted across renders & save/load; card == modal == sellFranchise()');
 
+  /* ── A7 — Paid divisions (publishing, comics, store) pay weekly in tickEmpire(); resort honestly labelled +5 rep / $0/wk ── */
+  fresh('divisions');
+  w.eval(`
+    G.studio.cash=1000;
+    G.franchises=[{id:501,name:'Atlas Lore',tier:2,entries:[{filmId:1,title:'Atlas Lore',ww:350,week:1}],ww:350,merch:2,park:1,gameSold:0,decay:1,genre:'fantasy',earned:0,built:1}];
+    launchPublishing(501);
+    releaseComic(501);
+    buildStore();
+    G.weekTx={};
+    render();
+  `);
+  const breakdownBeforeTick=w.eval('typeof empireWeeklyBreakdown==="function" ? empireWeeklyBreakdown() : null');
+  assert(breakdownBeforeTick && breakdownBeforeTick.publishing>0 && breakdownBeforeTick.comics>0 && breakdownBeforeTick.store>0,
+    'empireWeeklyBreakdown() reports non-zero publishing, comics, and store weekly income');
+  assert(!/multiplier/i.test(viewText()),'divisions panel drops unimplemented store multiplier claim');
+
+  const cashPreTick=w.eval('G.studio.cash');
+  w.eval('tickEmpire();');
+  const cashPostTick=w.eval('G.studio.cash');
+  const actualEmpireCredit=Math.round((cashPostTick-cashPreTick)*10)/10;
+  assert.equal(actualEmpireCredit, breakdownBeforeTick.total,
+    `tickEmpire() cash delta (${actualEmpireCredit}) must equal displayed empireWeeklyBreakdown().total (${breakdownBeforeTick.total}) with zero double payment`);
+  assert.equal(w.eval('G.weekTx.empire'), breakdownBeforeTick.total,
+    'G.weekTx.empire equals empireWeeklyBreakdown().total');
+
+  /* Resort ($400M) explicitly states +5 rep prestige landmark and $0/wk */
+  w.eval('empireModal(501);');
+  const resortBtn=$('#emResort');
+  assert(resortBtn,'#emResort exists when park>=1');
+  assert.match(resortBtn.textContent+" "+(resortBtn.title||""),/\+5\s*rep/i,'#emResort states +5 rep');
+  assert.match(resortBtn.textContent+" "+(resortBtn.title||""),/\$0\/wk|prestige/i,'#emResort states $0/wk prestige landmark');
+  w.eval('closeModal();');
+  console.log('PASS A7: publishing, comics, and store pay weekly in tickEmpire() matching displayed total; resort labelled +5 rep / $0/wk');
+
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('EMPIRE DESK SUITE PASSED ✅');
 }catch(e){

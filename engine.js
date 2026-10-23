@@ -4510,8 +4510,9 @@ function forecastProject(){
       if(g<Math.max(0.3,f.opening*0.006)) g=0;
       net += g*0.53;
     }
-    // franchise income
+    // franchise & empire divisions income
     for(const fr of G.franchises) net += frWeeklyIncome(fr);
+    net += empireDivisionsIncome();
     // streamer subs + pay-1
     if(G.streamer) net += G.streamer.subs*0.5;
     // mezzanine / debt interest
@@ -5115,9 +5116,22 @@ function launchMerchLine(fid, lineId){
 function tickEmpire(){
   for(const fr of G.franchises){
     const inc=frWeeklyIncome(fr);
-    if(inc>=0.1){ earn("empire", inc); fr.earned=(fr.earned||0)+inc; }
+    if(inc>=0.1){
+      const credit=Math.round(inc*10)/10;
+      earn("empire", credit); fr.earned=Math.round(((fr.earned||0)+credit)*10)/10;
+    }
+    const pub=publishingIncome(fr);
+    if(pub>=0.1){
+      earn("empire", pub); fr.earned=Math.round(((fr.earned||0)+pub)*10)/10;
+    }
+    const com=comicsIncome(fr);
+    if(com>=0.1){
+      earn("empire", com); fr.earned=Math.round(((fr.earned||0)+com)*10)/10;
+    }
     fr.decay=Math.max(0.25, fr.decay*(fr.park? 0.996 : 0.982));
   }
+  const stInc=storeDirectIncome();
+  if(stInc>=0.1) earn("empire", stInc);
 }
 
 /* ═══════════ awards (year end) ═══════════ */
@@ -5873,7 +5887,7 @@ function buildResort(id){
   if(G.studio.cash<400){ log("💸 Resorts & cruises cost $400M.","bad"); return { ok:false, reason:"Need $400M cash for the resort & cruise landmark (have "+fmtM(G.studio.cash)+")." }; }
   spend("studio", 400); fr.resort=true;
   G.studio.rep=clamp(G.studio.rep+5,5,99);
-  log("🏝 \""+fr.name+"\" resorts & cruise line opened (−$400M). Vacationers now live inside your IP.","gold");
+  log("🏝 \""+fr.name+"\" resort & cruise prestige landmark opened (−$400M, +5 rep · $0/wk recurring).","gold");
   saveGame();
   return { ok:true };
 }
@@ -5979,7 +5993,7 @@ function cashflowForecast(){
     liveRuns.forEach(r=>{
       if(r.next>=0.4){ items.push({label:"\""+r.f.title+"\" rentals", amt:r.next*0.53}); r.next*=r.f.decay; }
     });
-    items.push({label:"Library & empire", amt: catalogValue()*0.0045 + G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0)});
+    items.push({label:"Library & empire", amt: catalogValue()*0.0045 + G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0) + empireDivisionsIncome()});
     if(G.streamer) items.push({label:"Streamer net", amt:G.streamer.subs*0.5});
     const net = items.reduce((a,x)=>a+x.amt,0);
     out.push({w, items:items.filter(x=>Math.abs(x.amt)>=0.5), net:Math.round(net*10)/10});
@@ -9329,7 +9343,7 @@ function buildStore(){
   const def=nextStoreDef(); if(!def) return {ok:false, reason:"Max level reached"};
   if(G.studio.cash < def.cost) return {ok:false, reason:"Need "+fmtMoney(def.cost)};
   spend("store", def.cost); G.store=G.store||{}; G.store.level=(G.store.level||0)+1;
-  log("Opened "+def.name+" — merch multiplier +"+fmtNum(def.mult,1)+"×, upkeep +"+fmtMoney(def.upkeep)+"/wk", "good");
+  log("Opened "+def.name+" — direct store income +"+fmtMoney(storeDirectIncome())+"/wk", "good");
   saveGame(); return {ok:true};
 }
 
@@ -9338,7 +9352,7 @@ function publishingIncome(fr){ return (fr && fr.publishing)? Math.round((1.1 + f
 function comicsIncome(fr){ return (fr && fr.comics)? Math.round(fr.comics * (0.8 + fr.tier*0.4) * (fr.decay||1) * 10)/10 : 0; }
 function comicCost(fr){ const C=DATA.COMICS||{baseCost:6,perTier:3}; return Math.round(C.baseCost + (fr?fr.tier:1)*C.perTier); }
 function releaseComic(frId){
-  const fr=G.franchises.find(f=>f.id===frId); if(!fr) return {ok:false, reason:"Franchise not found"};
+  const fr=frById(frId); if(!fr) return {ok:false, reason:"Franchise not found"};
   if(fr.comics>=3) return {ok:false, reason:"Max 3 comic lines"};
   const cost=comicCost(fr); if(G.studio.cash<cost) return {ok:false, reason:"Need "+fmtMoney(cost)};
   spend("comic", cost); fr.comics=(fr.comics||0)+1;
@@ -9355,7 +9369,23 @@ function empireDivisionsIncome(){
     total += publishingIncome(fr) + comicsIncome(fr);
   }
   total += storeDirectIncome();
-  return Math.round(total*100)/100;
+  return Math.round(total*10)/10;
+}
+function empireWeeklyBreakdown(){
+  let franchise=0, publishing=0, comics=0;
+  for(const fr of (G.franchises||[])){
+    const inc=frWeeklyIncome(fr);
+    if(inc>=0.1) franchise=Math.round((franchise+Math.round(inc*10)/10)*10)/10;
+    const pub=publishingIncome(fr);
+    if(pub>=0.1) publishing=Math.round((publishing+pub)*10)/10;
+    const com=comicsIncome(fr);
+    if(com>=0.1) comics=Math.round((comics+com)*10)/10;
+  }
+  const stRaw=storeDirectIncome();
+  const store=stRaw>=0.1?Math.round(stRaw*10)/10:0;
+  const divisions=Math.round((publishing+comics+store)*10)/10;
+  const total=Math.round((franchise+divisions)*10)/10;
+  return { franchise, publishing, comics, store, divisions, total };
 }
 
 /* ── deepfake drill ── */

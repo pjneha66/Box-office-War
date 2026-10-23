@@ -7676,7 +7676,8 @@ function viewEmpire(){
   if(typeof ensureEmpireState==="function") ensureEmpireState(G);
   const active=empireSub();
   let h=empireNav();
-  const weekly=G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0);
+  const ewb=(typeof empireWeeklyBreakdown==="function")?empireWeeklyBreakdown():{total:G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0)};
+  const weekly=ewb.total;
   const earned=G.franchises.reduce((a,f)=>a+(f.earned||0),0);
   const ww=G.franchises.reduce((a,f)=>a+(f.ww||0),0);
   h+="<div class='stat-hero'>"+
@@ -9113,7 +9114,7 @@ function empireModal(frId){
     (fr.publishing? "<span class='tag green'>📚 publishing arm</span>" : "<button class='btn btn-sm btn-alt' id='emPub'"+(canPub?"":" disabled title='Requires $15M cash'")+">📚 Publishing arm · $15M"+(canPub?"":" (need $15M)")+"</button>")+
   "</div></div>";
   h+="<div class='card'><div class='row'>"+
-    (fr.resort? "<span class='tag green'>🏝 resort open</span>" : (fr.park>=1? "<button class='btn btn-sm btn-gold' id='emResort'"+(canResort?"":" disabled title='Requires $400M cash'")+">🏝 Resort & cruise line · $400M"+(canResort?"":" (need $400M)")+"</button>" : "<span class='tiny muted'>🏝 Resort unlocks after the first 🎡 attraction</span>"))+
+    (fr.resort? "<span class='tag green'>🏝 resort landmark open (+5 rep · $0/wk)</span>" : (fr.park>=1? "<button class='btn btn-sm btn-gold' id='emResort' title='Prestige landmark: +5 rep, $0/wk recurring income'"+(canResort?"":" disabled")+">🏝 Resort & cruise landmark · $400M (+5 rep · $0/wk)"+(canResort?"":" (need $400M)")+"</button>" : "<span class='tiny muted'>🏝 Resort landmark (+5 rep · $0/wk) unlocks after the first 🎡 attraction</span>"))+
   "</div></div>";
   h+="<div class='card'><b>📦 License it out</b><div class='tiny muted' style='margin:4px 0'>Hand the brand to a rival for a fat upfront fee + a backend settlement on “"+dateLabel(G.week+39)+"”-ish paper. Brand heat fades while it's away.</div><div class='row'>"+
     (((fr.licenseAt||0)>G.week)? "<span class='tag green'>already out</span>" :
@@ -10942,7 +10943,7 @@ function divisionsPanel(){
   // Store
   const sl=storeLevel();
   h+="<div class='div-card'><div class='div-icon'>🏪</div><div class='div-main'><b>Merchandise</b>";
-  h+="<div class='div-sub'>Level "+sl+" — "+fmtNum(storeMult(),1)+"× multiplier</div>";
+  h+="<div class='div-sub'>Level "+sl+" — direct retail stream</div>";
   h+="</div><div class='div-side'>"+fmtMoney(storeDirectIncome())+"/wk</div></div>";
   // Publishing
   const pub=(G.franchises||[]).filter(f=>f.publishing).length;
