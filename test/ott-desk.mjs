@@ -287,16 +287,18 @@ try{
   assert($('#view .ott-subscriber-room .ott-empty')&&$('#view .ott-forecast .ott-empty'),'no-streamer Home empty states render');
   console.log('PASS empty states: offers, originals, sports and no-streamer analytics');
 
-  /* Release plumbing moves as one versioned unit. */
-  assert.equal($('meta[name="app-version"]').content,'34.7','app-version is 34.7');
+  /* Release plumbing moves as one versioned unit (34.9 Live Desk is the
+     current release; the 34.7 streamer desk stays shipped beneath it). */
+  assert.equal($('meta[name="app-version"]').content,'34.9','app-version is 34.9');
   const rawIndex=fs.readFileSync('index.html','utf8');
-  assert(rawIndex.includes('ui.js?v=50.7')&&rawIndex.includes('command-deck.css?v=50.7'),'UI and deck assets use v50.7');
-  assert(!rawIndex.includes('50.6'),'old asset version is gone');
-  assert(fs.readFileSync('sw.js','utf8').includes('bow-v93-cache'),'service-worker cache is bow-v93');
+  assert(rawIndex.includes('ui.js?v=50.9')&&rawIndex.includes('command-deck.css?v=50.9'),'UI and deck assets use v50.9');
+  assert(!rawIndex.includes('50.7'),'old asset version is gone');
+  assert(fs.readFileSync('sw.js','utf8').includes('bow-v94-cache'),'service-worker cache is bow-v94');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.7').status`),'shipped','34.7 streamer sub-tabs are marked shipped');
+  assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.9').status`),'shipped','34.9 Live Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.8').status`),'planned','34.8 board verdicts are queued next');
   assert(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.8').label`).includes('§45'),'34.8 names the real board-verdicts item');
-  console.log('PASS release: 34.7 / 50.7 / bow-v93 and roadmap statuses');
+  console.log('PASS release: 34.9 / 50.9 / bow-v94 and roadmap statuses');
 
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');

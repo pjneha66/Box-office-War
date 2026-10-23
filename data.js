@@ -1952,16 +1952,80 @@ DATA.LIVE_HOSTS = [
   }
 ];
 
+/* One source of truth for Live TV action fees: the engine charges these and
+   the UI displays these, so a button can never quote a stale price again. */
+DATA.LIVE_COSTS = { festivalFee: 0.25, premiere: 1.5, hostTrain: 1.0 };
+
+/* ── Develop-a-Show (TV Studio Story-inspired): format × theme combos,
+   host casting, studio sets, target audiences, production tiers and
+   sponsor deals. Compatibility lives here; scoring lives in engine.js
+   (scoreShowConcept) so the lab preview and the real show never drift. */
+DATA.SHOW_FORMATS = [
+  {id:"talk", label:"Talk Show", block:"special", loves:["cinema","celebrity","comedy"], likes:["fashion","music","family"], audiences:["adults","seniors"], hosts:["rex","chloe"], desc:"Sofa chat and star stories. Cheap, warm, dependable."},
+  {id:"variety", label:"Variety Hour", block:"special", loves:["comedy","music","celebrity"], likes:["family","cinema","fashion"], audiences:["family","youth"], hosts:["chloe","reely"], desc:"Sketches, songs and stunts in one shining hour."},
+  {id:"newsdesk", label:"News Desk", block:"special", loves:["cinema","tech","truecrime"], likes:["sports","travel","celebrity"], audiences:["adults","seniors"], hosts:["rex"], desc:"Entertainment news with authority."},
+  {id:"gameshow", label:"Game Show", block:"live_event", loves:["family","comedy","celebrity"], likes:["sports","food","tech"], audiences:["family","kids"], hosts:["reely","buck"], desc:"Prizes, buzzers and shout-along play."},
+  {id:"reality", label:"Reality Series", block:"series", loves:["celebrity","fashion","food"], likes:["travel","comedy","sports"], audiences:["youth","adults"], hosts:["chloe","buck"], minRep:40, desc:"Unscripted lives, very scripted edits."},
+  {id:"serial", label:"Drama Serial", block:"series", loves:["cinema","truecrime","nature"], likes:["celebrity","travel","comedy"], audiences:["adults","youth"], hosts:["rex","chloe"], desc:"Weekly chapters with cliffhangers."},
+  {id:"musiclive", label:"Music Live", block:"live_event", loves:["music","celebrity","fashion"], likes:["comedy","cinema","travel"], audiences:["youth","family"], hosts:["chloe","reely"], desc:"Chart countdowns and live performances."},
+  {id:"cooking", label:"Cooking Show", block:"special", loves:["food","family","travel"], likes:["celebrity","nature","comedy"], audiences:["family","seniors"], hosts:["reely","chloe"], desc:"Recipes, rivalries and perfect soufflés."},
+  {id:"sportsdesk", label:"Sports Central", block:"live_event", loves:["sports","celebrity","tech"], likes:["comedy","travel","truecrime"], audiences:["adults","youth"], hosts:["buck"], minRep:45, desc:"Highlights, hot takes and locker-room access."},
+  {id:"latenight", label:"Late Night Comedy", block:"special", loves:["comedy","celebrity","cinema"], likes:["music","tech","truecrime"], audiences:["youth","adults"], hosts:["rex","buck"], minRep:50, desc:"Monologues after dark. Cult gold when it lands."},
+  {id:"docuseries", label:"Prestige Docuseries", block:"series", loves:["nature","truecrime","cinema"], likes:["travel","tech","sports"], audiences:["adults","seniors"], hosts:["rex","chloe"], minRep:60, desc:"Slow-burn factual event television."}
+];
+DATA.SHOW_THEMES = [
+  {id:"cinema", label:"Cinema", audiences:["adults","youth"]},
+  {id:"celebrity", label:"Celebrity", audiences:["youth","adults"]},
+  {id:"comedy", label:"Comedy", audiences:["family","youth"]},
+  {id:"family", label:"Family", audiences:["family","kids"]},
+  {id:"food", label:"Food", audiences:["family","seniors"]},
+  {id:"travel", label:"Travel", audiences:["seniors","adults"]},
+  {id:"sports", label:"Sports", audiences:["adults","youth"]},
+  {id:"music", label:"Music", audiences:["youth","family"]},
+  {id:"fashion", label:"Fashion", audiences:["youth","adults"]},
+  {id:"tech", label:"Tech & Gadgets", audiences:["youth","adults"]},
+  {id:"truecrime", label:"True Crime", audiences:["adults","seniors"]},
+  {id:"nature", label:"Nature", audiences:["seniors","family"]}
+];
+DATA.SHOW_SETS = [
+  {id:"livingroom", label:"Cozy Living Room", loves:["talk","cooking","variety"], likes:["serial"], cost:0, desc:"Sofas, lamps and instant warmth."},
+  {id:"newsroom", label:"Glass Newsroom", loves:["newsdesk","sportsdesk","docuseries"], likes:["talk"], cost:0.4, desc:"Screens everywhere. Smells of authority."},
+  {id:"neonfloor", label:"Neon Game Floor", loves:["gameshow","musiclive","variety"], likes:["latenight"], cost:0.5, desc:"Buzzers loud enough to wake the sponsors."},
+  {id:"kitchen", label:"Pro Kitchen Studio", loves:["cooking"], likes:["reality","talk"], cost:0.3, desc:"Twelve burners, zero mercy."},
+  {id:"arena", label:"Arena Stage", loves:["musiclive","sportsdesk","gameshow"], likes:["variety","reality"], cost:1.0, minRep:55, desc:"Big room, bigger entrances."},
+  {id:"backlot", label:"Backlot Street", loves:["serial","reality","docuseries"], likes:["latenight"], cost:1.2, minRep:65, desc:"A whole neighbourhood that ends at a wall."}
+];
+DATA.SHOW_AUDIENCES = [
+  {id:"kids", label:"Kids"}, {id:"family", label:"Families"}, {id:"youth", label:"Youth 18–34"},
+  {id:"adults", label:"Adults 25–54"}, {id:"seniors", label:"Seniors 55+"}
+];
+DATA.SHOW_TIERS = [
+  {id:"shoestring", label:"Shoestring", dev:1.2, epCost:0.2, prod:42, desc:"Two cameras and a dream."},
+  {id:"standard", label:"Standard", dev:3.0, epCost:0.4, prod:64, desc:"A proper crew and a real set."},
+  {id:"prestige", label:"Prestige", dev:6.0, epCost:0.7, prod:84, minRep:55, desc:"Event television money."}
+];
+DATA.SHOW_SPONSORS = [
+  {id:"none", label:"No sponsor", bonus:0, penalty:0, brand:null, desc:"Clean broadcast, no upfront cash."},
+  {id:"local", label:"Local sponsor", bonus:0.8, penalty:3, brand:"GlowLife Supplements", desc:"Upfront cash; their ads cost a little rating."},
+  {id:"national", label:"National sponsor", bonus:2.0, penalty:6, brand:"Apex Automotive", minRep:50, desc:"Serious money; heavier ad load, softer ratings."}
+];
+DATA.SHOW_RIVAL_NAMES = ["Starline Tonight","The Velvet Hour","Prime Suspects","Golden Buzzer Live","Metro Kitchen Wars","The Nightly Roast","Champions' Table","Signal & Noise"];
+
 DATA.liveChannel = (id) => (DATA.LIVE_CHANNELS || []).find(c => c.id === id);
 DATA.liveEvent = (id) => (DATA.LIVE_EVENTS || []).find(e => e.id === id);
 DATA.liveHost = (id) => (DATA.LIVE_HOSTS || []).find(h => h.id === id);
+DATA.showFormat = (id) => (DATA.SHOW_FORMATS || []).find(f => f.id === id);
+DATA.showTheme = (id) => (DATA.SHOW_THEMES || []).find(t => t.id === id);
+DATA.showSet = (id) => (DATA.SHOW_SETS || []).find(s => s.id === id);
+DATA.showTier = (id) => (DATA.SHOW_TIERS || []).find(t => t.id === id);
+DATA.showSponsor = (id) => (DATA.SHOW_SPONSORS || []).find(s => s.id === id);
 
 /* Live tab state (added to game state) */
 DATA.LIVE_DEFAULTS = {
   channels: [],           // owned channels {id, schedule[24], adSold[24]}
   activeChannel: "bow_movies",
   activeHost: "rex",
-  subTab: "linear",
+  subTab: "home",
   streaming: {            // streaming service state
     live: false,
     topic: "feature_premiere",
