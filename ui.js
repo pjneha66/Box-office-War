@@ -10279,7 +10279,7 @@ function liveFestSubmitModal(eventId){
     const btn = v.querySelector("#festSub_" + f.id);
     if(btn){
       btn.onclick = () => {
-        const r = submitFilmToFestival(eventId, f.id);
+        const r = submitFilmToFestival(f.id, eventId);
         if(r && r.ok){
           beep("gold");
           closeModal();
