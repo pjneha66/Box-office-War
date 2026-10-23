@@ -3378,8 +3378,7 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
   }
 
   .bottomnav,
-  .subtabs,
-  .fab-lot {
+  .subtabs {
     display: none !important;
   }
 

@@ -584,7 +584,7 @@ body{
   box-shadow:0 3px 0 var(--bow-ink);
 }
 
-.fab-lot, .fab-week{
+.fab-week{
   border-radius:10px;
   border:2px solid var(--bow-gold-hi);
   border-bottom:4px solid var(--bow-gold-deep);
@@ -596,7 +596,7 @@ body{
   box-shadow:0 4px 0 #4a2f04, 0 10px 24px -8px rgba(245,197,24,.6), inset 0 1px 0 rgba(255,255,255,.5);
   transition:transform .1s ease, box-shadow .1s ease;
 }
-.fab-lot:active, .fab-week:active{
+.fab-week:active{
   transform:translateY(4px);
   box-shadow:0 0 0 #4a2f04, inset 0 2px 5px rgba(0,0,0,.3);
 }
@@ -1159,7 +1159,7 @@ input::placeholder, textarea::placeholder{ color:#5b6a80; }
     animation:none !important;
   }
   .btn:active, .subnav-pill:active, .itch-btn-gold:active, .itch-btn-blue:active,
-  .kairo-btn-action:active, .btn-icon:active, .fab-lot:active, .fab-week:active{
+  .kairo-btn-action:active, .btn-icon:active, .fab-week:active{
     transform:none !important;
   }
   .arch:hover, .diff-btn:hover, .sel-card:hover, .start-slot-card:hover,

@@ -173,7 +173,8 @@ step("v9 contracts, training, BTL crew", ()=>{
   const a=window.eval("G.talent.find(t=>t.kind==='actor'&&t.age<=34&&!t.training)");
   if(a){ window.eval(`startTraining(${a.id})`);
     if(!window.eval(`G.talent.find(t=>t.id===${a.id}).training`)) throw new Error("training not started"); }
-  // below-the-line hire
+  // below-the-line hire — crew desks live on the Story Department's Talent section
+  window.eval("DEVELOP_SUB='talent'; render();");
   if(!$("#view").innerHTML.includes("Below-the-line crew")) throw new Error("BTL section missing");
   const hire=$$("[data-btlhire]")[0];
   if(!hire) throw new Error("BTL hire button missing");
@@ -319,10 +320,15 @@ step("v4 named critics reviewed the release", ()=>{
 });
 step("v4 genre trend board renders in Develop", ()=>{
   click($(".tab[data-tab='develop']"));
-  if(!$(".trend-board")) throw new Error("trend board missing");
-  if($$(".trend-row").length !== Object.keys(window.eval("DATA.GENRES")).length) throw new Error("trend rows incomplete");
-  if(!$("#view").innerHTML.includes("Writers on the market")) throw new Error("writer market missing");
-  if(!$("#view").innerHTML.includes("Producers on the market")) throw new Error("producer market missing");
+  // The Story Department's genre board is .develop-trends (one row per film genre).
+  if(!$(".develop-trends")) throw new Error("trend board missing");
+  if($$(".develop-trend").length !== Object.keys(window.eval("DATA.GENRES")).length) throw new Error("trend rows incomplete");
+  if(!$(".develop-table")) throw new Error("genre intelligence table missing");
+  // The open talent market lives on the Talent desk section now.
+  window.eval("DEVELOP_SUB='talent'; render();");
+  if(!$("#view").innerHTML.includes("WRITERS ON THE MARKET")) throw new Error("writer market missing");
+  if(!$("#view").innerHTML.includes("PRODUCERS ON THE MARKET")) throw new Error("producer market missing");
+  window.eval("DEVELOP_SUB='scripts'; render();");
 });
 step("v4 streamer tiers + password crackdown state", ()=>{
   window.eval("G.studio.rep=Math.max(G.studio.rep,45); G.studio.cash=Math.max(G.studio.cash,700); launchStreamer(); render();");
@@ -400,6 +406,14 @@ step("series pitch wizard", ()=>{
   if(!$$("[data-g]").length) throw new Error("genre chips missing");
   const sr=$$("[data-sr]")[0]; if(!sr) throw new Error("no showrunner");
   click(sr);
+  // step 1 → cast step → platform step
+  const toCast=$("#szToCast"); if(!toCast) throw new Error("cast step button missing");
+  click(toCast);
+  if(!$$("[data-szcast]").length) throw new Error("series cast list missing");
+  const toPlat=$("#szToPlat"); if(!toPlat) throw new Error("platform step button missing");
+  click(toPlat);
+  const toReview=$("#szToReview"); if(!toReview) throw new Error("review step button missing");
+  click(toReview);
   if(!$("#szPitch")) throw new Error("pitch button missing");
   click($("#szPitch"));
   window.eval("closeModal();");
@@ -418,16 +432,24 @@ step("film pitch wizard", ()=>{
     click($$("[data-g]")[0]);
     if(!$$("[data-s]").length) throw new Error("film pitch scale chips missing");
     click($$("[data-s]")[0]);
+    const toTeam=$("#fpNext"); if(!toTeam) throw new Error("film pitch team step missing");
+    click(toTeam);
     if(!$$("[data-fpd]").length) throw new Error("film pitch director picker missing");
     click($$("[data-fpd]")[0]);
     if(!$$("[data-fpw]").length) throw new Error("film pitch writer picker missing");
     click($$("[data-fpw]")[0]);
     if(!$$("[data-fpp]").length) throw new Error("film pitch producer picker missing");
     click($$("[data-fpp]")[0]);
+    const toCast=$('[data-fpnext="2"]'); if(!toCast) throw new Error("film pitch cast step missing");
+    click(toCast);
     if(!$$("[data-fpc]").length) throw new Error("film pitch cast picker missing");
     click($$("[data-fpc]")[0]);
+    click($('[data-fpnext="3"]'));
+    click($('[data-fpnext="4"]'));
     if(!$("#fpGo")) throw new Error("film pitch go button missing");
     click($("#fpGo"));
+    if(!$(".verdict")) throw new Error("the board verdict sheet must appear after a pitch");
+    window.eval("closeModal();");
   }
   if(g().projects.length<=before) throw new Error("board passed on every pitch");
 });
@@ -673,6 +695,7 @@ step("v26 character sheet opens with tabs", ()=>{
   const t=window.eval("G.talent[0]");
   if(!t) throw new Error("no talent on roster");
   click($(".tab[data-tab='develop']"));
+  window.eval("DEVELOP_SUB='talent'; render();");   // roster moved to the Story Department's talent desk
   const btn=$$("[onclick*='characterSheet']")[0];
   if(!btn) throw new Error("RPG sheet button missing on talent card");
   click(btn);
@@ -752,6 +775,7 @@ step("v27 launched game earns weekly sales + live ops", ()=>{
 step("v27 character sheet: moral axis, branches, guild, mentorship", ()=>{
   window.eval("G.talent.forEach(t=>{initPrototypeTalent(t); t.prototype.level=Math.max(t.prototype.level||1,6); t.prototype.skillPoints=6;})");
   click($(".tab[data-tab='develop']"));
+  window.eval("DEVELOP_SUB='talent'; render();");
   const btn=$$("[onclick*='characterSheet']")[0];
   if(!btn) throw new Error("RPG sheet button missing");
   click(btn);
@@ -870,16 +894,24 @@ step("v32.6 itch.io assets expansion suite verification", ()=>{
   if(!trophyModal) throw new Error("award trophy ceremony modal missing");
   window.eval("closeModal();");
 
-  // 5. Verify Location Scouting Weather Overlays
+  // 5. Verify the location desk is reachable from the scouting entry point.
+  //    Weather is a scouting attribute on each commission (rain, snow, heat),
+  //    not a decorative overlay — the desk replaced the arcade weather cards.
   window.eval(`
     if(!G.projects.some(p => p.phase === "pre" || p.phase === "dev")){
       G.projects.push({ id: 9911, title: "Weather Test Epic", genre: "scifi", phase: "dev", budget: 40 });
     }
     openLocationScoutingModal();
   `);
-  const weatherCards = $$(".weather-fx-rain, .weather-fx-snow, .weather-fx-heat, .weather-fx-neon");
-  if(weatherCards.length < 3) throw new Error("expected at least 3 weather fx location cards, got " + weatherCards.length);
-  window.eval("closeModal();");
+  const locDesk = $("#modalRoot .command-location-modal");
+  if(!locDesk) throw new Error("location scouting must open the location desk");
+  const destCards = $$("#modalRoot .loc-dest");
+  if(destCards.length < 3) throw new Error("expected at least 3 destination contracts, got " + destCards.length);
+  if(!$$("#modalRoot [data-dest-id]").length) throw new Error("destination contracts must be clickable");
+  if(!/weather/.test(locDesk.textContent)) throw new Error("the desk must report each commission's weather");
+  if($$("#modalRoot .weather-fx-rain, #modalRoot .weather-fx-snow, #modalRoot .weather-fx-heat, #modalRoot .weather-fx-neon").length)
+    throw new Error("decorative weather overlays must be gone from the redesigned desk");
+  window.eval("closeModal();G.projects=G.projects.filter(p=>p.id!==9911);");
 });
 
 console.log("");

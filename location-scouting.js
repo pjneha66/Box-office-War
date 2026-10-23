@@ -75,7 +75,10 @@
     const S = _getG(state);
     if(!S) return { ok: false, error: "No active state" };
 
-    const project = (S.projects || []).find(p => p.id === projectId);
+    /* Pictures live in the pipeline (projects) until release, then in the film
+       library. Both can carry a scouting record, so accept either. */
+    const project = (S.projects || []).find(p => p.id === projectId)
+      || (S.films || []).find(f => f.id === projectId);
     if(!project) return { ok: false, error: "Project not found in pipeline." };
 
     const loc = getShootingLocation(locId);
@@ -96,76 +99,61 @@
     if(typeof log === "function"){
       log("Scouted location \"" + loc.name + "\" for \"" + project.title + "\": +$" + rebate + "M tax credit, +" + qBuff + " quality points.", "gold");
     }
+    if(typeof project.shootingLocationName !== "string") project.shootingLocationName = loc.name;
 
     return { ok: true, rebate, qualityBuff: qBuff };
   }
 
+  /* One scouting surface for the whole game: the location desk owns the
+     destination cards, the contract action and the cash-back maths. Older
+     callers that passed a project id still land on it, with that picture
+     pre-selected; callers with no shoot get the desk's own empty state
+     instead of a dead toast. */
   function openLocationScoutingModal(projectId){
     const S = _getG();
     if(!S) return;
-
     let target = null;
     if(projectId){
-      target = (S.projects || []).find(p => p.id === projectId);
+      target = (S.projects || []).find(p => p.id === +projectId || p.id === projectId);
     }
     if(!target){
-      target = (S.projects || []).find(p => p.phase === "pre" || p.phase === "dev");
+      target = (S.projects || []).find(p => ["pre","dev","shoot","prod","post"].includes(p.phase));
     }
-
-    if(!target){
-      if(typeof toast === "function") toast("No projects currently in pre-production or development.", "bad");
+    if(typeof global.openLocationDesk === "function"){
+      global.openLocationDesk(target ? target.id : null);
       return;
     }
+    if(!target){
+      if(typeof toast === "function") toast("No projects currently in pre-production or development.", "bad");
+    }
+  }
 
-    let h = "<h3>Global Location Scouting &amp; Tax Rebate Hub</h3>";
-    h += "<div class='tiny muted' style='margin-bottom:12px'>Select physical international shooting hubs for \"" + esc(target.title) + "\" (" + (target.genre || "").toUpperCase() + "). Qualify for direct state tax credits and genre authenticity bonuses.</div>";
-
-    h += "<div class='grid g2'>";
-    SHOOTING_LOCATIONS.forEach(loc => {
-      const rebateM = Math.round(target.budget * loc.taxRebate * 10) / 10;
-      const isFavored = loc.genresFavored.includes(target.genre);
-
-      h += "<div class='card " + (loc.fxClass || "") + "' style='display:flex;flex-direction:column;justify-content:space-between;position:relative'>"+
-        "<div>"+
-          "<div class='spread'><b>" + esc(loc.name) + "</b><span class='tag " + (isFavored ? "green" : "") + "'>" + Math.round(loc.taxRebate * 100) + "% Rebate</span></div>"+
-          "<div class='tiny' style='color:var(--gold);margin:4px 0'>Weather Atmosphere: <b>" + esc(loc.weather || "Clear") + "</b></div>"+
-          "<div class='tiny muted' style='margin:4px 0 6px'>" + esc(loc.desc) + "</div>"+
-          "<div class='tiny' style='margin:4px 0'>"+
-            "Estimated Tax Cash Back: <b>+$" + rebateM + "M</b> | Visual Boost: <b>+" + (loc.qualityBuff + (isFavored ? 2 : 0)) + " pts</b>" +
-          "</div>"+
-          (isFavored ? "<div class='tiny pos' style='margin-top:4px'>Prime Genre Match (" + target.genre + ")</div>" : "")+
-        "</div>"+
-        "<div style='margin-top:10px'>"+
-          "<button class='btn btn-sm btn-primary' style='width:100%' data-lockloc='" + target.id + ":" + loc.id + "'>Confirm Location ($" + rebateM + "M rebate)</button>"+
-        "</div>"+
-      "</div>";
-    });
-    h += "</div>";
-
-    h += "<div class='modal-actions' style='margin-top:14px'>"+
-      "<button class='btn btn-primary' onclick='closeModal()'>Close</button>"+
-    "</div>";
-
-    const v = openModal(h);
-    v.querySelectorAll("[data-lockloc]").forEach(b => {
-      b.onclick = () => {
-        const parts = b.dataset.lockloc.split(":");
-        const res = applyLocationToProject(+parts[0], parts[1]);
-        if(res.ok){
-          if(typeof beep === "function") beep("gold");
-          closeModal();
-          if(typeof render === "function") render();
-        } else {
-          if(typeof toast === "function") toast(res.error, "bad");
-        }
-      };
-    });
+  /* Scout a hub for a picture: pays the travel premium, books the location and
+     reports the rebate + craft buff the engine will apply. */
+  function scoutLocationForProject(projectId, locId, travelBudget, state){
+    const S = _getG(state);
+    if(!S) return { ok:false, msg:"No active state" };
+    const loc = getShootingLocation(locId);
+    const travel = Math.round((loc.travelCost || 0) * 10) / 10;
+    const cash = S.studio ? S.studio.cash : S.cash;
+    if(travel > 0 && (typeof cash === "number") && cash < travel){
+      return { ok:false, msg:"Travel to " + loc.name + " needs " + "$" + travel + "M in cash." };
+    }
+    const res = applyLocationToProject(projectId, loc.id, S);
+    if(!res.ok) return { ok:false, msg:res.error };
+    if(travel > 0){
+      if(S.studio) S.studio.cash = Math.round((S.studio.cash - travel) * 100) / 100;
+      else if(typeof S.cash === "number") S.cash = Math.round((S.cash - travel) * 100) / 100;
+    }
+    return { ok:true, location:loc, taxRebateCash:res.rebate, qualityBuff:res.qualityBuff,
+      msg:"Scouted " + loc.name + " for a $" + res.rebate + "M rebate and +" + res.qualityBuff + " craft." };
   }
 
   const LocationScoutingModule = {
     SHOOTING_LOCATIONS,
     getShootingLocation,
     applyLocationToProject,
+    scoutLocationForProject,
     openLocationScoutingModal
   };
 
@@ -173,6 +161,9 @@
     module.exports = LocationScoutingModule;
   }
   global.LocationScoutingModule = LocationScoutingModule;
+  /* The engine and the location desk read `LocationScouting`; expose the same
+     object under both names so scouted hubs actually buff final craft. */
+  global.LocationScouting = LocationScoutingModule;
   global.getShootingLocation = getShootingLocation;
   global.applyLocationToProject = applyLocationToProject;
   global.openLocationScoutingModal = openLocationScoutingModal;

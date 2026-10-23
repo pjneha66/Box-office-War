@@ -342,7 +342,7 @@ const NAV_GROUPS = [
 const TAB_META = {
   dashboard:   [["overview","Command deck"],["actions","Management desks"],["slate","Project tracker"],["macro","Industry pulse"]],
   studio:      [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"]],
-  develop:     [["scripts","Scripts"],["ip","IP Market"],["talent","Talent Business"],["combos","Combos Codex"],["tax","Tax Rebates"]],
+  develop:     [["scripts","Scripts"],["demographics","Audience lab"],["creativity","Craft & vault"],["ip","Rights market"],["talent","Talent desk"],["combos","Combos codex"],["tax","Locations & partners"]],
   productions: [["all","All"],["pre","Pre"],["shoot","Shoot"],["post","Post"],["ready","Ready"],["dated","Dated"]],
   boxoffice:   [["chart","Theatrical Charts"],["chains","Mega-Chains and PLF"],["territories","Territory Deals"],["awards","Awards Circuit"],["clash","Clash Radar"]],
   fans:        [["all","All"],["mail","Mail"],["trending","Trending"],["viral","Viral"]],
