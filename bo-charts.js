@@ -111,7 +111,7 @@
       var cx = pad.l + slot * i + slot / 2;
       var bh = Math.max(2, (Math.max(0, p.value) / max) * ih);
       var by = pad.t + ih - bh;
-      var tone = p.tone === "teal" ? C.teal : p.tone === "bad" ? C.bad : C.gold;
+      var tone = p.tone === "teal" ? C.teal : p.tone === "bad" ? C.bad : p.tone === "muted" ? "#6c8578" : C.gold;
       return '<rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + by.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + tone + '" fill-opacity="' + (p.muted ? ".45" : ".85") + '"><title>' + esc(p.label + " · " + (opts.format ? opts.format(p.value) : money(p.value))) + "</title></rect>" +
         '<text x="' + cx.toFixed(1) + '" y="' + (by - 6).toFixed(1) + '" text-anchor="middle" fill="' + C.cream + '" font-size="' + (compact ? 10.5 : 9.5) + '" font-family="ui-monospace,monospace">' + esc(opts.format ? opts.format(p.value) : money(p.value)) + "</text>" +
         '<text x="' + cx.toFixed(1) + '" y="' + (h - 9) + '" text-anchor="middle" fill="' + C.muted + '" font-size="' + fs + '" font-family="ui-monospace,monospace">' + esc(p.label) + "</text>";
@@ -127,12 +127,12 @@
     var total = parts.reduce(function (a, p) { return a + p.value; }, 0) || 1;
     var segs = parts.map(function (p, i) {
       var pct = (p.value / total) * 100;
-      var tone = p.tone === "teal" ? C.teal : p.tone === "bad" ? C.bad : p.tone === "muted" ? C.grid : C.gold;
+      var tone = p.tone === "teal" ? C.teal : p.tone === "bad" ? C.bad : p.tone === "muted" ? "#4e6355" : C.gold;
       return '<i class="bo-split-seg" style="width:' + pct.toFixed(2) + "%;background:" + tone + '" title="' + esc(p.label + " · " + (opts.format ? opts.format(p.value) : money(p.value)) + " (" + Math.round(pct) + "%)") + '"></i>';
     }).join("");
     var legend = parts.map(function (p) {
       var pct = Math.round((p.value / total) * 100);
-      return '<span class="bo-legend-item"><i style="background:' + (p.tone === "teal" ? C.teal : p.tone === "bad" ? C.bad : p.tone === "muted" ? C.grid : C.gold) + '"></i>' + esc(p.label) + " <b>" + esc(opts.format ? opts.format(p.value) : money(p.value)) + "</b> <small>" + pct + "%</small></span>";
+      return '<span class="bo-legend-item"><i style="background:' + (p.tone === "teal" ? C.teal : p.tone === "bad" ? C.bad : p.tone === "muted" ? "#4e6355" : C.gold) + '"></i>' + esc(p.label) + " <b>" + esc(opts.format ? opts.format(p.value) : money(p.value)) + "</b> <small>" + pct + "%</small></span>";
     }).join("");
     return '<div class="bo-split"><div class="bo-split-bar">' + segs + '</div><div class="bo-legend">' + legend + "</div></div>";
   }

@@ -160,5 +160,34 @@ assert.equal($$('#modalRoot .card').length,0,'no legacy cards in the blitz comma
 w.eval(`closeModal();`);
 console.log('PASS dialogs: rival dossier, weekly report and blitz command are produce shells');
 
+/* 8 — every remaining dialog inherits the produce chrome instead of the old
+   navy surface, and the converted decision dialogs keep their bindings */
+w.eval(`switchTab('boxoffice');achievementsModal();`);
+const legacyClass=w.eval(`document.querySelector('#modalRoot .modal').className`);
+assert(legacyClass.includes('command-legacy-modal'),'legacy dialogs get the produce chrome');
+assert(!/rgb\(2[0-9], 3[0-9]/.test(w.eval(`getComputedStyle(document.querySelector('#modalRoot .modal')).backgroundColor`)),'no navy surface');
+w.eval(`closeModal();`);
+
+w.eval(`G.pendingChoice={icon:'📣',title:'Casting controversy',text:'Casting Thyago Greene has the internet divided.',choices:[{label:'Defend it',i:0},{label:'Back down',i:1}]};choiceModal();`);
+assert($('#modalRoot .command-produce-modal'),'decision dialog is a produce shell');
+assert.equal($$('#modalRoot [data-ch]').length,2,'both choices stay bound');
+assert.equal($$('#modalRoot .card').length,0,'no legacy cards in the decision dialog');
+w.eval(`closeModal();`);
+
+w.eval(`G.pendingReport={year:1,myWW:210,filmsReleased:3,profit:18,standings:[{name:'Apex Pictures',ww:530,me:false},{name:'Lighthouse',ww:210,me:true}],awards:{noms:[{title:'Every Berlin',mine:true}],wins:[{cat:'Best Picture',film:'Every Berlin',mine:true}]}};reportModal();`);
+assert($('#modalRoot .command-produce-modal'),'year report is a produce shell');
+assert.equal($$('#modalRoot .bo-kpi').length,4,'year report KPI strip');
+assert.equal($$('#modalRoot .bo-track-row').length>=3,true,'market share + awards rows');
+assert($('#modalRoot #reportGo'),'roll credits action preserved');
+w.eval(`closeModal();`);
+
+w.eval(`G.compareSel=[9001,9002];G.films.push({id:9002,title:'Stellar Signal',genre:'sci',ww:210,dom:120,intl:90,opening:78,budget:120,marketing:60,quality:{overall:74,critic:70,aud:78},criticAvg:70,releaseWeek:G.week-8,year:yearOf(G.week)});compareFilmsModal();`);
+assert($('#modalRoot .command-produce-modal'),'comparison is a produce shell');
+assert.equal($$('#modalRoot .bo-compare-card').length,2,'one card per selected film');
+assert($('#modalRoot .bo-chart-svg'),'comparison draws a shared scale chart');
+assert($('#modalRoot #compareClose'),'close action preserved');
+w.eval(`closeModal();`);
+console.log('PASS shared chrome: legacy dialogs, decisions, year report, comparison');
+
 assert.deepEqual(errors,[]);
 console.log('BOX OFFICE FIGURES PASSED ✅');

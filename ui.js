@@ -521,6 +521,14 @@ function openModal(html, opts){
     dialog.classList.add('command-modal','command-develop-modal');
     const title=dialog.querySelector('h3,h2');
     if(title){ dialog.setAttribute('aria-label',title.textContent); }
+  } else {
+    // Every other screen's dialogs (box office, fans, OTT, finance, game studio)
+    // kept the pre-redesign navy-and-gold surface. They are not rewritten one by
+    // one; they share one produce chrome so the platform reads as one product.
+    const dialog=veil.querySelector('.modal');
+    dialog.classList.add('command-modal','command-legacy-modal');
+    const title=dialog.querySelector('h3,h2');
+    if(title){ dialog.setAttribute('aria-label',title.textContent); }
   }
   if(!opts.noX) veil.querySelector(".modal-x").onclick=()=>{ closeModal(triggerEl); if(opts.onClose) opts.onClose(); };
   if(!opts.locked) veil.addEventListener("click", e=>{ if(e.target===veil){ closeModal(triggerEl); if(opts.onClose) opts.onClose(); } });
@@ -5189,37 +5197,65 @@ function regionSummaryPanel(){
   return h;
 }
 
-/* Film comparison modal */
+/* Film comparison modal — side-by-side KPIs plus a shared comparison chart, so
+   two runs are read on the same scale instead of two separate div stacks. */
 function compareFilmsModal(){
   const sel = (G.compareSel||[]).map(id=>G.films.find(f=>f.id===id)).filter(Boolean);
   if(sel.length<2){ toast("Select at least 2 films to compare.","bad"); return; }
-  let h="<h3>⚖ Film Comparison</h3>";
-  h+="<div class='grid g2' style='margin-top:12px;max-height:70vh;overflow:auto'>";
-  sel.forEach(f=>{
-    const be=breakevenWW(f);
+  const rows=sel.map(f=>{
+    let be=0; try{ be=breakevenWW(f); }catch(e){ be=(f.budget||0)*2; }
     const mult=boMult(f), legs=boLegs(f);
-    const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):f.quality.aud;
-    const crit=f.criticAvg!=null?f.criticAvg:f.quality.critic;
+    const aud=(typeof audienceScoreOf==="function")?audienceScoreOf(f):(f.quality?f.quality.aud:50);
+    const crit=f.criticAvg!=null?f.criticAvg:(f.quality?f.quality.critic:50);
     const sp=boSplit(f);
-    const verdict = f.streamingOriginal? "streaming original" :
-      f.ww>=be*1.6? "SMASH" : f.ww>=be? "HIT" : f.ww>=be*0.75? "soft" : "FLOP";
-    h+="<div class='card'><div style='border-bottom:2px solid "+(verdict==="SMASH"?"var(--green)":verdict==="HIT"?"var(--gold2)":verdict==="soft"?"var(--gold)":"var(--red)")+"';padding-bottom:8px;margin-bottom:8px>"+
-      "<b>"+DATA.GENRES[f.genre].emoji+" "+esc(f.title)+"</b> <span class='tag'>"+verdict+"</span></div>"+
-      "<div class='cost-line'><span>Budget</span><b>"+fmtM(f.budget)+"</b></div>"+
-      "<div class='cost-line'><span>Opening</span><b>"+fmtG(f.opening||0)+"</b></div>"+
-      "<div class='cost-line'><span>Domestic</span><b>"+fmtG(sp.dom)+"</b></div>"+
-      "<div class='cost-line'><span>Intl</span><b>"+fmtG(sp.intl)+"</b></div>"+
-      "<div class='cost-line'><span>Worldwide</span><b>"+fmtG(sp.ww)+"</b></div>"+
-      "<div class='cost-line'><span>Multiplier</span><b>"+mult+"×</b></div>"+
-      "<div class='cost-line'><span>Legs</span><b>"+legs+"×</b></div>"+
-      "<div class='cost-line'><span>Critics</span><b>"+crit+"%</b></div>"+
-      "<div class='cost-line'><span>Audience</span><b>"+aud+"%</b></div>"+
-      "<div class='cost-line'><span>Profit</span><b class='"+(f.profit>=0?"pos":"neg")+"'>"+(f.profit>=0?"+":"")+fmtM(f.profit||0)+"</b></div>"+
-      "<div class='weekly-gross-chart' style='margin-top:8px'>"+(f.weekly||[]).slice(-12).map(x=>"<div class='wg' style='height:"+Math.max(4,x.gross/(f.opening||1)*100)+"%' title='"+fmtG(x.gross)+"'></div>").join("")+"</div>"+
-      "</div>";
+    const verdict = f.streamingOriginal? "STREAMING ORIGINAL" :
+      f.ww>=be*1.6? "SMASH" : f.ww>=be? "HIT" : f.ww>=be*0.75? "SOFT" : "FLOP";
+    const tone = verdict==="SMASH"||verdict==="HIT" ? "good" : verdict==="SOFT" ? "gold" : "bad";
+    return {f, be, mult, legs, aud, crit, sp, verdict, tone};
   });
-  h+="</div>";
-  openModal(h,{onClose:()=>{G.compareSel=[]; render();}});
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">LIBRARY / COMPARISON</span>'+
+    '<h3>'+rows.length+' pictures, one scale</h3>'+
+    '<p>Worldwide gross, legs and word of mouth side by side. Everything below reads off the same run data as the chart desk.</p></div>';
+
+  let body='<div class="produce-modal-body">';
+  if(typeof BOCharts!=="undefined"){
+    body+="<figure class='bo-figure'><div class='bo-figure-head'><b>WORLDWIDE BY PICTURE</b><span>"+fmtG(rows.reduce((a,r)=>a+r.sp.ww,0))+" combined</span></div>"+
+      BOCharts.bars(rows.map((r,i)=>({label:r.f.title.slice(0,12),value:r.sp.ww,tone:i===0?"gold":"muted"})),{aria:"Worldwide gross comparison",format:BOCharts.money,compact:boCompact()})+
+      "<p class='bo-figure-cap'>"+rows.map((r,i)=>"<b"+(i===0?' style="color:#edc47c"':"")+">"+esc(r.f.title)+"</b> "+fmtG(r.sp.ww)).join(" · ")+"</p>"+
+      "<p class='bo-figure-cap'>Domestic plus international, not adjusted for budget. A taller bar is not automatically the better release.</p></figure>";
+  }
+
+  body+='<div class="bo-compare-grid">';
+  rows.forEach(r=>{
+    const line=(label,value,tone)=>'<div class="bo-track-row"><span class="bo-track-label">'+label+'</span><span class="bo-track-val'+(tone?' '+tone:'')+'">'+value+'</span></div>';
+    body+='<article class="produce-modal-card bo-compare-card">'+
+      '<div class="bo-figure-head"><b>'+esc(r.f.title)+'</b><span class="bo-chip '+r.tone+'">'+r.verdict+'</span></div>'+
+      '<div class="bo-track-rows">'+
+        line("Budget",fmtM(r.f.budget||0))+
+        line("Opening",fmtG(r.f.opening||0))+
+        line("Domestic",fmtG(r.sp.dom))+
+        line("International",fmtG(r.sp.intl))+
+        line("Worldwide",fmtG(r.sp.ww))+
+        line("Breakeven",fmtG(r.be))+
+        line("Multiplier",r.mult+"×")+
+        line("Legs",r.legs+"×")+
+        line("Critics",r.crit+"%")+
+        line("Audience",r.aud+"%")+
+      '</div>'+
+      ((typeof BOCharts!=="undefined")?BOCharts.split([
+        {label:"Domestic",value:r.sp.dom,tone:"gold"},
+        {label:"International",value:r.sp.intl,tone:"teal"}
+      ],{format:BOCharts.money}):'')+
+    '</article>';
+  });
+  body+='</div></div>';
+
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+rows.length+' selected · clears when you close</span>'+
+    '<div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="compareClose">Close</button></div></div>';
+
+  const v=openModal(head+body+foot,{className:"command-produce-modal",onClose:()=>{G.compareSel=[]; render();}});
+  const cl=v.querySelector("#compareClose"); if(cl) cl.onclick=()=>closeModal();
 }
 
 /* Rival studio profile modal */
@@ -6433,15 +6469,27 @@ function bindView(){
   /* ── v14 bindings: intel, label, what-if ── */
   $$("[data-intel]").forEach(b=>b.onclick=()=>{
     const rs=(G.rivals||[]);
-    let h="<h3>🕵 Industrial espionage</h3><div class='tiny muted'>$8M to the right bagman buys a rival's next moves — dated slate, scales, and where they're strong. Intel holds for 8 weeks and shows on their card.</div><div class='plan-pick' style='margin-top:10px'>";
-    rs.forEach(r=>{
-      const active=G.intel&&G.intel.until>G.week&&G.intel.name===r.name;
-      h+="<div class='plan-opt'><div class='spread'><h5><span style='color:"+(r.color||"#fff")+"'>●</span> "+esc(r.name)+"</h5>"+
-        (active? "<span class='tag gold'>active</span>" : "<button class='btn btn-sm btn-alt' data-buyintel='"+esc(r.name)+"'>Buy — $8M</button>")+"</div><div class='p-sub'>"+esc(r.blurb||"")+" · "+fmtM(r.ytd||0)+" YTD</div></div>";
-    });
-    h+="</div><div class='modal-actions'><button class='btn btn-ghost' onclick='closeModal()'>Close</button></div>";
-    openModal(h);
-    $$("[data-buyintel]").forEach(bb=>bb.onclick=()=>{ if(buyIntel(bb.dataset.buyintel)){ closeModal(); beep("gold"); flashes(G.flash); render(); } });
+    const activeName=(G.intel&&G.intel.until>G.week)?G.intel.name:null;
+    const head='<div class="produce-modal-head"><span class="command-eyebrow">COMPETITION / INTEL</span>'+
+      '<h3>Industrial espionage</h3>'+
+      '<p>$8M to the right bagman buys a rival\'s next moves — dated slate, scales and where they are strong. Intel holds for eight weeks and shows on their card.</p></div>';
+    const rows=rs.map(r=>{
+      const active=activeName===r.name;
+      return '<div class="bo-intel-row">'+
+        '<div><h4><span style="color:'+(r.color||"#edc47c")+'">●</span> '+esc(r.name)+'</h4>'+
+        '<p>'+esc(r.blurb||"")+' · '+fmtM(r.ytd||0)+' YTD</p></div>'+
+        (active? '<span class="bo-chip gold">ACTIVE</span>'
+               : '<button class="produce-ghost" data-buyintel="'+esc(r.name)+'">Buy · $8M</button>')+
+      '</div>';
+    }).join("");
+    const body='<div class="produce-modal-body"><div class="bo-intel-list">'+rows+'</div>'+
+      (activeName? '<p class="bo-figure-cap">Intel active on <b>'+esc(activeName)+'</b> — '+(G.intel.until-G.week)+' weeks of coverage left.</p>'
+                 : '<p class="bo-figure-cap">Every purchase is booked against the studio cash, not the film budget.</p>')+'</div>';
+    const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+rs.length+' rival studios tracked</span>'+
+      '<div class="row" style="margin:0;gap:8px"><button class="produce-ghost" id="intelClose">Close</button></div></div>';
+    const v=openModal(head+body+foot,{className:"command-produce-modal"});
+    const cl=v.querySelector("#intelClose"); if(cl) cl.onclick=()=>closeModal();
+    v.querySelectorAll("[data-buyintel]").forEach(bb=>bb.onclick=()=>{ if(buyIntel(bb.dataset.buyintel)){ closeModal(); beep("gold"); flashes(G.flash); render(); } });
   });
   $$("[data-label]").forEach(b=>b.onclick=()=>{ if(unlockLabel()){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
   $$("[data-sign]").forEach(b=>b.onclick=()=>{ if(signArtist(b.dataset.sign)){ beep("gold"); flashes(G.flash); render(); } else beep("bad"); });
@@ -7525,11 +7573,17 @@ function pips(n,max){ let s="<span class='pips'>"; for(let i=1;i<=max;i++) s+= i
 /* ═══════════ choice / report / gameover modals ═══════════ */
 function choiceModal(){
   const c=G.pendingChoice; if(!c) return;
-  let h="<div style='text-align:center;font-size:44px'>"+c.icon+"</div><h3 style='text-align:center'>"+esc(c.title)+"</h3>"+
-    "<p class='small muted' style='text-align:center'>"+esc(c.text)+"</p><div class='modal-actions'>";
-  c.choices.forEach(ch=>{ h+="<button class='btn btn-alt' data-ch='"+ch.i+"'>"+esc(ch.label)+"</button>"; });
-  h+="</div>";
-  const v=openModal(h,{noX:true,locked:true});
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">'+(c.icon? c.icon+" · " : "")+"STUDIO DECISION"+
+      (c.kind? " / "+esc(String(c.kind).toUpperCase()) : "")+'</span>'+
+    '<h3>'+esc(c.title)+'</h3>'+
+    '<p>'+esc(c.text)+'</p></div>';
+  const body='<div class="produce-modal-body"><div class="bo-choice-list">'+
+    c.choices.map(ch=>'<button class="produce-ghost bo-choice" data-ch="'+ch.i+'"><b>'+esc(ch.label)+'</b>'+
+      (ch.hint?'<small>'+esc(ch.hint)+'</small>':'')+'</button>').join("")+
+  '</div></div>';
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+
+      (c.choices.length>1? "Pick one — the room is watching." : "Only one way out.")+'</span></div>';
+  const v=openModal(head+body+foot,{noX:true,locked:true,className:"command-produce-modal"});
   v.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{
     resolveChoice(+b.dataset.ch); closeModal(); beep("click"); flashes(G.flash); render();
     if(G.pendingDeepfake) deepfakeModal();                 // v5: mini-game
@@ -7540,22 +7594,51 @@ function choiceModal(){
 function reportModal(){
   const r=G.pendingReport; if(!r) return;
   G.pendingReport=null;
-  let h="<div style='text-align:center'><div style='font-size:44px'>🏆</div><h3>Year "+r.year+" — "+DATA.AWARDS+"</h3></div>";
-  h+="<div class='card'><div class='cost-line'><span>Your worldwide gross</span><b>"+fmtM(r.myWW)+"</b></div>"+
-    "<div class='cost-line'><span>Films released</span><b>"+r.filmsReleased+"</b></div>"+
-    "<div class='cost-line'><span>Film net (released this yr)</span><b class='"+(r.profit>=0?"pos":"neg")+"'>"+(r.profit>=0?"+":"")+fmtM(r.profit)+"</b></div></div>";
-  h+="<div class='section-title'>Market share</div><div class='card'>";
-  r.standings.forEach((s,i)=>{ h+="<div class='cost-line'><span>"+(i+1)+". "+(s.me?"⭐ ":"")+esc(s.name)+"</span><b>"+fmtM(s.ww)+"</b></div>"; });
-  h+="</div>";
-  h+="<div class='section-title'>Nominations & wins</div><div class='card'>";
-  if(r.awards.noms.length){
-    r.awards.noms.forEach(n=>{ h+="<div class='cost-line'><span>"+(n.mine?"🎬 ":"🎞 ")+esc(n.title)+(n.mine?"":" <span class='tiny muted'>— "+esc(n.studio||"")+"</span>")+"</span>"+(n.mine?"<span class='tag gold'>nominee</span>":"")+"</div>"; });
-    r.awards.wins.forEach(w=>{ h+="<div class='cost-line'><span>🏆 "+w.cat+"</span><b>"+esc(w.film)+(w.mine?" 🎉":"")+"</b></div>"; });
-  }else h+="<div class='muted small'>No nominations.</div>";
-  h+="</div><div class='modal-actions'><button class='btn btn-primary' onclick='closeModal()'>Roll credits → Year "+(r.year+1)+"</button></div>";
-  openModal(h,{noX:true});
+  const mine=(r.awards&&r.awards.wins)?r.awards.wins.filter(w=>w.mine):[];
+  const kpi=(label,value,note,tone)=>'<div class="bo-kpi'+(tone?" "+tone:"")+'"><small>'+label+'</small><b>'+value+'</b><span>'+note+'</span></div>';
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">YEAR IN REVIEW / '+esc(String(DATA.AWARDS||"AWARDS"))+'</span>'+
+    '<h3>Year '+r.year+' — the ledger closes</h3>'+
+    '<p>Twelve months of releases, market share and the ceremony that settles the argument.</p></div>';
+
+  let body='<div class="produce-modal-body">';
+  body+='<div class="bo-kpis">'+
+    kpi("WORLDWIDE",fmtM(r.myWW),"all pictures this year")+
+    kpi("RELEASES",String(r.filmsReleased),"pictures shipped")+
+    kpi("FILM NET",(r.profit>=0?"+":"")+fmtM(r.profit),r.profit>=0?"above breakeven":"below breakeven",r.profit>=0?"good":"bad")+
+    kpi("TROPHIES",String(mine.length),mine.length?"won "+mine.map(w=>w.cat).join(", "):"no wins this year",mine.length?"good":"")+
+  '</div>';
+
+  if(r.standings && r.standings.length){
+    const maxWW=Math.max.apply(null,r.standings.map(x=>x.ww||0).concat([0.1]));
+    const rows=r.standings.map((x,i)=>{
+      const pct=Math.max(2,(x.ww||0)/maxWW*100);
+      return '<div class="bo-track-row"><span class="bo-track-label">'+(x.me?"★ ":"")+esc(x.name)+'<small>#'+(i+1)+'</small></span>'+
+        '<span class="bo-track'+(x.me?"":" teal")+'"><i style="width:'+pct.toFixed(1)+'%"></i></span>'+
+        '<span class="bo-track-val">'+fmtM(x.ww||0)+'</span></div>';
+    }).join("");
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>MARKET SHARE</b><span>year '+r.year+'</span></div><div class="bo-track-rows">'+rows+'</div>'+
+      '<p class="bo-figure-cap">Gold bar is your studio. Share is measured on worldwide gross, not cash in hand.</p></div>';
+  }
+
+  const noms=(r.awards&&r.awards.noms)||[], wins=(r.awards&&r.awards.wins)||[];
+  if(noms.length||wins.length){
+    let rows="";
+    wins.forEach(w=>{ rows+='<div class="bo-track-row"><span class="bo-track-label">🏆 '+esc(w.cat)+(w.mine?" <small>you</small>":"")+'</span><span class="bo-track-val">'+esc(w.film)+'</span></div>'; });
+    noms.forEach(n=>{ rows+='<div class="bo-track-row"><span class="bo-track-label">'+esc(n.title)+(n.mine?' <small>you</small>':'<small>'+esc(n.studio||"")+'</small>')+'</span><span class="bo-track-val">nominee</span></div>'; });
+    body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>NOMINATIONS &amp; WINS</b><span>'+wins.length+' won · '+noms.length+' nominated</span></div><div class="bo-track-rows">'+rows+'</div></div>';
+  } else {
+    body+='<div class="produce-modal-card"><h4>No nominations</h4><p>Nothing on the slate caught the voters this year. Prestige pictures and award campaigns change that.</p></div>';
+  }
+  body+='</div>';
+
+  const foot='<div class="produce-modal-actions"><span class="bo-rebrand-note">'+fmtM(r.myWW)+' worldwide · '+r.filmsReleased+' release'+(r.filmsReleased===1?"":"s")+' · '+(mine.length?mine.length+" win"+(mine.length===1?"":"s"):"no wins")+'</span>'+
+    '<div class="row" style="margin:0;gap:8px"><button class="produce-action" id="reportGo">Roll credits → Year '+(r.year+1)+'</button></div></div>';
+
+  const v=openModal(head+body+foot,{noX:true,className:"command-produce-modal"});
+  const go=v.querySelector("#reportGo"); if(go) go.onclick=()=>closeModal();
   beep("drums");
-  if(r.awards && r.awards.wins && r.awards.wins.some(function(w){ return w.mine; })) confetti({count:200});
+  if(mine.length) confetti({count:200});
 }
 function documentaryRetrospective(o){
   const hits = o.stats.hits || 0;

@@ -1920,3 +1920,116 @@
 /* The cash delta already carries its own sign — no second arrow from .pos. */
 #modalRoot .command-produce-modal .produce-modal-head h3.pos::after,
 #modalRoot .command-produce-modal .produce-modal-head h3.neg::after{content:none!important}
+
+/* ── Produce chrome for every remaining dialog ─────────────────────────────
+   Most dialogs still on the pre-redesign surface (finance sheets, franchise
+   desks, settings, achievements, year-end reports, test screenings…) share
+   one vocabulary: .card + .cost-line + .section-title + .btn. Rather than
+   rewriting ~100 call sites, they all receive .command-legacy-modal and this
+   layer repaints that vocabulary in the produce palette. Dialogs that already
+   opt into a command skin (pitch, verdict, inbox, produce, develop, management)
+   are untouched. */
+#modalRoot .modal.command-legacy-modal{background:#122823!important;background-image:none!important;border:1px solid #627360!important;border-radius:6px!important;padding:0!important;overflow:hidden!important;font-family:system-ui,sans-serif!important;box-shadow:0 24px 70px #0009!important}
+#modalRoot .modal.command-legacy-modal>.modal-head{background:#14251e!important;background-image:none!important;border:0!important;border-bottom:1px solid #2c4038!important;border-radius:0!important;padding:9px 16px!important;margin:0!important;min-height:40px;box-shadow:none!important}
+#modalRoot .modal.command-legacy-modal>.modal-head .modal-x{background:#152b26!important;border:1px solid #4e6355!important;border-radius:2px!important;color:#e8e3ca!important;box-shadow:none!important;width:28px;height:28px}
+#modalRoot .modal.command-legacy-modal>.modal-head .modal-x:hover{background:#20372f!important;border-color:#8fa47c!important}
+/* Body rhythm: legacy dialogs assumed the old .modal padding. */
+#modalRoot .modal.command-legacy-modal>h2,
+#modalRoot .modal.command-legacy-modal>h3,
+#modalRoot .modal.command-legacy-modal>p,
+#modalRoot .modal.command-legacy-modal>.card,
+#modalRoot .modal.command-legacy-modal>.section-title,
+#modalRoot .modal.command-legacy-modal>.tiny,
+#modalRoot .modal.command-legacy-modal>.small,
+#modalRoot .modal.command-legacy-modal>.modal-actions,
+#modalRoot .modal.command-legacy-modal>.row,
+#modalRoot .modal.command-legacy-modal>.plan-pick,
+#modalRoot .modal.command-legacy-modal>div:not(.modal-head):not(.card):not(.modal-actions){margin-left:24px!important;margin-right:24px!important}
+#modalRoot .modal.command-legacy-modal>h2,
+#modalRoot .modal.command-legacy-modal>h3{font:600 20px/1.25 Georgia,serif!important;color:#f2edda!important;margin-top:22px!important;margin-bottom:8px!important}
+#modalRoot .modal.command-legacy-modal>h3:first-of-type,
+#modalRoot .modal.command-legacy-modal>h2:first-of-type{margin-top:20px!important}
+#modalRoot .modal.command-legacy-modal>p{font-size:12px!important;line-height:1.7!important;color:#a9bda9!important}
+#modalRoot .modal.command-legacy-modal>.card:first-of-type{margin-top:14px!important}
+#modalRoot .modal.command-legacy-modal>.card{margin-top:10px!important;margin-bottom:0!important}
+#modalRoot .modal.command-legacy-modal>.modal-actions{margin-top:18px!important;margin-bottom:20px!important;display:flex!important;flex-wrap:wrap;gap:8px}
+/* Cards inside a legacy dialog become produce panels. */
+#modalRoot .modal.command-legacy-modal .card{background:#1b312b!important;background-image:none!important;border:1px solid #3e5551!important;border-radius:3px!important;box-shadow:none!important;padding:14px 16px!important;color:#e4dfc3!important}
+#modalRoot .modal.command-legacy-modal .card b{color:#f3e8cc}
+#modalRoot .modal.command-legacy-modal .card .tiny,
+#modalRoot .modal.command-legacy-modal .card .muted{color:#93a692!important}
+/* Section titles keep the produce rail, never the dotted legacy rules. */
+#modalRoot .modal.command-legacy-modal .section-title{background:transparent!important;background-image:none!important;border:0!important;border-left:2px solid #8a7748!important;border-radius:0!important;box-shadow:none!important;color:#f2edda!important;font:500 16px/1.4 Georgia,serif!important;letter-spacing:0!important;text-transform:none!important;padding:0 0 0 10px!important;margin:18px 0 10px!important}
+#modalRoot .modal.command-legacy-modal .section-title::before,
+#modalRoot .modal.command-legacy-modal .section-title::after{content:none!important;display:none!important;background:none!important;border:0!important}
+/* Divider rows. */
+#modalRoot .modal.command-legacy-modal .cost-line{border-bottom:1px solid #22362f!important;padding:7px 0!important;font-size:11.5px!important;color:#d8dcc8!important}
+#modalRoot .modal.command-legacy-modal .cost-line:last-child{border-bottom:0!important}
+#modalRoot .modal.command-legacy-modal .cost-line>span:first-child{color:#a9bda9}
+#modalRoot .modal.command-legacy-modal .cost-line b{color:#f2edda;font-variant-numeric:tabular-nums}
+#modalRoot .modal.command-legacy-modal .cost-line b.pos{color:#a8d69a}
+#modalRoot .modal.command-legacy-modal .cost-line b.neg{color:#e09a86}
+/* Buttons: gold primary, quiet secondary, square corners. */
+#modalRoot .modal.command-legacy-modal .btn{background:#203b2c!important;background-image:none!important;border:1px solid #4d6549!important;border-radius:3px!important;color:#e4dfc3!important;font:600 11px/1.3 system-ui,sans-serif!important;min-height:36px!important;box-shadow:none!important;text-shadow:none!important;letter-spacing:.2px;padding:9px 14px!important}
+#modalRoot .modal.command-legacy-modal .btn:hover{background:#2a443a!important;border-color:#8fa47c!important}
+#modalRoot .modal.command-legacy-modal .btn-primary{background:#edc47c!important;border-color:#edc47c!important;color:#24332e!important}
+#modalRoot .modal.command-legacy-modal .btn-primary:hover{background:#f3d597!important;border-color:#f3d597!important}
+#modalRoot .modal.command-legacy-modal .btn-ghost,
+#modalRoot .modal.command-legacy-modal .btn-alt{background:transparent!important;border-color:#4e6355!important;color:#e8e3ca!important}
+#modalRoot .modal.command-legacy-modal .btn-ghost:hover,
+#modalRoot .modal.command-legacy-modal .btn-alt:hover{background:#20372f!important;border-color:#8fa47c!important}
+#modalRoot .modal.command-legacy-modal .btn:disabled,
+#modalRoot .modal.command-legacy-modal .btn-disabled{background:#2a3a33!important;border-color:#3e5551!important;color:#93a28f!important;cursor:not-allowed}
+#modalRoot .modal.command-legacy-modal .modal-actions .btn-primary{flex:1 1 auto}
+/* Tags, chips and stat tiles. */
+#modalRoot .modal.command-legacy-modal .tag{background:#2a443a!important;background-image:none!important;border:1px solid #4e6355!important;border-radius:2px!important;color:#cfd8c2!important;font:700 9px/1.7 ui-monospace,monospace!important;letter-spacing:.6px!important;padding:1px 6px!important;text-transform:none!important;box-shadow:none!important}
+#modalRoot .modal.command-legacy-modal .tag.gold{color:#f0cf94!important;border-color:#8a7748!important}
+#modalRoot .modal.command-legacy-modal .tag.green{color:#a8d69a!important;border-color:#5c7f57!important}
+#modalRoot .modal.command-legacy-modal .tag.red{color:#e09a86!important;border-color:#8a5b52!important}
+#modalRoot .modal.command-legacy-modal .tag.blue,
+#modalRoot .modal.command-legacy-modal .tag.purple{color:#b9c9e0!important;border-color:#4d6079!important}
+#modalRoot .modal.command-legacy-modal .stat-hero{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))!important;gap:8px!important;background:transparent!important;border:0!important;padding:0!important;margin:12px 0 0!important}
+#modalRoot .modal.command-legacy-modal .stat{background:#152b26!important;background-image:none!important;border:1px solid #2c4038!important;border-radius:2px!important;box-shadow:none!important;padding:10px 12px!important;transform:none!important}
+#modalRoot .modal.command-legacy-modal .stat::before{content:none!important;display:none!important}
+#modalRoot .modal.command-legacy-modal .stat .s-v{font:600 16px/1.3 Georgia,serif!important;color:#f2edda!important}
+#modalRoot .modal.command-legacy-modal .stat .s-l{font:700 8.5px/1.5 ui-monospace,monospace!important;letter-spacing:.7px;color:#93a692!important;text-transform:uppercase}
+/* Option lists (intel, plans, wizard choices). */
+#modalRoot .modal.command-legacy-modal .plan-opt{background:#1b312b!important;background-image:none!important;border:1px solid #3e5551!important;border-radius:3px!important;box-shadow:none!important;padding:12px 14px!important;margin-bottom:8px}
+#modalRoot .modal.command-legacy-modal .plan-opt h5{font:600 13.5px/1.35 Georgia,serif!important;color:#f3e8cc!important;margin:0}
+#modalRoot .modal.command-legacy-modal .plan-opt .p-sub{font-size:10.5px!important;color:#93a692!important;margin-top:3px}
+#modalRoot .modal.command-legacy-modal .plan-opt:hover{border-color:#8fa47c!important;background:#20372f!important}
+/* Inputs and selects. */
+#modalRoot .modal.command-legacy-modal input[type="text"],
+#modalRoot .modal.command-legacy-modal input[type="number"],
+#modalRoot .modal.command-legacy-modal select,
+#modalRoot .modal.command-legacy-modal textarea{background:#122823!important;border:1px solid #4e6355!important;border-radius:3px!important;color:#f3e8cc!important;font:12px system-ui!important;padding:9px 11px!important;box-shadow:none!important}
+#modalRoot .modal.command-legacy-modal input:focus,
+#modalRoot .modal.command-legacy-modal select:focus,
+#modalRoot .modal.command-legacy-modal textarea:focus{border-color:#edc47c!important;outline:none!important;box-shadow:0 0 0 2px #edc47c33!important}
+/* Reach/score meter bars inside legacy dialogs. */
+#modalRoot .modal.command-legacy-modal .dist-bar-wrap{background:#122823!important;border:1px solid #2c4038!important;border-radius:2px!important;overflow:hidden!important;height:10px!important}
+/* Nested produce helpers used by the converted dialogs. */
+#modalRoot .command-produce-modal .bo-choice-list{display:grid;gap:8px}
+#modalRoot .command-produce-modal .bo-choice{display:grid!important;justify-items:start!important;text-align:left!important;padding:12px 14px!important;min-height:0!important}
+#modalRoot .command-produce-modal .bo-choice b{font:600 13px/1.4 system-ui;color:#f3e8cc}
+#modalRoot .command-produce-modal .bo-choice small{font:600 9.5px/1.5 ui-monospace,monospace;color:#93a692}
+#modalRoot .command-produce-modal .bo-intel-list{display:grid;gap:8px}
+#modalRoot .command-produce-modal .bo-intel-row{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#1b312b;border:1px solid #3e5551;border-radius:3px;padding:13px 16px}
+#modalRoot .command-produce-modal .bo-intel-row h4{font:600 14px/1.3 Georgia,serif;color:#f3e8cc;margin:0}
+#modalRoot .command-produce-modal .bo-intel-row p{margin:3px 0 0;font-size:10.5px;line-height:1.5;color:#93a692}
+#modalRoot .command-produce-modal .bo-intel-row .produce-ghost{white-space:nowrap}
+@media(max-width:640px){
+  #modalRoot .modal.command-legacy-modal>h2,#modalRoot .modal.command-legacy-modal>h3,
+  #modalRoot .modal.command-legacy-modal>p,#modalRoot .modal.command-legacy-modal>.card,
+  #modalRoot .modal.command-legacy-modal>.section-title,#modalRoot .modal.command-legacy-modal>.tiny,
+  #modalRoot .modal.command-legacy-modal>.small,#modalRoot .modal.command-legacy-modal>.modal-actions,
+  #modalRoot .modal.command-legacy-modal>.row,#modalRoot .modal.command-legacy-modal>.plan-pick,
+  #modalRoot .modal.command-legacy-modal>div:not(.modal-head):not(.card):not(.modal-actions){margin-left:14px!important;margin-right:14px!important}
+  #modalRoot .command-produce-modal .bo-intel-row{flex-direction:column;align-items:stretch;gap:10px}
+}
+
+/* Comparison dialog: two or three runs read side by side. */
+#modalRoot .command-produce-modal .bo-compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+#modalRoot .command-produce-modal .bo-compare-card{display:grid;gap:10px;align-content:start}
+#modalRoot .command-produce-modal .bo-compare-card .bo-figure-head{margin-bottom:2px}
+#modalRoot .command-produce-modal .bo-compare-card .bo-figure-head b{font:600 14px/1.3 Georgia,serif;letter-spacing:0;text-transform:none;color:#f3e8cc}
