@@ -6954,8 +6954,9 @@ function bindView(){
   });
   $$("[data-live-unlock]").forEach(b=>b.onclick=()=>{
     const chId = b.dataset.liveUnlock;
-    if(unlockLiveChannel(chId)){ beep("gold"); flashes(G.flash); render(); }
-    else toast("Not enough cash or studio reputation to unlock this network.", "bad");
+    const r = unlockLiveChannel(chId);
+    if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast((r && r.reason) || "Could not unlock this network.", "bad");
   });
   $$("[data-live-toggle]").forEach(b=>b.onclick=()=>{
     const chId = b.dataset.liveToggle;
@@ -6987,15 +6988,16 @@ function bindView(){
     render();
   });
   $$("[data-live-stream-toggle]").forEach(b=>b.onclick=()=>{
-    const act = toggleLiveStream();
-    beep(act ? "gold" : "click");
-    flashes(G.flash);
+    const topicEl = document.querySelector("#liveStreamTopic"), qualEl = document.querySelector("#liveStreamQuality");
+    const r = toggleLiveStream(topicEl ? topicEl.value : undefined, qualEl ? qualEl.value : undefined);
+    if(r && r.ok){ beep(r.live ? "gold" : "click"); flashes(G.flash); }
+    else toast((r && r.reason) || "Could not change the stream state.", "bad");
     render();
   });
   $$("[data-live-adbreak]").forEach(b=>b.onclick=()=>{
-    const rev = runLiveStreamAdBreak();
-    if(rev > 0){ beep("cash"); toast("Ad break aired: +"+fmtM(rev)+" ad revenue!", "gold"); }
-    else toast("Stream is offline or no active audience.", "bad");
+    const r = runLiveStreamAdBreak();
+    if(r && r.ok){ beep("cash"); toast("Ad break aired: +"+fmtM(r.earned||0)+" ad revenue!", "gold"); }
+    else toast((r && r.reason) || "Stream is offline or no active audience.", "bad");
     render();
   });
   $$("[data-live-fest-submit]").forEach(b=>b.onclick=()=>{
@@ -7013,8 +7015,9 @@ function bindView(){
   });
   $$("[data-live-host-train]").forEach(b=>b.onclick=()=>{
     const hId = b.dataset.liveHostTrain;
-    if(trainLiveHost(hId)){ beep("gold"); flashes(G.flash); render(); }
-    else toast("Host training costs $0.5M cash.", "bad");
+    const r = trainLiveHost(hId);
+    if(r && r.ok){ beep("gold"); flashes(G.flash); render(); }
+    else toast((r && r.reason) || "Host training failed.", "bad");
   });
 
   /* ── Mobile sub-tab strip (rendered at the top of bindView so the
@@ -10276,13 +10279,14 @@ function liveFestSubmitModal(eventId){
     const btn = v.querySelector("#festSub_" + f.id);
     if(btn){
       btn.onclick = () => {
-        if(submitFilmToFestival(eventId, f.id)){
+        const r = submitFilmToFestival(eventId, f.id);
+        if(r && r.ok){
           beep("gold");
           closeModal();
           flashes(G.flash);
           render();
         } else {
-          toast("Cannot submit film: check cash and studio reputation.", "bad");
+          toast((r && r.reason) || "Cannot submit film.", "bad");
         }
       };
     }
@@ -10315,13 +10319,15 @@ function livePremiereModal(){
     const btn = v.querySelector("#premGo_" + f.id);
     if(btn){
       btn.onclick = () => {
-        if(hostRedCarpetPremiere(f.id)){
+        const cityEl = v.querySelector("#premCity");
+        const r = hostRedCarpetPremiere(f.id, cityEl ? cityEl.value : undefined);
+        if(r && r.ok){
           beep("gold");
           closeModal();
           flashes(G.flash);
           render();
         } else {
-          toast("Gala premiere requires $1M cash.", "bad");
+          toast((r && r.reason) || "Gala premiere failed.", "bad");
         }
       };
     }

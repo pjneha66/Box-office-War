@@ -128,7 +128,7 @@ try{
 
   /* ── A5 — {ok, reason, earned, live} result objects are honoured ── */
   fresh('linear');
-  w.eval(`G.studio.cash=500;render();window.__realUnlock=unlockLiveChannel;unlockLiveChannel=function(){return {ok:false,reason:'STUB UNLOCK FAIL'};};`);
+  w.eval(`G.studio.cash=500;G.live.activeChannel='bow_sports';render();window.__realUnlock=unlockLiveChannel;unlockLiveChannel=function(){return {ok:false,reason:'STUB UNLOCK FAIL'};};`);
   clearToasts();
   const lockedBtn=$('[data-live-unlock]'); assert(lockedBtn,'a locked channel exposes an unlock button');
   lockedBtn.click();
