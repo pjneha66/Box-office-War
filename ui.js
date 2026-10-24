@@ -2031,6 +2031,7 @@ const SUBTAB_PIXEL_ICONS = {
   "empire:franchises": "assets/bos2-icons/logos/icons8-queen-crown-100.png",
   "empire:universes": "assets/bos2-icons/logos/icons8-starburst-shape-100.png",
   "empire:divisions": "assets/itch-ui/icons/Icon_02.png",
+  "empire:stage": "assets/bos2-icons/genres/icons8-theatre-mask-100.png",
   "empire:endgame": "assets/bos2-icons/logos/icons8-prism-96.png",
   // games (v37 command desk)
   "games:overview": "assets/itch-ui/icons/Icon_08.png",
@@ -7727,6 +7728,9 @@ function bindView(){
   if(typeof MarketingBlitz !== "undefined" && typeof MarketingBlitz.bindEvents === "function"){
     MarketingBlitz.bindEvents(document, G);
   }
+  if(typeof StageDivision !== "undefined" && typeof StageDivision.bindEvents === "function"){
+    StageDivision.bindEvents(document, G);
+  }
 
   if(typeof StudioLotBridge !== "undefined" && typeof StudioLot2D !== "undefined"){
     const roomMap = {
@@ -9121,7 +9125,7 @@ function bindGameStudioDesk() {
 }
 
 /* ═══════════ EMPIRE view ═══════════ */
-const EMPIRE_SECTIONS = [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]];
+const EMPIRE_SECTIONS = [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["stage","Stage"],["endgame","Endgame"]];
 function empireSub(){
   if(typeof ensureEmpireState==="function") ensureEmpireState(G);
   const emp=(G&&G.empire)||{};
@@ -9130,7 +9134,7 @@ function empireSub(){
 }
 function empireNav(){
   const active=empireSub();
-  return `<nav class="command-section-nav command-empire-nav" aria-label="Empire desk sections"><div class="command-nav-brand"><span>EMPIRE DESK</span><small>HOME / FRANCHISES / UNIVERSES / DIVISIONS / ENDGAME</small></div><div class="command-nav-items">${EMPIRE_SECTIONS.map(([key,label],i)=>{
+  return `<nav class="command-section-nav command-empire-nav" aria-label="Empire desk sections"><div class="command-nav-brand"><span>EMPIRE DESK</span><small>HOME / FRANCHISES / UNIVERSES / DIVISIONS / STAGE / ENDGAME</small></div><div class="command-nav-items">${EMPIRE_SECTIONS.map(([key,label],i)=>{
     const icon=getSubTabPixelIcon("empire",key);
     return `<button data-empiresub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
   }).join("")}</div></nav>`;
@@ -9157,6 +9161,11 @@ function empireShell(panelHtml){
 function empireAsideFan(){ return `<button class="btn btn-sm btn-alt" id="btnOpenFanClub">Fan Conventions ↗</button>`; }
 function empireAsideUni(){ return `<button class="btn btn-sm btn-alt" id="btnOpenUniverses">Cinematic Universes Charter ↗</button>`; }
 function empireAsideMerch(){ return `<button class="btn btn-sm btn-alt" id="btnOpenMerch">Merch &amp; Licensing Deals ↗</button>`; }
+function empireAsideStage(){
+  const S = (typeof StageDivision!=="undefined" && G) ? StageDivision.ensure(G) : null;
+  const n = S ? (S.shows||[]).filter(x=>x.phase==="running"||x.phase==="previews").length : 0;
+  return `<span class="tag gold">${n} HOUSE${n===1?"":"S"} LIT</span>`;
+}
 
 /* ── v35.0 C2 — Portfolio Desk: view-only sort & filter (session state, never saved) ── */
 const EMPIRE_PORTFOLIO={ filter:"all", sort:"tier" };
@@ -9268,6 +9277,7 @@ function viewEmpire(){
         "<button class='btn btn-sm btn-alt' data-empire-goto='franchises'>Franchises</button>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='universes'>Universes</button>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='divisions'>Divisions</button>"+
+        "<button class='btn btn-sm btn-alt' data-empire-goto='stage'>Stage division</button>"+
         "<button class='btn btn-sm btn-alt' data-empire-goto='endgame'>Endgame</button>"+
         "<button class='btn btn-sm btn-alt' onclick='switchTab(\"games\")'>Open Game Studio ↗</button>"+
       "</div></div>";
@@ -9332,6 +9342,14 @@ function viewEmpire(){
     try{ h+=merchBoard(); }catch(e){}
     try{ h+=divisionsPanel(); }catch(e){}
     return empireShell(empirePanel("EMPIRE / DIVISIONS","Divisions","Music label, film merchandising, publishing, comics and direct retail.",h,empireAsideMerch()));
+  }
+
+  if(active==="stage"){
+    /* v39.1: the stage division (stage-division.js). The panel owns its own
+       greenlight form and action buttons; bindEvents() attaches them from
+       bindView. Nothing here touches film or franchise state. */
+    try{ if(typeof StageDivision!=="undefined" && typeof StageDivision.renderPanel==="function") h+=StageDivision.renderPanel(G); }catch(e){}
+    return empireShell(empirePanel("EMPIRE / STAGE","The stage division","Broadway houses, original musicals and the long run — one show per house, paid for weekly.",h,empireAsideStage(),"empire-stage")); 
   }
 
   if(active==="endgame"){

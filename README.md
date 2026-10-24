@@ -33,6 +33,58 @@ All simulation mechanics execute client-side with zero dependencies, zero microt
 
 ---
 
+## What is New in v39.1 — The Stage Division
+
+The studio can now take a lease on a theatre and produce live musicals. It is a new
+Empire sub-tab (`stage-division.js`, ~900 lines) with its own economy, its own risk
+profile and its own trophy — and it touches nothing that already existed.
+
+### Broadway, the West End and the road
+- **Three houses, leased in order.** The Yard Workshop (340 seats, Off-Broadway), The Marquee
+  Theatre (1,000 seats, Broadway) and The Empire Palace (1,800 seats, Broadway & West End).
+  Each tier is gated on reputation and cash, each adds a **fixed weekly burn** — the room is
+  paid for whether or not anyone is in it.
+- **One house, one show.** A show in rehearsal waits for a suitable free house, opens into a
+  Queens-style preview period, then gets the critics. Closing a show frees its house for the
+  next one immediately.
+
+### Greenlighting a musical
+- **Adapt the library or write an original.** Any closed film with a $40M+ worldwide gross can
+  be turned into "— The Musical" with a built-in audience (a franchise entry carries a bigger
+  one). An original book is cheaper, wider in variance and entirely yours.
+- **Five decisions, live quote.** Scale (chamber / Broadway standard / spectacle), composer
+  (six, with classical / pop / rock / indie traits), director (six, spectacle / intimate /
+  commercial), and an optional star above the title. The form recomputes capitalisation and a
+  projected review range as you change any of it.
+- **Previews are your only second chance.** Three weeks of part-houses, and a **Retool** at
+  $2.5M buys +4 projected review points, twice per show.
+
+### The run
+- Occupancy is driven by the reviews, the source material, the franchise, the star and the
+  musical-genre trend, minus a slow decay after week 10. Gross = seats × yield × occupancy;
+  the house cost is mostly fixed.
+- **Recoupment** is tracked against capitalisation on every show card, and crossing it lifts
+  reputation.
+- **A show that plays to under 30% for six straight weeks closes itself.** So does one that
+  reaches week 156. A flop bleeds for a few months before the landlord ends it.
+- **Tony season, week 24.** The best-reviewed show in the building can take Best Musical —
+  occupancy, gross multiplier and studio reputation all move, once per year.
+
+### Parallel income
+- **National tours** (24 weeks, needs 65+ reviews and 8 weeks in), **cast albums** (26 weeks of
+  royalties, ×1.6 if your music label is live) and **staging licences** to regional and
+  international houses (needs 16 weeks in).
+
+### Under the hood
+- **Additive state.** Everything lives in `G.stage` and is created on first touch, so old saves
+  load without a migration step.
+- **Honest ledger.** Every dollar moves through `earn()`/`spend()` under a new `stage` category,
+  mapped in the Treasury desk (revenue → *Franchise, parks & merch*, costs → *Studio & empire builds*).
+- **Tested.** `test/stage-division.mjs` (11 regressions), the headless smoke harness and the
+  full balance/scenario suites.
+
+---
+
 ## What is New in v33.0
 
 The v33.0 release is a full-app visual overhaul. Every screen is rebuilt on one locked design system ("Arcade Hollywood"), the studio lot became a living 24-hour world, and a motion engine animates every tab, sub-tab and chart.
@@ -143,6 +195,7 @@ Box Office War is structured into 33 decoupled simulation modules operating on a
 | `box-office-sim-2-cast.js` | BOS2 Talent & Ability Matrix | 72 species, 121 character abilities, and 4,000+ talent names extracted from Box Office Sim 2 reference data. |
 | `gamestudio-gdd-engine.js` | GameStudio GDD Engine | Topic x Genre synergy matrix, target audience weighting, custom engine builder, 4 gaming reviews, and GameCon booths. |
 | `social-viral-network.js` | Social Viral Network | 4 digital social platforms, algorithmic trend velocity, 6 viral campaigns, and creator ambassador endorsement deals. |
+| `stage-division.js` | Broadway Stage Division | Theatrical houses, musical greenlights, previews & retools, weekly runs, recoupment, national tours, cast albums, staging licences, Tony season. |
 | `sports-stadium-deals.js` | Sports Stadium Megadome | Stadium tier upgrades, corporate naming rights, and exclusive live sports streaming broadcast rights packages. |
 
 ---

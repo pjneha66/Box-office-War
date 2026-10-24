@@ -1448,3 +1448,47 @@ input::placeholder, textarea::placeholder{ color:#5b6a80; }
   }
   .bow-up, .bow-down{ animation:none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v39.1 — STAGE DIVISION (empire desk / stage)
+   Scoped to the Empire desk so no legacy surface inherits it. Everything
+   reuses the existing empire-block / empire-meter / empire-progress chrome;
+   only the greenlight form and the KPI strip are new.
+   ═══════════════════════════════════════════════════════════════════════ */
+/* Six empire sections (Stage joined in v39.1) — tighten the chip rhythm so
+   all six fit the nav rail at 1024 and above instead of scrolling. */
+#app #view[data-screen="empire"] .command-empire .command-section-nav{gap:12px}
+#app #view[data-screen="empire"] .command-empire .command-nav-items{gap:4px}
+#app #view[data-screen="empire"] .command-empire .command-nav-items button{padding:10px 10px;gap:6px}
+#app #view[data-screen="empire"] .command-empire .stage-kpis{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;margin-top:12px;
+}
+#app #view[data-screen="empire"] .command-empire .stage-form{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-top:10px;
+}
+#app #view[data-screen="empire"] .command-empire .stage-form label{
+  display:grid;gap:5px;min-width:0;
+  font:700 9px/1.4 ui-monospace,monospace;letter-spacing:1.2px;text-transform:uppercase;color:var(--cd-muted);
+}
+#app #view[data-screen="empire"] .command-empire .stage-form select{
+  width:100%;max-width:100%;min-height:40px;padding:7px 9px;
+  background:var(--cd-t122223);border:1px solid var(--cd-line);border-radius:2px;
+  color:var(--cd-text);font:12px/1.4 system-ui,sans-serif;
+}
+#app #view[data-screen="empire"] .command-empire .stage-form select:focus{
+  outline:2px solid var(--cd-gold);outline-offset:1px;
+}
+#app #view[data-screen="empire"] .command-empire .stage-show{
+  border-left:3px solid var(--cd-gold);
+}
+#app #view[data-screen="empire"] .command-empire .stage-dev{
+  border-left:3px solid var(--cd-line);
+}
+#app #view[data-screen="empire"] .command-empire .stage-show .empire-progress>i>b,
+#app #view[data-screen="empire"] .command-empire .stage-dev .empire-progress>i>b{
+  transition:width .3s ease;
+}
+@media (max-width:520px){
+  #app #view[data-screen="empire"] .command-empire .stage-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app #view[data-screen="empire"] .command-empire .stage-form{grid-template-columns:minmax(0,1fr)}
+}

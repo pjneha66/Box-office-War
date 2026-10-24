@@ -742,6 +742,29 @@ if(typeof SportsStadiumDeals !== "undefined"){
   console.log("v32.5 · Sports Stadium Deals ok (stadium upgraded to " + upgRes.newLevel + ", " + nameRes.deal.stadiumDisplayName + " naming deal signed, " + pkgRes.record.pkg.name + " rights acquired)");
 }
 
+// 35. Stage Division (Broadway run, tour, cast album, Tony)
+if(typeof StageDivision !== "undefined"){
+  G.studio.cash = Math.max(G.studio.cash, 400);
+  G.studio.rep = Math.max(G.studio.rep, 70);
+  const stageOpen = StageDivision.unlock(G);
+  if(!stageOpen || !stageOpen.ok) throw new Error("stage division unlock failed");
+  const stageShow = StageDivision.greenlight({sourceId:"original", scale:"chamber", composerId:"solene", directorId:"brennan"}, G);
+  if(!stageShow || !stageShow.ok) throw new Error("stage show greenlight failed");
+  for(let i=0;i<9;i++){ G.week++; G.weekTx={}; StageDivision.tick(G); }
+  const runningShow = (G.stage.shows||[]).find(x=>x.phase==="running");
+  if(!runningShow) throw new Error("stage show never opened after previews");
+  if(!(runningShow.reviews>=10 && runningShow.reviews<=99)) throw new Error("stage reviews out of range");
+  const cashBeforeStage = G.studio.cash;
+  G.week++; G.weekTx={}; StageDivision.tick(G);
+  if(!(G.weekTx.stage != null)) throw new Error("stage week never reached the ledger");
+  const tourRes = StageDivision.launchTour(runningShow.id, G);
+  const albumRes = StageDivision.releaseAlbum(runningShow.id, G);
+  const closeRes = StageDivision.closeShow(runningShow.id, G);
+  if(!closeRes || !closeRes.ok) throw new Error("stage show refused to close");
+  if(!G.stage.history.length) throw new Error("closed stage show missing from history");
+  console.log("v39.1 · Stage Division ok (opened at "+runningShow.reviews+" reviews, weekly ledger "+(G.weekTx.stage!=null?"live":"dead")+", tour "+(tourRes&&tourRes.ok?"mounted":"gated")+", album "+(albumRes&&albumRes.ok?"released":"gated")+", closed into history)");
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;

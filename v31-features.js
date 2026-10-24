@@ -349,7 +349,7 @@ const TAB_META = {
   ott:         [["home","Home"],["originals","Originals"],["deals","Deals"],["sports","Sports"],["market","Market"]],
   live:        [["linear","Linear Channels"],["stream","Live Stream Hub"],["events","Live Events"],["studio","Host Studio"]],
   library:     [["overview","Overview"],["films","Films"],["series","Series"],["rights","Rights & windows"],["catalogue","Catalogue & licensing"],["physical","Physical 4K"],["restoration","Restoration vault"]],
-  empire:      [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]],
+  empire:      [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["stage","Stage"],["endgame","Endgame"]],
   games:       [["overview","Overview"],["develop","Development"],["catalog","Catalog"],["studio","Studio & Staff"],["contracts","Contracts"],["awards","Awards"],["hardware","Hardware"]],
   /* v38.0: finance had NO entry here at all. It was the one section excluded
      from the data-driven migration — renderSubTabs() found no meta, hid the
