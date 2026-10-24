@@ -18,6 +18,36 @@ The pipeline: syntax checks + full test suite → version bump (APK +
 GitHub release `v<version>` with the APK attached → verifies the live site.
 `npm run release` is an alias; `npm run apk` only rebuilds the APK.
 
+## Build on GitHub Actions (no local Android SDK needed)
+
+The APK can also be built entirely on GitHub's runners, which is the way to do it
+from a machine without JDK 21 + the Android SDK:
+
+- Actions → **Android APK** → *Run workflow*
+- Every run publishes a downloadable artifact `BoxOfficeWar-<version>-apk`
+- Tick **publish_release** to also create/update the GitHub release `v<version>`
+  with the APK attached
+
+The workflow definition is version-controlled at `apk/ci/android-apk.yml`; install
+it with
+
+```bash
+bash apk/ci/install-ci.sh    # copies it to .github/workflows/android-apk.yml
+```
+
+and commit + push that file with your own credentials. (GitHub rejects pushes of
+`.github/workflows/*` from tokens without the `workflows` permission — which is
+why the canonical copy does not live there.) The workflow gates on version consistency:
+`version.json`, `<meta name="app-version">` in `index.html` and
+`versionName` in `apk/android/app/build.gradle` must all match, and it refuses to
+ship an APK whose bundled `assets/public/index.html` is a different version. It
+then verifies the signature with `apksigner` and prints the signer SHA-256.
+
+**Important:** the version Android reports (and what the in-app update check
+compares against `version.json`) is `versionName` in
+`apk/android/app/build.gradle` — not `package.json`. Bump it, plus `versionCode`,
+with every release.
+
 ## Manual APK rebuild (what the script automates)
 
 ```bash
