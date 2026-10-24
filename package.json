@@ -1,6 +1,6 @@
 {
   "name": "box-office-war",
-  "version": "37.0.0",
+  "version": "38.0.0",
   "description": "A realistic movie-business simulation game that runs in any browser \u2014 phone, tablet, or PC. No installs, no dependencies, no server: pure HTML/CSS/JS, works offline (just open index.html).",
   "main": "data.js",
   "directories": {
@@ -42,8 +42,10 @@
     "test:start:layout": "node test/start-landscape-browser.cjs",
     "test:lot:hiring": "node test/lot-hiring-browser.cjs",
     "test:start:theme": "node test/start-theme-browser.cjs",
-    "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs && node test/boxoffice-deck.mjs && node test/boxoffice-charts.mjs && node test/rebrand-streamer.mjs && node test/ott-desk.mjs && node test/live-desk.mjs && node test/empire-desk.mjs && node test/library-desk.mjs && node test/cost-sheet.mjs",
+    "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs && node test/boxoffice-deck.mjs && node test/boxoffice-charts.mjs && node test/rebrand-streamer.mjs && node test/ott-desk.mjs && node test/live-desk.mjs && node test/empire-desk.mjs && node test/library-desk.mjs && node test/finance-desk.mjs && node test/cost-sheet.mjs",
     "test:library:desk": "node test/library-desk.mjs",
+    "test:finance": "node test/finance-desk.mjs",
+    "test:finance:desk": "node test/finance-desk.mjs",
     "test:library:browser": "node test/library-desk-browser.cjs",
     "test:gamestudio": "node test/game-studio-desk.mjs",
     "test:gamestudio:browser": "node test/game-studio-desk-browser.cjs",

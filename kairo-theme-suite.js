@@ -616,9 +616,47 @@
   }
 
   /* 12. FINANCE: Corporate Treasury & Wall Street Ledger */
+  /* v38.0: this banner used to print two string literals for every studio —
+     `const profitMargin = 34.8` and a fixed "AAA Investment" grade — so a
+     studio with $3M of cash, $900M of debt and reputation 8 was told it had a
+     prime investment-grade balance sheet and a 34.8% return. All three action
+     buttons were wired to bondMarketModal / ipoModal / cfoOfficeModal, none of
+     which have ever existed, so they failed silently behind typeof guards.
+     Every figure below is now read from the live career, and every button
+     routes to a function that exists. The Treasury Desk (ui.js) owns the
+     Finance tab's own heading; this banner is kept honest for any surface that
+     still asks KairoTheme for it. */
   function renderFinanceBanner(G, st, calStr) {
-    const debt = st.debt || 0;
-    const profitMargin = 34.8;
+    const debt = (st.debt || 0) + (st.mezzDebt || 0);
+
+    /* Credit grade: read from the bond market's own rating function. */
+    let grade = "\u2014", gradeName = "Not rated";
+    try {
+      const rateFn = (typeof getStudioCreditRating === "function") ? getStudioCreditRating
+        : (typeof BondMarketModule !== "undefined" && BondMarketModule && typeof BondMarketModule.getStudioCreditRating === "function") ? BondMarketModule.getStudioCreditRating
+        : (typeof FinanceDesk !== "undefined" && FinanceDesk ? null : null);
+      if (rateFn) { const r = rateFn(G); if (r) { grade = r.grade; gradeName = r.name; } }
+      else if (typeof FinanceDesk !== "undefined" && FinanceDesk && typeof FinanceDesk.creditRating === "function") {
+        const r = FinanceDesk.creditRating(G); if (r) { grade = r.grade; gradeName = r.name; }
+      }
+    } catch (e) { grade = "\u2014"; gradeName = "Not rated"; }
+
+    /* Margin: the trailing ledger, or an honest dash when there is no revenue. */
+    let marginText = "\u2014", marginClass = "";
+    try {
+      if (typeof FinanceDesk !== "undefined" && FinanceDesk && typeof FinanceDesk.ledgerTrail === "function") {
+        const t = FinanceDesk.ledgerTrail(G, 12);
+        if (t && t.weeks > 0 && t.R > 0) {
+          marginText = (t.margin >= 0 ? "+" : "\u2212") + Math.abs(t.margin) + "% net";
+          marginClass = t.margin >= 0 ? "green" : "red";
+        } else if (t && t.weeks > 0) {
+          marginText = "no revenue";
+          marginClass = "red";
+        }
+      }
+    } catch (e) { marginText = "\u2014"; }
+
+    const gradeClass = (grade === "AAA" || grade === "AA" || grade === "BBB") ? "gold" : "red";
 
     return `
       <div class="kairo-dept-banner kairo-banner-finance">
@@ -634,7 +672,7 @@
         <div class="kairo-dept-info">
           <div class="kairo-badge-row">
             <span class="kairo-dept-badge gold">[WALL STREET &amp; TREASURY]</span>
-            <span class="kairo-dept-subtag">WAR CHEST RESERVES</span>
+            <span class="kairo-dept-subtag">${gradeName}</span>
           </div>
           <div class="kairo-dept-title">CORPORATE TREASURY &amp; CAPITAL ALLOCATION</div>
           <div class="kairo-stats-strip">
@@ -648,19 +686,19 @@
             </div>
             <div class="kairo-stat-chip">
               <span class="k-lbl">BOND RATING</span>
-              <span class="k-val gold">AAA Investment</span>
+              <span class="k-val ${gradeClass}">${grade}</span>
             </div>
             <div class="kairo-stat-chip">
-              <span class="k-lbl">PROFIT MARGIN</span>
-              <span class="k-val cyan">+${profitMargin}% RoIC</span>
+              <span class="k-lbl">TRAILING 12-WK MARGIN</span>
+              <span class="k-val ${marginClass || "cyan"}">${marginText}</span>
             </div>
           </div>
         </div>
 
         <div class="kairo-dept-actions">
-          <button class="kairo-btn-action gold" onclick="if(typeof bondMarketModal==='function')bondMarketModal();">Corporate Bonds</button>
-          <button class="kairo-btn-action blue" onclick="if(typeof ipoModal==='function')ipoModal();">P&amp;L Statements</button>
-          <button class="kairo-btn-action" onclick="if(typeof cfoOfficeModal==='function')cfoOfficeModal();">CFO Operations</button>
+          <button class="kairo-btn-action gold" onclick="if(typeof openBondMarketModal==='function')openBondMarketModal();else if(typeof switchTab==='function')switchTab('finance');">Corporate Bonds</button>
+          <button class="kairo-btn-action blue" onclick="if(typeof switchTab==='function'&&typeof financeSet==='function'){switchTab('finance');financeSet({sub:'ledger'});}else if(typeof switchTab==='function')switchTab('finance');">P&amp;L Ledger</button>
+          <button class="kairo-btn-action" onclick="if(typeof switchTab==='function'&&typeof financeSet==='function'){switchTab('finance');financeSet({sub:'capital'});}else if(typeof switchTab==='function')switchTab('finance');">Capital &amp; Debt</button>
         </div>
       </div>
     `;

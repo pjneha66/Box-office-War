@@ -351,6 +351,15 @@ const TAB_META = {
   library:     [["overview","Overview"],["films","Films"],["series","Series"],["rights","Rights & windows"],["catalogue","Catalogue & licensing"],["physical","Physical 4K"],["restoration","Restoration vault"]],
   empire:      [["home","Home"],["franchises","Franchises"],["universes","Universes"],["divisions","Divisions"],["endgame","Endgame"]],
   games:       [["overview","Overview"],["develop","Development"],["catalog","Catalog"],["studio","Studio & Staff"],["contracts","Contracts"],["awards","Awards"],["hardware","Hardware"]],
+  /* v38.0: finance had NO entry here at all. It was the one section excluded
+     from the data-driven migration — renderSubTabs() found no meta, hid the
+     strip, and the tab shipped with a legacy .subnav-pills row whose "Public
+     Offering" and "M&A Vault" pills were wired to ipoModal()/maModal(),
+     functions that have never existed. The desk's own sections are the source
+     of truth, so this reads them from the module instead of restating them. */
+  finance:     (typeof FinanceDesk !== "undefined" && FinanceDesk && FinanceDesk.SECTIONS && FinanceDesk.SECTIONS.length)
+                 ? FinanceDesk.SECTIONS
+                 : [["ledger","Ledger"],["capital","Capital & debt"],["forecast","Forecast & risk"],["equity","Equity & markets"],["deals","M&A vault"],["analysis","Analysis lab"],["board","Board & people"],["invest","Investments"]],
 };
 /* which live filter var holds the active sub-tab per section — read as
    functions so the strip always highlights what the view is showing */
@@ -366,6 +375,7 @@ const TAB_SUB_ACTIVE = {
   library:     ()=>(typeof LIBRARY_SUB!=="undefined"?LIBRARY_SUB:"films"),
   empire:      ()=>(G.empire?(G.empire.activeSub||G.empire.subTab||"franchises"):"franchises"),
   games:       ()=>(typeof GAMES_SUB!=="undefined"?GAMES_SUB:"dev"),
+  finance:     ()=>(typeof FINANCE_SUB!=="undefined"?FINANCE_SUB:"ledger"),
 };
 /* which data-* attribute each section's chips carry */
 const TAB_SUB_ATTR = {
@@ -380,6 +390,7 @@ const TAB_SUB_ATTR = {
   library:     "data-libsub",
   empire:      "data-empiresub",
   games:       "data-gamessub",
+  finance:     "data-finsub",
 };
 const TAB_SUB_DEFAULT = {
   dashboard:   "overview",
@@ -393,6 +404,7 @@ const TAB_SUB_DEFAULT = {
   library:     "overview",
   empire:      "franchises",
   games:       "overview",
+  finance:     "ledger",
 };
 const TAB_SUB_GHOST = { productions:1, fans:1 }; /* inactive chips used btn-ghost here */
 

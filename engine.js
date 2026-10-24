@@ -4577,49 +4577,31 @@ function maxDebt(){
   return 150 + catalogValue()*0.6 + inProd;
 }
 
-/* ═══════════ 12-week cash-flow forecast (v2) ═══════════ */
+/* ═══════════ 12-week cash-flow forecast ═══════════
+   v38.0: this used to be a SECOND, cruder forecast running alongside
+   cashflowForecast(), and the Finance tab rendered both on one screen. They
+   disagreed, because this one:
+     • computed overhead as `st.overhead + projects*0.12 + series(shoot)*0.15`,
+       while the weekly tick calls weeklyOverhead() — which also bills executive
+       salaries, headquarters upkeep, crew retainers, the music label and the
+       game division. The forecast was therefore systematically optimistic.
+     • hardcoded 0.0018 weekly interest, ignoring interestRate() and so the
+       CFO's 30% discount.
+     • modelled theatrical decay itself instead of using expectedOpening().
+   There is now one forecast. This wrapper derives the {rows, start} shape from
+   cashflowForecast() so existing callers keep working and can never drift. */
 function forecastProject(){
-  // rough projection of the next 12 weeks for the Finance view
-  if(!G) return {rows:[], start:G?G.studio.cash:0};
+  if(!G) return {rows:[], start:0};
   const st=G.studio;
-  const rows=[]; let cash=st.cash;
-  const overhead = st.overhead + G.projects.length*0.12 + G.series.filter(s=>s.phase==="shoot").length*0.15;
-  const libLic = catalogValue()*0.0045; // perf: O(films) once, not per forecast row
-  for(let w=G.week+1; w<=G.week+12; w++){
-    let net = -overhead;
-    net += libLic;                              // library licensing
-    // production burn + incentives
-    for(const p of G.projects){
-      if(p.phase==="pre") net -= p.budget*0.10/Math.max(1,p.phaseLen.pre);
-      if(p.phase==="shoot") net -= p.budget*0.70/Math.max(1,p.phaseLen.shoot)*(G.upgrades.backlot?0.88:1)*(1-DATA.location(p.location).rebate);
-      if(p.phase==="post") net -= p.budget*0.20/Math.max(1,p.phaseLen.post)*(G.upgrades.vfx?0.75:1);
-      if(p.phase==="reshoot") net -= p.budget*0.08/Math.max(1,(p.phaseLen.reshoot||3));
-    }
-    for(const s of G.series){ if(s.phase==="shoot") net -= s.budget/(s.weeksLeft0||1); }
-    // scheduled release: remaining P&A
-    for(const p of G.projects){
-      if(p.releaseWeek===w){ net -= Math.max(0, p.marketing - (p.marketingPaid||0)); }
-    }
-    // theatrical rentals (decay roughly)
-    for(const f of G.films){
-      if(!f.inTheaters) continue;
-      const d = f.decay || (1-1/legsOf(f));
-      let g = f.opening*Math.pow(d,f.weeksOut+(w-G.week));
-      if(G.theaterCap>0) g*=0.55;
-      if(g<Math.max(0.3,f.opening*0.006)) g=0;
-      net += g*0.53;
-    }
-    // franchise & empire divisions income
-    for(const fr of G.franchises) net += frWeeklyIncome(fr);
-    net += empireDivisionsIncome();
-    // streamer subs + pay-1
-    if(G.streamer) net += G.streamer.subs*0.5;
-    // mezzanine / debt interest
-    if(st.debt>0) net -= st.debt*0.0018*(G.execs&&G.execs.cfo?0.70:1);
-    if(st.mezzDebt>0) net -= st.mezzDebt*0.005;
-    cash += net;
-    rows.push({week:w, net:Math.round(net*10)/10, cash:Math.round(cash*10)/10});
-  }
+  let cash=st.cash, rows=[];
+  try{
+    rows=(cashflowForecast()||[]).map(x=>{
+      /* num() is engine.js's own finite-number coercion (defined further down
+         the file); function declarations hoist, so it is available here. */
+      cash += num(x.net);
+      return { week:x.w, net:x.net, cash:Math.round(cash*10)/10, rev:x.rev, cost:x.cost, items:x.items };
+    });
+  }catch(e){ rows=[]; }
   return {rows, start:st.cash};
 }
 function takeLoan(amount){
@@ -4696,9 +4678,29 @@ function hireExec(id){
 }
 
 /* ═══════════ mezzanine debt (v2) — emergency money at 0.5%/week ═══════════ */
+/* v38.0: mezzanine capacity — headroom left in the junior tranche.
+   Mezzanine is subordinate, expensive emergency money (0.5%/wk ≈ 26%/yr) and
+   used to be completely uncapped: mezzanineLoan() would take any amount, while
+   the Finance tab offered a slider hardcoded to $200M that bore no relation to
+   the studio's size — a $3M indie was offered the same $200M as a major. The
+   tranche is now half the SENIOR facility, which maxDebt() already sizes from
+   catalogue value and committed production budgets. */
+function mezzCapTotal(){ return Math.max(0, Math.round(maxDebt()*0.5*10)/10); }
+function mezzCap(){ return Math.max(0, Math.round((mezzCapTotal()-(G.studio.mezzDebt||0))*10)/10); }
 function mezzanineLoan(amount){
   amount=Math.round(amount||0);
   if(amount<=0) return false;
+  /* Mirror takeLoan(): clamp to what the tranche allows, and refuse loudly
+     rather than silently doing nothing when there is none left. */
+  const cap=mezzCap();
+  if(amount>cap){
+    amount=Math.floor(cap);
+    if(amount<=0){
+      log("🪜 The mezzanine tranche is full — it is capped at "+fmtM(mezzCapTotal())+" (half your "+fmtM(maxDebt())+" senior facility) and you have drawn "+fmtM(G.studio.mezzDebt||0)+".","bad");
+      return false;
+    }
+    log("🪜 Mezzanine capped at "+fmtM(amount)+" — the tranche tops out at half the senior facility.","");
+  }
   G.studio.mezzDebt=(G.studio.mezzDebt||0)+amount;
   G.mezz=G.studio.mezzDebt;
   G.studio.cash+=amount;
@@ -6122,7 +6124,14 @@ function cashflowForecast(){
     items.push({label:"Library & empire", amt: catalogValue()*0.0045 + G.franchises.reduce((a,f)=>a+frWeeklyIncome(f),0) + empireDivisionsIncome()});
     if(G.streamer) items.push({label:"Streamer net", amt:G.streamer.subs*0.5});
     const net = items.reduce((a,x)=>a+x.amt,0);
-    out.push({w, items:items.filter(x=>Math.abs(x.amt)>=0.5), net:Math.round(net*10)/10});
+    /* v38.0: also carry the unfiltered revenue/cost split. `items` is trimmed to
+       |amt| >= 0.5 for display, so anything reading it back to re-derive the
+       split would silently lose the small lines. The Treasury Desk's stress
+       test shocks these two figures directly, so it stays exact. */
+    const revSum = items.reduce((a,x)=>a+(x.amt>0?x.amt:0),0);
+    const costSum = items.reduce((a,x)=>a+(x.amt<0?x.amt:0),0);
+    out.push({w, items:items.filter(x=>Math.abs(x.amt)>=0.5), net:Math.round(net*10)/10,
+              rev:Math.round(revSum*10)/10, cost:Math.round(costSum*10)/10});
   }
   return out;
 }

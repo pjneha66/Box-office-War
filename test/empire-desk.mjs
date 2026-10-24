@@ -656,12 +656,21 @@ try{
   `);
   for(const sub of allSubs) w.eval(`G.empire.subTab='${sub}';G.empire.activeSub='${sub}';render();`);
   assert.equal(w.eval('window.__kairoCalls'),0,'empire renders no Kairo banner on any sub-tab');
-  /* games is now a command desk and, like empire/library, is intentionally
-     excluded from the Kairo banner — use finance (a plain tab) as the control. */
+  /* v38.0: finance became a command desk too, so it is now excluded as well —
+     every section renders its own command-heading and a Kairo banner above it
+     would double the header. Assert the exclusion is complete, and check the
+     banner function itself still works for any surface that calls it directly. */
   w.eval(`TAB='finance'; render();`);
-  assert(w.eval('window.__kairoCalls')>0,'Kairo banner still renders on non-excluded tabs');
+  assert.equal(w.eval('window.__kairoCalls'),0,'finance is excluded from the Kairo banner like every other desk');
+  assert.equal($('#view .kairo-dept-banner'),null,'no Kairo banner node above the Treasury Desk');
+  assert(w.eval(`KairoTheme.renderBanner('finance').length`)>0,'renderBanner("finance") still returns markup for direct callers');
+  /* and the banner it returns no longer carries the pre-v38 fabrications */
+  w.eval(`G.studio.cash=3; G.studio.debt=900; G.studio.rep=8;`);
+  const ban=w.eval(`KairoTheme.renderBanner('finance')`);
+  assert(!/AAA Investment/.test(ban),'the finance banner no longer hardcodes an AAA grade');
+  assert(!/34\.8/.test(ban),'the finance banner no longer hardcodes a 34.8% margin');
   w.eval(`KairoTheme.renderBanner=window.__kairoOrig; TAB='empire'; G.empire.subTab='franchises'; G.empire.activeSub='franchises'; render();`);
-  console.log('PASS B4: empire excluded from the Kairo banner everywhere, other tabs unaffected');
+  console.log('PASS B4: every desk is excluded from the Kairo banner, and the finance banner reports live figures');
 
   /* Every preserved selector survives the shell rebuild */
   fresh('franchises');

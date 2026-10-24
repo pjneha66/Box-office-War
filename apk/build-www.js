@@ -11,7 +11,7 @@ const FILES = [
   "index.html",
   "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css", "command-deck.css",
   "data.js", "engine.js", "i18n.js", "ui.js",
-  "finance-tools.js", "v31-features.js",
+  "finance-desk.js", "finance-tools.js", "v31-features.js", "bo-charts.js", "gamestudio-desk.js",
   "challenge-leaderboard.js", "theater-chains.js", "dynamic-soundtrack.js", "dynasty-legacy.js",
   "bow-shorts.js", "talent-agency.js", "film-restoration.js", "festival-pr.js",
   "studio-facilities.js", "syndication-tv.js", "talent-contracts.js", "bond-market.js",

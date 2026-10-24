@@ -1228,8 +1228,12 @@ function _renderImpl(){
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "library", "games", "notifications"].includes(TAB))
+    /* v34.6: fans joined the command desks, so the pixel banner would double up the header.
+       v38.0: finance joined them too. Its Kairo banner was the last one still
+       rendering, and it carried hardcoded fiction ("AAA Investment", "+34.8%
+       RoIC") plus three buttons wired to functions that never existed — the
+       Treasury Desk heading replaces it with live figures. */
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "library", "games", "notifications", "finance"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1267,6 +1271,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"38.0", label:"TREASURY DESK — ledger \u2192 capital \u2192 forecast \u2192 equity \u2192 deals \u2192 analysis \u2192 board \u2192 invest (Finance rebuilt: live weekly P&L that reconciles to the ledger, credit facility + mezzanine + corporate bonds, maturity ladder, runway, five-scenario stress test, share price and secondary offerings, M&A, board & executives, capital projects; one persisted nav, every refusal explained, no fabricated rating or margin)", status:"shipped" },
   { version:"37.0", label:"GAME STUDIO DESK — plan → Alpha/Beta/Master/Debug → bug-squash research → 4-critic /40 review → decay sales (Game Studio rebuilt: overview, development, catalog, studio & staff, contracts, awards, hardware; one persisted nav, direction-point planning, genre×theme synergy, burnout & saturation, career tree, traveling salesman, Your Console, Global Game Awards; classic adaptation + in-house GDD pipelines preserved)", status:"shipped" },
   { version:"36.0", label:"LIBRARY DESK — the studio catalogue (Library rebuilt: overview, films, series, rights & windows, catalogue & licensing, physical 4K, restoration vault; one persisted nav, real catalogue value breakdown, one rights rule shared with the OTT desk)", status:"shipped" },
   { version:"35.0", label:"EMPIRE DESK — the empire command desk (Franchises rebuilt: portfolio, dossier, sequel timing planner, merch & parks, universes, music label, IP market & sell, divisions ledger, endgame crown tracker)", status:"shipped" },
@@ -2052,7 +2057,10 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire" || TAB === "library" || TAB === "games"){
+  // v38.0: finance joined them. It had no TAB_META entry at all, so on mobile
+  // the strip rendered empty and the tab had no section navigation anywhere —
+  // the Treasury Desk's own nav (data-finsub) is now the only one.
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire" || TAB === "library" || TAB === "games" || TAB === "finance"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -6224,308 +6232,836 @@ function renderInbox(){
   const close=v.querySelector("#inboxClose"); if(close) close.onclick=()=>{ beep("click"); closeModal(); };
 }
 
-/* ═══════════ VIEW: finance ═══════════ */
-function viewFinance(){
+/* ═══════════ VIEW: finance (v38.0) — TREASURY DESK ═══════════
+   One navigation, one persisted state object (G.finState), and every figure
+   read from finance-desk.js — the same layer the weekly tick's categories
+   feed. Nothing here computes an economy of its own, and nothing here prints
+   a constant dressed up as a result.
+
+   Replaces the pre-v38 single-scroll view, whose defects were:
+     • two subnav pills wired to ipoModal()/maModal(), which never existed
+       (clicking them threw a ReferenceError);
+     • a first pill that was permanently .active and only scrolled the page;
+     • bucket maths that double-counted franchise income and silently dropped
+       ten real cash categories;
+     • a hardcoded 0.18% interest line that contradicted the CFO-discounted
+       run-rate printed three rows below it;
+     • a forecast tooltip asserting assumptions the engine never used;
+     • inline hex colours that ignored the theme tokens;
+     • an unguarded G.txHistory read that blanked the tab on an old save. */
+function fd(){ return (typeof FinanceDesk!=="undefined" && FinanceDesk) ? FinanceDesk : null; }
+let FINANCE_SUB = "ledger";   /* v38.0: mirror of G.finState.sub */
+
+function financeSections(){
+  const D=fd();
+  return (D && D.SECTIONS && D.SECTIONS.length) ? D.SECTIONS : [["ledger","Ledger"]];
+}
+/* One state object. Old saves — and a save that never opened the desk — get a
+   complete object on first read: no lazy writes, no undefined. */
+function financeState(){
+  const D=fd();
+  if(!D) return { sub:"ledger", q:"", cat:"all", side:"all", weeks:12, stress:"base" };
+  const st=D.ensure(G);
+  FINANCE_SUB=st.sub;
+  return st;
+}
+function financeSub(){ return financeState().sub; }
+/* patch + persist + repaint. `live` patches (typing in the ledger search) skip
+   the whole-view repaint so the field keeps its caret. */
+function financeSet(patch, live){
+  const st=financeState();
+  Object.assign(st, patch||{});
+  FINANCE_SUB=st.sub;
+  if(typeof saveGame==="function") saveGame();
+  if(live){ refreshFinanceLedgerRows(); return; }
+  render();
+}
+
+/* ── shell ── */
+function financeHead(){
+  const w=woyOf(G.week), m=DATA.seasonOf(w);
+  const D=fd(), t=D?D.ledgerTrail(G,financeState().weeks):null;
+  /* A brand-new career has no weekly snapshots yet — say so instead of
+     claiming a profit on a window of zero weeks. */
+  const verdict = !t ? "The ledger module did not load."
+    : t.weeks===0 ? "No weekly ledger recorded yet — the first snapshot lands when you advance a week."
+    : t.P>0 ? "Profitable across the trailing "+t.weeks+" week"+(t.weeks===1?"":"s")+"."
+    : t.P<0 ? "Loss-making across the trailing "+t.weeks+" week"+(t.weeks===1?"":"s")+"."
+    : "Flat across the trailing "+t.weeks+" week"+(t.weeks===1?"":"s")+".";
+  return `<header class="command-heading"><div><span class="command-edition">TREASURY DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">LEDGER / CAPITAL / FORECAST / EQUITY / DEALS</span><h1>Follow the money.</h1><p>${esc(verdict)} Every figure below is read from the weekly ledger the engine actually writes — categories, commitments and rates included. Nothing on this desk is estimated for effect.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function financeNav(){
+  const active=financeSub(), secs=financeSections();
+  return `<nav class="command-section-nav command-finance-nav" aria-label="Treasury desk sections"><div class="command-nav-brand"><span>TREASURY DESK</span><small>LEDGER / DEBT / FORECAST / EQUITY</small></div><div class="command-nav-items">${secs.map(([key,label],i)=>`<button data-finsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}" aria-pressed="${active===key?"true":"false"}"><small>${String(i+1).padStart(2,"0")}</small><span>${label}</span></button>`).join("")}</div></nav>`;
+}
+function financeTelemetry(){
+  const D=fd(); if(!D) return "";
+  const st=G.studio, s=financeState();
+  const t=D.ledgerTrail(G,s.weeks), c=D.ledgerCommit(G), rate=D.creditRating(G), run=D.runway(G);
+  const cashNote=(G.prevCash!=null) ? ((st.cash-G.prevCash>=0?"+":"−")+fmtM(Math.abs(st.cash-G.prevCash))+" vs last week") : "No prior week recorded yet";
+  const runNote=(run && Number.isFinite(run.weeks)) ? ("≈"+run.weeks+" wks at "+fmtM(run.fixedBurn)+"/wk fixed burn") : "No fixed burn — nothing owed";
+  return `<div class="command-telemetry">`+
+    commandMetric("CAPITAL", fmtM(st.cash), esc(cashNote))+
+    commandMetric("TRAILING NET", t.weeks?((t.P>=0?"+":"−")+fmtM(Math.abs(t.P))):"—", esc(t.weeks?(t.weeks+" wks · "+fmtM(t.R)+" in / "+fmtM(t.E)+" out"):"No weekly snapshot yet"))+
+    commandMetric("CREDIT RATING", rate?rate.grade:"—", esc(rate?(rate.name+" · "+Math.round(rate.coupon*1000)/10+"% coupon"):"Bond market not loaded"))+
+    commandMetric("RUNWAY", (run&&Number.isFinite(run.weeks))?run.weeks+" wks":"∞", esc(runNote))+
+  `</div>`;
+}
+function financePanel(eyebrow,title,description,content,aside){
+  return `<section class="produce-panel finance-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${aside?`<div class="finance-panel-aside">${aside}</div>`:""}</div><div class="finance-panel-body">${content}</div></section>`;
+}
+function financeShell(content){ return `<section class="command-deck command-produce command-finance">${financeHead()}${financeNav()}${financeTelemetry()}${content}</section>`; }
+function financeEmpty(title,copy,action){ return `<div class="command-empty"><b>${title}</b><span>${copy}</span>${action||""}</div>`; }
+function financeNote(html){ return `<p class="finance-note">${html}</p>`; }
+/* A ledger line: label left, signed money right. */
+function finLine(label, amount, opts){
+  const o=opts||{};
+  const v=Number(amount)||0;
+  const cls=o.tone || (v>0?"pos":v<0?"neg":"");
+  const txt=o.text!=null ? o.text : ((v>0?"+":v<0?"−":"")+fmtM(Math.abs(v)));
+  return `<div class="fin-line${o.indent?" indent":""}"><span>${label}${o.hint?`<em>${o.hint}</em>`:""}</span><b class="${cls}">${txt}</b></div>`;
+}
+
+/* ── 01 / Ledger ────────────────────────────────────────────────────────── */
+function financeLedgerPanel(){
+  const D=fd(), s=financeState();
+  if(!D) return financeEmpty("Ledger offline","The treasury module did not load in this build.");
+  const wk=D.ledgerWeek(G), t=D.ledgerTrail(G,s.weeks);
+  let body="";
+
+  /* this week, live */
+  const wkRows = wk.empty
+    ? financeEmpty("Nothing booked yet","No cash has moved this week. Advance a week and the ledger fills in.")
+    : `<div class="fin-grid2">
+        <div class="fin-block"><span class="fin-block-head">INCOME</span>${wk.income.map(r=>finLine(r.label,r.amount)).join("")||`<div class="fin-quiet">No income booked.</div>`}</div>
+        <div class="fin-block"><span class="fin-block-head">COSTS</span>${wk.costs.map(r=>finLine(r.label,r.amount)).join("")||`<div class="fin-quiet">No costs booked.</div>`}</div>
+      </div>
+      ${wk.financing?finLine("🏦 Financing (loans &amp; offerings — balance sheet, not P&amp;L)", wk.financing, {hint:"Excluded from net, exactly as weekNet() excludes it"}):""}`;
+  body += financePanel("THIS WEEK","Live P&amp;L","What has actually moved since the last weekly tick. Financing is shown separately because it is not profit.",
+    `<div class="fin-weeknet"><span>NET THIS WEEK</span><b class="${wk.net>=0?"pos":"neg"}">${(wk.net>=0?"+":"−")+fmtM(Math.abs(wk.net))}</b></div>${wkRows}`,
+    `<div class="finance-pl-bars" role="img" aria-label="Net by week">${D.ledgerSeries(G,10).map(x=>`<i class="${x.net>=0?"up":"down"}" style="height:${Math.max(6,Math.abs(x.net)/Math.max(1,...D.ledgerSeries(G,10).map(y=>Math.abs(y.net)))*100)}%" title="${dateLabel(x.week)}: ${(x.net>=0?"+":"−")+fmtM(Math.abs(x.net))}"></i>`).join("")}</div>`);
+
+  /* trailing split — reconciles by construction */
+  const revRows=t.rev.map(b=>finLine(b.icon+" "+esc(b.label), b.amount)).join("");
+  const expRows=t.exp.map(b=>finLine(b.icon+" "+esc(b.label), -b.amount)).join("");
+  const recon = t.reconcile.ok
+    ? `<div class="fin-recon ok"><b>✓ Reconciled</b><span>Buckets total ${fmtM(t.R)} − ${fmtM(t.E)} = ${(t.P>=0?"+":"−")+fmtM(Math.abs(t.P))}, which matches the ${t.weeks} weekly net figures in the ledger exactly.</span></div>`
+    : `<div class="fin-recon bad"><b>⚠ Does not reconcile</b><span>Buckets total ${(t.P>=0?"+":"−")+fmtM(Math.abs(t.P))} but the ledger's weekly nets sum to ${(t.ledgerNet>=0?"+":"−")+fmtM(Math.abs(t.ledgerNet))} — a ${fmtM(Math.abs(t.reconcile.delta))} gap.</span></div>`;
+  body += financePanel("TRAILING "+t.weeks+" WEEKS","Revenue &amp; expense split",
+    "Rolled up per category, per week, split by sign. A franchise week can never cancel somebody else's cost, and every category the engine writes has a bucket.",
+    `<div class="fin-grid2">
+      <div class="fin-block"><span class="fin-block-head">REVENUE — ${fmtM(t.R)}</span>${revRows||`<div class="fin-quiet">No revenue in this window.</div>`}</div>
+      <div class="fin-block"><span class="fin-block-head">EXPENSE — ${fmtM(t.E)}</span>${expRows||`<div class="fin-quiet">No costs in this window.</div>`}</div>
+    </div>
+    <div class="fin-total"><span>NET</span><b class="${t.P>=0?"pos":"neg"}">${(t.P>=0?"+":"−")+fmtM(Math.abs(t.P))}</b><em>${t.margin!=null?t.margin+"% margin":"No revenue to margin against"}</em></div>
+    ${recon}
+    ${(t.financing.raised||t.financing.repaid)?finLine("🏦 Financing raised / repaid in the window", 0, {text:fmtM(t.financing.raised)+" in · "+fmtM(t.financing.repaid)+" out", tone:"", hint:"Balance sheet — not in the net above"}):""}
+    ${t.unmapped.length?`<div class="fin-recon bad"><b>⚠ Unmapped categories</b><span>${t.unmapped.map(esc).join(", ")} — the engine writes these but the desk has no bucket for them yet.</span></div>`:""}`,
+    `<div class="finance-range" role="group" aria-label="Trailing window">${D.LEDGER_RANGES.map(([n,label])=>`<button class="fin-chipbtn${s.weeks===n?" active":""}" data-finweeks="${n}">${label}</button>`).join("")}</div>`);
+
+  /* searchable transaction ledger */
+  const cats=D.categoriesPresent(G);
+  const res=D.ledgerRows(G,{q:s.q, cat:s.cat, side:s.side, limit:120});
+  body += financePanel("EVERY ENTRY","Transaction ledger",
+    "Each weekly snapshot broken back out into its categories, newest first. Filter by text, by category, or by direction.",
+    `<div class="finance-filters">
+      <div class="finance-filter-row"><span class="finance-filter-label">SEARCH</span><input id="finSearch" class="finance-search" type="search" value="${esc(s.q)}" placeholder="Filter by category, e.g. theatrical, marketing, talent…" aria-label="Search transactions"></div>
+      <div class="finance-filter-row"><span class="finance-filter-label">DIRECTION</span>${[["all","All"],["in","Money in"],["out","Money out"]].map(([k,l])=>`<button class="fin-chipbtn${s.side===k?" active":""}" data-finside="${k}">${l}</button>`).join("")}</div>
+      <div class="finance-filter-row"><span class="finance-filter-label">CATEGORY</span><button class="fin-chipbtn${s.cat==="all"?" active":""}" data-fincat="all">All</button>${cats.map(k=>`<button class="fin-chipbtn${s.cat===k?" active":""}" data-fincat="${esc(k)}">${esc(D.categoryLabel(k))}</button>`).join("")}</div>
+      <div class="finance-filter-foot"><span class="finance-count" id="finCount">${res.total} entr${res.total===1?"y":"ies"}${res.truncated?" · showing first "+res.rows.length:""}</span>${(s.q||s.cat!=="all"||s.side!=="all")?`<button class="fin-chipbtn" id="finReset">Clear filters</button>`:""}</div>
+    </div>
+    <div class="fin-txrows" id="finTxRows">${financeTxRows(res)}</div>`,
+    `<button class="produce-ghost" id="btnExportCSV">📥 Export P&amp;L (CSV)</button>`);
+  return body;
+}
+function financeTxRows(res){
+  if(!res || !res.rows.length) return `<div class="fin-quiet">No entries match those filters.</div>`;
+  return res.rows.map(r=>`<div class="fin-line${r.financing?" financing":""}"><span>${dateLabel(r.week)} · ${esc(r.label)}</span><b class="${r.amount>=0?"pos":"neg"}">${(r.amount>=0?"+":"−")+fmtM(Math.abs(r.amount))}</b></div>`).join("")
+    + (res.truncated?`<div class="fin-quiet center">…${res.total-res.rows.length} more — narrow the filters to see them</div>`:"");
+}
+/* Live repaint of just the transaction rows, so typing keeps its caret. */
+function refreshFinanceLedgerRows(){
+  const D=fd(); if(!D) return;
+  const box=$("#finTxRows"); if(!box) return;
+  const s=financeState();
+  const res=D.ledgerRows(G,{q:s.q, cat:s.cat, side:s.side, limit:120});
+  box.innerHTML=financeTxRows(res);
+  const cnt=$("#finCount");
+  if(cnt) cnt.textContent=res.total+" entr"+(res.total===1?"y":"ies")+(res.truncated?" · showing first "+res.rows.length:"");
+}
+
+/* ── 02 / Capital & debt ────────────────────────────────────────────────── */
+function financeCapitalPanel(){
+  const D=fd(); if(!D) return financeEmpty("Treasury offline","The treasury module did not load in this build.");
+  const st=G.studio, c=D.ledgerCommit(G), bs=D.balanceSheet(G), ladder=D.maturityLadder(G), alerts=D.covenantChecks(G);
+  let body="";
+
+  /* treasury alerts — the new feature that replaces guesswork */
+  body += financePanel("RIGHT NOW","Treasury alerts",
+    "Every warning names the number that triggered it. Nothing here is a mood.",
+    `<div class="fin-alerts">${alerts.map(a=>`<div class="fin-alert ${a.level}"><b>${esc(a.title)}</b><span>${esc(a.detail)}</span></div>`).join("")}</div>`);
+
+  /* credit facility + mezzanine, with honest slider bounds */
+  const headroom=Math.max(0,Math.floor(c.credit.headroom));
+  const canBorrow=headroom>=10;
+  const repayMax=Math.max(0,Math.min(Math.floor(st.debt),Math.floor(st.cash)));
+  const mezz=Math.max(0,Math.round(c.debt.mezz));
+  const mezzRepayMax=Math.max(0,Math.min(mezz,Math.floor(st.cash)));
+  body += financePanel("BORROW","Credit facility &amp; mezzanine",
+    `Bank credit is capped at ${fmtM(c.credit.limit)} — ${fmtM(150)} base plus 60% of catalogue value plus 55% of budgets in production. Interest is ${Math.round(c.rates.bank*10000)/100}% per week${G.execs&&G.execs.cfo?" (already discounted 30% by your CFO)":""}, about ${Math.round(c.rates.bank*52*100)}% a year.`,
+    `<div class="fin-grid2">
+      <div class="fin-block">
+        <span class="fin-block-head">🏦 BANK CREDIT — ${fmtM(c.debt.bank)} drawn</span>
+        <div class="fin-gauge" role="img" aria-label="Credit utilisation ${Math.round(c.credit.used*100)}%"><i style="width:${Math.round(c.credit.used*100)}%"></i></div>
+        <div class="fin-quiet">${fmtM(c.credit.limit)} limit · ${c.credit.headroom>=0?fmtM(c.credit.headroom)+" headroom":"OVERDRAWN by "+fmtM(-c.credit.headroom)} · ${fmtM(c.weekly.bankInterest)}/wk interest</div>
+        ${canBorrow
+          ? `<div class="fin-slider"><label for="fnLoan">Borrow</label><input type="range" id="fnLoan" min="10" max="${headroom}" step="10" value="${Math.max(10,Math.min(headroom,Math.round(headroom/2)))}"><div class="fin-slider-foot"><b id="fnLoanV"></b><button class="btn btn-sm btn-primary" id="fnLoanGo">Take loan</button></div></div>`
+          : `<div class="fin-locked">🔒 No borrowing capacity — the facility is ${c.credit.headroom<0?"overdrawn":"full"}. Repay debt or grow the catalogue to raise the limit.</div>`}
+        ${repayMax>=1
+          ? `<div class="fin-slider"><label for="fnRepay">Repay</label><input type="range" id="fnRepay" min="1" max="${repayMax}" step="1" value="${Math.max(1,Math.round(Math.min(repayMax,st.debt/2)))}"><div class="fin-slider-foot"><b id="fnRepayV"></b><button class="btn btn-sm btn-alt" id="fnRepayGo">Repay</button></div></div>`
+          : `<div class="fin-quiet">${st.debt>0?"Repayment needs at least $1M of cash — you have "+fmtM(st.cash)+".":"No bank debt drawn."}</div>`}
+      </div>
+      <div class="fin-block">
+        <span class="fin-block-head">🪜 MEZZANINE — ${fmtM(mezz)} drawn of ${fmtM(c.mezz.capTotal)}</span>
+        <div class="fin-quiet">Emergency money at 0.5%/wk (≈26%/yr) — the most expensive capital in the game. ${fmtM(c.weekly.mezzInterest)}/wk right now. ${esc(c.mezz.note)}</div>
+        ${c.mezz.slider
+          ? `<div class="fin-slider"><label for="fnMezz">Borrow</label><input type="range" id="fnMezz" min="${c.mezz.slider.min}" max="${c.mezz.slider.max}" step="${c.mezz.slider.step}" value="${c.mezz.slider.value}"><div class="fin-slider-foot"><b id="fnMezzV"></b><button class="btn btn-sm btn-alt" id="fnMezzGo">Take mezzanine</button></div></div>`
+          : `<div class="fin-locked">🔒 No mezzanine capacity — ${esc(c.mezz.note)}</div>`}
+        ${mezzRepayMax>=1
+          ? `<div class="fin-slider"><label for="fnMezzRepay">Repay</label><input type="range" id="fnMezzRepay" min="1" max="${mezzRepayMax}" step="1" value="${Math.max(1,Math.round(Math.min(mezzRepayMax,mezz/2)))}"><div class="fin-slider-foot"><b id="fnMezzRepayV"></b><button class="btn btn-sm btn-primary" id="fnMezzRepayGo">Repay mezzanine</button></div></div>`
+          : `<div class="fin-quiet">${mezz>0?"Repayment needs at least $1M of cash — you have "+fmtM(st.cash)+".":"No mezzanine drawn."}</div>`}
+        ${c.debt.investor>0?`<div class="fin-locked warn">🕴 Investor buyout outstanding: ${fmtM(c.debt.investor)}. The engine retires $2.5M every week automatically — clear in ~${c.investorWeeksLeft} weeks. This cannot be repaid early.</div>`:""}
+        <div class="finance-filter-row" style="margin-top:10px"><button class="produce-ghost" id="btnOpenBonds">🏛 Corporate bond market</button></div>
+      </div>
+    </div>`);
+
+  /* maturity ladder */
+  body += financePanel("MATURITY","Debt ladder",
+    "Only instruments with a real settlement mechanic get a date. Revolvers and mezzanine roll until you repay them, and the desk says so instead of inventing a balloon.",
+    ladder.length
+      ? `<div class="fin-ladder">${ladder.map(d=>`<div class="fin-rung ${d.kind}"><div><b>${esc(d.name)}</b>${d.grade?`<em>${esc(d.grade)}</em>`:""}<span>${esc(d.maturity)}</span></div><div class="fin-rung-figs"><span>${fmtM(d.principal)}</span><small>${fmtM(d.weeklyCost)}/wk</small>${d.maturesWeek?`<small>week ${d.maturesWeek}</small>`:""}</div></div>`).join("")}</div>
+         <div class="fin-total"><span>TOTAL DEBT STACK</span><b class="neg">${fmtM(c.debt.total)}</b><em>${fmtM(c.weekly.interest)}/wk to service</em></div>`
+      : financeEmpty("No debt","Nothing borrowed, issued or owed. The whole stack is clean."));
+
+  /* committed obligations */
+  body += financePanel("COMMITTED","Obligations on the books",
+    "Cash already spoken for: unfinished budgets, dated P&amp;A, and the fixed weekly run-rate the tick will take regardless of how the films do.",
+    `${finLine("🎬 Production remaining (budget − spent)", -c.prod)}
+      ${finLine("📣 Marketing due on dated releases", -c.mkt)}
+      ${finLine("🏛 Overhead run-rate", -c.weekly.overhead, {hint:"weeklyOverhead() — payroll, facilities, retainers"})}
+      ${finLine("🏦 Interest &amp; coupons run-rate", -c.weekly.interest, {hint:"bank "+fmtM(c.weekly.bankInterest)+" · mezzanine "+fmtM(c.weekly.mezzInterest)+(c.weekly.bondCoupon?" · bond coupons "+fmtM(c.weekly.bondCoupon):"")})}
+      ${c.weekly.investor?finLine("🕴 Investor payout", -c.weekly.investor, {hint:"automatic, ~"+c.investorWeeksLeft+" weeks left"}):""}
+      <div class="fin-total"><span>FIXED WEEKLY BURN</span><b class="neg">${fmtM(c.weekly.burn)}</b><em>Before any production spend</em></div>
+      ${c.projects.length?`<div class="fin-block" style="margin-top:10px"><span class="fin-block-head">BY PRODUCTION</span>${c.projects.map(p=>finLine("🎬 "+esc(p.title), -p.remain, {hint:p.phase+(p.mktDue?" · P&A "+fmtM(p.mktDue)+" due":"")+(p.releaseWeek?" · releases week "+p.releaseWeek:"")})).join("")}</div>`:""}
+      ${c.series.length?`<div class="fin-block" style="margin-top:8px"><span class="fin-block-head">BY SERIES</span>${c.series.map(p=>finLine("📺 "+esc(p.title), -p.remain, {hint:p.phase})).join("")}</div>`:""}`);
+
+  /* balance sheet */
+  body += financePanel("BALANCE SHEET","What the studio is worth",
+    "Book equity on the engine's own valuations: cash plus catalogue value less the full debt stack.",
+    `${finLine("💵 Cash", bs.cash)}
+      ${finLine("📚 Catalogue value", bs.catalog, {hint:"catalogValue() — the same figure the credit limit and library income use"})}
+      ${finLine("🏦 Debt stack", -bs.debt)}
+      <div class="fin-total"><span>BOOK EQUITY</span><b class="${bs.equity>=0?"pos":"neg"}">${(bs.equity>=0?"+":"−")+fmtM(Math.abs(bs.equity))}</b><em>${bs.leverage!=null?bs.leverage+"× debt-to-equity":"No equity to lever against"}</em></div>
+      ${bs.marketCap!=null?finLine("📊 Market capitalisation", bs.marketCap, {hint:"Listed — "+fmtM(G.public.shares)+"M shares at $"+Number(G.public.price).toFixed(2)}):finLine("📊 Market capitalisation", 0, {text:"Private", hint:"Go public on the Equity lane to get a market price"})}`);
+  return body;
+}
+
+/* ── 03 / Forecast & risk ───────────────────────────────────────────────── */
+function financeForecastPanel(){
+  const D=fd(); if(!D) return financeEmpty("Forecast offline","The treasury module did not load in this build.");
+  const run=D.runway(G), s=financeState();
+  const stress=D.stressForecast(G,{preset:s.stress});
+  let body="";
+
+  /* runway */
+  const weeks=run&&Number.isFinite(run.weeks)?run.weeks:null;
+  body += financePanel("SURVIVAL","Runway",
+    "Weeks of cash left at the fixed burn — overhead, interest and the investor payout. Deliberately ignores future revenue: this is the floor, not a prediction.",
+    `<div class="fin-runway"><div class="fin-runway-fig"><span>CASH</span><b>${fmtM(run.cash)}</b></div><div class="fin-runway-fig"><span>FIXED BURN / WK</span><b class="neg">${fmtM(run.fixedBurn)}</b></div><div class="fin-runway-fig"><span>RUNWAY</span><b class="${weeks==null?"pos":weeks<=3?"neg":weeks<=8?"warn":"pos"}">${weeks==null?"∞":weeks+" wks"}</b></div><div class="fin-runway-fig"><span>STILL TO SPEND ON PRODUCTION</span><b>${fmtM(run.productionBurn)}</b></div></div>
+    ${run.trailingBurn>0?financeNote("Over the last 4 weeks the studio actually lost <b>"+fmtM(run.trailingBurn)+"/wk</b> net. The runway above uses whichever is worse — the fixed burn or that trailing loss."):financeNote("The studio was net positive over the last 4 weeks, so the runway is computed on the fixed burn alone.")}`);
+
+  /* 12-week forecast — one forecast, from one engine function */
+  const rows=(stress&&stress.ok)?stress.rows:[];
+  const base=D.stressForecast(G,{preset:"base"});
+  const baseRows=(base&&base.ok)?base.rows:[];
+  const peak=Math.max(1,...baseRows.map(r=>Math.abs(r.cash)));
+  body += financePanel("PROJECTED","12-week cash-flow forecast",
+    "From what is already locked in: theatrical runs and their decay, production burns, dated P&amp;A, overhead, interest, library and empire income, and your platform. Computed by the engine's cashflowForecast() — the same functions the weekly tick uses.",
+    baseRows.length
+      ? `<div class="finance-bars" role="img" aria-label="Projected cash by week">${baseRows.map(r=>`<div class="fin-bar" title="${dateLabel(r.week)}: ${(r.net>=0?"+":"−")+fmtM(Math.abs(r.net))} → ${fmtM(r.cash)}"><i style="height:${Math.max(4,clamp(r.cash/peak,0,1)*100)}%" class="${r.cash<0?"neg":""}"></i><span>${woyOf(r.week)}</span></div>`).join("")}</div>
+         <div class="fin-total"><span>PROJECTED CASH IN 12 WEEKS</span><b class="${baseRows[baseRows.length-1].cash>=0?"pos":"neg"}">${fmtM(baseRows[baseRows.length-1].cash)}</b><em>Net ${(base.totalNet>=0?"+":"−")+fmtM(Math.abs(base.totalNet))} over the window</em></div>`
+      : financeEmpty("Nothing to project","The forecast engine returned no rows — usually because there is no career state yet."));
+
+  /* week detail, itemised, from the same source */
+  let detail="";
+  try{
+    const fc=(typeof cashflowForecast==="function")?cashflowForecast():[];
+    if(fc.length){
+      detail=fc.slice(0,6).map(x=>`<div class="fin-line"><span>${dateLabel(x.w)} <em>${x.items.slice(0,3).map(i=>esc(i.label)).join(", ")}${x.items.length>3?"…":""}</em></span><b class="${x.net>=0?"pos":"neg"}">${(x.net>=0?"+":"−")+fmtM(Math.abs(x.net))}</b></div>`).join("");
+    }
+  }catch(e){ detail=""; }
+  if(detail) body += financePanel("ITEMISED","Week detail","The largest lines behind each projected week. These are the same items the forecast sums.", detail);
+
+  /* stress test — new feature */
+  body += financePanel("STRESS TEST","Shock the forecast",
+    "Re-runs the engine's own forecast with a documented shock applied to its revenue and cost lines. No new economy and no invented coefficients — the same items, scaled.",
+    `<div class="finance-filter-row" role="group" aria-label="Stress scenario">${D.STRESS_PRESETS.map(p=>`<button class="fin-chipbtn${s.stress===p.id?" active":""}" data-finstress="${p.id}">${esc(p.label)}</button>`).join("")}</div>
+    ${financeNote(esc(stress&&stress.ok?stress.note:""))}
+    ${stress&&stress.ok&&rows.length
+      ? `<div class="finance-bars" role="img" aria-label="Stressed cash by week">${rows.map(r=>`<div class="fin-bar" title="${dateLabel(r.week)}: ${(r.net>=0?"+":"−")+fmtM(Math.abs(r.net))} → ${fmtM(r.cash)}"><i style="height:${Math.max(4,clamp(r.cash/Math.max(1,...rows.map(x=>Math.abs(x.cash))),0,1)*100)}%" class="${r.cash<0?"neg":""}"></i><span>${woyOf(r.week)}</span></div>`).join("")}</div>
+         <div class="fin-total"><span>CASH AT WEEK 12</span><b class="${stress.endCash>=0?"pos":"neg"}">${fmtM(stress.endCash)}</b><em>Lowest point ${fmtM(stress.minCash)}</em></div>
+         ${stress.insolventWeek!=null
+           ? `<div class="fin-recon bad"><b>⚠ Insolvent in week ${stress.insolventWeek}</b><span>Under “${esc(stress.presetLabel)}” the treasury runs out in ${Math.max(0,stress.insolventWeek-G.week)} weeks. Raise capital, delay a release, or cut a production.</span></div>`
+           : `<div class="fin-recon ok"><b>✓ Survives the shock</b><span>Cash stays at ${fmtM(stress.minCash)} or better across all 12 weeks under “${esc(stress.presetLabel)}”.</span></div>`}`
+      : financeEmpty("Forecast unavailable","The stress test needs the engine's 12-week forecast, which returned no rows.")}`);
+  return body;
+}
+
+/* ── 04 / Equity & markets ──────────────────────────────────────────────── */
+function financeEquityPanel(){
+  const D=fd();
   const st=G.studio;
-  const overhead=st.overhead+G.projects.length*0.12+G.series.filter(s=>s.phase==="shoot").length*0.15;
-  const ft=finTrail(), fc2=finCommit();
-  const mdOnce=maxDebt(), headroom=Math.round((mdOnce-st.debt)*10)/10; // perf: one O(films) pass per render
-  
-  // Week-to-week deltas
-  const dCash = G.prevCash != null ? (st.cash - G.prevCash) : 0;
-  const dCashLabel = (dCash >= 0 ? "+" : "") + fmtM(dCash);
-  const dRep = G.prevRep != null ? (st.rep - G.prevRep) : 0;
-  const dRepLabel = (dRep >= 0 ? "+" : "") + dRep.toFixed(1);
-
-  let h="<div class='subnav-pills'>"+
-    "<button class='subnav-pill active' onclick='window.scrollTo(0,0)'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_01.png' alt='' /><span>P&amp;L Ledger</span></button>"+
-    "<button class='subnav-pill' id='btnOpenBonds'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_04.png' alt='' /><span>Corporate Bond Market</span></button>"+
-    "<button class='subnav-pill' id='btnOpenDynasty'><img class='subtab-pixel-icon' src='assets/bos2-icons/logos/icons8-queen-crown-100.png' alt='' /><span>Dynasty &amp; Trust</span></button>"+
-    "<button class='subnav-pill' onclick='ipoModal()'><img class='subtab-pixel-icon' src='assets/bos2-icons/general/film-clapper.png' alt='' /><span>Public Offering</span></button>"+
-    "<button class='subnav-pill' onclick='maModal()'><img class='subtab-pixel-icon' src='assets/itch-ui/icons/Icon_08.png' alt='' /><span>M&amp;A Vault</span></button>"+
-  "</div><div class='stat-hero'>"+
-    statCard(fmtM(st.cash),"Cash ("+dCashLabel+" lw)","var(--gold2)")+
-    statCard("+"+fmtM(ft.R),"Revenue (trail)")+
-    statCard(fmtM(ft.E),"Expenses (trail)")+
-    statCard((ft.P>=0?"+":"")+fmtM(ft.P),"Profit (trail)",ft.P>=0?"var(--green)":"var(--red)")+
-    statCard(fmtM(st.debt),"Debt","var(--red)")+
-    statCard(fmtM(fc2.intr)+"/wk","Interest")+
-  "</div>";
-  h+="<div class='section-title'>Actual — trailing weeks</div>";
-  h+="<div class='grid g2'><div class='card'><b>Revenue split</b>"+
-    "<div class='cost-line'><span>🎬 Box office</span><b class='pos'>+"+fmtM(ft.rev.boxoffice)+"</b></div>"+
-    "<div class='cost-line'><span>📺 Streaming (deals + platform + pay-1)</span><b class='pos'>+"+fmtM(ft.rev.streaming)+"</b></div>"+
-    "<div class='cost-line'><span>📚 Licensing (series + library + PVOD + video)</span><b class='pos'>+"+fmtM(ft.rev.licensing)+"</b></div>"+
-    "<div class='cost-line'><span>🏰 Merch / empire</span><b class='pos'>+"+fmtM(ft.rev.merch)+"</b></div>"+
-    "<div class='cost-line'><span>❓ Other (music + incentives + pre-sales)</span><b class='pos'>+"+fmtM(ft.rev.other)+"</b></div></div>"+
-    "<div class='card'><b>Expense split</b>"+
-    "<div class='cost-line'><span>🎬 Production + development</span><b class='neg'>"+fmtM(ft.exp.prod)+"</b></div>"+
-    "<div class='cost-line'><span>📣 Marketing</span><b class='neg'>"+fmtM(ft.exp.mkt)+"</b></div>"+
-    "<div class='cost-line'><span>🌟 Talent</span><b class='neg'>"+fmtM(ft.exp.talent)+"</b></div>"+
-    "<div class='cost-line'><span>🏛 Overhead</span><b class='neg'>"+fmtM(ft.exp.overhead)+"</b></div>"+
-    "<div class='cost-line'><span>🏦 Interest</span><b class='neg'>"+fmtM(ft.exp.interest)+"</b></div>"+
-    "<div class='cost-line'><span>🏗 Studio / empire builds</span><b class='neg'>"+fmtM(ft.exp.studio)+"</b></div></div></div>";
-  h+="<div class='section-title'>Committed — obligations on the books</div>";
-  h+="<div class='card'><div class='cost-line'><span>🎬 Production remaining (budget − spent)</span><b>"+fmtM(fc2.prod)+"</b></div>"+
-    "<div class='cost-line'><span>📣 Marketing due on dated releases</span><b>"+fmtM(fc2.mkt)+"</b></div>"+
-    "<div class='cost-line'><span>🏦 Debt stack (revolving + mezz + investor)</span><b class='neg'>"+fmtM(fc2.debt)+"</b></div>"+
-    "<div class='cost-line' style='padding-left:12px'><span class='tiny muted'>↳ Bank credit principal</span><b>"+fmtM(st.debt)+" (intr: "+fmtM(st.debt*0.0018)+"/wk)</b></div>"+
-    (st.mezzDebt>0? "<div class='cost-line' style='padding-left:12px'><span class='tiny muted'>↳ Mezzanine loan</span><b class='neg'>"+fmtM(st.mezzDebt)+" (intr: "+fmtM(st.mezzDebt*0.005)+"/wk)</b></div>":"")+
-    (G.investorDebt>0? "<div class='cost-line' style='padding-left:12px'><span class='tiny muted'>↳ Investor buyout</span><b>"+fmtM(G.investorDebt)+" ($2.5M/wk, ~"+Math.ceil(G.investorDebt/2.5)+"wks left)</b></div>":"")+
-    "<div class='cost-line'><span>🏛 Overhead run-rate</span><b>"+fmtM(fc2.oh)+"/wk</b></div>"+
-    "<div class='cost-line'><span>🏦 Interest run-rate</span><b>"+fmtM(fc2.intr)+"/wk</b></div>"+
-    "<div class='cost-line'><span>Credit headroom</span><b class='"+(headroom>=0?"pos":"neg")+"'>"+fmtM(headroom)+"</b></div></div>";
-  
-  // Debt Maturity Schedule
-  h+="<div class='card' style='margin-top:6px'><b class='small'>🗓️ Debt Maturity Schedule</b>"+
-    "<div class='cost-line'><span>Credit facility ($"+mdOnce+"M limit)</span><b>Revolving · rollover each week</b></div>"+
-    (st.mezzDebt>0? "<div class='cost-line'><span>Mezzanine debt ($"+st.mezzDebt+"M)</span><b class='neg'>Due Year "+(yearOf(G.week)+1)+" · balloon settlement</b></div>":"")+
-    (G.investorDebt>0? "<div class='cost-line'><span>Investor payout ($"+G.investorDebt+"M)</span><b>Retires in ~"+Math.ceil(G.investorDebt/2.5)+" weeks</b></div>":"")+
-    "</div>";
-
-  h+=plCard();
-  h+="<div class='row' style='margin:8px 0'><button class='btn btn-sm btn-alt' id='btnExportCSV'>📥 Export P&L Ledger (CSV)</button></div>";
-  /* v28.9: transaction search/filter over the trailing 12 weeks */
-  const txWeeks=(G.txHistory||[]);
-  if(txWeeks.length){
-    h+="<div class='section-title'>🔎 Transaction search <span class='tiny muted'>(last "+txWeeks.length+" weeks)</span></div>"+
-      "<div class='card'><input type='text' id='txSearch' placeholder='🔍 Filter by category (e.g. theatrical, marketing, talent)…' style='width:100%;padding:9px 12px;border-radius:10px;background:#0d1119;border:1px solid var(--line2);color:var(--text);font-size:13px' aria-label='Search transactions'>"+
-      "<div id='txRows' style='margin-top:8px;max-height:280px;overflow-y:auto;overscroll-behavior:contain'>"+
-      fnLedgerRows(txWeeks,"")+
-      "</div></div>";
-  }
-
-  h+="<div class='grid g2'><div class='card'><h4>🏦 Credit facility</h4>"+
-    "<p class='tiny muted'>Weekly interest 0.18% (≈9%/yr). Borrow to bridge production, but breakevens don't care about your loans.</p>"+
-    "<div class='loan-row'><div class='small muted' style='margin:8px 0 4px'>Borrow</div><input type='range' id='fnLoan' min='10' max='"+Math.max(10,Math.round(headroom))+"' step='10' value='"+Math.round(Math.max(10,headroom/2))+"'><div class='spread'><b id='fnLoanV'></b><button class='btn btn-sm btn-primary' id='fnLoanGo'>Take loan</button></div></div>"+
-    (st.debt>0? "<div class='loan-row'><div class='small muted' style='margin:12px 0 4px'>Repay</div><input type='range' id='fnRepay' min='1' max='"+Math.max(1,Math.min(Math.round(st.debt),Math.floor(st.cash)))+"' value='"+Math.max(1,Math.min(Math.round(st.debt/2),Math.floor(st.cash)))+"'><div class='spread'><b id='fnRepayV'></b><button class='btn btn-sm btn-alt' id='fnRepayGo'>Repay</button></div></div>":"")+
-    (G.investorDebt>0? "<div class='tiny' style='margin-top:10px'>🕴 Investor payout remaining: <b class='neg'>"+fmtM(G.investorDebt)+"</b> ($2.5M/wk auto · ~"+Math.ceil(G.investorDebt/2.5)+" wks remaining)</div>":"")+
-    "</div>";
-  h+="<div class='card'><h4>📈 Career P&L</h4><div class='ledger'>"+
-    "<div class='cost-line'><span>Films released</span><b>"+G.stats.films+"</b></div>"+
-    "<div class='cost-line'><span>Seasons delivered</span><b>"+G.stats.seriesSeasons+"</b></div>"+
-    "<div class='cost-line'><span>All-time WW gross</span><b>"+fmtM(G.stats.totalWW)+"</b></div>"+
-    "<div class='cost-line'><span>Hits / flops</span><b class='pos'>"+G.stats.hits+"</b> / <b class='neg'>"+G.stats.flops+"</b></div>"+
-    "<div class='cost-line'><span>Biggest opening</span><b>"+(G.stats.bestOpen?fmtG(G.stats.bestOpen)+" — "+esc(G.stats.bestFilm||""):"-")+"</b></div>"+
-    "<div class='cost-line'><span>Net career profit (films)</span><b class='"+(G.stats.totalProfit>=0?"pos":"neg")+"'>"+(G.stats.totalProfit>=0?"+":"")+fmtM(G.stats.totalProfit)+"</b></div>"+
-    "</div></div></div>";
-  // 12-week cash-flow forecast
-  const fc=forecastProject();
-  h+="<div class='section-title'>Projected — 12-week cash-flow forecast</div><div class='card' title='Forecast assumptions: 8.5% cost of capital, catalog decay -1.5%/quarter, facility lease renewal week 52'><div class='tiny muted' style='margin-bottom:6px'>PROJECTED from locked-in runs, burns, dated P&A, overhead, interest, streamer (same engine math as the tick). Hover for assumptions.</div><div class='forecast-bars'>"+
-    fc.rows.map(r=>"<div class='fg' title='"+dateLabel(r.week)+": "+(r.net>=0?"+":"")+fmtM(r.net)+" → "+fmtM(r.cash)+"'><i style='height:"+Math.max(4,clamp((fc.start? r.cash/fc.start:1),0,1)*100)+"%'></i><span>"+woyOf(r.week)+"</span></div>").join("")+
-    "</div><div class='tiny muted' style='margin-top:4px'>Projected cash in 12 wks: <b class='"+(fc.rows.length&&fc.rows[fc.rows.length-1].cash>=0?"pos":"neg")+"'>"+fmtM(fc.rows.length?fc.rows[fc.rows.length-1].cash:st.cash)+"</b></div></div>";
-  try{ h+="<div class='section-title'>Projected — week detail</div>"+forecastCard(); }catch(e){}
-  // mezzanine + IPO
-  const md=st.mezzDebt||0;
-  h+="<div class='section-title'>🪜 Mezzanine & IPO</div><div class='grid g2'>";
-  h+="<div class='card'><h4>🪜 Mezzanine debt</h4><p class='tiny muted'>Emergency money at 0.5%/wk interest (≈26%/yr) — expensive, but no credit-line cap. Only for a real crunch.</p>"+
-     "<div class='loan-row'><div class='small muted' style='margin:8px 0 4px'>Borrow</div><input type='range' id='fnMezz' min='10' max='200' step='10' value='50'><div class='spread'><b id='fnMezzV'></b><button class='btn btn-sm btn-alt' id='fnMezzGo'>Take mezzanine</button></div></div>"+
-     (md>0.5?"<div class='loan-row'><div class='small muted' style='margin:10px 0 4px'>Repay ("+fmtM(md)+" owed)</div><input type='range' id='fnMezzRepay' min='1' max='"+Math.max(1,Math.min(Math.round(md),Math.floor(st.cash)))+"' value='"+Math.max(1,Math.min(Math.round(md/2),Math.floor(st.cash)))+"'><div class='spread'><b id='fnMezzRepayV'></b><button class='btn btn-sm btn-primary' id='fnMezzRepayGo'>Repay</button></div></div>":"")+
-     "</div>";
+  let body="";
   if(G.public){
     const P=G.public;
     const hist=(P.history||[P.price]).slice(-40);
     const mn=Math.min.apply(null,hist), mx=Math.max.apply(null,hist);
-    const spark=hist.map(function(v){ return "<i style='height:"+Math.max(6,(mx>mn? (v-mn)/(mx-mn):0.5)*100)+"%'></i>"; }).join("");
-    const vsIpo=(P.price/DATA.MARKET.ipoPrice-1)*100;
+    const ipoPrice=(DATA.MARKET&&DATA.MARKET.ipoPrice)||P.price;
+    const vsIpo=ipoPrice>0?(P.price/ipoPrice-1)*100:0;
     const le=P.lastEarnings;
-    h+="<div class='card'><div class='spread'><h4 style='margin:0'>📊 "+esc(G.studio.name)+" <span class='tiny muted'>· listed</span></h4>"+
-      "<div style='text-align:right'><b class='"+(vsIpo>=0?"pos":"neg")+"' style='font-size:20px'>$"+P.price.toFixed(2)+"</b>"+
-      "<div class='tiny "+(vsIpo>=0?"pos":"neg")+"'>"+(vsIpo>=0?"+":"")+vsIpo.toFixed(1)+"% vs IPO</div></div></div>"+
-      "<div class='stock-spark'>"+spark+"</div>"+
-      "<div class='cost-line'><span>Market cap</span><b>"+fmtM(marketCap())+"</b></div>"+
-      "<div class='cost-line'><span>Shares outstanding</span><b>"+P.shares+"M</b></div>"+
-      "<div class='cost-line'><span>Analyst rating</span><b class='"+(/Buy/.test(P.rating||"")?"pos":/Sell/.test(P.rating||"")?"neg":"")+"'>"+(P.rating||"Hold")+"</b></div>"+
-      "<div class='cost-line'><span>Downgrade streak</span><b class='"+((P.downgrades||0)>=2?"neg":"")+"'>"+(P.downgrades||0)+"</b></div>"+
-      "<div class='cost-line'><span>Quarter-to-date net</span><b class='"+((P.quarterNet||0)>=0?"pos":"neg")+"'>"+((P.quarterNet||0)>=0?"+":"")+fmtM(P.quarterNet||0)+"</b></div>"+
-      (le? "<div class='tiny muted' style='margin-top:6px'>Last call ("+dateLabel(le.week)+"): "+(le.beat?"beat":"missed")+" the street ("+fmtM(le.q)+" vs "+fmtM(le.expectation)+") · "+esc(le.analyst)+" → "+le.rating+"</div>":"")+
-      "<div class='tiny muted' style='margin-top:6px'>Earnings calls land in weeks 13 / 26 / 39 / 52. Beat the street and the stock runs; miss twice and the analysts downgrade you.</div>"+
-      "<div class='loan-row' style='margin-top:8px'><div class='small muted' style='margin:6px 0 4px'>Secondary offering (sell new shares)</div>"+
-      "<input type='range' id='fnSec' min='1' max='10' step='1' value='2'><div class='spread'><b id='fnSecV'></b>"+
-      "<button class='btn btn-sm btn-alt' id='fnSecGo'>🏛 Raise capital</button></div></div>"+
-      "</div>";
+    const rate=D?D.creditRating(G):null;
+    body += financePanel("LISTED","Share price",
+      "Earnings calls land in weeks 13 / 26 / 39 / 52. Beat the street and the share price runs; miss twice and the analysts downgrade you.",
+      `<div class="fin-stock">
+        <div class="fin-stock-price"><b class="${vsIpo>=0?"pos":"neg"}">$${Number(P.price).toFixed(2)}</b><span class="${vsIpo>=0?"pos":"neg"}">${(vsIpo>=0?"+":"−")+Math.abs(vsIpo).toFixed(1)}% vs the $${Number(ipoPrice).toFixed(2)} IPO</span></div>
+        <div class="finance-stock-spark" role="img" aria-label="Share price history">${hist.map(v=>`<i style="height:${Math.max(6,(mx>mn?(v-mn)/(mx-mn):0.5)*100)}%"></i>`).join("")}</div>
+        ${finLine("Market capitalisation", fmtM(typeof marketCap==="function"?marketCap():P.price*P.shares), {text:fmtM(typeof marketCap==="function"?marketCap():P.price*P.shares)})}
+        ${finLine("Shares outstanding", 0, {text:P.shares+"M"})}
+        ${finLine("Analyst rating", 0, {text:String(P.rating||"Hold"), tone:/Buy/.test(P.rating||"")?"pos":/Sell/.test(P.rating||"")?"neg":""})}
+        ${finLine("Downgrade streak", 0, {text:String(P.downgrades||0), tone:(P.downgrades||0)>=2?"neg":""})}
+        ${finLine("Quarter-to-date net", P.quarterNet||0)}
+        ${rate?finLine("Credit rating", 0, {text:rate.grade+" · "+rate.name, tone:rate.investmentGrade?"pos":"neg"}):""}
+        ${le?financeNote("Last call ("+esc(dateLabel(le.week))+"): "+(le.beat?"beat":"missed")+" the street — "+fmtM(le.q)+" vs "+fmtM(le.expectation)+" · "+esc(le.analyst)+" moved to "+esc(String(le.rating))+"."):""}
+        <div class="fin-slider"><label for="fnSec">Secondary offering — sell new shares at a 7% discount</label><input type="range" id="fnSec" min="1" max="10" step="1" value="2"><div class="fin-slider-foot"><b id="fnSecV"></b><button class="btn btn-sm btn-alt" id="fnSecGo">🏛 Raise capital</button></div></div>
+      </div>`);
   }else{
-    h+="<div class='card'><h4>📊 IPO</h4><p class='tiny muted'>Raise $400M by going public. Requires reputation ≥60. Shareholders punish loss-making quarters.</p>"+
-      "<button class='btn btn-sm "+(st.rep>=60?"btn-primary":"btn-ghost")+"' id='fnIpo'>"+(st.rep>=60?"Go public — $400M":"Go public (needs rep 60+ · current "+Math.round(st.rep)+")")+"</button></div>";
+    const need=Math.max(0,Math.ceil(60-st.rep));
+    body += financePanel("PRIVATE","Initial public offering",
+      "Raise $400M by listing. Requires reputation 60+, and a studio can only ever IPO once — after that the shareholders judge every quarter.",
+      st.rep>=60
+        ? `<div class="fin-locked ok">📊 You are eligible. Listing raises $400M at $${Number((DATA.MARKET&&DATA.MARKET.ipoPrice)||20).toFixed(2)} a share and +8 reputation.</div><div class="finance-filter-row"><button class="btn btn-primary" id="fnIpo">Go public — $400M</button></div>`
+        : `<div class="fin-locked">🔒 Needs reputation 60+ — you are at ${Math.round(st.rep)}, so ${need} more. Flops, weak quarters and crises all cost reputation.</div><div class="finance-filter-row"><button class="btn btn-ghost" id="fnIpo" disabled>Go public (locked)</button></div>`);
   }
-  h+="</div>";
-  /* v5: M&A desk — quarterly rotating acquisition offers */
-  {
-    const offers=(G.maOffers||[]).filter(o=>o.expires>G.week);
-    h+="<div class='section-title'>🏦 M&amp;A desk</div>";
-    h+="<div class='tiny muted' style='margin:-4px 0 6px'>Acquire indie libraries (catalog value + royalties), mini-streamers (+subs), or distressed rival slates (you distribute, you keep the rentals). The deal book rotates quarterly.</div>";
-    if(G.maLibraries) h+="<div class='tiny gold' style='margin-bottom:6px'>📚 Libraries acquired: <b>"+G.maLibraries+"</b> — +"+fmtM(G.maLibraries*(DATA.MA? DATA.MA.library.catalogEach:42))+" permanent catalog value.</div>";
-    if(offers.length){
-      h+="<div class='grid g3'>";
-      offers.forEach(function(o){
-        h+="<div class='card upg-card'><div class='u-i'>"+o.icon+"</div><div style='flex:1'><b>"+esc(o.name)+"</b><div class='tiny muted' style='margin:3px 0 8px'>"+esc(o.blurb)+"</div>"+
-          "<div class='tiny muted'>expires in "+(o.expires-G.week)+" wks</div>"+
-          "<button class='btn btn-sm "+(st.cash>=o.price?"btn-primary":"")+"' data-ma='"+o.id+"' style='margin-top:8px'>Acquire — "+fmtM(o.price)+"</button></div></div>";
-      });
-      h+="</div>";
-    }else{
-      h+="<div class='card muted small'>No acquisitions on the table this quarter. The deal book refreshes every 13 weeks (weeks 1 / 14 / 27 / 40).</div>";
-    }
-  }
-  if((G.wageInfl||1)>1.001 || (G.infl||1)>1.001){
-    h+="<div class='card'><div class='tiny muted'>📈 Inflation tracker — market ≈ +"+Math.round(((G.infl||1)-1)*100)+"% vs Year 1 · <b>talent quotes +"+Math.round(((G.wageInfl||1)-1)*100)+"%</b> (wage inflation compounds harder) · lot overhead compounds +2%/yr.</div></div>";
-  }
-  // v14: board of directors (§44–45)
-  try{
-    const b=G.board||[], avg=boardAvg();
-    h+="<div class='section-title'>🏛 Board of directors</div><div class='card'>"+
-      "<div class='cost-line'><span>Average approval</span><b class='"+(avg>=60?"pos":avg<40?"neg":"")+"'>"+avg+"/100</b></div>"+
-      b.map(m=>{
-        const td=(DATA.BOARD_TRAITS||[]).find(t=>t.trait===m.trait);
-        return "<div class='cost-line'><span>"+(m.hawk?"🦅":"🎬")+" <b>"+esc(m.name)+"</b> <span class='tiny muted'>"+esc(m.trait)+" · "+esc((td&&td.desc)||"")+"</span></span><b class='"+(Math.round(m.approval)>=60?"pos":m.approval<40?"neg":"")+"'>"+Math.round(m.approval)+"/100</b></div>";
-      }).join("")+
-      "<div class='tiny muted' style='margin-top:4px'>Tentpoles go to a board vote at greenlight. Hits raise approval, flops sink it (hawks swing harder); quiet quarters drift back to neutral. Votes show in the log.</div></div>";
-  }catch(e){}
-  // executives
-  h+="<div class='section-title'>👔 Executive hires</div><div class='grid g3'>";
-  DATA.EXECS.forEach(e=>{
-    const ex=(G.execs&&G.execs[e.id])? execObj(e.id) : null;
-    const owned=!!ex;
-    h+="<div class='card upg-card'><div class='u-i'>"+e.icon+"</div><div style='flex:1'><b>"+e.name+"</b><div class='tiny muted' style='margin:3px 0 8px'>"+e.blurb+"</div>"+
-      (owned? "<span class='tag green'>✓ hired</span> <span class='tag'>Lv "+levelOf(ex)+"</span> <span class='tiny muted'>"+Math.round((ex.tenure||0)/52*10)/10+" yrs · effect ×"+lvlMult(ex).toFixed(2)+"</span>" : "<button class='btn btn-sm "+(st.cash>=e.cost?"btn-primary":"")+"' data-exec='"+e.id+"'>"+fmtM(e.cost)+"</button>")+"</div></div>";
-  });
-  h+="</div>";
-  h+="<div class='section-title'>Studio investments</div><div class='grid g3'>";
-  DATA.UPGRADES.forEach(u=>{
-    const owned=!!G.upgrades[u.id];
-    h+="<div class='card upg-card'><div class='u-i'>"+u.icon+"</div><div style='flex:1'><b>"+u.name+"</b><div class='tiny muted' style='margin:3px 0 8px'>"+u.desc+"</div>"+
-      (owned? "<span class='tag green'>✓ built</span>" : "<button class='btn btn-sm "+(st.cash>=u.cost?"btn-primary":"")+"' data-upg='"+u.id+"'>"+fmtM(u.cost)+"</button>")+"</div></div>";
-  });
-  h+="</div>";
-  try{ h+=hqBoard(st); }catch(e){}
-  /* Financial Analysis Lab — DCF, Comps, LBO, Ratios */
-  try{ h+=FINANCE_TOOLS.renderFinancialAnalysis(); }catch(e){}
-  return h;
-}
-/* Headquarters: departments unifying upgrades, execs and buildable wings.
-   Existing buys stay one tap away; new wings show cost/benefit/upkeep/unlocks. */
-function hqBoard(st){
-  let up=0; try{ up=hqUpkeep(); }catch(e){}
-  let h="<div class='section-title'>🏢 Studio headquarters</div>"+
-    "<div class='tiny muted' style='margin:-4px 0 6px'>One lot, eight departments. Facilities bill "+fmtM(up)+"/wk upkeep.</div>";
-  /* v31: lot map — wings light up as they're built (renderer in v31-features.js) */
-  try{ h+=hqFloorPlanSVG(); }catch(e){}
-  h+="<div class='grid g2'>";
-  hqDepts().forEach(d=>{
-    h+="<div class='card'><b>"+d.icon+" "+d.name+"</b>";
-    d.items.forEach(it=>{
-      const owned=it.kind==="hq"?hqOwned(it.id):(it.kind==="exec"?!!G.execs[it.id]:!!G.upgrades[it.id]);
-      const reqOk=it.kind==="hq"?hqReqMet(it):true;
-      h+="<div class='cost-line'><span>"+it.name+" <span class='tiny muted'>"+it.desc+(it.kind==="hq"?" Upkeep "+fmtM(it.up)+"/wk.":"")+"</span></span>"+
-        (owned?"<b class='pos tiny'>✓ live</b>":
-          reqOk?"<button class='btn btn-sm "+(st.cash>=it.cost?"btn-primary":"")+"' data-hqbuy='"+it.kind+":"+it.id+"'>"+fmtM(it.cost)+"</button>":
-          "<b class='tiny muted'>🔒 "+(it.req.up?"needs "+it.req.up:"rep "+it.req.rep+"+")+"</b>")+"</div>";
-    });
-    h+="</div>";
-  });
-  h+="</div>";
-  /* technology tree: locked / available / researching / researched */
-  const activeT=(G.tech&&G.tech.active)||null;
-  /* v28.9: weekly % progress bar for the active research */
-  let researchBar="";
-  if(activeT){
-    const total=activeT.total||techDefs().find(t=>t.id===activeT.id)?.weeks||activeT.left||1;
-    const pct=Math.round(clamp((total-activeT.left)/total,0,1)*100);
-    const def0=techDefs().find(t=>t.id===activeT.id);
-    researchBar="<div class='card' style='margin-bottom:8px'><div class='spread'><b>🔬 "+esc((def0&&def0.name)||activeT.id)+" — "+pct+"% complete</b><span class='tag gold'>"+activeT.left+"w left</span></div>"+
-      "<div style='height:8px;background:#0a0e16;border-radius:99px;overflow:hidden;border:1px solid var(--line);margin-top:6px'><div style='height:100%;width:"+pct+"%;background:linear-gradient(90deg,var(--gold),#ffdf9a);transition:width .5s'></div></div>"+
-      "<div class='tiny muted' style='margin-top:4px'>"+activeT.left+" of "+total+" weeks remaining — breakthrough lands automatically.</div></div>";
-  }
-  h+="<div class='section-title'>🔬 Technology tree</div>"+
-    (researchBar||"<div class='tiny muted' style='margin:-4px 0 6px'>One lab slot. Research takes weeks after you pay. Lab idle.</div>")+
-    "<div class='grid g3'>";
-  techDefs().forEach(t=>{
-    const done=techDone(t.id), isActive=activeT&&activeT.id===t.id;
-    const avail=!done&&!isActive&&(!t.req||techDone(t.req));
-    h+="<div class='card'><b>"+t.icon+" "+t.name+"</b><div class='tiny muted' style='margin:3px 0'>"+t.benefit+"</div>"+
-      "<div class='tiny muted'>"+fmtM(t.cost)+" · "+t.weeks+" wks"+(t.req?" · needs "+t.req:"")+"</div><div style='margin-top:6px'>"+
-      (done?"<span class='tag green'>✓ researched — active</span>":
-        isActive?"<span class='tag gold'>🔬 "+activeT.left+"w left</span>":
-        avail?"<button class='btn btn-sm "+(st.cash>=t.cost?"btn-primary":"")+"' data-tech='"+t.id+"'>Research</button>":
-        "<span class='tag'>🔒 needs "+t.req+"</span>")+"</div></div>";
-  });
-  return h+"</div>";
+
+  /* career P&L */
+  const S=G.stats||{};
+  body += financePanel("CAREER","All-time record",
+    "Lifetime figures the engine keeps on the career, not a trailing window.",
+    `${finLine("🎬 Films released", 0, {text:String(S.films||0)})}
+      ${finLine("📺 Seasons delivered", 0, {text:String(S.seriesSeasons||0)})}
+      ${finLine("🌍 All-time WW gross", 0, {text:fmtM(S.totalWW||0)})}
+      ${finLine("🎯 Hits / flops", 0, {text:(S.hits||0)+" / "+(S.flops||0)})}
+      ${finLine("🚀 Biggest opening", 0, {text:S.bestOpen?fmtG(S.bestOpen)+" — "+String(S.bestFilm||""):"—"})}
+      ${finLine("💰 Net career profit (films)", S.totalProfit||0)}
+      ${((G.infl||1)>1.001||(G.wageInfl||1)>1.001)?finLine("📈 Inflation since Year 1", 0, {text:"market +"+Math.round(((G.infl||1)-1)*100)+"% · talent +"+Math.round(((G.wageInfl||1)-1)*100)+"%", hint:"Costs compound; a Year-1 budget does not buy a Year-3 film."}):""}`);
+
+  /* bond desk summary */
+  const bonds=(G.bonds&&G.bonds.activeBonds)||[];
+  const rate=D?D.creditRating(G):null;
+  body += financePanel("FIXED INCOME","Corporate bond market",
+    "Issue fixed-coupon notes for large-scale capital. Your grade — and therefore your coupon — comes from net equity and reputation, read live from the bond module.",
+    `${rate?finLine("Current grade", 0, {text:rate.grade+" — "+rate.name, tone:rate.investmentGrade?"pos":"neg"}):""}
+      ${rate?finLine("Benchmark coupon", 0, {text:Math.round(rate.coupon*1000)/10+"% a year"}):""}
+      ${finLine("Notes outstanding", 0, {text:String(bonds.length)+" of 4 series"})}
+      ${bonds.length?`<div class="fin-block" style="margin-top:8px">${bonds.map(b=>finLine("🏛 "+esc(String(b.seriesName||"Notes")), -Number(b.weeklyCoupon||0), {hint:fmtM(Number(b.principal||0))+" · "+esc(String(b.creditGrade||""))+" · "+Math.max(0,Math.round(Number(b.weeksRemaining||0)))+" wks left"})).join("")}</div>`:`<div class="fin-quiet">No notes issued.</div>`}
+      <div class="finance-filter-row" style="margin-top:10px"><button class="produce-ghost" id="btnOpenBonds2">🏛 Open the bond desk</button></div>`);
+  return body;
 }
 
-const PL_LABELS={theatrical:"🎬 Box office rentals", pvod:"🏠 Premium VOD", streaming:"📺 Streaming deals", series:"📺 Series licenses", empire:"🏰 Franchise & parks", library:"📚 Library licensing", presales:"🌍 Intl pre-sales", incentives:"🧾 Production incentives", production:"🎬 Production spend", marketing:"📣 Marketing (P&A)", talent:"🌟 Talent & fees", development:"📝 Development", overhead:"🏛 Overhead", interest:"🏦 Interest", studio:"🏗 Studio investment", streamer:"📱 Platform subs", pay1:"📺 Pay-1 TV", music:"🎵 Soundtrack", video:"📀 Home video/DTV", cofinance:"🤝 Co-finance in", other:"❓ Other"};
-/* v28.9: trailing-week transaction rows with a text filter (used by Finance search) */
-function fnLedgerRows(txWeeks, q){
-  q=(q||"").toLowerCase();
-  let rows=[];
-  txWeeks.slice().reverse().forEach(w=>{
-    Object.keys(w.cats||{}).forEach(k=>{
-      const label=PL_LABELS[k]||k;
-      if(q && !label.toLowerCase().includes(q) && !k.includes(q)) return;
-      rows.push({week:w.week, key:k, label, amt:w.cats[k]});
-    });
+/* ── 05 / M&A vault ─────────────────────────────────────────────────────── */
+function financeDealsPanel(){
+  const st=G.studio;
+  const offers=(G.maOffers||[]).filter(o=>o&&o.expires>G.week);
+  let body="";
+  const perLib=(DATA.MA&&DATA.MA.library&&DATA.MA.library.catalogEach)||42;
+  body += financePanel("DEAL BOOK","Acquisitions on the table",
+    "Acquire indie libraries (catalogue value plus royalties), mini-streamers (plus subscribers), or distressed rival slates (you distribute, you keep the rentals). The book rotates every 13 weeks — weeks 1 / 14 / 27 / 40.",
+    (G.maLibraries?financeNote("📚 Libraries acquired: <b>"+G.maLibraries+"</b> — "+fmtM(G.maLibraries*perLib)+" of permanent catalogue value, which also raises your credit limit."):"")
+    + (offers.length
+      ? `<div class="fin-deals">${offers.map(o=>`<article class="fin-deal"><div class="fin-deal-ico">${o.icon||"🏦"}</div><div class="fin-deal-body"><b>${esc(o.name)}</b><span>${esc(o.blurb||"")}</span><small>Expires in ${o.expires-G.week} week${(o.expires-G.week)===1?"":"s"}</small><button class="btn btn-sm ${st.cash>=o.price?"btn-primary":"btn-ghost"}" data-ma="${esc(String(o.id))}">Acquire — ${fmtM(o.price)}</button>${st.cash<o.price?`<em class="fin-deal-short">Short ${fmtM(o.price-st.cash)}</em>`:""}</div></article>`).join("")}</div>`
+      : financeEmpty("No acquisitions this quarter","The deal book refreshes every 13 weeks (weeks 1 / 14 / 27 / 40). Nothing is on the table right now.")));
+
+  const vault=(G.maVault||[]).filter(f=>f&&!f.dead);
+  body += financePanel("VAULT","Acquired titles &amp; disposal",
+    "Titles you own outright from acquisitions. Re-date a release, sell one on, liquidate the whole vault, or licence it out in bulk.",
+    `<div class="finance-filter-row"><button class="produce-ghost" id="btnMaBrowse">🗂 Browse the vault</button><button class="produce-ghost" id="btnMaBulkLicense">📜 Bulk-licence</button><button class="produce-ghost" id="btnMaBulkSell">💵 Liquidate vault</button><button class="produce-ghost" id="btnMaFlipRival">🎭 Flip a rival slate</button></div>`
+    + (vault.length
+      ? `<div class="fin-quiet" style="margin-top:8px">${vault.length} title${vault.length===1?"":"s"} in the vault${typeof maVaultValue==="function"?" · book value "+fmtM(maVaultValue()):""}.</div>`
+      : `<div class="fin-quiet" style="margin-top:8px">The vault is empty. Acquire a distressed slate or an indie library to fill it.</div>`));
+  return body;
+}
+
+/* ── 06 / Analysis lab ──────────────────────────────────────────────────── */
+function financeAnalysisPanel(){
+  let body="";
+  let lab="";
+  try{ lab=(typeof FINANCE_TOOLS!=="undefined" && FINANCE_TOOLS) ? (FINANCE_TOOLS.renderFinancialAnalysis()||"") : ""; }catch(e){ lab=""; }
+  body += financePanel("VALUATION","Financial analysis lab",
+    "DCF on your franchises, comparable-company analysis against rival studios, an LBO screen and the key credit ratios. All of it is computed by finance-tools.js from the same ledger the rest of this desk reads.",
+    lab || financeEmpty("Lab offline","The financial analysis module did not load in this build."));
+
+  /* currency — the engine already supports it, the old desk never surfaced it */
+  let cur="";
+  try{
+    if(typeof FINANCE_TOOLS!=="undefined" && FINANCE_TOOLS.INTL_CURRENCIES){
+      const active=(typeof FINANCE_TOOLS.getActiveCurrencyCode==="function")?FINANCE_TOOLS.getActiveCurrencyCode():null;
+      cur=FINANCE_TOOLS.INTL_CURRENCIES.map(c=>{
+        const code=(typeof c==="string")?c:(c&&(c.code||c.id));
+        const label=(typeof c==="string")?c:(c&&(c.label||c.name||c.code));
+        if(!code) return "";
+        return `<button class="fin-chipbtn${active===code?" active":""}" data-fincurrency="${esc(String(code))}">${esc(String(label))}</button>`;
+      }).join("");
+    }
+  }catch(e){ cur=""; }
+  if(cur) body += financePanel("PRESENTATION","Reporting currency",
+    "The simulation runs in $M. This only changes how the analysis lab converts and displays its figures — it never changes the economy.",
+    `<div class="finance-filter-row" role="group" aria-label="Reporting currency">${cur}</div>`);
+  return body;
+}
+
+/* ── 07 / Board & people ────────────────────────────────────────────────── */
+function financeBoardPanel(){
+  const st=G.studio;
+  let body="";
+  /* board of directors */
+  let boardRows="", avg=null;
+  try{
+    const b=G.board||[];
+    avg=(typeof boardAvg==="function")?boardAvg():null;
+    boardRows=b.map(m=>{
+      const td=(DATA.BOARD_TRAITS||[]).find(t=>t.trait===m.trait);
+      const ap=Math.round(Number(m.approval)||0);
+      return finLine((m.hawk?"🦅 ":"🎬 ")+"<b>"+esc(m.name)+"</b>", 0, {text:ap+"/100", tone:ap>=60?"pos":ap<40?"neg":"", hint:esc(String(m.trait||""))+(td&&td.desc?" · "+esc(td.desc):"")});
+    }).join("");
+  }catch(e){ boardRows=""; }
+  body += financePanel("GOVERNANCE","Board of directors",
+    "Tentpoles go to a board vote at greenlight. Hits raise approval, flops sink it — hawks swing harder — and quiet quarters drift back to neutral. Votes appear in the log.",
+    (avg!=null?finLine("Average approval", 0, {text:Math.round(avg)+"/100", tone:avg>=60?"pos":avg<40?"neg":""}):"")
+    + (boardRows||`<div class="fin-quiet">No board seated yet.</div>`)
+    + `<div class="finance-filter-row" style="margin-top:10px"><button class="produce-ghost" id="btnOpenBoard">🎯 Board targets</button></div>`);
+
+  /* executives — rendered once. The pre-v38 page listed every executive twice,
+     once as a hire card and again inside the headquarters board. */
+  const execs=(DATA.EXECS||[]).map(e=>{
+    const ex=(G.execs&&G.execs[e.id])?(typeof execObj==="function"?execObj(e.id):G.execs[e.id]):null;
+    return { def:e, ex };
   });
-  if(!rows.length) return "<div class='tiny muted'>No matching transactions.</div>";
-  return rows.slice(0,80).map(r=>
-    "<div class='cost-line'><span>"+dateLabel(r.week)+" · "+esc(r.label)+"</span><b class='"+(r.amt>=0?"pos":"neg")+"'>"+(r.amt>=0?"+":"")+fmtM(r.amt)+"</b></div>"
-  ).join("")+(rows.length>80? "<div class='tiny muted' style='text-align:center'>…"+(rows.length-80)+" more — refine the filter</div>":"");
+  const hired=execs.filter(x=>x.ex), open=execs.filter(x=>!x.ex);
+  body += financePanel("PEOPLE","Executive suite",
+    "Executives cut costs and add power permanently, and each one adds a salary to weeklyOverhead(). Levels rise with tenure.",
+    `<div class="fin-deals">${execs.map(({def,ex})=>`<article class="fin-deal"><div class="fin-deal-ico">${def.icon||"👔"}</div><div class="fin-deal-body"><b>${esc(def.name)}</b><span>${esc(def.blurb||"")}</span>${ex
+      ? `<small>✓ Hired · Lv ${typeof levelOf==="function"?levelOf(ex):1} · ${Math.round((Number(ex.tenure)||0)/52*10)/10} yrs · effect ×${(typeof lvlMult==="function"?lvlMult(ex):1).toFixed(2)}${Number.isFinite(ex.salary)?" · "+fmtM(ex.salary)+"/wk salary":""}</small>`
+      : `<small>Adds ${fmtM(typeof def.salary==="number"?def.salary:0)}/wk to overhead</small><button class="btn btn-sm ${st.cash>=def.cost?"btn-primary":"btn-ghost short"}" data-exec="${esc(String(def.id))}">${fmtM(def.cost)}${st.cash>=def.cost?"":" · short "+fmtM(def.cost-st.cash)}</button>`}</div></article>`).join("")}</div>
+    <div class="fin-quiet">${hired.length} of ${execs.length} seats filled${hired.length?" · "+fmtM(hired.reduce((a,x)=>a+(Number.isFinite(x.ex.salary)?x.ex.salary:Number(x.def.salary||0)),0))+"/wk of executive salary in overhead":""}.</div>`);
+
+  /* dynasty & trust */
+  body += financePanel("SUCCESSION","Dynasty &amp; trust",
+    "Put the studio into a family trust and play the next generation. Inheritance is calculated from what you actually built.",
+    `<div class="finance-filter-row"><button class="produce-ghost" id="btnOpenDynasty">👑 Open the dynasty desk</button></div>`);
+  return body;
 }
-/* Finance rollups: read-only sums over trailing txHistory. Buckets mirror earn/spend cats. */
-function finTrail(){
-  const rev={boxoffice:0, streaming:0, licensing:0, merch:0, other:0}, exp={prod:0, mkt:0, talent:0, overhead:0, interest:0, studio:0, other:0};
-  try{
-    for(const s of (G.txHistory||[])){
-      const c=s.cats||{};
-      rev.boxoffice+=Math.max(0,c.theatrical||0);
-      rev.streaming+=Math.max(0,(c.streaming||0)+(c.streamer||0)+(c.pay1||0));
-      rev.licensing+=Math.max(0,(c.series||0)+(c.library||0)+(c.pvod||0)+(c.video||0));
-      rev.merch+=Math.max(0,c.empire||0);
-      rev.other+=Math.max(0,(c.music||0)+(c.other||0)+(c.incentives||0)+(c.presales||0)+(c.cofinance||0));
-      exp.prod+=Math.min(0,(c.production||0)+(c.development||0));
-      exp.mkt+=Math.min(0,c.marketing||0);
-      exp.talent+=Math.min(0,c.talent||0);
-      exp.overhead+=Math.min(0,c.overhead||0);
-      exp.interest+=Math.min(0,c.interest||0);
-      exp.studio+=Math.min(0,(c.studio||0)+(c.empire||0));
-      exp.other+=Math.min(0,(c.other||0)+(c.financing||0)*0);
-    }
-  }catch(e){}
-  const R=rev.boxoffice+rev.streaming+rev.licensing+rev.merch+rev.other;
-  const E=-(exp.prod+exp.mkt+exp.talent+exp.overhead+exp.interest+exp.studio+exp.other);
-  return {rev, exp, R:Math.round(R*10)/10, E:Math.round(E*10)/10, P:Math.round((R-E)*10)/10};
+
+/* ── 08 / Investments ───────────────────────────────────────────────────── */
+function financeInvestPanel(){
+  const st=G.studio;
+  let body="";
+  body += financePanel("CAPITAL PROJECTS","Studio investments",
+    "One-off purchases that permanently change a burn rate, a marketing multiplier or a craft score. Owned items stop billing nothing extra — they are already in your overhead.",
+    `<div class="fin-deals">${(DATA.UPGRADES||[]).map(u=>{
+      const owned=!!(G.upgrades&&G.upgrades[u.id]);
+      return `<article class="fin-deal"><div class="fin-deal-ico">${u.icon||"🏗"}</div><div class="fin-deal-body"><b>${esc(u.name)}</b><span>${esc(u.desc||"")}</span>${owned
+        ? `<small class="pos">✓ Built</small>`
+        : `<button class="btn btn-sm ${st.cash>=u.cost?"btn-primary":"btn-ghost short"}" data-upg="${esc(String(u.id))}">${fmtM(u.cost)}${st.cash>=u.cost?"":" · short "+fmtM(u.cost-st.cash)}</button>`}</div></article>`;
+    }).join("")}</div>`);
+  try{ body += hqBoard(st); }catch(e){}
+  return body;
 }
-function finCommit(){
-  let prodRemain=0, mktDue=0;
-  try{
-    for(const p of (G.projects||[])){
-      prodRemain+=Math.max(0,(p.budget||0)-(p.spent||0));
-      if(p.releaseWeek&&p.releaseWeek>=G.week) mktDue+=Math.max(0,(p.marketing||0)-(p.marketingPaid||0));
-    }
-    for(const s of (G.series||[])){ if(s.phase==="shoot") mktDue+=0, prodRemain+=Math.max(0,(s.budget||0)-(s.spent||0)); }
-  }catch(e){}
-  const debt=(G.studio.debt||0)+(G.studio.mezzDebt||0)+(G.investorDebt||0);
-  let oh=0; try{ oh=weeklyOverhead(); }catch(e){ oh=G.studio.overhead||0; }
-  let intr=0; try{ intr=(G.studio.debt||0)*interestRate()+(G.studio.mezzDebt||0)*0.005*(G.execs&&G.execs.cfo?0.7:1); }catch(e){}
-  return {prod:Math.round(prodRemain*10)/10, mkt:Math.round(mktDue*10)/10, debt:Math.round(debt*10)/10, oh:Math.round(oh*10)/10, intr:Math.round(intr*10)/10};
+
+/* ── dispatcher ── */
+function viewFinance(){
+  const D=fd();
+  if(!D) return `<section class="command-deck command-produce command-finance">${financeHeadLegacyFallback()}</section>`;
+  const sub=financeSub();
+  let content;
+  if(sub==="capital") content=financeCapitalPanel();
+  else if(sub==="forecast") content=financeForecastPanel();
+  else if(sub==="equity") content=financeEquityPanel();
+  else if(sub==="deals") content=financeDealsPanel();
+  else if(sub==="analysis") content=financeAnalysisPanel();
+  else if(sub==="board") content=financeBoardPanel();
+  else if(sub==="invest") content=financeInvestPanel();
+  else content=financeLedgerPanel();
+  return financeShell(content);
 }
-function plCard(){
-  const tx=G.weekTx||{};
-  const cats=Object.keys(tx).filter(k=>Math.abs(tx[k])>=0.05);
-  if(!cats.length && !G.txHistory.length) return "";
-  const net=weekNet(tx);
-  let h="<div class='card'><div class='spread'><h4 style='margin:0'>📊 This week's P&L <span class='tiny muted'>(live)</span></h4>"+
-    "<b class='"+(net>=0?"pos":"neg")+"'>"+(net>=0?"+":"")+fmtM(net)+" net</b></div>";
-  const inc=cats.filter(k=>tx[k]>0), cost=cats.filter(k=>tx[k]<0);
-  if(inc.length){ h+="<div style='margin-top:8px'>"; inc.forEach(k=>h+="<div class='cost-line'><span>"+(PL_LABELS[k]||k)+"</span><b class='pos'>+"+fmtM(tx[k])+"</b></div>"); h+="</div>"; }
-  if(cost.length){ h+="<div style='margin-top:6px'>"; cost.forEach(k=>h+="<div class='cost-line'><span>"+(PL_LABELS[k]||k)+"</span><b class='neg'>"+fmtM(tx[k])+"</b></div>"); h+="</div>"; }
-  if((tx.financing||0)!==0) h+="<div class='tiny muted' style='margin-top:4px'>🏦 Financing (loans/investors, not P&L): "+fmtM(tx.financing)+"</div>";
-  if(G.txHistory.length>1){
-    const mx=Math.max(1,...G.txHistory.map(x=>Math.abs(x.net)));
-    h+="<div class='tiny muted' style='margin-top:10px'>Net by week</div><div class='pl-bars'>"+
-      G.txHistory.slice(-10).map(x=>"<div class='pb "+(x.net>=0?"up":"down")+"' style='height:"+Math.max(5,Math.abs(x.net)/mx*100)+"%' title='"+(x.net>=0?"+":"")+fmtM(x.net)+"'></div>").join("")+
-      "</div>";
+/* If finance-desk.js failed to load the tab must still say something true
+   rather than throwing inside the render boundary. */
+function financeHeadLegacyFallback(){
+  return `<header class="command-heading"><div><span class="command-edition">TREASURY DESK</span><span class="command-eyebrow">MODULE MISSING</span><h1>The treasury desk did not load.</h1><p>finance-desk.js is missing from this build, so the ledger cannot be read. Your save is untouched — reload the page, and if it persists the file needs to be restored to the script list in index.html.</p></div></header>`+
+    financeEmpty("Ledger offline","No financial data can be shown until the module loads.",`<div class="finance-filter-row"><button class="produce-ghost" onclick="location.reload()">Reload</button></div>`);
+}
+
+/* Headquarters: departments unifying upgrades, execs and buildable wings.
+   v38: rendered inside the Investments lane, and executives are no longer
+   listed here — the Board &amp; people lane owns them, so a hire is one control. */
+function hqBoard(st){
+  let up=0; try{ up=hqUpkeep(); }catch(e){}
+  let h=financePanel("FACILITIES","Studio headquarters",
+    "One lot, eight departments. Facilities bill "+fmtM(up)+"/wk upkeep, which weeklyOverhead() already includes.",
+    (()=>{
+      let inner="";
+      try{ inner+=hqFloorPlanSVG(); }catch(e){}
+      inner+="<div class='fin-grid2'>";
+      hqDepts().forEach(d=>{
+        inner+="<div class='fin-block'><span class='fin-block-head'>"+d.icon+" "+esc(d.name)+"</span>";
+        d.items.forEach(it=>{
+          const owned=it.kind==="hq"?hqOwned(it.id):(it.kind==="exec"?!!G.execs[it.id]:!!G.upgrades[it.id]);
+          const reqOk=it.kind==="hq"?hqReqMet(it):true;
+          inner+="<div class='fin-line'><span>"+esc(it.name)+" <em>"+esc(it.desc||"")+(it.kind==="hq"?" · upkeep "+fmtM(it.up)+"/wk":"")+"</em></span>"+
+            (owned?"<b class='pos'>✓ live</b>":
+              reqOk?"<button class='btn btn-sm "+(st.cash>=it.cost?"btn-primary":"btn-ghost short")+"' data-hqbuy='"+esc(it.kind+":"+it.id)+"'>"+fmtM(it.cost)+(st.cash>=it.cost?"":" · short "+fmtM(it.cost-st.cash))+"</button>":
+              "<b class='muted'>🔒 "+esc(it.req&&it.req.up?"needs "+it.req.up:"rep "+((it.req&&it.req.rep)||0)+"+")+"</b>")+"</div>";
+        });
+        inner+="</div>";
+      });
+      return inner+"</div>";
+    })());
+
+  /* technology tree: locked / available / researching / researched */
+  const activeT=(G.tech&&G.tech.active)||null;
+  let researchBar="";
+  if(activeT){
+    const def0=(typeof techDefs==="function")?techDefs().find(t=>t.id===activeT.id):null;
+    const total=Number(activeT.total)||Number(def0&&def0.weeks)||Number(activeT.left)||1;
+    const pct=Math.round(clamp((total-Number(activeT.left||0))/total,0,1)*100);
+    researchBar=`<div class="fin-progress"><div class="fin-progress-head"><b>🔬 ${esc((def0&&def0.name)||activeT.id)} — ${pct}% complete</b><span>${activeT.left}w left</span></div><div class="fin-progress-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div><div class="fin-quiet">${activeT.left} of ${total} weeks remaining — the breakthrough lands automatically.</div></div>`;
   }
-  h+="</div>";
+  h+=financePanel("R&amp;D","Technology tree",
+    "One lab slot. Research takes weeks after you pay for it.",
+    (researchBar||`<div class="fin-quiet">Lab idle — nothing in research.</div>`)+
+    `<div class="fin-deals">${(typeof techDefs==="function"?techDefs():[]).map(t=>{
+      const done=(typeof techDone==="function")&&techDone(t.id), isActive=activeT&&activeT.id===t.id;
+      const avail=!done&&!isActive&&(!t.req||(typeof techDone==="function"&&techDone(t.req)));
+      return `<article class="fin-deal"><div class="fin-deal-ico">${t.icon||"🔬"}</div><div class="fin-deal-body"><b>${esc(t.name)}</b><span>${esc(t.benefit||"")}</span><small>${fmtM(t.cost)} · ${t.weeks} wks${t.req?" · needs "+esc(String(t.req)):""}</small>${
+        done?`<small class="pos">✓ Researched — active</small>`:
+        isActive?`<small class="warn">🔬 ${activeT.left}w left</small>`:
+        avail?`<button class="btn btn-sm ${st.cash>=t.cost?"btn-primary":"btn-ghost short"}" data-tech="${esc(String(t.id))}">Research — ${fmtM(t.cost)}${st.cash>=t.cost?"":" · short "+fmtM(t.cost-st.cash)}</button>`:
+        `<small class="muted">🔒 Needs ${esc(String(t.req||""))}</small>`}</div></article>`;
+    }).join("")}</div>`);
   return h;
+}
+
+/* ═══════════ Ledger adapters ═══════════
+   These four names predate the desk and finance-tools.js still calls
+   finTrail() for its DCF and ratio maths. They are now thin wrappers over
+   finance-desk.js, so the analysis lab and the desk can never disagree — and
+   the wrappers carry the corrected per-category, sign-split aggregation. */
+/* v38.0: the label map is filled lazily from the desk's category registry, so
+   it stays correct no matter what order the scripts load in and can never drift
+   out of step with the buckets. The pre-v38 PL_LABELS was a frozen literal that
+   was missing ten categories the engine really writes (games, licensing,
+   insurance, training, store, post, nft, legal, expansion, comic) — those
+   printed as raw keys like "nft" in the ledger and vanished from the split. */
+const PL_LABELS={};
+let _plLabelsFilled=false;
+function plLabels(){
+  if(_plLabelsFilled) return PL_LABELS;
+  try{
+    const D=fd();
+    if(D && D.CATEGORIES){
+      Object.keys(D.CATEGORIES).forEach(k=>{ PL_LABELS[k]=D.categoryLabel(k); });
+      PL_LABELS[D.FINANCING_CAT]="🏦 Financing (balance sheet)";
+      _plLabelsFilled=true;
+    }
+  }catch(e){}
+  return PL_LABELS;
+}
+function plLabel(k){
+  const D=fd();
+  if(D) return D.categoryLabel(k);
+  return plLabels()[k]||String(k);
+}
+/* Trailing rollup. Shape kept for finance-tools.js: {rev, exp, R, E, P}. */
+function finTrail(){
+  const D=fd();
+  if(!D) return { rev:{boxoffice:0,streaming:0,licensing:0,merch:0,other:0}, exp:{prod:0,mkt:0,talent:0,overhead:0,interest:0,studio:0,other:0}, R:0, E:0, P:0 };
+  const t=D.ledgerTrail(G, 12);
+  const sum=(ids)=>ids.reduce((a,id)=>{ const b=t.rev.concat(t.exp).find(x=>x.id===id); return a+(b?b.amount:0); },0);
+  return {
+    rev:{ boxoffice:sum(["theatrical"]), streaming:sum(["streaming"]), licensing:sum(["licensing"]), merch:sum(["empire"]), other:sum(["games","music","otherrev"]) },
+    /* expense buckets are magnitudes in the desk; finance-tools.js expects the
+       pre-v38 negative-signed convention, so negate on the way out. */
+    exp:{ prod:-sum(["production"]), mkt:-sum(["marketing"]), talent:-sum(["talent"]), overhead:-sum(["overhead"]), interest:-sum(["interest"]), studio:-sum(["investment"]), other:-sum(["otherexp"]) },
+    R:t.R, E:t.E, P:t.P,
+    reconcile:t.reconcile, financing:t.financing, categories:t.categories, weeks:t.weeks
+  };
+}
+/* Committed obligations. Same keys the old view used, plus the detail rows. */
+function finCommit(){
+  const D=fd();
+  if(!D) return {prod:0,mkt:0,debt:0,oh:0,intr:0};
+  const c=D.ledgerCommit(G);
+  if(!c) return {prod:0,mkt:0,debt:0,oh:0,intr:0};
+  return { prod:c.prod, mkt:c.mkt, debt:c.debt.total, oh:c.weekly.overhead, intr:c.weekly.interest,
+           detail:c, ladder:D.maturityLadder(G), balance:D.balanceSheet(G) };
+}
+/* Transaction rows for the searchable ledger. Signature kept for back-compat:
+   fnLedgerRows(txWeeks, query). */
+function fnLedgerRows(txWeeks, q){
+  const D=fd();
+  const s=D?financeState():{q:q||"",cat:"all",side:"all"};
+  const res=D?D.ledgerRows(G,{q:(q!=null?q:s.q), cat:s.cat, side:s.side, limit:120}):{rows:[],total:0,truncated:false};
+  return financeTxRows(res);
+}
+/* This week's P&L card. v38: guards the txHistory read that used to throw a
+   TypeError — and with it blank the whole Finance tab — on a legacy save. */
+function plCard(){
+  const D=fd();
+  const hist=(G&&G.txHistory)||[];
+  if(!D){
+    const tx=(G&&G.weekTx)||{};
+    if(!Object.keys(tx).length && !hist.length) return "";
+    return "";
+  }
+  const wk=D.ledgerWeek(G);
+  if(wk.empty && !hist.length) return "";
+  const series=D.ledgerSeries(G,10);
+  const mx=Math.max(1,...series.map(x=>Math.abs(x.net)));
+  return financePanel("THIS WEEK","Live P&amp;L","Cash booked since the last weekly tick.",
+    `<div class="fin-weeknet"><span>NET THIS WEEK</span><b class="${wk.net>=0?"pos":"neg"}">${(wk.net>=0?"+":"−")+fmtM(Math.abs(wk.net))}</b></div>`+
+    (wk.empty?`<div class="fin-quiet">Nothing booked yet this week.</div>`:
+      `<div class="fin-grid2"><div class="fin-block"><span class="fin-block-head">INCOME</span>${wk.income.map(r=>finLine(r.label,r.amount)).join("")}</div>`+
+      `<div class="fin-block"><span class="fin-block-head">COSTS</span>${wk.costs.map(r=>finLine(r.label,r.amount)).join("")}</div></div>`)+
+    (wk.financing?finLine("🏦 Financing (not P&amp;L)", wk.financing):""),
+    series.length>1?`<div class="finance-pl-bars" role="img" aria-label="Net by week">${series.map(x=>`<i class="${x.net>=0?"up":"down"}" style="height:${Math.max(6,Math.abs(x.net)/mx*100)}%" title="${dateLabel(x.week)}: ${(x.net>=0?"+":"−")+fmtM(Math.abs(x.net))}"></i>`).join("")}</div>`:"");
+}
+
+/* ── Treasury Desk bindings (v38.0) ────────────────────────────────────────
+   Every control on the desk is wired here, and every refusal says why. The
+   pre-v38 bindings were `if(takeLoan(v)){ … }` with no else, so a full credit
+   line, an unaffordable repayment or a locked IPO all looked like a dead
+   button: the click beeped nothing, changed nothing and explained nothing. */
+function bindFinanceDesk(){
+  const D=fd(); if(!D) return;
+  const st=G.studio;
+  const c=D.ledgerCommit(G);
+
+  /* lane switching — one navigation, persisted on G.finState */
+  $$("[data-finsub]").forEach(b=>b.onclick=()=>{ beep("click"); financeSet({ sub:b.dataset.finsub }); });
+
+  /* ── Ledger lane ── */
+  $$("[data-finweeks]").forEach(b=>b.onclick=()=>{ beep("click"); financeSet({ weeks:+b.dataset.finweeks }); });
+  $$("[data-finside]").forEach(b=>b.onclick=()=>{ beep("click"); financeSet({ side:b.dataset.finside }); });
+  $$("[data-fincat]").forEach(b=>b.onclick=()=>{ beep("click"); financeSet({ cat:b.dataset.fincat }); });
+  const finReset=$("#finReset"); if(finReset) finReset.onclick=()=>{ beep("click"); financeSet({ q:"", cat:"all", side:"all" }); };
+  /* Live filtering: patch the state and repaint only the rows, so the field
+     keeps its caret and the desk does not scroll back to the top. */
+  const finSearch=$("#finSearch");
+  if(finSearch){
+    let timer=null;
+    finSearch.oninput=()=>{
+      financeState().q=finSearch.value;
+      if(timer) clearTimeout(timer);
+      timer=setTimeout(()=>refreshFinanceLedgerRows(), 140);
+    };
+    finSearch.onkeydown=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); if(timer) clearTimeout(timer); refreshFinanceLedgerRows(); } };
+  }
+  const expCsv=$("#btnExportCSV");
+  if(expCsv) expCsv.onclick=()=>{
+    beep("click");
+    try{
+      if(typeof exportLedgerCSV==="function") exportLedgerCSV();
+      else toast("CSV export is unavailable in this build.","bad");
+    }catch(e){ toast("The ledger could not be exported.","bad"); }
+  };
+
+  /* ── Capital lane: a slider helper that always reports the outcome ── */
+  function slider(id, valId, fmt){
+    const el=$(id); if(!el) return null;
+    const out=$(valId);
+    const upd=()=>{ if(out) out.textContent=fmt(+el.value); };
+    upd(); el.oninput=upd;
+    return el;
+  }
+  const moneyFmt=(v)=>fmtM(v);
+
+  const fl=slider("#fnLoan","#fnLoanV",moneyFmt);
+  if(fl){
+    const go=$("#fnLoanGo");
+    if(go) go.onclick=()=>{
+      const want=+fl.value;
+      const headroom=c?c.credit.headroom:0;
+      if(headroom<10){ beep("bad"); toast("No borrowing capacity — the facility is at its "+fmtM(c?c.credit.limit:0)+" limit. Repay debt or grow the catalogue.","bad"); return; }
+      if(takeLoan(want)){ beep("cash"); flashes(G.flash); toast("Borrowed "+fmtM(Math.min(Math.round(want),Math.round(headroom)))+" at "+Math.round((c?c.rates.bank:0.0018)*10000)/100+"%/wk.","good"); render(); }
+      else { beep("bad"); toast("The bank refused "+fmtM(want)+" — only "+fmtM(Math.max(0,headroom))+" of headroom is left.","bad"); }
+    };
+  }
+  const fr=slider("#fnRepay","#fnRepayV",moneyFmt);
+  if(fr){
+    const go=$("#fnRepayGo");
+    if(go) go.onclick=()=>{
+      const want=+fr.value;
+      if(repayDebt(want)){ beep("good"); flashes(G.flash); toast("Repaid "+fmtM(Math.min(Math.round(want),Math.round(st.debt),Math.floor(st.cash)))+" of bank debt.","good"); render(); }
+      else { beep("bad"); toast("Repayment needs at least $1M of cash and $1M of debt — you have "+fmtM(st.cash)+" and "+fmtM(st.debt)+".","bad"); }
+    };
+  }
+  const mz=slider("#fnMezz","#fnMezzV",moneyFmt);
+  if(mz){
+    const go=$("#fnMezzGo");
+    if(go) go.onclick=()=>{
+      const want=+mz.value;
+      const cap=(typeof mezzCap==="function")?mezzCap():null;
+      if(want<10){ beep("bad"); toast("Mezzanine notes start at $10M.","bad"); return; }
+      if(cap!=null&&cap<10){
+        beep("bad");
+        toast("The mezzanine tranche is full — it is capped at half your senior facility and you have drawn "+fmtM(st.mezzDebt||0)+" of "+fmtM((typeof mezzCapTotal==="function")?mezzCapTotal():0)+".","bad");
+        return;
+      }
+      const _n=(v)=>{const x=Number(v); return Number.isFinite(x)?x:0;};
+      const before=_n(st.mezzDebt);
+      /* mezzanineLoan() clamps to the tranche, so report what it actually drew
+         rather than what was asked for — an inflated success toast is the same
+         lie as a silent refusal. */
+      if(mezzanineLoan(want)){
+        const drawn=Math.round((_n(st.mezzDebt)-before)*10)/10;
+        beep("cash"); flashes(G.flash);
+        toast((drawn<want?"Mezzanine capped at "+fmtM(drawn)+" of the "+fmtM(want)+" requested. ":"Mezzanine "+fmtM(drawn)+" drawn. ")
+              +"At 0.5%/wk that is "+fmtM(drawn*0.005)+"/wk — the most expensive capital you have. Retire it first.","good");
+        render();
+      }
+      else { beep("bad"); toast("That mezzanine draw was refused — "+(cap!=null?"only "+fmtM(cap)+" of tranche left.":"check the tranche capacity."),"bad"); }
+    };
+  }
+  const mzr=slider("#fnMezzRepay","#fnMezzRepayV",moneyFmt);
+  if(mzr){
+    const go=$("#fnMezzRepayGo");
+    if(go) go.onclick=()=>{
+      const want=+mzr.value;
+      if(repayMezzanine(want)){ beep("good"); flashes(G.flash); toast("Mezzanine repaid — that removes "+fmtM(Math.min(Math.round(want),Math.round(c?c.debt.mezz:0))*0.005)+"/wk of interest.","good"); render(); }
+      else { beep("bad"); toast("Repayment needs at least $1M of cash — you have "+fmtM(st.cash)+".","bad"); }
+    };
+  }
+  /* Bond desk: two openers on this desk (Capital and Equity lanes) both point
+     at the real module function. The pre-v38 banner called bondMarketModal(),
+     which has never existed, so the button silently did nothing. */
+  ["#btnOpenBonds","#btnOpenBonds2"].forEach(sel=>{
+    const b=$(sel); if(!b) return;
+    b.onclick=()=>{
+      beep("click");
+      if(typeof openBondMarketModal==="function") openBondMarketModal();
+      else if(typeof BondMarketModule!=="undefined" && BondMarketModule && typeof BondMarketModule.openBondMarketModal==="function") BondMarketModule.openBondMarketModal();
+      else toast("The bond market module is not loaded in this build.","bad");
+    };
+  });
+
+  /* ── Forecast lane ── */
+  $$("[data-finstress]").forEach(b=>b.onclick=()=>{ beep("click"); financeSet({ stress:b.dataset.finstress }); });
+
+  /* ── Equity lane ── */
+  const sec=slider("#fnSec","#fnSecV",(n)=>{
+    const price=(G.public&&Number(G.public.price))||0;
+    return n+"M shares ≈ "+fmtM(Math.round(price*n*0.93))+" after the 7% discount";
+  });
+  if(sec){
+    const go=$("#fnSecGo");
+    if(go) go.onclick=()=>{
+      const n=+sec.value;
+      if(!G.public){ beep("bad"); toast("You are not listed yet — go public first.","bad"); return; }
+      if(secondaryOffering(n)){ beep("cash"); flashes(G.flash); toast("Raised on "+n+"M new shares. The price eases with the dilution.","good"); render(); }
+      else { beep("bad"); toast("That offering was refused.","bad"); }
+    };
+  }
+  const ipo=$("#fnIpo");
+  if(ipo) ipo.onclick=()=>{
+    /* The locked IPO button really is disabled — unlike the money buttons its
+       reason is printed in full beside it ("Needs reputation 60+ — you are at
+       20, so 40 more"), so it is not silent. goPublic() returning false covers
+       every other refusal. */
+    if(G.public){ beep("bad"); toast("You are already listed. A studio can only ever IPO once.","bad"); return; }
+    if(goPublic()){ beep("gold"); flashes(G.flash); toast("Listed. Wall Street now judges every quarter.","gold"); render(); }
+    else { beep("bad"); toast("IPO needs reputation 60+, and you can only ever IPO once.","bad"); }
+  };
+
+  /* ── Analysis lane: reporting currency ── */
+  $$("[data-fincurrency]").forEach(b=>b.onclick=()=>{
+    const code=b.dataset.fincurrency;
+    beep("click");
+    try{
+      if(typeof FINANCE_TOOLS!=="undefined" && typeof FINANCE_TOOLS.setActiveCurrencyCode==="function"){
+        FINANCE_TOOLS.setActiveCurrencyCode(code);
+        if(typeof saveGame==="function") saveGame();
+        render();
+      }else toast("Currency switching is unavailable in this build.","bad");
+    }catch(e){ toast("That currency could not be applied.","bad"); }
+  });
+
+  /* ── Investments / people lanes: honest refusals on the buy buttons ──
+     These stay ENABLED when unaffordable, with the shortfall printed in the
+     label. A `disabled` button never fires a click, so it can never explain
+     itself — which is the same "looks dead" defect the rest of this desk
+     exists to remove. Each handler below therefore checks the real reason and
+     says it. */
+  const shortOf=(cost)=>"you have "+fmtM(st.cash)+" and it costs "+fmtM(cost)+" — short "+fmtM(Math.max(0,cost-st.cash))+".";
+  $$("[data-exec]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.exec, def=(DATA.EXECS||[]).find(x=>String(x.id)===String(id));
+    if(G.execs&&G.execs[id]){ beep("bad"); toast((def?def.name:"That executive")+" is already on the payroll.","bad"); return; }
+    if(def&&st.cash<def.cost){ beep("bad"); toast("Not enough cash — "+shortOf(def.cost),"bad"); return; }
+    if(hireExec(id)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast(def?"That hire was refused — "+shortOf(def.cost):"That hire was refused.","bad"); }
+  });
+  $$("[data-upg]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.upg, u=(DATA.UPGRADES||[]).find(x=>String(x.id)===String(id));
+    if(G.upgrades&&G.upgrades[id]){ beep("bad"); toast((u?u.name:"That facility")+" is already built.","bad"); return; }
+    if(u&&st.cash<u.cost){ beep("bad"); toast("Not enough cash — "+shortOf(u.cost),"bad"); return; }
+    /* buyUpgrade() has no return value — it just logs and mutates G.upgrades.
+       Testing its result would report a refusal on every successful build, so
+       read the state it actually changed. */
+    buyUpgrade(id);
+    if(G.upgrades&&G.upgrades[id]){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast(u?"That build was refused — "+shortOf(u.cost):"That build was refused.","bad"); }
+  });
+  $$("[data-tech]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.tech;
+    const defs=(typeof techDefs==="function")?techDefs():[];
+    const t=defs.find(x=>String(x.id)===String(id));
+    if((typeof techDone==="function")&&techDone(id)){ beep("bad"); toast((t?t.name:"That technology")+" is already researched.","bad"); return; }
+    if(G.tech&&G.tech.active){ beep("bad"); toast("The lab is busy — one research slot at a time.","bad"); return; }
+    if(t&&t.req&&!(typeof techDone==="function"&&techDone(t.req))){ beep("bad"); toast((t?t.name:"That technology")+" needs "+t.req+" researched first.","bad"); return; }
+    if(t&&st.cash<t.cost){ beep("bad"); toast("Not enough cash — "+shortOf(t.cost),"bad"); return; }
+    if(startResearch(id)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); toast("That research could not be started.","bad"); }
+  });
+  $$("[data-ma]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.ma;
+    const offer=(G.maOffers||[]).find(o=>String(o.id)===String(id));
+    if(offer && st.cash<offer.price){ beep("bad"); toast("Short by "+fmtM(offer.price-st.cash)+" for "+offer.name+".","bad"); return; }
+    if(maBuy(id)){ beep("gold"); flashes(G.flash); toast(offer?"Acquired "+offer.name+".":"Deal completed.","good"); }
+    else { beep("bad"); toast("That deal could not be completed — it may have expired.","bad"); }
+    render();
+  });
+  $$("[data-hqbuy]").forEach(b=>b.onclick=()=>{
+    const parts=String(b.dataset.hqbuy).split(":");
+    const kind=parts[0], id=parts.slice(1).join(":");
+    let cost=null, name=id;
+    try{ (hqDepts()||[]).forEach(d=>(d.items||[]).forEach(it=>{ if(String(it.id)===String(id)){ cost=it.cost; name=it.name; } })); }catch(e){}
+    if(cost!=null&&st.cash<cost){ beep("bad"); toast("Not enough cash — "+shortOf(cost)+" ("+name+")","bad"); return; }
+    if(kind==="hq"){ if(buyHq(id)){ beep("gold"); flashes(G.flash); render(); } else { beep("bad"); toast("That wing could not be built — check the prerequisite and the cash.","bad"); } }
+    else if(kind==="exec"){ if(hireExec(id)){ beep("gold"); flashes(G.flash); render(); } else { beep("bad"); toast("That hire was refused.","bad"); } }
+    else {
+      buyUpgrade(id);
+      if(G.upgrades&&G.upgrades[id]){ beep("gold"); flashes(G.flash); render(); }
+      else { beep("bad"); toast("That build was refused.","bad"); }
+    }
+  });
 }
 
 /* ═══════════ view bindings ═══════════ */
@@ -6617,7 +7153,27 @@ function bindView(){
   $$("[data-re]").forEach(b=>b.onclick=()=>{ const f=G.films.find(x=>x.id===+b.dataset.re); if(f) reReleaseFilm(f.id); beep("click"); });
   $$("[data-stream]").forEach(b=>b.onclick=()=>{ viewStreamingDeal(+b.dataset.stream); beep("click"); });
   $$("[data-dc]").forEach(b=>b.onclick=()=>{ const f=G.films.find(x=>x.id===+b.dataset.dc); if(f) releaseDirectorsCut(f.id); beep("gold"); });
-  $$("[data-seq]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.seq); if(s) startSequel(s); beep("click"); });
+  /* `data-seq` is emitted by two features with different id spaces: film
+     sequels (Produce franchise cards, Library films) and series seasons
+     (Live/OTT "New season", Library series). bindView() used to bind it TWICE
+     through a global $$() — the second, film-only handler overwrote the first,
+     so every "New season" button looked its series id up in G.films, found
+     nothing, and did absolutely nothing. One handler now resolves both spaces
+     and says so when neither does. */
+  $$("[data-seq]").forEach(b=>{
+    b.onclick=()=>{
+      if(b.disabled){ beep("bad"); toast("That button is not available right now.","bad"); return; }
+      const id=String(b.dataset.seq);
+      const f=G.films.find(x=>String(x.id)===id);
+      if(f){ beep("click"); startSequel(f); return; }
+      const s=G.series.find(x=>String(x.id)===id);
+      if(s){
+        if(String(s.status||"")==="ended"){ beep("bad"); toast("The platform cancelled this series — it can't take a new season.","bad"); return; }
+        beep("click"); startSequel(s); return;
+      }
+      beep("bad"); toast("That title is no longer in the catalogue.","bad");
+    };
+  });
   $$("[data-spin]").forEach(b=>b.onclick=()=>{ const s=G.series.find(x=>x.id===+b.dataset.spin); if(s) startSpinoff(s); beep("click"); });
   $$("[data-fr]").forEach(b=>b.onclick=()=>{ viewFranchiseDetail(b.dataset.fr); beep("click"); });
   $$("[data-fr-podcast]").forEach(b=>b.onclick=()=>{
@@ -6656,10 +7212,6 @@ function bindView(){
     log("🗑 Shelved “"+p.title+"”. Talent freed. Rep −2.","bad");
     beep("bad"); render();
   });
-  $$("[data-seq]").forEach(b=>b.onclick=()=>{
-    const f=G.films.find(x=>x.id===+b.dataset.seq);
-    if(f){ beep("click"); startSequel(f); }
-  });
   $$("[data-cancel-series]").forEach(b=>b.onclick=()=>{ if(cancelSeries(+b.dataset.cancelSeries)){ beep("bad"); flashes(G.flash); render(); } });
   $$("[data-spinoff-series]").forEach(b=>b.onclick=()=>{ seriesMovieIdea(+b.dataset.spinoffSeries); beep("gold"); flashes(G.flash); render(); });
   $$("[data-acc]").forEach(b=>b.onclick=()=>{ acceptOffer(G.offers.find(o=>o.id===+b.dataset.acc)); beep("gold"); flashes(G.flash); render(); });
@@ -6690,32 +7242,13 @@ function bindView(){
     else if(kind==="exec"){ if(hireExec(id)){ beep("gold"); flashes(G.flash); render(); } else toast("Not enough cash for that hire.","bad"); }
     else { buyUpgrade(id); beep("gold"); render(); }
   });
-  // finance sliders
-  const fl=$("#fnLoan");
-  if(fl){ const upd=()=>$("#fnLoanV").textContent=fmtM(+fl.value); upd(); fl.oninput=upd;
-    $("#fnLoanGo").onclick=()=>{ if(takeLoan(+fl.value)){beep("cash"); flashes(G.flash); render();} }; }
-  const fr=$("#fnRepay");
-  if(fr){ const upd=()=>$("#fnRepayV").textContent=fmtM(+fr.value); upd(); fr.oninput=upd;
-    $("#fnRepayGo").onclick=()=>{ if(repayDebt(+fr.value)){beep("good"); flashes(G.flash); render();} }; }
-  // mezzanine
-  const mz=$("#fnMezz");
-  if(mz){ const upd=()=>$("#fnMezzV").textContent=fmtM(+mz.value); upd(); mz.oninput=upd;
-    $("#fnMezzGo").onclick=()=>{ if(mezzanineLoan(+mz.value)){beep("cash"); flashes(G.flash); render();} }; }
-  const mzr=$("#fnMezzRepay");
-  if(mzr){ const upd=()=>$("#fnMezzRepayV").textContent=fmtM(+mzr.value); upd(); mzr.oninput=upd;
-    $("#fnMezzRepayGo").onclick=()=>{ if(repayMezzanine(+mzr.value)){beep("good"); flashes(G.flash); render();} }; }
-  // IPO + execs
-  const ipo=$("#fnIpo"); if(ipo) ipo.onclick=()=>{ if(goPublic()){beep("gold"); flashes(G.flash); render();} else toast("IPO needs reputation 60+, and you can only ever IPO once.","bad"); };
+  /* v38.0 TREASURY DESK — bindings live in bindFinanceDesk(), called at the
+     end of bindView() with the other desks so its honest-refusal handlers win
+     over the generic [data-exec]/[data-ma] ones bound above. */
   $$("[data-tier]").forEach(b=>b.onclick=()=>{
     if(setStreamerTier(b.dataset.tier)){ beep("gold"); flashes(G.flash); render(); }
     else toast("Not enough cash to build that tier.","bad");
   });
-  const sec=$("#fnSec");
-  if(sec){
-    const updS=function(){ const n=+sec.value; $("#fnSecV").textContent=n+"M shares ≈ "+fmtM(Math.round(G.public.price*n*0.93)); };
-    updS(); sec.oninput=updS;
-    $("#fnSecGo").onclick=function(){ if(secondaryOffering(+sec.value)){ beep("cash"); flashes(G.flash); render(); } };
-  }
   $$("[data-exec]").forEach(b=>b.onclick=()=>{ if(hireExec(b.dataset.exec)){beep("gold"); flashes(G.flash); render();} else toast("Not enough cash for that hire.","bad"); });
 
   /* ── v5 bindings ── */
@@ -6920,6 +7453,7 @@ function bindView(){
      real, one a no-op that clobbered it — and are removed. */
   if(TAB==="library") bindLibraryDesk();   // v36.0 LIBRARY DESK
   if(TAB==="games") bindGameStudioDesk();  // v37.0 GAME STUDIO DESK
+  if(TAB==="finance") bindFinanceDesk();   // v38.0 TREASURY DESK
   const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); LOC_DESK.focus=null; openLocationDesk(); };
   const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.renderProductPlacementModal === "function") StudioOperationsSuite.renderProductPlacementModal(); };
   const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderBlindBoxModal === "function") LiveOpsCoPro.renderBlindBoxModal(); };
@@ -6940,11 +7474,6 @@ function bindView(){
     if(ok){ beep("cash"); } else { beep("bad"); }
     closeModal(); render();
   });
-  const txs=$("#txSearch");
-  if(txs) txs.oninput=()=>{
-    const box=$("#txRows"); if(!box) return;
-    box.innerHTML=fnLedgerRows(G.txHistory||[], txs.value);
-  };
   $$("[data-tour]").forEach(b=>b.onclick=()=>{
     const lc=DATA.LABEL_COSTS||{};
     const tc=lc.tourCost!=null?lc.tourCost:8;

@@ -3041,3 +3041,256 @@
   .command-games .gs-energy,.command-games .games-staff-levels{grid-column:1/-1}
   .command-games .games-sales-curve{height:64px}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   v38.0 TREASURY DESK — scoped to .command-finance only. The desk has its own
+   vocabulary (fin-* / finance-*); legacy content classes are not restyled
+   globally, exactly as the v36 Library and v37 Game Studio desks do.
+
+   Every colour here is a desk token defined once on .command-finance. The
+   pre-v38 Finance view inlined literal hex values (#0d1119 on the search
+   field, #0a0e16 on the research progress track, #ffdf9a on its fill) which
+   belonged to the old blue-black theme — they ignored the design tokens,
+   fought the Kairo palette, and turned into near-black boxes under the light
+   scheme in design-tokens.css.
+   ══════════════════════════════════════════════════════════════════════════ */
+#app #view[data-screen="finance"] .command-finance{
+  text-align:left;
+  --fin-gold:#edc47c;
+  --fin-text:#f3e8cc;
+  --fin-muted:#93a692;
+  --fin-line:#3e5551;
+  --fin-panel:#1b312b;
+  --fin-inner:#152b26;
+  --fin-scrim:#142a26;
+  --fin-pos:#b6dba8;
+  --fin-neg:#e9a99a;
+  --fin-warn:#e8c98a;
+  --prod-panel:var(--fin-panel);
+  --prod-line:var(--fin-line);
+  --prod-soft:var(--fin-inner);
+  --prod-scrim:var(--fin-scrim);
+  color:var(--fin-text);
+  padding-bottom:8px;
+}
+#app #view[data-screen="finance"] .command-finance .command-edition{display:block;margin-bottom:8px;color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .produce-panel:last-child{margin-bottom:0}
+#app #view[data-screen="finance"] .command-finance-nav{margin-bottom:18px;background:var(--fin-inner);border-color:var(--fin-line);color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .command-telemetry{margin-bottom:18px;background:var(--fin-inner);border-color:var(--fin-line)}
+#app #view[data-screen="finance"] .command-finance .command-metric{border-right-color:var(--fin-line)}
+#app #view[data-screen="finance"] .command-finance .command-metric strong{color:var(--fin-text);overflow-wrap:anywhere}
+#app #view[data-screen="finance"] .command-finance .command-eyebrow{display:block;margin:6px 0 4px}
+
+/* panel anatomy */
+#app #view[data-screen="finance"] .command-finance .finance-panel-aside{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body{padding:18px 22px;min-width:0;display:grid;gap:12px}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body>*:last-child{margin-bottom:0}
+#app #view[data-screen="finance"] .command-finance .finance-note{margin:0;font:11px/1.7 system-ui,sans-serif;color:var(--fin-muted);max-width:82ch}
+#app #view[data-screen="finance"] .command-finance .finance-note b{color:var(--fin-text)}
+
+/* ── ledger lines ── */
+#app #view[data-screen="finance"] .command-finance .fin-line{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #2c4038;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-line:last-child{border-bottom:0}
+#app #view[data-screen="finance"] .command-finance .fin-line.indent{padding-left:14px}
+#app #view[data-screen="finance"] .command-finance .fin-line>span{font:12px/1.55 system-ui,sans-serif;color:#c8d3bd;min-width:0;overflow-wrap:anywhere}
+#app #view[data-screen="finance"] .command-finance .fin-line>span em{display:block;font:10px/1.6 ui-monospace,monospace;color:var(--fin-muted);font-style:normal;overflow-wrap:anywhere}
+#app #view[data-screen="finance"] .command-finance .fin-line>b{flex:0 0 auto;font:600 13px/1.4 ui-monospace,monospace;color:var(--fin-text);text-align:right;white-space:nowrap}
+#app #view[data-screen="finance"] .command-finance .fin-line>b.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-line>b.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-line>b.muted{color:var(--fin-muted);font-weight:400}
+#app #view[data-screen="finance"] .command-finance .fin-line.financing>span{color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-line .pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-line .neg{color:var(--fin-neg)}
+
+/* ── blocks, grids, quiet copy ── */
+#app #view[data-screen="finance"] .command-finance .fin-grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+#app #view[data-screen="finance"] .command-finance .fin-block{display:grid;gap:0;padding:12px 14px;background:var(--fin-inner);border:1px solid var(--fin-line);border-radius:2px;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-block-head{display:block;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--fin-line);font:700 9px/1.6 ui-monospace,monospace;letter-spacing:1.2px;color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .fin-quiet{padding:10px 2px;font:11px/1.7 system-ui,sans-serif;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-quiet.center{text-align:center}
+
+/* ── totals ── */
+#app #view[data-screen="finance"] .command-finance .fin-weeknet,
+#app #view[data-screen="finance"] .command-finance .fin-total{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:12px 14px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-left:3px solid var(--fin-gold);border-radius:2px}
+#app #view[data-screen="finance"] .command-finance .fin-weeknet>span,
+#app #view[data-screen="finance"] .command-finance .fin-total>span{font:700 9px/1.6 ui-monospace,monospace;letter-spacing:1.2px;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-weeknet>b,
+#app #view[data-screen="finance"] .command-finance .fin-total>b{font:600 21px/1.2 ui-monospace,monospace;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .fin-total>b.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-total>b.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-weeknet>b.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-weeknet>b.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-total>em{margin-left:auto;font:10px/1.6 ui-monospace,monospace;color:var(--fin-muted);font-style:normal}
+
+/* ── reconciliation banner: proves the split adds up ── */
+#app #view[data-screen="finance"] .command-finance .fin-recon{display:grid;gap:3px;padding:11px 14px;border:1px solid var(--fin-line);border-left-width:3px;border-radius:2px;background:var(--fin-inner)}
+#app #view[data-screen="finance"] .command-finance .fin-recon>b{font:600 12px/1.5 system-ui,sans-serif}
+#app #view[data-screen="finance"] .command-finance .fin-recon>span{font:10.5px/1.65 system-ui,sans-serif;color:var(--fin-muted);max-width:88ch}
+#app #view[data-screen="finance"] .command-finance .fin-recon.ok{border-left-color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-recon.ok>b{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-recon.bad{border-left-color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-recon.bad>b{color:var(--fin-neg)}
+
+/* ── treasury alerts ── */
+#app #view[data-screen="finance"] .command-finance .fin-alerts{display:grid;gap:8px}
+#app #view[data-screen="finance"] .command-finance .fin-alert{display:grid;gap:3px;padding:11px 14px;background:var(--fin-inner);border:1px solid var(--fin-line);border-left-width:3px;border-radius:2px}
+#app #view[data-screen="finance"] .command-finance .fin-alert>b{font:500 13px/1.45 Georgia,serif;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .fin-alert>span{font:10.5px/1.65 system-ui,sans-serif;color:var(--fin-muted);max-width:88ch}
+#app #view[data-screen="finance"] .command-finance .fin-alert.critical{border-left-color:var(--fin-neg);background:#2c1f1c}
+#app #view[data-screen="finance"] .command-finance .fin-alert.critical>b{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-alert.warn{border-left-color:var(--fin-warn)}
+#app #view[data-screen="finance"] .command-finance .fin-alert.warn>b{color:var(--fin-warn)}
+#app #view[data-screen="finance"] .command-finance .fin-alert.info{border-left-color:#8fb7d8}
+#app #view[data-screen="finance"] .command-finance .fin-alert.ok{border-left-color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-alert.ok>b{color:var(--fin-pos)}
+
+/* ── credit gauge ── */
+#app #view[data-screen="finance"] .command-finance .fin-gauge{height:9px;margin:6px 0 8px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:99px;overflow:hidden}
+#app #view[data-screen="finance"] .command-finance .fin-gauge>i{display:block;height:100%;background:linear-gradient(90deg,#7fa86a,var(--fin-gold));transition:width .45s ease}
+
+/* ── sliders ── */
+#app #view[data-screen="finance"] .command-finance .fin-slider{display:grid;gap:6px;margin-top:12px;padding-top:11px;border-top:1px solid #2c4038}
+#app #view[data-screen="finance"] .command-finance .fin-slider>label{font:700 9px/1.6 ui-monospace,monospace;letter-spacing:1.1px;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-slider input[type="range"]{width:100%;accent-color:var(--fin-gold);background:transparent;min-height:26px}
+#app #view[data-screen="finance"] .command-finance .fin-slider-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#app #view[data-screen="finance"] .command-finance .fin-slider-foot>b{font:600 14px/1.3 ui-monospace,monospace;color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .fin-locked{padding:11px 14px;background:var(--fin-scrim);border:1px dashed #52685f;border-radius:2px;font:11px/1.7 system-ui,sans-serif;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-locked.ok{border-style:solid;border-color:var(--fin-pos);color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-locked.warn{border-style:solid;border-color:var(--fin-warn);color:var(--fin-warn)}
+
+/* ── debt maturity ladder ── */
+#app #view[data-screen="finance"] .command-finance .fin-ladder{display:grid;gap:0;border:1px solid var(--fin-line);border-radius:2px;background:var(--fin-inner);overflow:hidden}
+#app #view[data-screen="finance"] .command-finance .fin-rung{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-bottom:1px solid #2c4038;border-left:3px solid var(--fin-line);min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-rung:last-child{border-bottom:0}
+#app #view[data-screen="finance"] .command-finance .fin-rung.bond{border-left-color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .fin-rung.mezzanine{border-left-color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-rung.investor{border-left-color:var(--fin-warn)}
+#app #view[data-screen="finance"] .command-finance .fin-rung>div:first-child{display:grid;gap:2px;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-rung b{font:500 13.5px/1.4 Georgia,serif;color:var(--fin-text);overflow-wrap:anywhere}
+#app #view[data-screen="finance"] .command-finance .fin-rung em{font:700 9px/1.5 ui-monospace,monospace;letter-spacing:1px;color:var(--fin-gold);font-style:normal}
+#app #view[data-screen="finance"] .command-finance .fin-rung span{font:10.5px/1.6 system-ui,sans-serif;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-rung-figs{flex:0 0 auto;display:grid;gap:1px;text-align:right}
+#app #view[data-screen="finance"] .command-finance .fin-rung-figs>span{font:600 14px/1.3 ui-monospace,monospace;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .fin-rung-figs>small{font:10px/1.5 ui-monospace,monospace;color:var(--fin-muted)}
+
+/* ── runway ── */
+#app #view[data-screen="finance"] .command-finance .fin-runway{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--fin-line);background:var(--fin-inner);border-radius:2px;overflow:hidden}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig{display:grid;gap:3px;padding:12px 14px;border-right:1px solid var(--fin-line);min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig:last-child{border-right:0}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig>span{font:700 8.5px/1.6 ui-monospace,monospace;letter-spacing:1.1px;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig>b{font:600 18px/1.25 ui-monospace,monospace;color:var(--fin-text);overflow-wrap:anywhere}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig>b.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig>b.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-runway-fig>b.warn{color:var(--fin-warn)}
+
+/* ── forecast bars ── */
+#app #view[data-screen="finance"] .command-finance .finance-bars{display:flex;align-items:flex-end;gap:3px;height:104px;padding:9px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:2px}
+#app #view[data-screen="finance"] .command-finance .fin-bar{flex:1 1 0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-bar>i{display:block;width:100%;background:linear-gradient(180deg,var(--fin-gold),#a8834a);border-radius:1px 1px 0 0;transition:height .4s ease}
+#app #view[data-screen="finance"] .command-finance .fin-bar>i.neg{background:linear-gradient(180deg,var(--fin-neg),#8c5347)}
+#app #view[data-screen="finance"] .command-finance .fin-bar>span{font:9px/1 ui-monospace,monospace;color:var(--fin-muted)}
+
+/* ── net-by-week sparkbars ── */
+#app #view[data-screen="finance"] .command-finance .finance-pl-bars{display:flex;align-items:flex-end;gap:2px;height:46px;padding:6px 8px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:2px;min-width:132px}
+#app #view[data-screen="finance"] .command-finance .finance-pl-bars>i{flex:1 1 0;min-width:4px;border-radius:1px}
+#app #view[data-screen="finance"] .command-finance .finance-pl-bars>i.up{background:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .finance-pl-bars>i.down{background:var(--fin-neg)}
+
+/* ── share price ── */
+#app #view[data-screen="finance"] .command-finance .fin-stock{display:grid;gap:10px;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price>b{font:500 30px/1.1 Georgia,serif;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price>b.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price>b.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price>span{font:10.5px/1.6 ui-monospace,monospace;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price>span.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-stock-price>span.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .finance-stock-spark{display:flex;align-items:flex-end;gap:2px;height:58px;padding:7px 8px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:2px}
+#app #view[data-screen="finance"] .command-finance .finance-stock-spark>i{flex:1 1 0;min-width:3px;background:linear-gradient(180deg,var(--fin-gold),#a8834a);border-radius:1px 1px 0 0}
+
+/* ── deal / exec / upgrade / tech cards ── */
+#app #view[data-screen="finance"] .command-finance .fin-deals{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px}
+#app #view[data-screen="finance"] .command-finance .fin-deal{display:flex;gap:12px;padding:13px 14px;background:var(--fin-inner);border:1px solid var(--fin-line);border-top:2px solid var(--fin-gold);border-radius:2px;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-deal-ico{flex:0 0 auto;font-size:19px;line-height:1.3}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body{flex:1 1 auto;display:grid;gap:5px;align-content:start;min-width:0}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body>b{font:500 14px/1.4 Georgia,serif;color:var(--fin-text);overflow-wrap:anywhere}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body>span{font:10.5px/1.65 system-ui,sans-serif;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body>small{font:10px/1.6 ui-monospace,monospace;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body>small.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body>small.warn{color:var(--fin-warn)}
+#app #view[data-screen="finance"] .command-finance .fin-deal-body>small.muted{color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-deal-short{font:10px/1.5 ui-monospace,monospace;color:var(--fin-neg);font-style:normal}
+#app #view[data-screen="finance"] .command-finance .fin-deal .btn{justify-self:start;margin-top:2px}
+/* An unaffordable buy stays clickable so the click can explain itself; the
+   shortfall is in the label and the button is visually marked. */
+#app #view[data-screen="finance"] .command-finance .btn.short{border-color:#7a5a4e;color:var(--fin-neg);opacity:.9}
+#app #view[data-screen="finance"] .command-finance .btn.short:hover{border-color:var(--fin-neg);opacity:1}
+#app #view[data-screen="finance"] .command-finance .fin-deal .btn:disabled{opacity:.62;cursor:not-allowed}
+
+/* ── filters + chips ── */
+#app #view[data-screen="finance"] .command-finance .finance-filters{display:grid;gap:9px;padding:13px 15px;background:var(--fin-inner);border:1px solid var(--fin-line);border-radius:2px}
+#app #view[data-screen="finance"] .command-finance .finance-filter-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+#app #view[data-screen="finance"] .command-finance .finance-filter-label{flex:0 0 auto;min-width:66px;font:700 9px/1.6 ui-monospace,monospace;letter-spacing:1.2px;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .finance-range{display:flex;gap:6px;flex-wrap:wrap}
+#app #view[data-screen="finance"] .command-finance .fin-chipbtn{min-height:28px;padding:4px 10px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:2px;color:#c8d3bd;font:600 10px/1.4 system-ui,sans-serif;cursor:pointer}
+#app #view[data-screen="finance"] .command-finance .fin-chipbtn:hover{background:#20372f;border-color:#718a60}
+#app #view[data-screen="finance"] .command-finance .fin-chipbtn.active{background:var(--fin-gold);border-color:var(--fin-gold);color:#1d2a20}
+#app #view[data-screen="finance"] .command-finance .finance-search{flex:1 1 210px;min-width:0;min-height:32px;padding:6px 10px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:2px;color:var(--fin-text);font:12px/1.4 system-ui,sans-serif}
+#app #view[data-screen="finance"] .command-finance .finance-search:focus{outline:2px solid var(--fin-gold);outline-offset:1px}
+#app #view[data-screen="finance"] .command-finance .finance-filter-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #3e555166;padding-top:9px}
+#app #view[data-screen="finance"] .command-finance .finance-count{font:10px/1.6 ui-monospace,monospace;color:var(--fin-muted)}
+#app #view[data-screen="finance"] .command-finance .fin-txrows{display:grid;gap:0;max-height:340px;overflow-y:auto;overscroll-behavior:contain;padding:4px 14px;background:var(--fin-inner);border:1px solid var(--fin-line);border-radius:2px}
+
+/* ── research progress ── */
+#app #view[data-screen="finance"] .command-finance .fin-progress{display:grid;gap:6px;padding:12px 14px;background:var(--fin-inner);border:1px solid var(--fin-line);border-radius:2px}
+#app #view[data-screen="finance"] .command-finance .fin-progress-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#app #view[data-screen="finance"] .command-finance .fin-progress-head>b{font:500 13px/1.45 Georgia,serif;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .fin-progress-head>span{font:700 9px/1.5 ui-monospace,monospace;letter-spacing:1px;color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .fin-progress-track{height:9px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:99px;overflow:hidden}
+#app #view[data-screen="finance"] .command-finance .fin-progress-track>i{display:block;height:100%;background:linear-gradient(90deg,#a8834a,var(--fin-gold));transition:width .5s ease}
+
+/* ── ghost buttons inside the desk ── */
+#app #view[data-screen="finance"] .command-finance .produce-ghost{min-height:34px;padding:7px 13px;background:var(--fin-scrim);border:1px solid var(--fin-line);border-radius:2px;color:#c8d3bd;font:600 11px/1.4 system-ui,sans-serif}
+#app #view[data-screen="finance"] .command-finance .produce-ghost:hover{background:#20372f;border-color:#718a60;color:var(--fin-text)}
+
+/* ── empty state ── */
+#app #view[data-screen="finance"] .command-finance .command-empty{min-height:130px;gap:6px;padding:20px 16px;background:var(--fin-inner)}
+#app #view[data-screen="finance"] .command-finance .command-empty>b{font:500 14px/1.4 Georgia,serif;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .command-empty>span{font:11px/1.75 system-ui,sans-serif;color:var(--fin-muted);max-width:72ch}
+
+/* ── the Analysis Lab keeps its legacy .card markup; seat it in the desk ── */
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .card{background:var(--fin-inner);border:1px solid var(--fin-line);border-radius:2px;color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .card>b:first-child{color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .cost-line{border-bottom-color:#2c4038}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .cost-line>span{color:#c8d3bd}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .cost-line>b{color:var(--fin-text)}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .cost-line>b.pos{color:var(--fin-pos)}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .cost-line>b.neg{color:var(--fin-neg)}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .section-title{color:var(--fin-gold)}
+#app #view[data-screen="finance"] .command-finance .finance-panel-body .tiny.muted{color:var(--fin-muted)}
+
+/* ── responsive ── */
+@media(max-width:1050px){
+  #app #view[data-screen="finance"] .command-finance .fin-runway{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #app #view[data-screen="finance"] .command-finance .fin-runway-fig{border-bottom:1px solid var(--fin-line)}
+  #app #view[data-screen="finance"] .command-finance .fin-runway-fig:nth-child(2n){border-right:0}
+}
+@media(max-width:860px){
+  #app #view[data-screen="finance"] .command-finance .fin-grid2{grid-template-columns:minmax(0,1fr)}
+  #app #view[data-screen="finance"] .command-finance .finance-panel-body{padding:14px 15px}
+  #app #view[data-screen="finance"] .command-finance .fin-deals{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:640px){
+  #app #view[data-screen="finance"] .command-finance .finance-bars{height:82px;gap:2px;padding:7px}
+  #app #view[data-screen="finance"] .command-finance .fin-bar>span{font-size:8px}
+  #app #view[data-screen="finance"] .command-finance .fin-rung{flex-direction:column;align-items:flex-start;gap:7px}
+  #app #view[data-screen="finance"] .command-finance .fin-rung-figs{text-align:left}
+  #app #view[data-screen="finance"] .command-finance .fin-total>em{margin-left:0;flex-basis:100%}
+  #app #view[data-screen="finance"] .command-finance .finance-filter-label{min-width:0;flex-basis:100%}
+  #app #view[data-screen="finance"] .command-finance .fin-stock-price>b{font-size:25px}
+}
+@media(prefers-reduced-motion:reduce){
+  #app #view[data-screen="finance"] .command-finance .fin-bar>i,
+  #app #view[data-screen="finance"] .command-finance .fin-gauge>i,
+  #app #view[data-screen="finance"] .command-finance .fin-progress-track>i{transition:none}
+}
