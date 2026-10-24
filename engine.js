@@ -5301,7 +5301,7 @@ function tickSportsAuctions(){
 }
 
 /* ═══════════ franchise empire (merch · games · parks) ═══════════ */
-const EMPIRE_SUB_KEYS = ["home","franchises","universes","divisions","endgame"];
+const EMPIRE_SUB_KEYS = ["home","franchises","universes","divisions","stage","endgame"];
 function ensureEmpireState(g){
   if(!g) return null;
   if(!g.empire || typeof g.empire !== "object") g.empire = { subTab:"franchises", activeSub:"franchises" };
@@ -6104,6 +6104,7 @@ function advanceWeek(){
   if(typeof BoardTargets !== "undefined" && typeof BoardTargets.advanceBoardWeek === "function") BoardTargets.advanceBoardWeek(G);
   if(typeof FanConventions !== "undefined" && typeof FanConventions.advanceFanClubWeek === "function") FanConventions.advanceFanClubWeek(G);
   if(typeof MerchLicensing !== "undefined" && typeof MerchLicensing.advanceMerchandiseWeek === "function") MerchLicensing.advanceMerchandiseWeek(G);
+  if(typeof StageDivision !== "undefined" && typeof StageDivision.tick === "function") StageDivision.tick(G);   // v39.1: Broadway runs, tours, albums, Tonys
   if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.tickWeekly === "function") FilmLocationsTax.tickWeekly();
   if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.tickWeekly === "function") StudioOperationsSuite.tickWeekly();
   if(typeof GameDevHardware !== "undefined" && typeof GameDevHardware.tickWeekly === "function") GameDevHardware.tickWeekly();

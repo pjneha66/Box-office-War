@@ -38,7 +38,7 @@ const OUT='/tmp/empire-shots';
       unlockLabel();signArtist('nova');
       switchTab('empire');render();
     });
-    const subs=['home','franchises','universes','divisions','endgame'];
+    const subs=['home','franchises','universes','divisions','stage','endgame'];
     const widths=[[320,780],[390,844],[414,896],[844,414],[1024,768],[1440,950]];
     for(const [width,height] of widths){
       await page.setViewport({width,height});
@@ -64,14 +64,14 @@ const OUT='/tmp/empire-shots';
           };
         });
         assert(m.hasDeck,`${sub}@${width}: command-empire missing`);
-        assert.equal(m.chips,5,`${sub}@${width}: five chips (got ${m.chips})`);
+        assert.equal(m.chips,6,`${sub}@${width}: six chips (got ${m.chips})`);
         assert(m.docOverflow<=1,`${sub}@${width}: document overflow ${m.docOverflow}px`);
         assert(m.viewOverflow<=1,`${sub}@${width}: #view overflow ${m.viewOverflow}px`);
         assert(m.deckOverflow<=1,`${sub}@${width}: command deck overflow ${m.deckOverflow}px`);
         assert.deepEqual(m.clipped,[],`${sub}@${width}: clipped children ${m.clipped.join(',')}`);
         assert.equal(m.legacy,0,`${sub}@${width}: legacy chrome leaked into the desk`);
       }
-      console.log(`PASS width ${width}: all five sub-tabs, zero overflow/clipping`);
+      console.log(`PASS width ${width}: all six sub-tabs, zero overflow/clipping`);
     }
     /* 390px: final panel clears the fixed bottom navigation */
     await page.setViewport({width:390,height:844});

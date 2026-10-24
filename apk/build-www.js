@@ -21,7 +21,7 @@ const FILES = [
   "film-locations-tax.js", "studio-operations-suite.js", "gamedev-console-hardware.js", "live-ops-coproduction.js",
   "hollywood-crises-pr.js", "demographics-audiences.js", "production-creativity-suite.js", "exhibition-plf-concessions.js", "marketing-blitz-engine.js",
   "studio-agent-life.js", "studio-lot-engine.js", "studio-actors.js", "studio-departments.js", "studio-lot-2d.js", "lot-life.js", "lot-feel.js", "bow-motion.js",
-  "box-office-sim-2-cast.js", "gamestudio-gdd-engine.js", "social-viral-network.js", "sports-stadium-deals.js", "kairo-theme-suite.js",
+  "box-office-sim-2-cast.js", "gamestudio-gdd-engine.js", "social-viral-network.js", "sports-stadium-deals.js", "stage-division.js", "kairo-theme-suite.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 

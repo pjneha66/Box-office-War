@@ -36,14 +36,14 @@ try{
   await new Promise(r=>setTimeout(r,900));
   w.eval(`window.confirm=function(){return window.__confirm!==false;};`);
 
-  /* ── A1 — one Empire navigation, five real switchable sections, persisted ── */
+  /* ── A1 — one Empire navigation, six real switchable sections, persisted ── */
   fresh();
   assert.equal($$('#subTabs [data-empiretab], #subTabs [data-empiresub]').length,0,'global #subTabs strip must not render dead or duplicate empire chips');
   assert.equal($('#subTabs').style.display,'none','global #subTabs is hidden on Empire');
   assert.equal($$('#view .subnav-pills').length,0,'legacy .subnav-pills row is gone from Empire');
   assert.equal($$('[data-empiretab]').length,0,'dead [data-empiretab] chips are gone');
-  assert.equal(chips().length,5,'exactly five [data-empiresub] chips in Empire navigation');
-  assert.deepEqual(chips().map(b=>b.dataset.empiresub),['home','franchises','universes','divisions','endgame'],'five section keys match Home / Franchises / Universes / Divisions / Endgame');
+  assert.equal(chips().length,6,'exactly six [data-empiresub] chips in Empire navigation');
+  assert.deepEqual(chips().map(b=>b.dataset.empiresub),['home','franchises','universes','divisions','stage','endgame'],'six section keys match Home / Franchises / Universes / Divisions / Stage / Endgame');
   assert.equal(new Set(chips().map(b=>b.closest('nav')||b.parentElement)).size,1,'all empire chips belong to one navigation container');
   assert.equal(chips().filter(b=>b.classList.contains('active')).length,1,'exactly one empire chip is active');
   assert.equal($('[data-empiresub].active').dataset.empiresub,'franchises','fresh career opens Franchises safely by default');
@@ -53,6 +53,7 @@ try{
     franchises:/Franchises/,
     universes:/universe/i,
     divisions:/Music|Merch|Publishing/i,
+    stage:/Stage division|Great White Way/i,
     endgame:/Endgame|industry influence/i
   };
   for(const [key,rx] of Object.entries(expectedPanels)){
@@ -73,7 +74,7 @@ try{
   /* Old saves without G.empire default safely without error */
   w.eval(`delete G.empire;saveGame();loadGame();render();`);
   assert.equal($('[data-empiresub].active').dataset.empiresub,'franchises','legacy save without G.empire defaults safely');
-  console.log('PASS A1: one 5-chip Empire navigation, real panel switching, save/load persistence');
+  console.log('PASS A1: one 6-chip Empire navigation, real panel switching, save/load persistence');
 
   /* ── A2 — structured {ok, reason} returns; zero false-success audio or modal close ── */
   fresh('franchises');

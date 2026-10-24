@@ -1,3 +1,44 @@
+# Release Notes — Box Office War v39.1
+
+## v39.1 — The Stage Division (Broadway, the West End and the road)
+
+### New system
+- **`stage-division.js`** — a self-contained live-theatre division on the Empire desk
+  (`EMPIRE → STAGE`). Additive by construction: all state lives in `G.stage`, created on first
+  touch, so every existing save loads untouched.
+- **Houses**: The Yard Workshop (340 seats) → The Marquee Theatre (1,000) → The Empire Palace
+  (1,800). Leased in order, gated on reputation and cash, each with an irreducible weekly upkeep.
+- **Shows**: adapt any closed $40M+ film from the library (franchise entries carry a bigger
+  built-in audience) or commission an original book. Five decisions — source, scale, composer,
+  director, optional star — priced live in the form, with a projected review range.
+- **Run**: 3 weeks of previews (with two $2.5M retools available), then opening night. Occupancy
+  is driven by reviews, source, franchise, star and genre heat, decaying after week 10. Fixed
+  house cost means a half-full room loses money; sell-out rooms pay for the whole division.
+  Six weeks under 30% occupancy closes the show (as does week 156).
+- **Recoupment**, **national tours** (24 weeks), **cast albums** (26 weeks, ×1.6 with a live music
+  label), **staging licences** (one-shot lump sum) and an **annual Tony season at week 24** that
+  lifts occupancy, gross multiplier and reputation.
+
+### Wiring
+- `engine.js` — `StageDivision.tick(G)` on the weekly tick, beside the other division ticks.
+- `ui.js` — a sixth Empire section (`stage`), pixel-icon entry, and `bindEvents()` in `bindView()`.
+- `finance-desk.js` — new `stage` ledger category (revenue → empire, costs → investment).
+- `bow-restyle.css` — scoped stage styles (KPI strip, form grid, show cards) at the end of the file.
+- `index.html`, `apk/build-www.js`, `sw.js` — the module ships in the browser, the APK and the
+  offline cache. `test/smoke.js` assembles it for the headless harness.
+
+### Verification
+- `test/stage-division.mjs` — 11 regressions: lazy state, unlock/purchase gating, save/load,
+  quote honesty, one-house-one-show, `advanceWeek()` wiring, recoupment, tour/album/licence gates,
+  Tony season, the rendered desk + form, and the Treasury mapping.
+- `npm test` chain now includes the stage suite; the smoke harness exercises a full
+  greenlight → previews → opening → tour → album → close cycle.
+- Full suites re-run green: smoke, ui-test, balance (6 seeds × 120 weeks), scenario playthrough
+  (5/5), sandbox audit, empire desk (A1–C11).
+- Visual check at 1280 and 390: zero document/#view overflow, no console errors.
+
+---
+
 # Launch Readiness — Box Office War v32.13
 
 ## v32.13 — 2D Kairosoft Simulation Suite, Box Office Sim 2 Talent Integration, GameStudio GDD Mechanics, Social Viral Network, and Sports Megadome Deals

@@ -113,6 +113,7 @@
     empire:      { label: "Franchise & parks",    icon: "🏰", bucket: "empire",  expBucket: "investment", mixed: true },
     games:       { label: "Game studio",          icon: "🎮", bucket: "games",   expBucket: "production", mixed: true },
     music:       { label: "Soundtrack & label",   icon: "🎵", bucket: "music",   expBucket: "otherexp",   mixed: true },
+    stage:       { label: "Stage division",       icon: "🎭", bucket: "empire",  expBucket: "investment", mixed: true },
     insurance:   { label: "Insurance",            icon: "🛡", bucket: "otherrev",expBucket: "otherexp",   mixed: true },
     other:       { label: "Other",                icon: "❓", bucket: "otherrev",expBucket: "otherexp",   mixed: true },
     /* ── costs ── */

@@ -112,6 +112,7 @@ const ASSETS = [
   "gamestudio-gdd-engine.js",
   "gamestudio-desk.js",
   "social-viral-network.js",
+  "stage-division.js",
   "sports-stadium-deals.js",
   "kairo-theme-suite.js",
   "manifest.webmanifest",
