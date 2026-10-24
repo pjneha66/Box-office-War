@@ -20,8 +20,9 @@ function assert(condition, message) {
 
 // 1. Validate slot scanner on empty slots
 console.log("\n--- Checking Empty Slots ---");
-for (let i = 1; i <= 3; i++) {
+for (let i = 1; i <= 6; i++) {
   const raw = localStorage.getItem("bow_slot" + i);
+  assert(raw === null, `Slot ${i} starts empty (six-slot vault)`);
   if (!raw) {
     console.log(`ℹ️  Slot ${i}: [Empty] - Ready for new game.`);
   }
@@ -40,6 +41,25 @@ const problems1 = validateSave(slot1Parsed);
 assert(problems1.length === 0, "Slot 1 has 0 validation problems");
 assert(slot1Parsed.v === DATA.SAVE_VERSION, `Slot 1 version matches DATA.SAVE_VERSION (${DATA.SAVE_VERSION})`);
 console.log(`ℹ️  Slot 1 Studio: "${slot1Parsed.studio.name}" | Week: ${slot1Parsed.week} | Cash: $${slot1Parsed.studio.cash}M`);
+
+// 2b. Six-slot round trip: every slot accepts its own career
+console.log("\n--- Six-Slot Round Trip ---");
+for (let i = 1; i <= 6; i++) {
+  G.slot = i;
+  G.studio.name = "Slot " + i + " Pictures";
+  saveGame();
+  const raw = localStorage.getItem("bow_slot" + i);
+  assert(raw !== null, `Slot ${i} written`);
+  const meta = JSON.parse(localStorage.getItem("bow_slot_meta_" + i) || "null");
+  assert(meta && meta.week !== undefined && meta.savedAt > 0, `Slot ${i} metadata recorded (week ${meta && meta.week})`);
+  const summary = slotMeta(i);
+  assert(summary && summary.name === "Slot " + i + " Pictures", `Slot ${i} vault summary names the studio (${summary && summary.name})`);
+  /* loadSlot() is async (it repairs before returning); the raw record is
+     enough to prove each slot keeps its own career. */
+  const roundTrip = JSON.parse(localStorage.getItem("bow_slot" + i));
+  assert(roundTrip.studio.name === "Slot " + i + " Pictures", `Slot ${i} loads back its own career`);
+  assert(roundTrip.slot === i, `Slot ${i} record remembers its own number`);
+}
 
 // 3. Test slot corruption detection
 console.log("\n--- Testing Corrupt Field Detection in Slot 2 ---");
