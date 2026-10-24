@@ -146,7 +146,28 @@
 
     totalCoupon = Math.round(totalCoupon * 100) / 100;
     S.bonds.activeBonds = remainingBonds;
-    S.studio.cash = Math.round((S.studio.cash - (totalCoupon + maturedPrincipal)) * 10) / 10;
+
+    /* v38.0 — route the cash through the ledger instead of moving it directly.
+       This used to do `S.studio.cash -= coupon + principal`, which meant bond
+       coupons never landed in G.weekTx. The Finance tab's P&L, weekNet(),
+       finTrail(), the transaction search and the quarterly earnings call all
+       read G.weekTx, so a studio servicing $800M of notes showed a spotless
+       profit line while its cash silently drained. The tick still returns the
+       same figures, and the cash effect is identical (earn/spend round to 0.1M,
+       which is what this function already rounded to).
+
+       Coupons are a profit-and-loss item ("interest"); principal repayment at
+       maturity is balance-sheet money ("financing"), exactly how the engine
+       already treats repayDebt() and mezzanineLoan(). */
+    const canLedger = (typeof spend === "function");
+    if (canLedger) {
+      if (totalCoupon > 0) spend("interest", totalCoupon);
+      if (maturedPrincipal > 0) spend("financing", maturedPrincipal);
+    } else {
+      /* No engine ledger in scope (bare unit test) — fall back to the raw move
+         so the cash maths still holds. */
+      S.studio.cash = Math.round((S.studio.cash - (totalCoupon + maturedPrincipal)) * 10) / 10;
+    }
     S.bonds.totalInterestServiced = Math.round(((S.bonds.totalInterestServiced || 0) + totalCoupon) * 10) / 10;
 
     return { interestServiced: totalCoupon, maturedM: maturedPrincipal };

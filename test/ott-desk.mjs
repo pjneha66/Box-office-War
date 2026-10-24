@@ -289,11 +289,12 @@ try{
 
   /* Release plumbing moves as one versioned unit (35.0 Empire Desk is the
      current release; the 34.9 Live Desk stays shipped beneath it). */
-  assert.equal($('meta[name="app-version"]').content,'37.0','app-version is 37.0');
+  assert.equal($('meta[name="app-version"]').content,'38.0','app-version is 38.0');
   const rawIndex=fs.readFileSync('index.html','utf8');
-  assert(rawIndex.includes('ui.js?v=52.0')&&rawIndex.includes('command-deck.css?v=51.3'),'UI and deck assets use v52.0 / v51.3');
+  assert(rawIndex.includes('ui.js?v=53.0')&&rawIndex.includes('command-deck.css?v=52.0'),'UI and deck assets use v53.0 / v52.0');
   assert(!rawIndex.includes('50.9'),'old asset version is gone');
-  assert(fs.readFileSync('sw.js','utf8').includes('bow-v97-cache'),'service-worker cache is bow-v97');
+  assert(fs.readFileSync('sw.js','utf8').includes('bow-v98-cache'),'service-worker cache is bow-v98');
+  assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='38.0').status`),'shipped','38.0 Treasury Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='37.0').status`),'shipped','37.0 Game Studio Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.7').status`),'shipped','34.7 streamer sub-tabs are marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.9').status`),'shipped','34.9 Live Desk is marked shipped');
@@ -301,7 +302,7 @@ try{
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='36.0').status`),'shipped','36.0 Library Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.8').status`),'planned','34.8 board verdicts are queued next');
   assert(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.8').label`).includes('§45'),'34.8 names the real board-verdicts item');
-  console.log('PASS release: 37.0 / 52.0 / 51.3 / bow-v97 and roadmap statuses');
+  console.log('PASS release: 38.0 / 53.0 / 52.0 / bow-v98 and roadmap statuses');
 
   assert.deepEqual(errors,[],'no console errors: '+errors.join(' | '));
   console.log('OTT DESK PASSED ✅');

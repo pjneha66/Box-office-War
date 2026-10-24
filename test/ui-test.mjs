@@ -341,7 +341,10 @@ step("v4 streamer tiers + password crackdown state", ()=>{
 step("v4 IPO, stock panel and earnings call", ()=>{
   window.eval("G.studio.rep=70; G.studio.cash=Math.max(G.studio.cash,300); goPublic(); render();");
   click($(".tab[data-tab='finance']"));
-  if(!$(".stock-spark")) throw new Error("stock sparkline missing");
+  /* v38.0: Finance is now the Treasury Desk — eight lanes instead of one long
+     scroll. The share price, sparkline and secondary offering live on Equity. */
+  window.eval("financeSet({sub:'equity'})");
+  if(!$(".finance-stock-spark")) throw new Error("stock sparkline missing");
   if(!$("#fnSec")) throw new Error("secondary offering control missing");
   window.eval("earningsCall()");
   window.eval("earningsModal()");
@@ -372,7 +375,14 @@ step("empire tab renders", ()=>{
 });
 step("finance shows live P&L", ()=>{
   click($(".tab[data-tab='finance']"));
-  if(!$("#view").innerHTML.includes("This week") || !$("#view").innerHTML.includes("P&amp;L")) throw new Error("P&L card missing");
+  window.eval("financeSet({sub:'ledger'})");
+  const h=$("#view").innerHTML;
+  /* The desk's Ledger lane carries the live week and the trailing split. */
+  if(!h.includes("THIS WEEK") || !h.includes("Live P&amp;L")) throw new Error("P&L panel missing");
+  if(!h.includes("TRAILING")) throw new Error("trailing split missing");
+  /* The split must reconcile with the weekly ledger — the pre-v38 buckets did not. */
+  if(!window.eval("FinanceDesk.ledgerTrail(G,12).reconcile.ok")) throw new Error("ledger does not reconcile");
+  if(!$("#view .fin-recon")) throw new Error("reconciliation banner missing");
 });
 step("shop a finished film to streamers (auction modal)", ()=>{
   window.eval(`G.projects.push({id:9871, kind:"film", title:"Neon X", genre:"scifi", scale:"mid", script:72, budget:40, spent:40, devCost:5, director:null, cast:[], phase:"ready", phaseWeek:0, phaseLen:{pre:1,shoot:1,post:1}, releaseWeek:0, marketing:0, marketingPaid:0, quality:{overall:78,critic:80,aud:82}, buzzBonus:0})`);
@@ -398,7 +408,20 @@ step("empire actions (franchise + merch + game)", ()=>{
 });
 step("finance view + sliders", ()=>{
   click($(".tab[data-tab='finance']"));
-  if(!$("#fnLoan")) throw new Error("loan slider missing");
+  window.eval("financeSet({sub:'capital'})");
+  /* Borrowing only appears when there is headroom; at zero headroom the desk
+     must say why instead of rendering a slider that cannot do anything. */
+  const headroom=window.eval("FinanceDesk.ledgerCommit(G).credit.headroom");
+  if(headroom>=10){
+    if(!$("#fnLoan")) throw new Error("loan slider missing");
+    if(!$("#fnMezz")) throw new Error("mezzanine slider missing");
+    const loan=$("#fnLoan");
+    if(+loan.max<+loan.min) throw new Error("loan slider bounds inverted");
+  }else{
+    if($("#fnLoan")) throw new Error("loan slider offered with no headroom");
+    if(!$("#view").textContent.includes("No borrowing capacity")) throw new Error("no explanation for the closed credit line");
+  }
+  if(!$("#view .fin-ladder, #view .command-empty")) throw new Error("debt ladder missing");
 });
 step("series pitch wizard", ()=>{
   click($(".tab[data-tab='develop']"));
@@ -556,8 +579,13 @@ step("v2 settings modal + Hindi toggle + back to English", ()=>{
 step("v2 executives hire", ()=>{
   click($(".tab[data-tab='finance']"));
   window.eval("G.studio.cash=400");
-  click($(".tab[data-tab='finance']"));
+  /* v38.0: the executive suite lives on the Board & people lane, and is listed
+     exactly once — the pre-v38 page offered every executive twice. */
+  window.eval("financeSet({sub:'board'})");
+  window.eval("G.studio.cash=400; render()");
   const btn=$$("[data-exec]")[0]; if(!btn) throw new Error("exec buttons missing");
+  const ids=$$("[data-exec]").map(b=>b.dataset.exec);
+  if(new Set(ids).size!==ids.length) throw new Error("an executive is offered twice");
   click(btn);
   if(!Object.keys(g().execs).length) throw new Error("exec not hired");
 });

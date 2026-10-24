@@ -30,15 +30,24 @@
   /* selectors that hold a number worth counting up */
   var NUM_SEL = [
     ".s-v", ".k-val", ".val", ".tr-val", ".cb-val", ".cost-line b",
-    ".t-stats b", ".a-stats b", ".ll-chip", ".resume-cash", ".t-name + .tiny"
+    ".t-stats b", ".a-stats b", ".ll-chip", ".resume-cash", ".t-name + .tiny",
+    /* v38.0 Treasury Desk */
+    ".fin-line b", ".fin-total b", ".fin-weeknet b", ".fin-rung-figs span",
+    ".fin-runway-fig b", ".fin-stock-price b"
   ].join(",");
 
-  /* height-based bars: weekly gross, forecast, stock spark */
-  var VBAR_SEL = ".wg, .stock-spark > i, .fg > i, .forecast-bars i, .pl-bar > i";
+  /* height-based bars: weekly gross, forecast, stock spark.
+     v38.0: the Treasury Desk uses its own scoped vocabulary (finance-*), so its
+     share-price spark, forecast bars and net-by-week bars are listed here too —
+     otherwise the desk would be the one screen with no grow-in motion. */
+  var VBAR_SEL = ".wg, .stock-spark > i, .fg > i, .forecast-bars i, .pl-bar > i, " +
+    ".finance-stock-spark > i, .finance-bars .fin-bar > i, .finance-pl-bars > i";
   /* width-based bars */
-  var HBAR_SEL = ".cb-fill, .tr-fill, .pl-fill, .bar > i, .fb-fill";
+  var HBAR_SEL = ".cb-fill, .tr-fill, .pl-fill, .bar > i, .fb-fill, " +
+    ".fin-gauge > i, .fin-progress-track > i";
   /* rows that cascade */
-  var ROW_SEL = ".row, .cost-line, .film-row, .epg-row, .loan-row, .scen-row, .trend-row, .chart-bar";
+  var ROW_SEL = ".row, .cost-line, .film-row, .epg-row, .loan-row, .scen-row, .trend-row, .chart-bar, " +
+    ".fin-line, .fin-rung, .fin-deal, .fin-alert";
 
   var _seen = Object.create(null);     // key -> last numeric value
   var _pending = null;

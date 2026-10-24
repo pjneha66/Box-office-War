@@ -137,10 +137,15 @@ function studioMetrics(){
   const films = G.films;
   const franchises = G.franchises;
 
-  // Trailing 12-month (52 weeks) revenue
-  const trailRev = finTrail().R;
-  const trailEBITDA = finTrail().P + finTrail().exp.interest + finTrail().exp.talent * 0.3; // rough proxy
-  const trailNet = finTrail().P;
+  /* Trailing window (the ledger keeps 12 weekly snapshots).
+     v38.0 sign fix: finTrail().exp.* are NEGATIVE magnitudes, so the old
+     `P + exp.interest + exp.talent*0.3` SUBTRACTED interest and talent from
+     profit instead of adding them back — EBITDA came out below net income, and
+     for a levered studio it went negative. Add back the absolute values. */
+  const _trail = (typeof finTrail === "function") ? finTrail() : { R: 0, P: 0, exp: { interest: 0, talent: 0 } };
+  const trailRev = _trail.R;
+  const trailEBITDA = _trail.P + Math.abs(_trail.exp.interest || 0) + Math.abs(_trail.exp.talent || 0) * 0.3; // rough proxy
+  const trailNet = _trail.P;
 
   // Enterprise value (market cap + net debt)
   const mktCap = G.public ? marketCap() : trailRev * 3; // private: 3x revenue heuristic
@@ -299,14 +304,30 @@ function keyRatios(){
   const m = studioMetrics();
 
   return {
+    /* v38.0 fixes:
+       • currentRatio divided by st.overhead*4, which is 0 for a fresh studio
+         (Infinity) and ignores executive salaries, facility upkeep, crew
+         retainers and division costs. weeklyOverhead() is the real run-rate.
+       • interestCoverage guarded on `exp.interest > 0`, but that bucket is a
+         NEGATIVE magnitude, so the guard was never true and the ratio reported
+         Infinity for every studio — including one drowning in debt. It also
+         would have divided by a negative. Coverage is now EBITDA over the
+         absolute interest charge, and null (not Infinity) when there is no
+         debt service to cover. */
     // Liquidity
-    cashToDebt: st.debt > 0 ? Math.round(st.cash / st.debt * 100) / 100 : Infinity,
-    currentRatio: st.cash / (st.overhead * 4), // cash vs 4 weeks overhead
+    cashToDebt: st.debt > 0 ? Math.round(st.cash / st.debt * 100) / 100 : null,
+    currentRatio: (() => {
+      const oh = (typeof weeklyOverhead === "function") ? weeklyOverhead() : (st.overhead || 0);
+      return oh > 0 ? Math.round((st.cash / (oh * 4)) * 100) / 100 : null;
+    })(),
 
     // Leverage
-    debtToEbitda: m.ebitda > 0 ? Math.round((st.debt / m.ebitda) * 100) / 100 : Infinity,
-    netDebtToEbitda: m.ebitda > 0 ? Math.round((m.netDebt / m.ebitda) * 100) / 100 : Infinity,
-    interestCoverage: finTrail().exp.interest > 0 ? Math.round((m.ebitda / finTrail().exp.interest) * 100) / 100 : Infinity,
+    debtToEbitda: m.ebitda > 0 ? Math.round((st.debt / m.ebitda) * 100) / 100 : null,
+    netDebtToEbitda: m.ebitda > 0 ? Math.round((m.netDebt / m.ebitda) * 100) / 100 : null,
+    interestCoverage: (() => {
+      const interest = Math.abs(((typeof finTrail === "function") ? finTrail() : { exp: {} }).exp.interest || 0);
+      return interest > 0.05 ? Math.round((m.ebitda / interest) * 100) / 100 : null;
+    })(),
 
     // Profitability
     ebitdaMargin: m.revenue > 0 ? Math.round(m.ebitda / m.revenue * 1000) / 10 : 0,
@@ -414,16 +435,35 @@ function renderLBOCard(target){
   return h;
 }
 
+/* v38.0: a ratio can now legitimately be `null` — "nothing to measure against"
+   (no debt, no overhead, no interest charge). The old renderer called
+   .toFixed(2) on whatever keyRatios() returned, so a null would have thrown
+   inside the Finance tab. `x()` prints an honest em dash instead, and never
+   claims ∞ for a studio that simply has no debt. */
+function _ratioX(v, digits){
+  if (v === null || v === undefined) return "n/a";
+  if (v === Infinity) return "\u221e";
+  if (!Number.isFinite(v)) return "n/a";
+  return v.toFixed(digits === undefined ? 2 : digits) + "x";
+}
+function _ratioTone(v, warnBelow, badBelow){
+  if (v === null || v === undefined || !Number.isFinite(v)) return "";
+  if (v < badBelow) return "neg";
+  if (v < warnBelow) return "gold";
+  return "pos";
+}
+
 function renderRatiosCard(){
   const r = keyRatios();
 
   let h = "<div class='card'><b>📐 Key Financial Ratios</b>";
 
   h += "<div class='section-title' style='margin:10px 0 6px;font-size:12px'>Liquidity & Leverage</div>";
-  h += "<div class='cost-line'><span>Cash / Debt</span><b>"+(r.cashToDebt===Infinity?'∞':r.cashToDebt.toFixed(2))+"x</b></div>";
-  h += "<div class='cost-line'><span>Debt / EBITDA</span><b class='"+(r.debtToEbitda>5?'neg':r.debtToEbitda>3?'gold':'pos')+"'>"+(r.debtToEbitda===Infinity?'∞':r.debtToEbitda.toFixed(2))+"x</b></div>";
-  h += "<div class='cost-line'><span>Net Debt / EBITDA</span><b class='"+(r.netDebtToEbitda>3?'neg':r.netDebtToEbitda>1.5?'gold':'pos')+"'>"+(r.netDebtToEbitda===Infinity?'∞':r.netDebtToEbitda.toFixed(2))+"x</b></div>";
-  h += "<div class='cost-line'><span>Interest Coverage</span><b class='"+(r.interestCoverage<2?'neg':r.interestCoverage<4?'gold':'pos')+"'>"+(r.interestCoverage===Infinity?'∞':r.interestCoverage.toFixed(2))+"x</b></div>";
+  h += "<div class='cost-line'><span>Cash / Debt</span><b>"+_ratioX(r.cashToDebt)+"</b></div>";
+  h += "<div class='cost-line'><span>Debt / EBITDA</span><b class='"+(r.debtToEbitda===null||r.debtToEbitda===Infinity?"":(r.debtToEbitda>5?'neg':r.debtToEbitda>3?'gold':'pos'))+"'>"+_ratioX(r.debtToEbitda)+"</b></div>";
+  h += "<div class='cost-line'><span>Net Debt / EBITDA</span><b class='"+_ratioTone(r.netDebtToEbitda, 1.5, 3)+"'>"+_ratioX(r.netDebtToEbitda)+"</b></div>";
+  /* Coverage: higher is better, so the tone thresholds invert. */
+  h += "<div class='cost-line'><span>Interest Coverage</span><b class='"+(r.interestCoverage===null||r.interestCoverage===Infinity?"":(r.interestCoverage<2?'neg':r.interestCoverage<4?'gold':'pos'))+"'>"+_ratioX(r.interestCoverage)+"</b></div>";
 
   h += "<div class='section-title' style='margin:10px 0 6px;font-size:12px'>Profitability</div>";
   h += "<div class='cost-line'><span>EBITDA Margin</span><b>"+r.ebitdaMargin+"%</b></div>";
