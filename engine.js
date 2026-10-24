@@ -121,6 +121,11 @@ function weekNet(tx){ let n=0; for(const k in tx){ if(k!=="financing") n+=tx[k];
 
 /* ═══════════ save / load — versioned schema + migrations (v4) + named slots + IndexedDB sync (v23) ═══════════ */
 const SAVE_KEY = "bow_save";
+/* v39: six named careers instead of three. Slot N lives in bow_slotN, its
+   display label and timestamp live beside it, and bow_save stays the live
+   autosave so Continue always works. */
+const SAVE_SLOT_COUNT = 6;
+const SLOT_META_PREFIX = "bow_slot_meta_";
 const IDB_NAME = "BoxOfficeWar";
 const IDB_VERSION = 1;
 let _idb = null;
@@ -173,6 +178,104 @@ async function listIDBSlots(){
   });
 }
 
+/* ── v39: rolling safety copies in IndexedDB ──
+   Auto-backups and checkpoints are whole saves, so they never eat the small
+   localStorage budget the six player slots need. Retention is deliberately
+   short: a safety net, not an archive. */
+const BACKUP_PREFIX = "bowbackup:";
+const CHECKPOINT_PREFIX = "bowchk:";
+
+async function deleteFromIDB(id){
+  if(!_idb) await initIDB();
+  if(!_idb) return false;
+  return new Promise(function(resolve){
+    const tx=_idb.transaction("saves","readwrite");
+    tx.objectStore("saves").delete(id);
+    tx.oncomplete=function(){ resolve(true); };
+    tx.onerror=function(){ resolve(false); };
+  });
+}
+
+async function addSafetyCopy(data, opts){
+  opts = opts||{};
+  const kind = opts.kind==="checkpoint" ? "checkpoint" : "backup";
+  const prefix = kind==="checkpoint" ? CHECKPOINT_PREFIX : BACKUP_PREFIX;
+  const id = prefix + Date.now() + ":" + (opts.label||data && data.studio && data.studio.name || "career");
+  const ok = await saveToIDB(id, data);
+  if(!ok) return null;
+  await pruneSafetyCopies(kind, kind==="checkpoint" ? 5 : 8);
+  return id;
+}
+async function listSafetyCopies(kind){
+  if(!_idb) await initIDB();
+  if(!_idb) return [];
+  const prefix = kind==="checkpoint" ? CHECKPOINT_PREFIX : BACKUP_PREFIX;
+  return new Promise(function(resolve){
+    const tx=_idb.transaction("saves","readonly");
+    const req=tx.objectStore("saves").getAll();
+    req.onsuccess=function(){
+      const rows=(req.result||[]).filter(function(r){ return String(r.id).indexOf(prefix)===0; });
+      resolve(rows.map(function(r){
+        const d=r.data||{};
+        return {
+          id:r.id,
+          kind:kind||"backup",
+          timestamp:r.timestamp||0,
+          studio:(d.studio&&d.studio.name)||"Studio",
+          week:d.week||1,
+          cash:Number(d.studio&&d.studio.cash)||0,
+          rep:Number(d.studio&&d.studio.rep)||25,
+          scenario:d.scenario||"standard",
+          difficulty:d.difficulty||"normal"
+        };
+      }).sort(function(a,b){ return b.timestamp-a.timestamp; }));
+    };
+    req.onerror=function(){ resolve([]); };
+  });
+}
+async function pruneSafetyCopies(kind, keep){
+  if(!_idb) await initIDB();
+  if(!_idb) return;
+  const prefix = kind==="checkpoint" ? CHECKPOINT_PREFIX : BACKUP_PREFIX;
+  return new Promise(function(resolve){
+    const tx=_idb.transaction("saves","readwrite");
+    const store=tx.objectStore("saves");
+    const req=store.getAllKeys();
+    req.onsuccess=function(){
+      const keys=(req.result||[]).filter(function(k){ return String(k).indexOf(prefix)===0; }).sort();
+      keys.slice(0, Math.max(0, keys.length-keep)).forEach(function(k){ store.delete(k); });
+      resolve(true);
+    };
+    req.onerror=function(){ resolve(false); };
+  });
+}
+async function restoreSafetyCopy(id){
+  const data=await loadFromIDB(id);
+  if(!data || validateSave(data).length) return null;
+  const migrated=migrateSave(data).save;
+  G=migrated;
+  if(!Number.isFinite(G.slot)) G.slot=1;
+  G.slot=clampSlotNumber(G.slot);
+  if(typeof window !== "undefined") window.G=G;
+  if(typeof global !== "undefined") global.G=G;
+  if(typeof ensureLiveState==="function") ensureLiveState(G);
+  if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+  G.log=log;
+  saveGame();
+  return G;
+}
+function countSafetyCopies(){
+  try{
+    let backups=0, checkpoints=0;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i)||"";
+      if(k.indexOf(BACKUP_PREFIX)===0) backups++;
+      if(k.indexOf(CHECKPOINT_PREFIX)===0) checkpoints++;
+    }
+    return {backups, checkpoints};
+  }catch(e){ return {backups:0, checkpoints:0}; }
+}
+
 function showSaveIndicator(msg){
   const el = $("#saveIndicator");
   if(!el){
@@ -195,14 +298,56 @@ function saveGame(){
     if(typeof StudioLotBridge !== "undefined") StudioLotBridge.persist(G);
     G.v = DATA.SAVE_VERSION||4;
     const raw = JSON.stringify(G); // perf: serialize once, write twice
-    localStorage.setItem(SAVE_KEY, raw);
-    try{ localStorage.setItem("bow_slot"+(G.slot||1), raw); }catch(e){}
+    const slot = clampSlotNumber(G.slot||1);
+    const stamp = Date.now();
+    writeSaveKeys([
+      [SAVE_KEY, raw],
+      ["bow_slot"+slot, raw],
+      [SLOT_META_PREFIX+slot, JSON.stringify(slotMetaRecord(G, raw, stamp))]
+    ]);
     // Named slot
-    if(G.saveName) localStorage.setItem("bow_named_"+G.saveName, raw);
+    if(G.saveName) writeSaveKeys([["bow_named_"+G.saveName, raw]]);
     // IndexedDB sync (async, fire-and-forget)
     if(G.saveName) saveToIDB(G.saveName, G);
+    try{ localStorage.setItem("bow_save_at", String(stamp)); }catch(e){}
     showSaveIndicator("💾 Saved" + (G.saveName?" as "+G.saveName:""));
   }catch(e){}
+}
+/* One quota-aware write path: a big career can fill localStorage, so we try
+   the full write, then drop the oldest named copies, then keep the autosave. */
+function writeSaveKeys(pairs){
+  if(typeof localStorage==="undefined") return false;
+  try{ pairs.forEach(function(p){ localStorage.setItem(p[0], p[1]); }); return true; }
+  catch(e){
+    try{
+      const named=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k && k.indexOf("bow_named_")===0) named.push(k);
+      }
+      named.slice(0, 4).forEach(function(k){ localStorage.removeItem(k); });
+      pairs.forEach(function(p){ try{ localStorage.setItem(p[0], p[1]); }catch(err){} });
+      return true;
+    }catch(err){ return false; }
+  }
+}
+function clampSlotNumber(n){
+  n = Math.round(Number(n)||1);
+  return Math.min(SAVE_SLOT_COUNT, Math.max(1, n));
+}
+function slotMetaRecord(g, raw, stamp){
+  return {
+    label: (g && g.saveLabel) || "",
+    studio: (g && g.studio && g.studio.name) || "",
+    week: (g && g.week) || 1,
+    cash: Number(g && g.studio && g.studio.cash) || 0,
+    rep: Number(g && g.studio && g.studio.rep) || 25,
+    scenario: (g && g.scenario) || "standard",
+    difficulty: (g && g.difficulty) || "normal",
+    sandbox: !!(g && g.sandbox),
+    savedAt: stamp || Date.now(),
+    bytes: raw ? raw.length : 0
+  };
 }
 
 /* ── v28.11: Notifications system ── */
@@ -248,22 +393,6 @@ function notifyCEMOAlert(msg){
   notifyCEMOEvent("cemo_alert", { msg });
 }
 
-function saveGame(){
-  try{
-    if(typeof localStorage==="undefined" || !G) return;
-    if(G._noSave) return;   // v14: a what-if fork never writes over the real run
-    if(typeof StudioLotBridge !== "undefined") StudioLotBridge.persist(G);
-    G.v = DATA.SAVE_VERSION||4;
-    const raw = JSON.stringify(G); // perf: serialize once, write twice
-    localStorage.setItem(SAVE_KEY, raw);
-    try{ localStorage.setItem("bow_slot"+(G.slot||1), raw); }catch(e){}
-    // Named slot
-    if(G.saveName) localStorage.setItem("bow_named_"+G.saveName, raw);
-    // IndexedDB sync (async, fire-and-forget)
-    if(G.saveName) saveToIDB(G.saveName, G);
-    showSaveIndicator("💾 Saved" + (G.saveName?" as "+G.saveName:""));
-  }catch(e){}
-}
 function hasSave(){
   try{ return typeof localStorage!=="undefined" && !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
 }
@@ -285,22 +414,125 @@ function activeSaveMeta(){
     };
   }catch(e){ return null; }
 }
+/* A slot summary for the Save Vault. Never throws: a broken slot comes back
+   as { corrupt:true, problems:[…] } so the UI can offer a repair instead of
+   silently pretending the career never existed. */
 function slotMeta(n){
+  n = clampSlotNumber(n);
+  let raw=null;
+  try{ raw = localStorage.getItem("bow_slot"+n); }catch(e){ return null; }
+  if(!raw) return null;
+  let j=null, problems=null;
+  try{ j=JSON.parse(raw); }catch(e){ return { corrupt:true, problems:["unreadable JSON"], bytes:raw.length, slot:n, name:"Slot "+n }; }
+  problems = validateSave(j);
+  let stored = {};
+  try{ stored = JSON.parse(localStorage.getItem(SLOT_META_PREFIX+n)||"{}") || {}; }catch(e){}
+  const base = {
+    slot: n,
+    name: (j && j.studio && j.studio.name) || (stored.studio) || ("Studio " + n),
+    label: stored.label || (j && j.saveLabel) || "",
+    week: (j && j.week) || stored.week || 1,
+    cash: Number(j && j.studio && j.studio.cash) || Number(stored.cash) || 0,
+    rep: Number(j && j.studio && j.studio.rep) || Number(stored.rep) || 25,
+    scenario: (j && j.scenario) || stored.scenario || "standard",
+    difficulty: (j && j.difficulty) || stored.difficulty || "normal",
+    sandbox: !!((j && j.sandbox) || stored.sandbox),
+    films: j && Array.isArray(j.films) ? j.films.length : 0,
+    franchises: j && Array.isArray(j.franchises) ? j.franchises.length : 0,
+    savedAt: Number(stored.savedAt) || 0,
+    bytes: raw.length,
+    corrupt: problems.length>0,
+    problems: problems.slice(0,4)
+  };
+  return base;
+}
+function slotLabel(n){
+  const m = slotMeta(n);
+  if(!m) return "";
+  return m.label || m.name || "";
+}
+function setSlotLabel(n, label){
+  n = clampSlotNumber(n);
+  const clean = String(label||"").replace(/\s+/g," ").trim().slice(0,32);
+  let meta = {};
+  try{ meta = JSON.parse(localStorage.getItem(SLOT_META_PREFIX+n)||"{}") || {}; }catch(e){}
+  if(!meta.savedAt) meta.savedAt = Date.now();
+  meta.label = clean;
+  try{ localStorage.setItem(SLOT_META_PREFIX+n, JSON.stringify(meta)); }catch(e){ return false; }
+  return true;
+}
+function slotSavedAt(n){
+  try{ return Number(JSON.parse(localStorage.getItem(SLOT_META_PREFIX+clampSlotNumber(n))||"{}").savedAt)||0; }catch(e){ return 0; }
+}
+function slotHealth(n){
+  const raw = (function(){ try{ return localStorage.getItem("bow_slot"+clampSlotNumber(n)); }catch(e){ return null; } })();
+  if(!raw) return { empty:true, problems:[], healthy:true };
+  let j=null;
+  try{ j=JSON.parse(raw); }catch(e){ return { empty:false, healthy:false, problems:["unreadable JSON"], bytes:raw.length }; }
+  const problems = validateSave(j);
+  return { empty:false, healthy:problems.length===0, problems, bytes:raw.length };
+}
+/* Explicitly write the current career into a slot (Save Vault "Save here"). */
+function saveCurrentToSlot(n, label){
+  if(!G) return false;
+  n = clampSlotNumber(n);
+  G.slot = n;
+  if(label!==undefined){ G.saveLabel = String(label||"").slice(0,32); }
+  saveGame();
+  if(label!==undefined) setSlotLabel(n, label);
+  return true;
+}
+function deleteSaveSlot(n){
+  n = clampSlotNumber(n);
   try{
-    const raw = localStorage.getItem("bow_slot"+n);
-    if(!raw) return null;
-    const j=JSON.parse(raw);
-    if(!j || !j.studio) return null;
-    return {
-      name: j.studio.name || ("Studio " + n),
-      week: j.week || 1,
-      cash: Number(j.studio.cash) || 0,
-      rep: Number(j.studio.rep) || 25,
-      scenario: j.scenario || "standard",
-      films: Array.isArray(j.films) ? j.films.length : 0,
-      franchises: Array.isArray(j.franchises) ? j.franchises.length : 0
-    };
-  }catch(e){ return null; }
+    localStorage.removeItem("bow_slot"+n);
+    localStorage.removeItem(SLOT_META_PREFIX+n);
+    return true;
+  }catch(e){ return false; }
+}
+function copySaveSlot(from, to){
+  from = clampSlotNumber(from); to = clampSlotNumber(to);
+  if(from===to) return false;
+  let raw=null;
+  try{ raw = localStorage.getItem("bow_slot"+from); }catch(e){ return false; }
+  if(!raw) return false;
+  let label="";
+  try{ label = JSON.parse(localStorage.getItem(SLOT_META_PREFIX+from)||"{}").label || ""; }catch(e){}
+  try{ localStorage.setItem("bow_slot"+to, raw); }catch(e){ return false; }
+  try{
+    const meta = JSON.parse(localStorage.getItem(SLOT_META_PREFIX+from)||"{}") || {};
+    meta.label = label ? label+" copy" : "";
+    localStorage.setItem(SLOT_META_PREFIX+to, JSON.stringify(meta));
+  }catch(e){}
+  return true;
+}
+function firstEmptySlot(){
+  for(let i=1;i<=SAVE_SLOT_COUNT;i++){
+    try{ if(!localStorage.getItem("bow_slot"+i)) return i; }catch(e){}
+  }
+  return 0;
+}
+function exportSlotCode(n){
+  try{
+    const raw = localStorage.getItem("bow_slot"+clampSlotNumber(n));
+    if(!raw) return "";
+    return btoa(unescape(encodeURIComponent(raw)));
+  }catch(e){ return ""; }
+}
+function importSlotCode(n, code){
+  try{
+    const raw = decodeURIComponent(escape(atob(String(code||"").trim())));
+    const parsed = JSON.parse(raw);
+    if(validateSave(parsed).length) return false;
+    n = clampSlotNumber(n);
+    localStorage.setItem("bow_slot"+n, raw);
+    const meta = JSON.parse(localStorage.getItem(SLOT_META_PREFIX+n)||"{}") || {};
+    meta.savedAt = Date.now();
+    meta.studio = parsed.studio && parsed.studio.name;
+    meta.week = parsed.week;
+    localStorage.setItem(SLOT_META_PREFIX+n, JSON.stringify(meta));
+    return true;
+  }catch(e){ return false; }
 }
 function namedSlotMeta(name){
   try{
@@ -312,7 +544,7 @@ function namedSlotMeta(name){
 }
 async function loadSlot(n){
   try{
-    const raw=localStorage.getItem("bow_slot"+n); if(!raw) return null;
+    const raw=localStorage.getItem("bow_slot"+clampSlotNumber(n)); if(!raw) return null;
     let parsed = JSON.parse(raw);
     const problems = validateSave(parsed);
     if(problems.length){
@@ -320,7 +552,19 @@ async function loadSlot(n){
       return null;
     }
     const { save } = migrateSave(parsed);
-    G = save; G.log=log; saveGame(); return G;
+    G = save;
+    G.slot = clampSlotNumber(n);
+    if(typeof window !== "undefined") window.G = G;
+    if(typeof global !== "undefined") global.G = G;
+    if(typeof ensureLiveState==="function") ensureLiveState(G);
+    if(typeof ensureEmpireState==="function") ensureEmpireState(G);
+    G.log = log;
+    // the loaded career becomes the live autosave, so Continue resumes it
+    saveGame();
+    if(typeof StudioLotBridge !== "undefined" && typeof StudioLotBridge.syncWithGameState === "function"){
+      try{ StudioLotBridge.syncWithGameState(G); }catch(e){}
+    }
+    return G;
   }catch(e){ return null; }
 }
 async function loadNamedSlot(name){
@@ -7535,7 +7779,7 @@ function exportLedgerCSV(){
 /* ── save slot validation & repair ── */
 function repairSaveSlots(){
   const reports = [];
-  for(let i=1; i<=5; i++){
+  for(let i=1; i<=SAVE_SLOT_COUNT; i++){
     const k = "bow_slot"+i;
     try {
       if(typeof localStorage==="undefined") continue;

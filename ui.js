@@ -169,42 +169,64 @@ function motionOK(){
 function applyMotionPref(){
   try{ document.body.classList.toggle("rm-motion", !motionOK()); }catch(e){}
 }
-/* v19: theme system — five FeralUI-designed themes (see style.css v19 block).
-   The accent token set swaps wholesale via body[data-theme]; semantic colors
-   (green/red/blue) stay fixed. Persisted in localStorage like the language. */
+/* ═══════════ v39: THEME STUDIO ═══════════
+   Thirteen looks, each a complete token set: background, panels, lines,
+   accent, button ramp and browser chrome. Dark themes patch the existing
+   v19 blocks; light themes are first-class citizens with their own surface
+   contract in theme-studio.css. Semantic colours (green=hit, red=flop,
+   blue=info) never move, so the ledger reads the same everywhere. */
 let THEME = "gold";
 try{ THEME = localStorage.getItem("bow_theme") || "gold"; }catch(e){}
 const THEMES=[
-  {id:"gold",      name:"Midnight Gold",    a:"#f5b942", b:"#10141f"},
-  {id:"aurora",    name:"Aurora Night",     a:"#4dd6e8", b:"#0f1822"},
-  {id:"violet",    name:"Violet Premiere",  a:"#b28fce", b:"#151027"},
-  {id:"carpet",    name:"Red Carpet",       a:"#f09199", b:"#1e1114"},
-  {id:"silver",    name:"Silver Screen",    a:"#c9ccd1", b:"#15171a"},
-  {id:"cyberpunk", name:"Neon Cyberpunk",   a:"#00f0ff", b:"#070a14"},
-  {id:"noir",      name:"1920s Film Noir",  a:"#d4af37", b:"#120f0c"},
-  {id:"slate",     name:"Titanium Slate",   a:"#94a3b8", b:"#090d14"},
-  {id:"emerald",   name:"Studio Emerald",   a:"#10b981", b:"#06130d"},
+  {id:"gold",      name:"Midnight Gold",   mode:"dark",  group:"Cinema",   a:"#f5b942", b:"#131826", c:"#ffd479", chrome:"#0b0e14", blurb:"The house look: premiere gold on midnight navy."},
+  {id:"aurora",    name:"Aurora Night",    mode:"dark",  group:"Cinema",   a:"#4dd6e8", b:"#0f1822", c:"#a2d7dd", chrome:"#0a0f15", blurb:"Samurai-indigo depths with a cold aurora rim."},
+  {id:"violet",    name:"Violet Premiere", mode:"dark",  group:"Cinema",   a:"#b28fce", b:"#161027", c:"#cfc0ea", chrome:"#0d0b16", blurb:"Opening-night purple, quiet and expensive."},
+  {id:"carpet",    name:"Red Carpet",      mode:"dark",  group:"Cinema",   a:"#f09199", b:"#1e1114", c:"#f5b1aa", chrome:"#120b0c", blurb:"Maroon velvet and rose spotlights."},
+  {id:"silver",    name:"Silver Screen",   mode:"dark",  group:"Cinema",   a:"#c9ccd1", b:"#15171a", c:"#eceef1", chrome:"#0b0c0e", blurb:"Classic monochrome — a 35mm print in the dark."},
+  {id:"cyberpunk", name:"Neon Cyberpunk",  mode:"dark",  group:"Neon",     a:"#00f0ff", b:"#0f1730", c:"#ff007f", chrome:"#070a14", blurb:"Laser grid, magenta and cyan. Loud on purpose."},
+  {id:"noir",      name:"1920s Film Noir", mode:"dark",  group:"Cinema",   a:"#d4af37", b:"#201a14", c:"#e6cf7a", chrome:"#120f0c", blurb:"Sepia smoke, brass fixtures, a typewriter desk."},
+  {id:"slate",     name:"Titanium Slate",  mode:"dark",  group:"Studio",   a:"#94a3b8", b:"#131a26", c:"#cbd5e1", chrome:"#090d14", blurb:"Executive minimalism. Nothing decorative."},
+  {id:"emerald",   name:"Studio Emerald",  mode:"dark",  group:"Studio",   a:"#10b981", b:"#0f271c", c:"#6ee7b7", chrome:"#06130d", blurb:"Beverly Hills money: deep green and mint."},
+  {id:"ember",     name:"Ember Cut",       mode:"dark",  group:"Neon",     a:"#ff8a4c", b:"#1a1210", c:"#c2410c", chrome:"#140d0b", blurb:"Copper embers on smoked oak — late-night editing."},
+  {id:"daylight",  name:"Studio Daylight", mode:"light", group:"Daylight", a:"#b8862b", b:"#f7f2e7", c:"#8a6416", chrome:"#f7f2e7", blurb:"Warm paper and ink. The studio at nine a.m."},
+  {id:"blueprint", name:"Blueprint Draft", mode:"light", group:"Daylight", a:"#2f6ea5", b:"#eef3f8", c:"#1d4e79", chrome:"#eef3f8", blurb:"Drafting-table blues, crisp cyan rules."},
+  {id:"newsprint", name:"Newsprint",       mode:"light", group:"Daylight", a:"#a03a2a", b:"#f4efe3", c:"#7d2a1d", chrome:"#f4efe3", blurb:"Trade-paper cream with a red-ink headline."}
 ];
+function themeDef(id){
+  return THEMES.find(function(t){ return t.id===id; }) || THEMES[0];
+}
+/* Applies a look in place: body attribute, browser chrome, stored preference,
+   appearance extras. The Settings dialog never has to close to show it. */
 function applyTheme(t){
   if(t) THEME=t;
   if(!THEMES.some(x=>x.id===THEME)) THEME="gold";
+  const def=themeDef(THEME);
   try{
     if(THEME==="gold") delete document.body.dataset.theme;
     else document.body.dataset.theme = THEME;
+    document.body.dataset.themeMode = def.mode;
+    document.documentElement.dataset.themeMode = def.mode;
   }catch(e){}
   try{
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if(metaTheme){
-      const colors = {
-        gold:"#0b0e14", aurora:"#0a0f15", violet:"#0d0b16", carpet:"#120b0c",
-        silver:"#0b0c0e", cyberpunk:"#070a14", noir:"#120f0c", slate:"#090d14", emerald:"#06130d"
-      };
       const welcome=document.getElementById('startScreen');
       const onWelcome=welcome && welcome.style.display!=='none';
-      metaTheme.setAttribute("content", onWelcome?'#181b1e':(colors[THEME] || "#0b0e14"));
+      metaTheme.setAttribute("content", onWelcome?'#181b1e':(def.chrome || "#0b0e14"));
     }
   }catch(e){}
   try{ localStorage.setItem("bow_theme", THEME); }catch(e){}
+  try{ if(window.SettingsStudio && SettingsStudio.applyAppearance) SettingsStudio.applyAppearance(); }catch(e){}
+  try{ document.dispatchEvent(new CustomEvent("bow:theme", { detail:{ id:THEME, mode:def.mode } })); }catch(e){}
+}
+/* v39: the text scale was remembered but never restored at boot. */
+function applyFontPref(){
+  try{
+    const raw=parseFloat(localStorage.getItem("bow_font")||"15px");
+    const px=Math.min(20, Math.max(12, Number.isFinite(raw)?raw:15));
+    document.documentElement.style.fontSize=px+"px";
+    return px;
+  }catch(e){ return 15; }
 }
 function confetti(opts){
   opts = opts||{};
@@ -704,6 +726,10 @@ window.addEventListener("DOMContentLoaded", ()=>{
     newGame(archSel, nm, {scenario:SEL.scenario, difficulty:SEL.difficulty, sandbox:SEL.sandbox, slot:SEL.slot, legacy:SEL.legacy});
     enterApp(true);
   };
+  try{
+    const wantSlot = parseInt(localStorage.getItem("bow_start_slot")||"0",10);
+    if(wantSlot>=1 && wantSlot<=SAVE_SLOT_COUNT){ SEL.slot = wantSlot; localStorage.removeItem("bow_start_slot"); }
+  }catch(e){}
   try{ buildStartOptions(); }catch(e){ console.warn("start options", e); }
   // topbar
   $("#btnWeek").onclick=()=>{ doWeek(1); };
@@ -737,6 +763,8 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $$(".tab,.btab").forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   try{ applyChromeLang(); }catch(e){}
   applyMotionPref();
+  applyFontPref();          // v39: restore the saved text scale
+  try{ SettingsStudio.applyAppearance(); }catch(e){}   // v39: theme extras
   applyTheme();
   installGestures();   // v5: swipe tabs + pull-to-advance on mobile
   // keyboard shortcuts
@@ -1151,6 +1179,7 @@ function playSfx(){
 function afterTick(){
   flashes(G.flash);
   playSfx();
+  try{ if(window.SettingsStudio) SettingsStudio.maybeAutoBackup(); }catch(e){}   // v39: safety copies
   tutTrack();      // v5 tutorial
   render();
   if(G.pendingEarnings) earningsModal();
@@ -10037,6 +10066,22 @@ function achievementsModal(){
   });
 }
 
+/* v39: short relative timestamps for slot cards ("3h ago", "2d ago"). */
+function relTimeShort(ts){
+  const s=Math.max(0, Math.round((Date.now()-Number(ts||0))/1000));
+  if(s<60) return "just now";
+  if(s<3600) return Math.round(s/60)+"m ago";
+  if(s<86400) return Math.round(s/3600)+"h ago";
+  return Math.round(s/86400)+"d ago";
+}
+/* v39: Save Vault "New career" on a slot — hand the choice to the start screen. */
+function startNewCareerInSlot(n){
+  try{ saveGame(); }catch(e){}
+  try{ if(AUTO) toggleAuto(false); }catch(e){}
+  try{ localStorage.setItem("bow_start_slot", String(clampSlotNumber(n))); }catch(e){}
+  try{ closeModal(); }catch(e){}
+  location.reload();
+}
 function buildStartOptions(){
   const wrap=$("#startOptions"); if(!wrap) return;
   let h="<label class='field-label' id='fieldScenario'>"+t("start.scenario")+"</label><div class='scen-row'>";
@@ -10063,21 +10108,22 @@ function buildStartOptions(){
   h+="<div class='start-sandbox-wrap'><label class='sandbox-lbl'><input type='checkbox' id='chkSandbox'"+(SEL.sandbox?" checked":"")+"> Creative Sandbox Mode (Infinite Cash, No Bankruptcy, Instant Experimentation)</label></div>";
 
   h+="<label class='field-label'>"+t("start.slot")+"</label><div class='start-slot-grid' id='slotRow'>";
-  for(let n=1;n<=3;n++){
+  for(let n=1;n<=SAVE_SLOT_COUNT;n++){
     const m=slotMeta(n);
     const isSel = (SEL.slot === n);
     h+="<div class='start-slot-card"+(isSel?" sel":"")+"' data-slot='"+n+"' role='button' tabindex='0'>"+
       "<div class='slot-header'>"+
         "<span class='slot-num'>Slot "+n+"</span>"+
-        "<span class='slot-status-pill "+(m?"occupied":"empty")+"'>"+(m?"Active Studio":"Empty Lot")+"</span>"+
+        "<span class='slot-status-pill "+(m?(m.corrupt?"corrupt":"occupied"):"empty")+"'>"+(m?(m.corrupt?"Needs repair":"Saved Career"):"Empty Lot")+"</span>"+
       "</div>";
     if(m){
-      h+="<div class='slot-studio-name'>"+esc(m.name)+"</div>"+
+      h+="<div class='slot-studio-name'>"+esc(m.label||m.name)+"</div>"+
         "<div class='slot-meta-row'>"+
           "<span class='slot-date'>"+dateLabel(m.week)+"</span>"+
           "<span class='slot-cash'>"+fmtM(m.cash)+"</span>"+
           "<span class='slot-rep'>Rep "+m.rep+"</span>"+
-        "</div>";
+        "</div>"+
+        (m.savedAt?("<div class='slot-saved tiny'>saved "+relTimeShort(m.savedAt)+"</div>"):"");
     } else {
       h+="<div class='slot-empty-title'>Empty Lot</div>"+
         "<div class='slot-empty-sub'>Ready for launch</div>";
@@ -10231,11 +10277,14 @@ function settingsModal(){
     "<button class='btn btn-sm "+(stEnabled?"btn-primary":"btn-alt")+"' id='sndMusicToggle'>"+(stEnabled?"Music ON":"Music OFF")+"</button>"+
     "<button class='btn btn-sm "+(Date.now()<MUTE_UNTIL?"btn-primary":"btn-alt")+"' id='sndMuteToggle'>"+(Date.now()<MUTE_UNTIL?"Muted (10m)":"Mute 10m")+"</button></div></div>"+
     "<div class='tiny muted' style='margin-top:4px'>Synthesized mood soundscapes adapt in real time to studio fortunes. Zero audio files required.</div></div>";
-  /* v19: theme picker — five FeralUI-designed themes */
-  h+="<div class='card'><div class='spread'><b>🎨 Theme</b><div class='row'>"+
-    THEMES.map(th=>"<button class='btn btn-sm theme-swatch"+(THEME===th.id?" btn-primary":"")+"' data-theme='"+th.id+"'>"+
-      "<span class='theme-dot' style='background:"+th.a+"'></span><span class='theme-dot' style='background:"+th.b+"'></span>"+th.name+"</button>").join("")+"</div></div>"+
-    "<div class='tiny muted' style='margin-top:4px'>Five looks designed in the FeralUI gradient studio — the accent, panels, glows and buttons all follow. Your pick is remembered per device.</div></div>";
+  /* v39: Theme Studio - 13 complete looks + appearance extras */
+  try{
+    h+=SettingsStudio.themeGalleryHTML();
+  }catch(e){
+    h+="<div class='card'><b>Theme</b><div class='row'>"+
+      THEMES.map(th=>"<button class='btn btn-sm theme-swatch"+(THEME===th.id?" btn-primary":"")+"' data-theme='"+th.id+"'>"+
+        "<span class='theme-dot' style='background:"+th.a+"'></span><span class='theme-dot' style='background:"+th.b+"'></span>"+th.name+"</button>").join("")+"</div></div>";
+  }
   /* v5: accessibility / feel */
   h+="<div class='card'><div class='spread'><b>🎞 Animations</b><div class='row'>"+
     ["auto","on","off"].map(m=>"<button class='btn btn-sm "+((MOTION||"auto")===m?"btn-primary":"")+"' data-motion='"+m+"'>"+({auto:"Auto",on:"On",off:"Off"})[m]+"</button>").join("")+
@@ -10263,37 +10312,17 @@ function settingsModal(){
   h+="<div class='card'><div class='spread'><b>🏛 Studio name</b></div>"+
     "<div class='row' style='margin-top:8px'><input id='stName' type='text' maxlength='26' value='"+esc(G.studio.name)+"' style='flex:1;min-width:0;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:10px;padding:9px 11px;font-size:14px'>"+
     "<button class='btn btn-sm btn-alt' id='stNameSave'>Save</button></div></div>";
-  h+="<div class='card'><div class='spread'><b>"+t("set.saves")+"</b></div>"+
-    "<div class='row' style='margin-top:8px'><button class='btn btn-sm btn-alt' id='btnExport'>"+t("set.export")+"</button>"+
-    "<button class='btn btn-sm btn-alt' id='btnImport'>"+t("set.import")+"</button></div>"+
-    "<textarea id='saveCode' rows='3' placeholder='paste an import code here…' style='width:100%;margin-top:8px;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:10px;padding:8px;font-size:11px'></textarea>"+
-    "<div class='row' style='margin-top:8px'><span class='small muted'>"+t("set.slot")+":</span>"+
-    [1,2,3].map(n=>{
-      const meta = slotMeta(n);
-      const label = meta ? meta.name : ("Slot "+n);
-      return "<div class='row' style='margin:4px 0;align-items:center;gap:6px'>"+
-        "<button class='btn btn-sm "+((G.slot||1)===n?"btn-primary":"")+"' data-saveslot='"+n+"' style='min-width:70px'>Slot "+n+"</button>"+
-        "<input type='text' value='"+esc(label)+"' data-slotname='"+n+"' placeholder='rename…' style='flex:1;max-width:160px;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:4px 8px;font-size:11px'>"+
-        "<button class='btn btn-xs btn-ghost' data-delslot='"+n+"' title='Wipe slot "+n+"'>🗑️</button>"+
-      "</div>";
-    }).join("")+"</div>"+
-    "<div class='section-title' style='margin-top:12px'>Named careers &amp; device backups</div>"+
-    "<div class='card' style='margin-top:4px'>"+
-      "<div class='row' style='gap:6px;margin-bottom:8px'>"+
-        "<input id='saveNameInput' type='text' placeholder='Save name (e.g. my-career)' style='flex:1;background:#0d1119;border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px'>"+
-        "<button class='btn btn-sm btn-primary' id='btnSaveNamed'>☁️ Save Named</button>"+
-      "</div>"+
-      "<div id='namedSlotsList' style='margin-top:8px'></div>"+
-      "<div class='row' style='margin-top:8px;gap:6px'>"+
-        "<button class='btn btn-sm btn-alt' id='btnSyncIDB'>Back up on device</button>"+
-        "<button class='btn btn-sm btn-alt' id='btnListIDB'>List device backups</button>"+
-      "</div>"+
-    "</div>"+
-    "<div class='row' style='margin-top:10px;gap:6px;flex-wrap:wrap'>"+
-      "<button class='btn btn-sm btn-alt' id='btnRepairSlots'>🔧 Repair Save Slots</button>"+
-      "<button class='btn btn-sm btn-alt' id='btnAboutChangelog'>📜 Changelog</button>"+
-      "<button class='btn btn-sm btn-ghost' id='btnResetSettings'>⚠️ Reset Settings</button>"+
-    "</div></div>";
+  /* v39: Save Vault - six named careers, safety copies, integrity checks */
+  try{
+    h+=SettingsStudio.saveVaultHTML();
+  }catch(e){
+    h+="<div class='card'><b>"+t("set.saves")+"</b><textarea id='saveCode' rows='2'></textarea></div>";
+  }
+  h+="<div class='card'><div class='spread'><b>Maintenance</b><div class='row' style='gap:6px;flex-wrap:wrap'>"+
+    "<button class='btn btn-sm btn-alt' id='btnRepairSlots'>Repair save slots</button>"+
+    "<button class='btn btn-sm btn-alt' id='btnAboutChangelog'>Changelog</button>"+
+    "<button class='btn btn-sm btn-ghost' id='btnResetSettings'>Reset settings</button></div></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Repair rebuilds missing structures inside damaged slots. Reset settings touches preferences only - never a saved career.</div></div>";
   /* Cast & Talent Unlocks */
   h+="<div class='card'><div class='spread'><b>Cast &amp; Talent Unlocks</b>"+
     "<button class='btn btn-sm btn-primary' id='btnUnlockAllCastSettings' style='background:#f5c518;color:#0f172a;font-weight:bold'>Unlock All Cast</button></div>"+
@@ -10302,6 +10331,11 @@ function settingsModal(){
     "<button class='btn btn-primary' onclick='closeModal()'>"+t("btn.close")+"</button></div>";
   const v=openModal(settingsWorkspaceHTML(h));
   wireSettingsWorkspace(v);
+  /* v39: Theme Studio + Save Vault bind in place, so every change shows
+     immediately and the dialog stays open. */
+  try{ SettingsStudio.bindThemeGallery(v.querySelector(".theme-studio") || v); }catch(e){}
+  try{ SettingsStudio.bindSaveVault(v.querySelector("#saveVault") || v); }catch(e){}
+  try{ SettingsStudio.applyAppearance(); }catch(e){}
   const btnUac=v.querySelector("#btnUnlockAllCastSettings");
   if(btnUac) btnUac.onclick=()=>{ if(typeof unlockAllCast==="function") unlockAllCast(); beep("gold"); closeModal(); if(typeof render==="function") render(); };
   v.querySelector("#langEn").onclick=()=>{ setLang("en"); beep("click"); closeModal(); settingsModal(); render(); };
@@ -10340,7 +10374,7 @@ function settingsModal(){
   };
   v.querySelector("#btnTestMotion").onclick=()=>{ confetti({count:60}); beep("gold"); };
   v.querySelectorAll("[data-motion]").forEach(b=>b.onclick=()=>{ MOTION=b.dataset.motion; localStorage.setItem("bow_motion",MOTION); applyMotionPref(); beep("click"); closeModal(); settingsModal(); });
-  v.querySelectorAll("[data-theme]").forEach(b=>b.onclick=()=>{ applyTheme(b.dataset.theme); beep("click"); closeModal(); settingsModal(); });   // v19 theme picker
+  /* v39: the theme gallery owns [data-theme] clicks; nothing closes here. */
   v.querySelectorAll("[data-cb]").forEach(b=>b.onclick=()=>{ setCB(b.dataset.cb==="1"); beep("click"); closeModal(); settingsModal(); });   // v31 color-blind cues
   try{ bindPWAInstall(v); }catch(e){}   // v31 PWA install card
   v.querySelector("#btnPrivacy").onclick=()=>{ beep("click"); privacyModal(); };
@@ -10348,32 +10382,18 @@ function settingsModal(){
   v.querySelectorAll("[data-wksum]").forEach(b=>b.onclick=()=>{ localStorage.setItem("bow_wksum",b.dataset.wksum); beep("click"); closeModal(); settingsModal(); });
   const stn=v.querySelector("#stNameSave");
   if(stn) stn.onclick=()=>{ if(renameStudio(v.querySelector("#stName").value)){ beep("gold"); toast("🏛 Studio renamed","good"); closeModal(); settingsModal(); render(); } };
-  v.querySelector("#btnExport").onclick=()=>{
-    const ta=v.querySelector("#saveCode"); ta.value=exportCode(); ta.select();
-    try{ navigator.clipboard&&navigator.clipboard.writeText(ta.value); }catch(e){}
-    toast("Save code ready — copy it somewhere safe.","good");
-  };
-  v.querySelector("#btnImport").onclick=()=>{
-    const code=v.querySelector("#saveCode").value;
-    if(importCode(code)){ toast("Save imported!","good"); closeModal(); render(); }
-    else toast("That code didn't parse.","bad");
-  };
-  v.querySelectorAll("[data-saveslot]").forEach(b=>b.onclick=()=>{
-    G.slot=+b.dataset.saveslot; saveGame(); beep("click"); toast("Saved to slot "+G.slot,"good"); closeModal(); settingsModal();
-  });
-  v.querySelectorAll("[data-delslot]").forEach(b=>b.onclick=()=>{
-    const n=+b.dataset.delslot;
-    try{ localStorage.removeItem("bow_slot"+n); }catch(e){}
-    beep("click"); toast("Slot "+n+" wiped.","good"); closeModal(); settingsModal();
-  });
+  /* v39: code export/import and the six career slots live in the Save Vault
+     (settings-studio.js). Nothing to bind here. */
   v.querySelector("#btnRepairSlots").onclick=()=>{
     if(typeof repairSaveSlots==="function") repairSaveSlots();
-    beep("gold"); toast("Save slots verified & repaired.","good"); closeModal(); settingsModal();
+    beep("gold"); toast("Save slots verified & repaired.","good");
+    try{ SettingsStudio.refreshVault(v); }catch(e){}
   };
   v.querySelector("#btnAboutChangelog").onclick=()=>{
     closeModal(); changelogModal();
   };
   v.querySelector("#btnResetSettings").onclick=()=>{
+    if(!confirm("Reset language, theme, appearance and feedback preferences? Saved careers are untouched.")) return;
     try{
       localStorage.removeItem("bow_lang");
       localStorage.removeItem("bow_font");
@@ -10382,72 +10402,20 @@ function settingsModal(){
       localStorage.removeItem("bow_hap");
       localStorage.removeItem("bow_wksum");
       localStorage.removeItem("bow_mute_until");
+      localStorage.removeItem("bow_cb");
     }catch(e){}
+    try{ SettingsStudio.resetAppearance(); }catch(e){}
     setFont(15); setLang("en"); applyTheme("gold"); MOTION="auto"; HAPTICS=true; MUTE_UNTIL=0;
-    toast("Settings reset to defaults.","good"); closeModal(); settingsModal(); render();
+    try{ setCB(true); }catch(e){}
+    toast("Settings reset to defaults. Careers are safe.","good"); closeModal(); settingsModal(); render();
   };
-  v.querySelectorAll("[data-slotname]").forEach(inp=>inp.onblur=()=>{
-    const n=+inp.dataset.slotname;
-    const raw=localStorage.getItem("bow_slot"+n);
-    if(raw){
-      const j=JSON.parse(raw);
-      j.studio.name = inp.value.trim().slice(0,26);
-      localStorage.setItem("bow_slot"+n, JSON.stringify(j));
-    }
-  });
+  /* v39: slot labels are stored beside each slot (setSlotLabel), never by
+     rewriting the saved career. */
   v.querySelector("#btnToMenu").onclick=()=>{ saveGame(); if(AUTO)toggleAuto(false); location.reload(); };
 
-  // Named slots handlers
-  v.querySelector("#btnSaveNamed").onclick=async()=>{
-    const name = v.querySelector("#saveNameInput").value.trim();
-    if(!name){ toast("Enter a save name.","bad"); return; }
-    G.saveName = name.slice(0,30);
-    saveGame();
-    beep("gold");
-    toast("☁️ Saved as \""+G.saveName+"\"","good");
-    closeModal(); settingsModal();
-  };
-  v.querySelector("#btnSyncIDB").onclick=async()=>{
-    if(!G.saveName){ toast("Save a named slot first.","bad"); return; }
-    beep("click");
-    const ok = await saveToIDB(G.saveName, G);
-    toast(ok?"Backed up on this device":"Device backup failed (private mode?)", ok?"good":"bad");
-  };
-  v.querySelector("#btnListIDB").onclick=async()=>{
-    beep("click");
-    const list = await listIDBSlots();
-    const el = v.querySelector("#namedSlotsList");
-    if(!list.length){ el.innerHTML = "<div class='tiny muted'>No device backups yet.</div>"; return; }
-    el.innerHTML = list.map(s=>"<div class='cost-line'><span>☁️ "+esc(s.id)+"</span><b class='tiny muted'>"+new Date(s.timestamp).toLocaleString()+"</b></div>").join("");
-  };
-  // Render named slots list on open
-  (async()=>{
-    const named = [];
-    for(let i=0;i<localStorage.length;i++){
-      const k = localStorage.key(i);
-      if(k?.startsWith("bow_named_")) named.push(k.replace("bow_named_",""));
-    }
-    const el = v.querySelector("#namedSlotsList");
-    if(!named.length){ el.innerHTML = "<div class='tiny muted'>No named slots yet. Create one above.</div>"; return; }
-    el.innerHTML = named.map(n=>{
-      const m = namedSlotMeta(n);
-      return "<div class='cost-line'><span>☁️ "+esc(m.saveName)+"</span>"+
-        "<button class='btn btn-xs btn-alt' data-loadnamed='"+esc(n)+"'>Load</button>"+
-        "<button class='btn xs btn-ghost' data-delnamed='"+esc(n)+"'>🗑️</button></div>";
-    }).join("");
-    v.querySelectorAll("[data-loadnamed]").forEach(b=>b.onclick=async()=>{
-      beep("click");
-      await loadNamedSlot(b.dataset.loadnamed);
-      closeModal(); render();
-    });
-    v.querySelectorAll("[data-delnamed]").forEach(b=>b.onclick=async()=>{
-      beep("click");
-      localStorage.removeItem("bow_named_"+b.dataset.delnamed);
-      closeModal(); settingsModal();
-    });
-  })();
+  /* v39: named device backups now appear in the Save Vault list, and every
+     old handler for the retired controls is gone. */
 }
-
 function startSpinoff(fr){
   const idea={ id:nid(), genre:DATA.GENRES[fr.genre]?fr.genre:"action", scale:"mid", title:"(spin-off)",
     blurb:"A cheaper ride on the "+fr.name+" heat.", script:rint(55,78), hot:true, spinoffFr:fr, awareness:0 };

@@ -45,3 +45,6 @@ test-results/
 
 # Generated browser captures; explicitly selected references may be force-added.
 /screenshots/
+
+# generated visual-harness page
+.harness.html

@@ -1,0 +1,951 @@
+/* ═════════════════════════════════════════════════════════════════════════
+   THEME-STUDIO.CSS — v39 theme contract, appearance preferences & the
+   Settings workspaces (Theme Studio + Save Vault).
+   -------------------------------------------------------------------------
+   HOW THEMING WORKS NOW
+   1. command-deck.css carries a generated palette-token block. Every colour
+      literal in the management deck is a --cd-t<hex> token whose default is
+      that exact literal, so the classic green deck renders byte-identically.
+   2. Each theme below publishes a small role palette (--ts-*): surfaces,
+      lines, inks, accent ramp, semantics, paper. One generated rule
+      (bottom of this file) points every deck token at a role.
+   3. The base app shell (topbar, tabs, cards, modals, buttons, inputs)
+      follows --bg/--card/--line/--text/--gold as before. Daylight themes add
+      the light-surface contract at the end of this file.
+   4. Settings → Theme Studio writes bow_theme and applies instantly; the
+      Save Vault never closes the dialog to show you a result.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. ROLE DEFAULTS (Midnight Gold keeps the classic green deck) ─────── */
+:root{
+  --ts-panel-0:#102720; --ts-panel-1:#1b312b; --ts-panel-2:#2c4038;
+  --ts-line-0:#435e49; --ts-line-1:#52694f;
+  --ts-ink-0:#f3e8cc; --ts-ink-1:#e4dfc3; --ts-ink-muted-0:#a9bda9; --ts-ink-muted-1:#93a692;
+  --ts-accent:#edc47c; --ts-accent-hi:#f3d597; --ts-accent-dim:#b48c42; --ts-accent-deep:#8a7748;
+  --ts-success:#b6dba8; --ts-danger:#e9a99a; --ts-info:#a9c2d8; --ts-purple:#c3b4e6;
+  --ts-paper:#e8d9b9; --ts-paper-ink:#263732; --ts-paper-ink-muted:#6e6044;
+  --ts-shadow:rgba(0,0,0,.55); --ts-on-accent:#0a0d12;
+}
+
+/* ── 2. THEME ROLE PALETTES ─────────────────────────────────────────────
+   Each theme states surfaces (dark→raised), hairlines, three ink levels,
+   a four-stop accent ramp, semantics, and one paper surface. */
+body[data-theme="aurora"]{
+  --ts-panel-0:#0a0f15; --ts-panel-1:#0f1822; --ts-panel-2:#12202b;
+  --ts-line-0:#1b2f3d; --ts-line-1:#28475a;
+  --ts-ink-0:#eaf7fa; --ts-ink-1:#d9eef3; --ts-ink-muted-0:#9fb6c0; --ts-ink-muted-1:#7d959f;
+  --ts-accent:#4dd6e8; --ts-accent-hi:#a2d7dd; --ts-accent-dim:#2c97a8; --ts-accent-deep:#155e75;
+  --ts-success:#5ce0a0; --ts-danger:#ff7a86; --ts-info:#7fb8ff; --ts-purple:#c6a3ef;
+  --ts-paper:#102a33; --ts-paper-ink:#eaf7fa; --ts-paper-ink-muted:#9fc4cd;
+}
+body[data-theme="violet"]{
+  --ts-panel-0:#0d0b16; --ts-panel-1:#161027; --ts-panel-2:#1b1433;
+  --ts-line-0:#2a2140; --ts-line-1:#3d3058;
+  --ts-ink-0:#f2ecfa; --ts-ink-1:#e4dbf2; --ts-ink-muted-0:#a99fbd; --ts-ink-muted-1:#8a80a1;
+  --ts-accent:#b28fce; --ts-accent-hi:#cfc0ea; --ts-accent-dim:#8a6cab; --ts-accent-deep:#4a2f6e;
+  --ts-success:#6fdc9e; --ts-danger:#ff7f8e; --ts-info:#8fb4ff; --ts-purple:#d3a4ff;
+  --ts-paper:#231a39; --ts-paper-ink:#f2ecfa; --ts-paper-ink-muted:#b4a6cd;
+}
+body[data-theme="carpet"]{
+  --ts-panel-0:#120b0c; --ts-panel-1:#1e1114; --ts-panel-2:#251519;
+  --ts-line-0:#3a2126; --ts-line-1:#553039;
+  --ts-ink-0:#f9eeee; --ts-ink-1:#eedcdc; --ts-ink-muted-0:#c1a3a6; --ts-ink-muted-1:#a0848a;
+  --ts-accent:#f09199; --ts-accent-hi:#f5b1aa; --ts-accent-dim:#d9616b; --ts-accent-deep:#7e3a42;
+  --ts-success:#58d69a; --ts-danger:#ff6f7d; --ts-info:#87b0f0; --ts-purple:#c79aea;
+  --ts-paper:#2c1418; --ts-paper-ink:#f9eeee; --ts-paper-ink-muted:#cdaaad;
+}
+body[data-theme="silver"]{
+  --ts-panel-0:#0b0c0e; --ts-panel-1:#15171a; --ts-panel-2:#1b1e23;
+  --ts-line-0:#26292f; --ts-line-1:#3a3f48;
+  --ts-ink-0:#f4f6f8; --ts-ink-1:#dfe3e7; --ts-ink-muted-0:#aab0b8; --ts-ink-muted-1:#8b9199;
+  --ts-accent:#c9ccd1; --ts-accent-hi:#eceef1; --ts-accent-dim:#9aa0a8; --ts-accent-deep:#565b64;
+  --ts-success:#63d49b; --ts-danger:#f27a85; --ts-info:#8ab4e8; --ts-purple:#b9a6e0;
+  --ts-paper:#22252a; --ts-paper-ink:#f4f6f8; --ts-paper-ink-muted:#b0b6be;
+}
+body[data-theme="cyberpunk"]{
+  --ts-panel-0:#070a14; --ts-panel-1:#0f1730; --ts-panel-2:#172244;
+  --ts-line-0:#1f2f5c; --ts-line-1:#334d94;
+  --ts-ink-0:#e9fbff; --ts-ink-1:#d2ecff; --ts-ink-muted-0:#9db2cc; --ts-ink-muted-1:#7a90ad;
+  --ts-accent:#00f0ff; --ts-accent-hi:#70f7ff; --ts-accent-dim:#00a7b4; --ts-accent-deep:#00646c;
+  --ts-success:#39ffa1; --ts-danger:#ff3d8b; --ts-info:#4da3ff; --ts-purple:#ff5ce0;
+  --ts-paper:#0b2135; --ts-paper-ink:#e9fbff; --ts-paper-ink-muted:#8dc3d8;
+}
+body[data-theme="noir"]{
+  --ts-panel-0:#120f0c; --ts-panel-1:#201a14; --ts-panel-2:#2a231b;
+  --ts-line-0:#3d3328; --ts-line-1:#57493a;
+  --ts-ink-0:#f6ecdb; --ts-ink-1:#e9dcc4; --ts-ink-muted-0:#bfae92; --ts-ink-muted-1:#a08e73;
+  --ts-accent:#d4af37; --ts-accent-hi:#e6cf7a; --ts-accent-dim:#a8871f; --ts-accent-deep:#69561a;
+  --ts-success:#9dc47a; --ts-danger:#dd7b62; --ts-info:#8fa8bf; --ts-purple:#b49bd0;
+  --ts-paper:#2a2218; --ts-paper-ink:#f6ecdb; --ts-paper-ink-muted:#c4b294;
+}
+body[data-theme="slate"]{
+  --ts-panel-0:#090d14; --ts-panel-1:#131a26; --ts-panel-2:#1a2333;
+  --ts-line-0:#243044; --ts-line-1:#364763;
+  --ts-ink-0:#eef2f7; --ts-ink-1:#dbe3ee; --ts-ink-muted-0:#a7b4c4; --ts-ink-muted-1:#8797ab;
+  --ts-accent:#94a3b8; --ts-accent-hi:#cbd5e1; --ts-accent-dim:#6b7c92; --ts-accent-deep:#475569;
+  --ts-success:#4fd39a; --ts-danger:#f57e84; --ts-info:#7fb0e8; --ts-purple:#b3a3e0;
+  --ts-paper:#1c2532; --ts-paper-ink:#eef2f7; --ts-paper-ink-muted:#a9b6c6;
+}
+body[data-theme="emerald"]{
+  --ts-panel-0:#06130d; --ts-panel-1:#0f271c; --ts-panel-2:#153426;
+  --ts-line-0:#1e4835; --ts-line-1:#2d6a4f;
+  --ts-ink-0:#eaf8f1; --ts-ink-1:#d3edde; --ts-ink-muted-0:#9dbcb0; --ts-ink-muted-1:#7d9c90;
+  --ts-accent:#10b981; --ts-accent-hi:#6ee7b7; --ts-accent-dim:#0b8f63; --ts-accent-deep:#065f46;
+  --ts-success:#34d399; --ts-danger:#f87171; --ts-info:#60a5fa; --ts-purple:#a78bfa;
+  --ts-paper:#0e2a20; --ts-paper-ink:#eaf8f1; --ts-paper-ink-muted:#9dc4b3;
+}
+body[data-theme="ember"]{
+  --ts-panel-0:#140d0b; --ts-panel-1:#1a1210; --ts-panel-2:#241713;
+  --ts-line-0:#3a2118; --ts-line-1:#55301f;
+  --ts-ink-0:#fbeee5; --ts-ink-1:#f0dcd0; --ts-ink-muted-0:#c4a596; --ts-ink-muted-1:#a1857a;
+  --ts-accent:#ff8a4c; --ts-accent-hi:#ffb27a; --ts-accent-dim:#d2691e; --ts-accent-deep:#7c3a12;
+  --ts-success:#7ed69a; --ts-danger:#ff6f61; --ts-info:#82b1e8; --ts-purple:#d29ae0;
+  --ts-paper:#2b1a12; --ts-paper-ink:#fbeee5; --ts-paper-ink-muted:#c8a795;
+}
+
+/* ── 3. DAYLIGHT THEMES: role palettes + the light surface contract ────── */
+body[data-theme="daylight"]{
+  --ts-panel-0:#efe7d6; --ts-panel-1:#fffaf0; --ts-panel-2:#f5eedd;
+  --ts-line-0:#e0d5be; --ts-line-1:#cbbda0;
+  --ts-ink-0:#2a2418; --ts-ink-1:#3a3226; --ts-ink-muted-0:#5c5343; --ts-ink-muted-1:#6e6452;
+  --ts-accent:#b8862b; --ts-accent-hi:#875d12; --ts-accent-dim:#d8a852; --ts-accent-deep:#6f4c0c;
+  --ts-success:#22643f; --ts-danger:#9c322b; --ts-info:#2f6ea5; --ts-purple:#7b4fa0;
+  --ts-paper:#fffdf7; --ts-paper-ink:#2a2418; --ts-paper-ink-muted:#5c5343;
+  --ts-on-accent:#fffdf7;
+  --ts-on-accent:#14100a;
+}
+body[data-theme="blueprint"]{
+  --ts-panel-0:#e7eef6; --ts-panel-1:#ffffff; --ts-panel-2:#f1f6fb;
+  --ts-line-0:#cfdbe8; --ts-line-1:#adc3d8;
+  --ts-ink-0:#16202b; --ts-ink-1:#243141; --ts-ink-muted-0:#44586b; --ts-ink-muted-1:#5b6c80;
+  --ts-accent:#2f6ea5; --ts-accent-hi:#1d4e79; --ts-accent-dim:#5b93c4; --ts-accent-deep:#123a5c;
+  --ts-success:#1a6a47; --ts-danger:#9c3232; --ts-info:#2f6ea5; --ts-purple:#6c4bb0;
+  --ts-paper:#fbfdff; --ts-paper-ink:#16202b; --ts-paper-ink-muted:#44586b;
+  --ts-on-accent:#fffdf7;
+}
+body[data-theme="newsprint"]{
+  --ts-panel-0:#ece5d5; --ts-panel-1:#fbf7ec; --ts-panel-2:#f1ebdc;
+  --ts-line-0:#ddd2bd; --ts-line-1:#c3b69b;
+  --ts-ink-0:#241f1a; --ts-ink-1:#332c25; --ts-ink-muted-0:#5b5349; --ts-ink-muted-1:#6e6559;
+  --ts-accent:#a03a2a; --ts-accent-hi:#7d2a1d; --ts-accent-dim:#c25b45; --ts-accent-deep:#6a1f14;
+  --ts-success:#276039; --ts-danger:#8f3223; --ts-info:#2f5f88; --ts-purple:#6f4a8a;
+  --ts-paper:#fffdf5; --ts-paper-ink:#241f1a; --ts-paper-ink-muted:#5b5349;
+  --ts-on-accent:#fffdf7;
+}
+
+/* Daylight: the shell itself turns to paper. */
+body[data-theme-mode="light"]{
+  --text:#241f1a; --dim:#5c5346; --dim2:#776d5f;
+  --muted:#5c5346; --muted2:#776d5f;
+  --shadow:0 14px 40px rgba(60,48,28,.16);
+  --shadow-sm:0 4px 14px rgba(60,48,28,.12);
+  --card-hover:color-mix(in srgb, var(--card2) 82%, #000 8%);
+  --glowGold:0 0 22px color-mix(in srgb, var(--gold) 20%, transparent);
+  color-scheme:light;
+  color:var(--text);
+}
+body[data-theme-mode="light"]{
+  background-image:
+    radial-gradient(1100px 560px at 82% -12%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 62%),
+    radial-gradient(880px 520px at -12% 108%, color-mix(in srgb, var(--cyan) 8%, transparent), transparent 60%);
+}
+body[data-theme-mode="light"]::after{ opacity:.025; }
+body[data-theme-mode="light"] #app,
+body[data-theme-mode="light"].app{ background-color:var(--bg) !important; }
+body[data-theme-mode="light"] #app{
+  background-image:
+    radial-gradient(90% 55% at 50% 0%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 62%),
+    linear-gradient(color-mix(in srgb, var(--line) 40%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 40%, transparent) 1px, transparent 1px);
+  background-size:auto, 32px 32px, 32px 32px;
+}
+/* topbar, tabs, chips, cards, modals, buttons, inputs, toasts */
+body[data-theme-mode="light"] .topbar{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--card) 96%, #fff), var(--bg)) !important;
+  border-bottom:3px solid color-mix(in srgb, var(--gold) 45%, var(--line2)) !important;
+  box-shadow:0 3px 0 color-mix(in srgb, var(--line) 70%, transparent), 0 12px 26px -18px rgba(60,48,28,.5) !important;
+}
+body[data-theme-mode="light"] .tabs{ border-bottom-color:var(--line) !important; }
+body[data-theme-mode="light"] .tab{ color:var(--dim); background:transparent; }
+body[data-theme-mode="light"] .tab:hover{ color:var(--text); background:color-mix(in srgb, var(--gold) 10%, transparent); }
+body[data-theme-mode="light"] .tab.active{
+  color:var(--gold); background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 18%, transparent), transparent);
+  border-color:color-mix(in srgb, var(--gold) 35%, var(--line)); text-shadow:none;
+}
+body[data-theme-mode="light"] .brand{
+  background:linear-gradient(100deg, var(--gold), color-mix(in srgb, var(--gold) 60%, #000) 45%, var(--gold) 80%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; animation:none;
+}
+body[data-theme-mode="light"] .chip{
+  background:linear-gradient(180deg, #fff, var(--card2)) !important;
+  border:2px solid var(--line) !important; border-bottom:3px solid var(--line2) !important;
+  box-shadow:0 2px 0 color-mix(in srgb, var(--line) 60%, transparent), inset 0 1px 0 #fff !important;
+  color:var(--dim);
+}
+body[data-theme-mode="light"] .chip b{ color:var(--text); text-shadow:none; }
+body[data-theme-mode="light"] .card,
+body[data-theme-mode="light"] #app .card,
+body[data-theme-mode="light"] #modalRoot .card{
+  background:linear-gradient(180deg, var(--card), var(--card2)) !important;
+  border-color:var(--line) !important; border-top-color:color-mix(in srgb, var(--gold) 35%, var(--line)) !important;
+  border-bottom-color:var(--line2) !important;
+  box-shadow:0 4px 0 color-mix(in srgb, var(--line) 55%, transparent), 0 14px 30px -22px rgba(60,48,28,.55) !important;
+  color:var(--text);
+}
+body[data-theme-mode="light"] .stat{
+  background:linear-gradient(180deg, #fff, var(--card2)) !important;
+  border-color:var(--line) !important; border-top-color:var(--line2) !important;
+  border-bottom-color:var(--line) !important;
+  box-shadow:0 3px 0 color-mix(in srgb, var(--line) 55%, transparent) !important;
+}
+body[data-theme-mode="light"] .modal,
+body[data-theme-mode="light"] #app .modal,
+body[data-theme-mode="light"] #modalRoot .modal{
+  background:linear-gradient(180deg, #fff, var(--card)) !important;
+  border:3px solid color-mix(in srgb, var(--gold) 55%, var(--line)) !important;
+  border-top-color:var(--gold) !important; border-bottom:5px solid var(--line2) !important;
+  box-shadow:0 7px 0 color-mix(in srgb, var(--line) 50%, transparent), 0 30px 60px -28px rgba(60,48,28,.55) !important;
+  color:var(--text);
+}
+body[data-theme-mode="light"] .modal-veil{ background:rgba(60,52,38,.55) !important; }
+body[data-theme-mode="light"] .modal-head{
+  background:linear-gradient(180deg, var(--card2), var(--card)) !important;
+  border-bottom:3px solid color-mix(in srgb, var(--gold) 55%, var(--line)) !important;
+}
+body[data-theme-mode="light"] .modal-head h3{ color:var(--text) !important; text-shadow:none; }
+body[data-theme-mode="light"] .btn{
+  background:linear-gradient(180deg, #fff, var(--card2)) !important;
+  color:var(--text) !important; border-color:var(--line2) !important;
+  box-shadow:0 3px 0 color-mix(in srgb, var(--line) 60%, transparent) !important;
+}
+body[data-theme-mode="light"] .btn-alt{ background:linear-gradient(180deg, var(--card2), var(--bg)) !important; color:var(--text) !important; }
+body[data-theme-mode="light"] .btn-ghost{ background:transparent !important; color:var(--dim) !important; box-shadow:none !important; }
+body[data-theme-mode="light"] .btn-primary,
+body[data-theme-mode="light"] #btnWeek,
+body[data-theme-mode="light"] #fabWeek{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--gold) 78%, #fff), var(--gold)) !important;
+  color:#fffdf6 !important; border-color:color-mix(in srgb, var(--gold) 70%, #000) !important;
+  text-shadow:0 1px 0 rgba(0,0,0,.28); box-shadow:0 3px 0 color-mix(in srgb, var(--gold) 55%, #000) !important;
+}
+body[data-theme-mode="light"] input[type=text],
+body[data-theme-mode="light"] input[type=number],
+body[data-theme-mode="light"] textarea,
+body[data-theme-mode="light"] select{
+  background:#fff !important; color:var(--text) !important; border-color:var(--line2) !important;
+}
+body[data-theme-mode="light"] .toast{
+  background:linear-gradient(180deg, #fff, var(--card)) !important; color:var(--text) !important;
+  border-color:var(--line) !important; border-left-color:var(--gold) !important;
+  box-shadow:0 4px 0 color-mix(in srgb, var(--line) 50%, transparent) !important;
+}
+body[data-theme-mode="light"] .bottomnav{
+  background:linear-gradient(180deg, var(--card), var(--bg)) !important;
+  border-top:2px solid var(--line) !important;
+}
+body[data-theme-mode="light"] .btab{ color:var(--dim); }
+body[data-theme-mode="light"] .btab.active{ color:var(--gold); }
+body[data-theme-mode="light"] .section-title::after{
+  background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 45%, transparent), transparent);
+}
+body[data-theme-mode="light"] ::selection{ background:color-mix(in srgb, var(--gold) 30%, transparent); color:var(--text); }
+body[data-theme-mode="light"] ::-webkit-scrollbar-track{ background:var(--bg2); }
+body[data-theme-mode="light"] ::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg, var(--line2), var(--line)); border-color:var(--bg2);
+}
+body[data-theme-mode="light"] .fold-head{ background:linear-gradient(180deg, #fff, var(--card2)) !important; color:var(--text) !important; }
+body[data-theme-mode="light"] .tag{ background:color-mix(in srgb, var(--gold) 10%, transparent) !important; color:var(--dim) !important; border-color:var(--line) !important; }
+body[data-theme-mode="light"] .kairo-dept-banner,
+body[data-theme-mode="light"] .studiolot-viewport{ color:var(--text); }
+/* the lot stage keeps its art, but never a near-black frame around it */
+body[data-theme-mode="light"] #studiolotGlobalStage{ background:var(--bg2) !important; }
+
+/* ── 4. APPEARANCE PREFERENCES ───────────────────────────────────────── */
+/* accent intensity */
+body.ts-acc-soft{ --ts-glow:0; }
+body.ts-acc-soft .btn-primary{ filter:saturate(.82); }
+body.ts-acc-vivid .btn-primary{ filter:saturate(1.18) brightness(1.04); }
+body.ts-acc-vivid .tab.active::after{ box-shadow:0 0 16px color-mix(in srgb, var(--gold) 75%, transparent); }
+body.ts-acc-vivid .stat .s-v{ filter:drop-shadow(0 0 10px color-mix(in srgb, var(--gold) 45%, transparent)); }
+/* density */
+body.ts-dense .card{ padding:11px; }
+body.ts-dense .card+.card{ margin-top:7px; }
+body.ts-dense .command-deck{ padding:18px; }
+body.ts-dense .command-telemetry{ margin-bottom:14px; }
+body.ts-dense .command-metric{ padding:12px 15px; }
+body.ts-dense .preference-block{ padding:15px 0; }
+body.ts-dense .preferences-content{ padding:18px; }
+body.ts-dense .topbar-row{ padding-block:6px; }
+/* grain */
+body.ts-no-grain::after{ display:none !important; }
+/* high contrast */
+body.ts-contrast{ --line:color-mix(in srgb, var(--text) 32%, var(--bg)); --line2:color-mix(in srgb, var(--text) 46%, var(--bg)); }
+body.ts-contrast .card, body.ts-contrast .modal, body.ts-contrast .btn{ border-width:2px !important; }
+body.ts-contrast .tiny, body.ts-contrast .muted{ color:color-mix(in srgb, var(--text) 82%, transparent) !important; }
+body.ts-contrast[data-theme-mode="light"]{ --dim:#3b342a; --dim2:#4a4237; }
+/* flat (no frosted veils) */
+body.ts-flat .modal-veil{ backdrop-filter:none !important; -webkit-backdrop-filter:none !important; background:rgba(4,6,10,.9) !important; }
+body.ts-flat[data-theme-mode="light"] .modal-veil{ background:rgba(60,52,38,.72) !important; }
+/* large tap targets */
+body.ts-taps .btn, body.ts-taps .tab, body.ts-taps .btab, body.ts-taps .preferences-nav>button,
+body.ts-taps .ts-seg-btn, body.ts-taps .ts-card, body.ts-taps input[type=text], body.ts-taps select{
+  min-height:48px;
+}
+body.ts-taps .btn-xs{ min-height:40px; }
+
+/* ── 5. THEME STUDIO (Settings → Your experience) ─────────────────────── */
+.theme-studio{ display:grid; gap:14px; }
+.ts-head{ display:flex; gap:18px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+.ts-head-copy b{ display:block; font:700 18px/1.2 var(--ts-font-display, Georgia, serif); color:var(--ts-ink-0); }
+.ts-head-copy .ts-sub{ margin:5px 0 0; max-width:62ch; color:var(--ts-ink-muted-0); font-size:11.5px; line-height:1.7; }
+.ts-head-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+.ts-toolbar{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; padding:10px 0; border-block:1px solid var(--ts-line-0); }
+.ts-filters{ display:flex; gap:6px; flex-wrap:wrap; }
+.ts-filter{
+  border:1px solid var(--ts-line-1); background:transparent; color:var(--ts-ink-muted-0);
+  padding:7px 12px; min-height:36px; border-radius:3px; font:600 11px system-ui; cursor:pointer;
+}
+.ts-filter:hover{ color:var(--ts-ink-0); border-color:var(--ts-accent-dim); }
+.ts-filter.on{ background:var(--ts-panel-2); color:var(--ts-ink-0); border-color:var(--ts-accent); }
+.ts-current{ font:10px/1.4 var(--ts-font-mono, ui-monospace, monospace); letter-spacing:.08em; color:var(--ts-ink-muted-1); text-transform:uppercase; }
+.ts-current b{ color:var(--ts-accent); letter-spacing:.02em; }
+.ts-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(196px, 1fr)); gap:12px; }
+.ts-card{
+  display:grid; gap:10px; text-align:left; padding:10px; cursor:pointer;
+  background:var(--ts-panel-1); color:var(--ts-ink-1);
+  border:1px solid var(--ts-line-1); border-radius:4px;
+  transition:transform .12s ease, border-color .14s ease, box-shadow .14s ease;
+}
+.ts-card:hover{ transform:translateY(-2px); border-color:var(--ts-accent-dim); }
+.ts-card.active{ border-color:var(--ts-accent); box-shadow:inset 0 0 0 1px var(--ts-accent), 0 8px 22px -14px var(--ts-shadow); }
+.ts-preview{
+  display:grid; gap:3px; padding:8px; border-radius:2px; min-height:92px; align-content:start;
+  background:linear-gradient(160deg, var(--ts-b) 0%, color-mix(in srgb, var(--ts-b) 82%, #000) 100%);
+  border:1px solid color-mix(in srgb, var(--ts-a) 30%, transparent);
+}
+.ts-pv-top{ display:flex; gap:3px; margin-bottom:3px; }
+.ts-pv-dot{ width:5px; height:5px; border-radius:50%; background:color-mix(in srgb, var(--ts-a) 60%, transparent); }
+.ts-pv-panel{ display:grid; gap:3px; padding:5px; border-radius:2px; background:color-mix(in srgb, var(--ts-b) 70%, var(--ts-a) 8%); border:1px solid color-mix(in srgb, var(--ts-a) 22%, transparent); }
+.ts-pv-panel.hi{ background:color-mix(in srgb, var(--ts-b) 55%, var(--ts-a) 16%); }
+.ts-pv-line{ display:block; height:3px; border-radius:2px; background:color-mix(in srgb, var(--ts-a) 45%, transparent); }
+.ts-pv-line.short{ width:62%; background:color-mix(in srgb, var(--ts-a) 26%, transparent); }
+.ts-pv-pill{ display:block; height:4px; width:38%; border-radius:2px; background:var(--ts-a); }
+.ts-pv-btn{
+  margin-top:4px; padding:3px 5px; border-radius:2px; text-align:center;
+  font:800 6px/1.2 ui-monospace, monospace; letter-spacing:.06em;
+  background:linear-gradient(135deg, var(--ts-c), var(--ts-a)); color:var(--ts-b);
+}
+.ts-meta{ display:grid; gap:4px; }
+.ts-name{ font:700 13px/1.25 system-ui; color:var(--ts-ink-0); }
+.ts-blurb{ font:10.5px/1.5 system-ui; color:var(--ts-ink-muted-1); }
+.ts-tags{ display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; }
+.ts-tags em{
+  font:600 8.5px/1 system-ui; letter-spacing:.06em; text-transform:uppercase; font-style:normal;
+  padding:4px 6px; border-radius:2px; border:1px solid var(--ts-line-1); color:var(--ts-ink-muted-0);
+}
+.ts-tags em.ts-mode.light{ border-color:color-mix(in srgb, var(--ts-accent) 55%, transparent); color:var(--ts-accent-hi); }
+.ts-tags em.ts-live{ background:var(--ts-accent); border-color:var(--ts-accent); color:var(--ts-panel-0); }
+.ts-swatches{ display:flex; gap:4px; margin-top:4px; }
+.ts-swatches i{ width:16px; height:8px; border-radius:1px; border:1px solid rgba(255,255,255,.25); }
+.ts-empty{ color:var(--ts-ink-muted-0); font-size:12px; }
+.ts-appearance{ margin-top:6px; border-top:1px solid var(--ts-line-0); padding-top:14px; display:grid; gap:2px; }
+.ts-appearance-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.ts-appearance-head b{ font:700 16px/1.2 Georgia, serif; color:var(--ts-ink-0); }
+.ts-pref{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 16px; align-items:center; padding:11px 0; border-bottom:1px solid var(--ts-line-0); }
+.ts-pref:last-child{ border-bottom:0; }
+.ts-pref-copy b{ display:block; font:600 13px/1.3 system-ui; color:var(--ts-ink-1); }
+.ts-pref-copy small{ display:block; margin-top:2px; font:11px/1.6 system-ui; color:var(--ts-ink-muted-1); }
+.ts-seg{ display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+.ts-seg-btn{
+  border:1px solid var(--ts-line-1); background:transparent; color:var(--ts-ink-muted-0);
+  padding:7px 11px; min-height:34px; border-radius:3px; font:600 11px system-ui; cursor:pointer;
+}
+.ts-seg-btn:hover{ color:var(--ts-ink-0); border-color:var(--ts-accent-dim); }
+.ts-seg-btn.on{ background:var(--ts-accent); border-color:var(--ts-accent); color:var(--ts-panel-0); }
+@media(max-width:740px){
+  .ts-grid{ grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:9px; }
+  .ts-pref{ grid-template-columns:1fr; }
+  .ts-seg{ justify-content:flex-start; }
+  .ts-head-actions{ width:100%; }
+}
+
+/* ── 6. SAVE VAULT (Settings → Save vault) ───────────────────────────── */
+.save-vault{ display:grid; gap:14px; }
+.vault-head{ display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+.vault-live{ display:grid; gap:3px; }
+.vault-live b{ font:700 18px/1.2 Georgia, serif; color:var(--ts-ink-0); }
+.vault-live small{ font:11px/1.6 system-ui; color:var(--ts-ink-muted-0); }
+.vault-tools{ display:flex; gap:8px; flex-wrap:wrap; }
+.vault-meter{ display:flex; gap:10px; align-items:center; font:10px/1.4 ui-monospace, monospace; color:var(--ts-ink-muted-1); }
+.vault-meter-bar{ flex:1; height:6px; border-radius:3px; background:var(--ts-panel-0); border:1px solid var(--ts-line-0); overflow:hidden; }
+.vault-meter-bar i{ display:block; height:100%; background:linear-gradient(90deg, var(--ts-accent-dim), var(--ts-accent)); }
+.vault-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+.slot-card{ display:grid; gap:9px; padding:13px; background:var(--ts-panel-1); border:1px solid var(--ts-line-1); border-radius:4px; }
+.slot-card.is-live{ border-color:var(--ts-accent); box-shadow:inset 0 0 0 1px var(--ts-accent); }
+.slot-card.is-empty{ background:color-mix(in srgb, var(--ts-panel-1) 70%, transparent); border-style:dashed; }
+.slot-card.is-corrupt{ border-color:var(--ts-danger); }
+.slot-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.slot-num{ font:700 9px/1.3 ui-monospace, monospace; letter-spacing:.14em; color:var(--ts-ink-muted-1); }
+.slot-pill{ font:700 8.5px/1 ui-monospace, monospace; letter-spacing:.08em; text-transform:uppercase; padding:4px 6px; border-radius:2px; border:1px solid var(--ts-line-1); color:var(--ts-ink-muted-0); }
+.slot-pill.is-ok{ color:var(--ts-ink-1); border-color:var(--ts-line-1); }
+.slot-pill.is-live{ background:var(--ts-accent); border-color:var(--ts-accent); color:var(--ts-panel-0); }
+.slot-pill.is-empty{ border-style:dashed; }
+.slot-pill.is-bad{ border-color:var(--ts-danger); color:var(--ts-danger); }
+.slot-name input{
+  width:100%; background:var(--ts-panel-0) !important; color:var(--ts-ink-0) !important;
+  border:1px solid var(--ts-line-0) !important; border-radius:3px !important;
+  padding:7px 9px !important; font:600 12px/1.4 system-ui, sans-serif !important;
+}
+.slot-name input::placeholder{ color:var(--ts-ink-muted-1) !important; }
+.slot-facts{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px; }
+.slot-facts span{ display:grid; gap:2px; }
+.slot-facts small{ font:700 7.5px/1.2 ui-monospace, monospace; letter-spacing:.09em; color:var(--ts-ink-muted-1); }
+.slot-facts b{ font:700 12px/1.2 var(--ts-font-mono, ui-monospace, monospace); color:var(--ts-ink-0); }
+.slot-sub{ font:10px/1.5 ui-monospace, monospace; color:var(--ts-ink-muted-1); }
+.slot-note, .slot-empty-note{ font:11px/1.6 system-ui; color:var(--ts-ink-muted-1); }
+.slot-warn{ font:11px/1.6 system-ui; color:var(--ts-danger); }
+.slot-actions{ display:flex; flex-wrap:wrap; gap:5px; }
+.slot-actions .btn{ font-size:10.5px; padding:5px 8px; min-height:30px; }
+.vault-toggles{ display:grid; gap:8px; padding:12px 0; border-block:1px solid var(--ts-line-0); }
+.vault-toggle{ display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+.vault-toggle input{ margin-top:3px; accent-color:var(--ts-accent); width:16px; height:16px; }
+.vault-toggle span{ display:grid; gap:2px; }
+.vault-toggle b{ font:600 13px/1.3 system-ui; color:var(--ts-ink-1); }
+.vault-toggle small{ font:11px/1.55 system-ui; color:var(--ts-ink-muted-1); }
+.vault-section{ display:grid; gap:9px; }
+.vault-section-head{ display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.vault-section-head b{ font:700 15px/1.3 Georgia, serif; color:var(--ts-ink-0); }
+.vault-section-head small{ font:11px/1.5 system-ui; color:var(--ts-ink-muted-1); flex:1; }
+.vault-code textarea{
+  width:100%; background:var(--ts-panel-0) !important; color:var(--ts-ink-0) !important;
+  border:1px solid var(--ts-line-0) !important; border-radius:3px !important;
+  padding:9px !important; font:10.5px/1.5 ui-monospace, monospace !important; resize:vertical;
+}
+.vault-code-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.vault-list{ display:grid; gap:6px; }
+.vault-row{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:9px 11px; background:var(--ts-panel-1); border:1px solid var(--ts-line-0); border-radius:3px; }
+.vault-row-main{ display:grid; gap:2px; min-width:0; }
+.vault-row-main b{ font:600 12.5px/1.3 system-ui; color:var(--ts-ink-0); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.vault-row-main small{ font:10px/1.5 ui-monospace, monospace; color:var(--ts-ink-muted-1); }
+.vault-row-kind{ font:700 8px/1 ui-monospace, monospace; letter-spacing:.08em; color:var(--ts-ink-muted-1); padding:4px 6px; border:1px solid var(--ts-line-0); border-radius:2px; }
+.vault-row-actions{ display:flex; gap:5px; }
+.vault-note{ font:11px/1.6 system-ui; color:var(--ts-ink-muted-1); }
+@media(max-width:740px){
+  .vault-grid{ grid-template-columns:1fr; }
+  .vault-row{ grid-template-columns:1fr auto; }
+  .vault-row-kind{ display:none; }
+  .slot-facts{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+
+/* The preferences workspace normally strips card chrome; our two workspaces
+   are interactive surfaces, so they get their own skin instead. */
+.preferences-panel .theme-studio,
+.preferences-panel .save-vault{ margin-top:4px; }
+.preferences-workspace .ts-head-copy b,
+.preferences-workspace .vault-live b,
+.preferences-workspace .vault-section-head b{ font-family:Georgia, serif; }
+
+/* ── 6b. PAPER SURFACES INSIDE THE DECK ─────────────────────────────────
+   The brief cards and the field guide print on paper. Under a tinted theme
+   that paper follows the theme's paper role, and its own copy is re-coloured
+   with the paper inks, so no theme leaves dark text on a dark sheet. */
+body.ts-deck-theme[data-theme] .command-brief,
+body.ts-deck-theme[data-theme] .develop-brief,
+body.ts-deck-theme[data-theme] .produce-brief{
+  background:var(--ts-paper); color:var(--ts-paper-ink);
+}
+body.ts-deck-theme[data-theme] .command-brief h1,
+body.ts-deck-theme[data-theme] .command-brief h2,
+body.ts-deck-theme[data-theme] .command-brief h3,
+body.ts-deck-theme[data-theme] .command-brief b,
+body.ts-deck-theme[data-theme] .command-brief strong,
+body.ts-deck-theme[data-theme] .develop-brief b,
+body.ts-deck-theme[data-theme] .produce-brief b,
+body.ts-deck-theme[data-theme] .guide-topic h3{
+  color:var(--ts-paper-ink) !important;
+}
+body.ts-deck-theme[data-theme] .command-brief p,
+body.ts-deck-theme[data-theme] .command-brief .command-brief-foot,
+body.ts-deck-theme[data-theme] .command-brief .command-brief-foot span,
+body.ts-deck-theme[data-theme] .develop-brief p,
+body.ts-deck-theme[data-theme] .develop-brief span,
+body.ts-deck-theme[data-theme] .produce-brief p,
+body.ts-deck-theme[data-theme] .produce-brief span,
+body.ts-deck-theme[data-theme] .guide-topic p,
+body.ts-deck-theme[data-theme] .guide-topic small,
+body.ts-deck-theme[data-theme] .guide-topic-number,
+body.ts-deck-theme[data-theme] .guide-search-label,
+body.ts-deck-theme[data-theme] .guide-no-results,
+body.ts-deck-theme[data-theme] .guide-results{
+  color:var(--ts-paper-ink-muted) !important;
+}
+body.ts-deck-theme[data-theme] .command-brief .command-eyebrow,
+body.ts-deck-theme[data-theme] .develop-brief .command-eyebrow,
+body.ts-deck-theme[data-theme] .produce-brief .command-eyebrow{
+  color:var(--ts-accent-dim) !important;
+}
+body.ts-deck-theme[data-theme] .command-brief .command-primary{
+  background:var(--ts-panel-1) !important; color:var(--ts-ink-0) !important;
+  border-color:var(--ts-line-1) !important;
+}
+body.ts-deck-theme[data-theme] .guide-reading{ background:var(--ts-paper) !important; color:var(--ts-paper-ink) !important; }
+body.ts-deck-theme[data-theme] .guide-reading #helpSearch{
+  background:var(--ts-paper) !important; color:var(--ts-paper-ink) !important;
+  border-color:var(--ts-line-1) !important;
+}
+body.ts-deck-theme[data-theme] .guide-reading #helpSearch::placeholder{ color:var(--ts-paper-ink-muted) !important; }
+body.ts-deck-theme[data-theme] .guide-topic{ border-top-color:var(--ts-line-0) !important; }
+
+/* ── 6c. CONTROLS AND BRAND NAMES INSIDE PAPER CARDS ────────────────────
+   Brief cards carry their own ghost buttons and fine print, and rival cards
+   print studio names with an inline brand colour. Under a tinted theme both
+   get re-pointed at the paper inks so nothing disappears into the sheet. */
+body.ts-deck-theme[data-theme] .command-brief button,
+body.ts-deck-theme[data-theme] .develop-brief button,
+body.ts-deck-theme[data-theme] .produce-brief button,
+body.ts-deck-theme[data-theme] .command-brief a,
+body.ts-deck-theme[data-theme] .develop-brief a,
+body.ts-deck-theme[data-theme] .produce-brief a{
+  color:var(--ts-paper-ink) !important;
+  border-color:var(--ts-line-1) !important;
+  background:transparent !important;
+}
+body.ts-deck-theme[data-theme] .command-brief button:hover,
+body.ts-deck-theme[data-theme] .develop-brief button:hover,
+body.ts-deck-theme[data-theme] .produce-brief button:hover{
+  background:color-mix(in srgb, var(--ts-paper-ink) 10%, transparent) !important;
+}
+body.ts-deck-theme[data-theme] .command-brief button *,
+body.ts-deck-theme[data-theme] .develop-brief button *,
+body.ts-deck-theme[data-theme] .produce-brief button *{
+  color:inherit !important;
+}
+body.ts-deck-theme[data-theme] .command-brief small,
+body.ts-deck-theme[data-theme] .command-brief em,
+body.ts-deck-theme[data-theme] .command-brief i,
+body.ts-deck-theme[data-theme] .develop-brief small,
+body.ts-deck-theme[data-theme] .develop-brief em,
+body.ts-deck-theme[data-theme] .produce-brief small,
+body.ts-deck-theme[data-theme] .produce-brief em{
+  color:var(--ts-paper-ink-muted) !important;
+}
+/* a filled primary action keeps its own weight, just on theme colour */
+body.ts-deck-theme[data-theme] .command-brief .command-primary{
+  background:var(--ts-accent) !important;
+  color:var(--ts-on-accent) !important;
+  border-color:var(--ts-accent) !important;
+}
+body.ts-deck-theme[data-theme] .command-brief .command-primary *{ color:inherit !important; }
+
+/* rival studio names are inline brand colours: keep the brand on the rule,
+   print the name in body ink so light themes stay readable */
+body.ts-deck-theme[data-theme] .rival-card h3,
+body.ts-deck-theme[data-theme] .bo-rival h3{
+  color:var(--ts-ink-0) !important;
+}
+
+/* ── 6d. PAPER CARDS: ID-STRENGTH PASS ──────────────────────────────────
+   Legacy rules such as
+     #app #view[data-screen="develop"] .develop-brief .develop-ghost { … }
+   carry two IDs, so a class-level override cannot reach them. This pass
+   repeats the paper contract at the same weight: every text tag inside a
+   brief follows the theme's paper inks. */
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief){
+  background:var(--ts-paper) !important;
+  color:var(--ts-paper-ink) !important;
+  border-color:var(--ts-line-1) !important;
+}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) :is(h1,h2,h3,h4,h5,b,strong,button,a,label,dt,dd,li,td,th){
+  color:var(--ts-paper-ink) !important;
+}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) :is(p,small,em,i,.tiny,.command-eyebrow,.develop-eyebrow,.produce-eyebrow){
+  color:var(--ts-paper-ink-muted) !important;
+}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) :is(button,a,label){
+  border-color:var(--ts-line-1) !important;
+}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) :is(button,a):not(.command-primary):hover{
+  background:color-mix(in srgb, var(--ts-paper-ink) 12%, transparent) !important;
+  border-color:var(--ts-paper-ink) !important;
+}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) button *{
+  color:inherit !important;
+}
+body.ts-deck-theme[data-theme] #app #view .command-brief .command-primary{
+  background:var(--ts-accent) !important;
+  color:var(--ts-on-accent) !important;
+  border-color:var(--ts-accent) !important;
+}
+
+/* ── 6e. FINE PRINT ACROSS THE DECK ─────────────────────────────────────
+   .tiny / small / .command-eyebrow are hard-coded slate in the legacy
+   sheets, which vanish on a light surface. Point them at the theme's muted
+   ink at ID weight; brief cards keep their own paper ink (higher up). */
+body.ts-deck-theme[data-theme] #app #view :is(.tiny,small,.command-eyebrow,.command-metric > span,.command-section-nav small){
+  color:var(--ts-ink-muted-0) !important;
+}
+
+/* campus cards print their labels on a solid plate: keep the plate a theme
+   surface so the label ink and the plate always come from the same palette */
+body.ts-deck-theme[data-theme] #app #view .campus-building span{
+  background:var(--ts-panel-1) !important;
+  border-color:var(--ts-line-1) !important;
+  border-top-color:var(--ts-accent) !important;
+  color:var(--ts-ink-0) !important;
+}
+body.ts-deck-theme[data-theme] #app #view .campus-building small{ color:var(--ts-accent-hi) !important; }
+
+/* gains and losses read as theme semantics, not the legacy neon greens */
+body.ts-deck-theme[data-theme] #app #view :is(.pos,.up,.good,b.pos,.delta-pos){ color:var(--ts-success) !important; }
+body.ts-deck-theme[data-theme] #app #view :is(.neg,.down,.bad,b.neg,.delta-neg){ color:var(--ts-danger) !important; }
+
+/* ── 7. GENERATED DECK ROLE MAP (see scripts/theme-tokens.cjs) ─────────── */
+
+/* ==== AUTO-GENERATED DECK ROLE MAP (scripts/theme-tokens.cjs) ==== */
+/* Every management-deck colour reads from the active theme's own
+   surface / ink / accent ramps while tinting is enabled. With tinting off
+   (or on Midnight Gold) the literals above keep the classic green deck. */
+body.ts-deck-theme[data-theme]{
+  --cd-bg:var(--ts-panel-0);
+  --cd-panel:var(--ts-panel-1);
+  --cd-line:var(--ts-line-0);
+  --cd-text:var(--ts-ink-0);
+  --cd-muted:var(--ts-ink-muted-0);
+  --cd-gold:var(--ts-accent);
+  --cd-t07120f:var(--ts-panel-0);
+  --cd-t0a0e16:var(--ts-panel-0);
+  --cd-t0d1119:var(--ts-panel-0);
+  --cd-t0d1b19:var(--ts-panel-0);
+  --cd-t0e1a15:var(--ts-panel-0);
+  --cd-t0e1c1a:var(--ts-panel-0);
+  --cd-t0e1f1c:var(--ts-panel-0);
+  --cd-t0f1e1c:var(--ts-panel-0);
+  --cd-t10201c:var(--ts-panel-0);
+  --cd-t10221f:var(--ts-panel-0);
+  --cd-t102720:var(--ts-panel-0);
+  --cd-t12211f:var(--ts-panel-0);
+  --cd-t122223:var(--ts-panel-0);
+  --cd-t122722:var(--ts-panel-0);
+  --cd-t122820:var(--ts-panel-0);
+  --cd-t122823:var(--ts-panel-0);
+  --cd-t122a19:var(--ts-panel-0);
+  --cd-t132624:var(--ts-panel-0);
+  --cd-t132722:var(--ts-panel-0);
+  --cd-t14251e:var(--ts-panel-0);
+  --cd-t142625:var(--ts-panel-0);
+  --cd-t142a26:var(--ts-panel-0);
+  --cd-t152b26:var(--ts-panel-0);
+  --cd-t152b28:var(--ts-panel-0);
+  --cd-t172c35:var(--ts-panel-1);
+  --cd-t172d29:var(--ts-panel-1);
+  --cd-t172e25:var(--ts-panel-1);
+  --cd-t172f25:var(--ts-panel-1);
+  --cd-t182e28:var(--ts-panel-1);
+  --cd-t182f2c:var(--ts-panel-1);
+  --cd-t192b2c:var(--ts-panel-0);
+  --cd-t19302a:var(--ts-panel-1);
+  --cd-t19312b:var(--ts-panel-1);
+  --cd-t1a1204:var(--ts-accent-deep);
+  --cd-t1a2f29:var(--ts-panel-1);
+  --cd-t1a3330:var(--ts-panel-1);
+  --cd-t1b302b:var(--ts-panel-1);
+  --cd-t1b302c:var(--ts-panel-1);
+  --cd-t1b3128:var(--ts-panel-1);
+  --cd-t1b312b:var(--ts-panel-1);
+  --cd-t1b3a2c:var(--ts-panel-1);
+  --cd-t1c302c:var(--ts-panel-1);
+  --cd-t1d2a20:var(--ts-panel-0);
+  --cd-t1d332c:var(--ts-panel-1);
+  --cd-t1d3733:var(--ts-panel-1);
+  --cd-t1e352f:var(--ts-panel-1);
+  --cd-t1f3a32:var(--ts-panel-1);
+  --cd-t20352c:var(--ts-panel-1);
+  --cd-t20352f:var(--ts-panel-1);
+  --cd-t203532:var(--ts-panel-1);
+  --cd-t20372f:var(--ts-panel-1);
+  --cd-t20392d:var(--ts-panel-1);
+  --cd-t203b2c:var(--ts-panel-1);
+  --cd-t213832:var(--ts-panel-1);
+  --cd-t22362f:var(--ts-panel-1);
+  --cd-t223732:var(--ts-panel-1);
+  --cd-t223738:var(--ts-panel-1);
+  --cd-t231f14:var(--ts-panel-0);
+  --cd-t233b2f:var(--ts-panel-1);
+  --cd-t233b32:var(--ts-panel-1);
+  --cd-t241d1a:var(--ts-panel-0);
+  --cd-t24332e:var(--ts-panel-1);
+  --cd-t243d34:var(--ts-panel-2);
+  --cd-t24402f:var(--ts-panel-2);
+  --cd-t25382e:var(--ts-panel-1);
+  --cd-t253d32:var(--ts-panel-2);
+  --cd-t253f32:var(--ts-panel-2);
+  --cd-t254439:var(--ts-panel-2);
+  --cd-t263732:var(--ts-paper-ink);
+  --cd-t263e35:var(--ts-panel-2);
+  --cd-t263e38:var(--ts-panel-2);
+  --cd-t26423a:var(--ts-panel-2);
+  --cd-t27384a:var(--ts-panel-1);
+  --cd-t273e37:var(--ts-panel-2);
+  --cd-t293d31:var(--ts-paper-ink);
+  --cd-t29402d:var(--ts-panel-2);
+  --cd-t294031:var(--ts-panel-2);
+  --cd-t2a1414:var(--ts-panel-0);
+  --cd-t2a2314:var(--ts-accent-deep);
+  --cd-t2a2a1e:var(--ts-panel-1);
+  --cd-t2a3a2a:var(--ts-panel-1);
+  --cd-t2a3a33:var(--ts-panel-1);
+  --cd-t2a3b2a:var(--ts-panel-1);
+  --cd-t2a4331:var(--ts-panel-2);
+  --cd-t2a443a:var(--ts-panel-2);
+  --cd-t2a4a3a:var(--ts-panel-2);
+  --cd-t2b4332:var(--ts-panel-2);
+  --cd-t2b4436:var(--ts-panel-2);
+  --cd-t2c1f1c:var(--ts-panel-0);
+  --cd-t2c4038:var(--ts-panel-2);
+  --cd-t2c403a:var(--ts-panel-2);
+  --cd-t2c4432:var(--ts-panel-2);
+  --cd-t2d4b3e:var(--ts-panel-2);
+  --cd-t2e4832:var(--ts-panel-2);
+  --cd-t2f3f36:var(--ts-panel-2);
+  --cd-t2f453c:var(--ts-panel-2);
+  --cd-t304733:var(--ts-panel-2);
+  --cd-t304a45:var(--ts-panel-2);
+  --cd-t31483d:var(--ts-panel-2);
+  --cd-t314a38:var(--ts-panel-2);
+  --cd-t314b35:var(--ts-panel-2);
+  --cd-t314b40:var(--ts-panel-2);
+  --cd-t332720:var(--ts-panel-1);
+  --cd-t33493f:var(--ts-panel-2);
+  --cd-t344d36:var(--ts-panel-2);
+  --cd-t37282a:var(--ts-panel-1);
+  --cd-t374e38:var(--ts-panel-2);
+  --cd-t3a2722:var(--ts-panel-1);
+  --cd-t3a2a1e:var(--ts-accent-deep);
+  --cd-t3a4a3e:var(--ts-panel-2);
+  --cd-t3a5045:var(--ts-line-1);
+  --cd-t3c5542:var(--ts-line-1);
+  --cd-t3d5043:var(--ts-line-1);
+  --cd-t3d5943:var(--ts-line-1);
+  --cd-t3e4933:var(--ts-panel-2);
+  --cd-t3e5551:var(--ts-line-1);
+  --cd-t3f6f63:var(--ts-line-0);
+  --cd-t42564a:var(--ts-line-1);
+  --cd-t43563e:var(--ts-line-1);
+  --cd-t435e49:var(--ts-line-1);
+  --cd-t4a6a8a:var(--ts-line-0);
+  --cd-t4b6053:var(--ts-line-1);
+  --cd-t4b6450:var(--ts-line-0);
+  --cd-t4c5637:var(--ts-line-1);
+  --cd-t4d6079:var(--ts-line-0);
+  --cd-t4d6549:var(--ts-line-0);
+  --cd-t4e6355:var(--ts-line-0);
+  --cd-t4f6e4d:var(--ts-line-0);
+  --cd-t4f7185:var(--ts-line-0);
+  --cd-t50634d:var(--ts-line-0);
+  --cd-t516044:var(--ts-line-1);
+  --cd-t526055:var(--ts-line-1);
+  --cd-t52624b:var(--ts-paper-ink-muted);
+  --cd-t52685f:var(--ts-line-0);
+  --cd-t52694f:var(--ts-line-0);
+  --cd-t526a58:var(--ts-line-0);
+  --cd-t527164:var(--ts-line-0);
+  --cd-t566e5f:var(--ts-line-0);
+  --cd-t57697a:var(--ts-line-0);
+  --cd-t5a6b60:var(--ts-line-0);
+  --cd-t5c6f5f:var(--ts-line-0);
+  --cd-t5c7f57:var(--ts-line-0);
+  --cd-t5e5a7a:var(--ts-line-0);
+  --cd-t5e7c9b:var(--ts-ink-muted-1);
+  --cd-t5f8a52:var(--ts-ink-muted-1);
+  --cd-t627360:var(--ts-line-0);
+  --cd-t62744f:var(--ts-line-0);
+  --cd-t647c55:var(--ts-line-0);
+  --cd-t657c62:var(--ts-line-0);
+  --cd-t667958:var(--ts-line-0);
+  --cd-t687452:var(--ts-paper-ink-muted);
+  --cd-t6a5c8a:var(--ts-line-0);
+  --cd-t6e6044:var(--ts-paper-ink-muted);
+  --cd-t6f8478:var(--ts-ink-muted-1);
+  --cd-t6f8679:var(--ts-ink-muted-1);
+  --cd-t6f8a55:var(--ts-ink-muted-1);
+  --cd-t6f8a5f:var(--ts-ink-muted-1);
+  --cd-t6f8fae:var(--ts-ink-muted-1);
+  --cd-t718a60:var(--ts-ink-muted-1);
+  --cd-t728b66:var(--ts-ink-muted-1);
+  --cd-t728d7a:var(--ts-ink-muted-1);
+  --cd-t789384:var(--ts-ink-muted-1);
+  --cd-t7a4438:var(--ts-line-1);
+  --cd-t7a5a4e:var(--ts-line-0);
+  --cd-t7c9a6a:var(--ts-ink-muted-1);
+  --cd-t7f917f:var(--ts-ink-muted-1);
+  --cd-t7f9470:var(--ts-ink-muted-1);
+  --cd-t7f9486:var(--ts-ink-muted-1);
+  --cd-t7f94a8:var(--ts-ink-muted-1);
+  --cd-t7f9689:var(--ts-ink-muted-1);
+  --cd-t7f9a63:var(--ts-ink-muted-1);
+  --cd-t7fa86a:var(--ts-ink-muted-1);
+  --cd-t7fb3a2:var(--ts-ink-muted-0);
+  --cd-t7fb86a:var(--ts-success);
+  --cd-t819568:var(--ts-ink-muted-1);
+  --cd-t81996c:var(--ts-ink-muted-1);
+  --cd-t83986f:var(--ts-ink-muted-1);
+  --cd-t839c70:var(--ts-ink-muted-1);
+  --cd-t87936a:var(--ts-paper-ink-muted);
+  --cd-t87976b:var(--ts-ink-muted-1);
+  --cd-t88996a:var(--ts-ink-muted-1);
+  --cd-t8a5b4a:var(--ts-line-0);
+  --cd-t8a5b52:var(--ts-line-0);
+  --cd-t8a5f48:var(--ts-line-0);
+  --cd-t8a7748:var(--ts-accent-dim);
+  --cd-t8a7a4a:var(--ts-accent-dim);
+  --cd-t8a9d6b:var(--ts-ink-muted-1);
+  --cd-t8aa372:var(--ts-ink-muted-1);
+  --cd-t8b7eb8:var(--ts-ink-muted-1);
+  --cd-t8b9a87:var(--ts-ink-muted-1);
+  --cd-t8c5347:var(--ts-line-0);
+  --cd-t8c9a68:var(--ts-ink-muted-1);
+  --cd-t8ca48c:var(--ts-ink-muted-1);
+  --cd-t8ec97a:var(--ts-success);
+  --cd-t8fa392:var(--ts-ink-muted-1);
+  --cd-t8fa394:var(--ts-ink-muted-1);
+  --cd-t8fa47c:var(--ts-ink-muted-1);
+  --cd-t8fa692:var(--ts-ink-muted-0);
+  --cd-t8fb7d8:var(--ts-info);
+  --cd-t8fd0bd:var(--ts-ink-muted-0);
+  --cd-t91a181:var(--ts-ink-muted-1);
+  --cd-t91a392:var(--ts-ink-muted-1);
+  --cd-t93a28f:var(--ts-ink-muted-1);
+  --cd-t93a692:var(--ts-ink-muted-0);
+  --cd-t99a183:var(--ts-paper-ink-muted);
+  --cd-t9ac99d:var(--ts-success);
+  --cd-t9cad7d:var(--ts-ink-muted-0);
+  --cd-t9cb18c:var(--ts-ink-muted-0);
+  --cd-t9d9276:var(--ts-ink-muted-1);
+  --cd-t9daf90:var(--ts-ink-muted-0);
+  --cd-t9fb0a2:var(--ts-ink-muted-0);
+  --cd-t9fb59f:var(--ts-ink-muted-0);
+  --cd-ta3675c:var(--ts-line-0);
+  --cd-ta4bb80:var(--ts-success);
+  --cd-ta5b17e:var(--ts-ink-muted-0);
+  --cd-ta8834a:var(--ts-accent-dim);
+  --cd-ta8b57c:var(--ts-ink-muted-0);
+  --cd-ta8d69a:var(--ts-success);
+  --cd-ta98547:var(--ts-accent-dim);
+  --cd-ta9bda9:var(--ts-ink-muted-0);
+  --cd-ta9c2d8:var(--ts-info);
+  --cd-ta9c7dd:var(--ts-info);
+  --cd-ta9ce9e:var(--ts-success);
+  --cd-ta9d99a:var(--ts-success);
+  --cd-taabd9e:var(--ts-ink-muted-0);
+  --cd-tacbcb0:var(--ts-ink-muted-0);
+  --cd-tb0bc86:var(--ts-ink-muted-0);
+  --cd-tb1c48c:var(--ts-success);
+  --cd-tb48c42:var(--ts-accent-dim);
+  --cd-tb49b60:var(--ts-accent);
+  --cd-tb5b982:var(--ts-ink-muted-0);
+  --cd-tb5c5a4:var(--ts-ink-muted-0);
+  --cd-tb6c5a4:var(--ts-ink-muted-0);
+  --cd-tb6dba8:var(--ts-success);
+  --cd-tb7ac83:var(--ts-ink-muted-0);
+  --cd-tb7c8a4:var(--ts-ink-muted-0);
+  --cd-tb7cadd:var(--ts-info);
+  --cd-tb8bda2:var(--ts-paper-ink-muted);
+  --cd-tb8cde2:var(--ts-info);
+  --cd-tb8d99e:var(--ts-success);
+  --cd-tb9a06a:var(--ts-accent);
+  --cd-tb9c6b6:var(--ts-ink-muted-0);
+  --cd-tb9c9a8:var(--ts-ink-muted-0);
+  --cd-tb9c9e0:var(--ts-info);
+  --cd-tbdc9b1:var(--ts-ink-muted-0);
+  --cd-tbdcbb7:var(--ts-ink-muted-0);
+  --cd-tc0392b:var(--ts-line-1);
+  --cd-tc0cbb6:var(--ts-ink-muted-0);
+  --cd-tc1cdab:var(--ts-ink-muted-0);
+  --cd-tc2dda6:var(--ts-success);
+  --cd-tc3b4e6:var(--ts-purple);
+  --cd-tc3cba5:var(--ts-ink-muted-0);
+  --cd-tc3cca9:var(--ts-ink-muted-0);
+  --cd-tc3cfb7:var(--ts-ink-muted-0);
+  --cd-tc4d4af:var(--ts-success);
+  --cd-tc5d1b5:var(--ts-ink-1);
+  --cd-tc6d2c0:var(--ts-ink-1);
+  --cd-tc8c0b4:var(--ts-ink-muted-0);
+  --cd-tc8c4a3:var(--ts-ink-muted-0);
+  --cd-tc8d3ba:var(--ts-ink-1);
+  --cd-tc8d3bd:var(--ts-ink-1);
+  --cd-tc9705c:var(--ts-danger);
+  --cd-tc99a8f:var(--ts-ink-muted-0);
+  --cd-tc9d2b3:var(--ts-ink-1);
+  --cd-tc9e0b5:var(--ts-success);
+  --cd-tcbe0ac:var(--ts-success);
+  --cd-tcfd8c2:var(--ts-ink-1);
+  --cd-tcfe0c0:var(--ts-success);
+  --cd-td5e4ad:var(--ts-ink-1);
+  --cd-td6a280:var(--ts-ink-muted-0);
+  --cd-td6ad63:var(--ts-accent);
+  --cd-td6c99b:var(--ts-accent-hi);
+  --cd-td8dcc8:var(--ts-ink-1);
+  --cd-td8e8ba:var(--ts-success);
+  --cd-td9665a:var(--ts-danger);
+  --cd-tdccfae:var(--ts-accent-hi);
+  --cd-te09a86:var(--ts-danger);
+  --cd-te2a35f:var(--ts-accent);
+  --cd-te2b978:var(--ts-accent);
+  --cd-te4dfc3:var(--ts-ink-0);
+  --cd-te5b6aa:var(--ts-danger);
+  --cd-te6bc70:var(--ts-accent);
+  --cd-te6e0c9:var(--ts-ink-0);
+  --cd-te8a091:var(--ts-danger);
+  --cd-te8c98a:var(--ts-accent-hi);
+  --cd-te8d9b9:var(--ts-paper);
+  --cd-te8e3ca:var(--ts-ink-0);
+  --cd-te9a99a:var(--ts-danger);
+  --cd-te9dfc6:var(--ts-paper);
+  --cd-tedc47c:var(--ts-accent-hi);
+  --cd-tedd59a:var(--ts-accent-hi);
+  --cd-tf0a98d:var(--ts-danger);
+  --cd-tf0cf94:var(--ts-accent-hi);
+  --cd-tf1d49b:var(--ts-accent-hi);
+  --cd-tf2ddb1:var(--ts-ink-0);
+  --cd-tf2e6bd:var(--ts-ink-0);
+  --cd-tf2e6c9:var(--ts-ink-0);
+  --cd-tf2edda:var(--ts-ink-0);
+  --cd-tf3b9a0:var(--ts-danger);
+  --cd-tf3c9a0:var(--ts-accent-hi);
+  --cd-tf3d597:var(--ts-accent-hi);
+  --cd-tf3e8cc:var(--ts-ink-0);
+  --cd-tf4e3ba:var(--ts-accent-hi);
+  --cd-tf4eedc:var(--ts-paper);
+  --cd-tf5e4bb:var(--ts-accent-hi);
+  --cd-tf6ecd2:var(--ts-ink-0);
+  --cd-tf6f0d9:var(--ts-ink-0);
+  --cd-tf7dfac:var(--ts-accent-hi);
+  --cd-tf7e4b8:var(--ts-accent-hi);
+  --cd-tfdf6e3:var(--ts-accent-hi);
+  --cd-tff5f7a:var(--ts-danger);
+  --cd-tffdf9a:var(--ts-accent-hi);
+  --cd-tfff2d6:var(--ts-accent-hi);
+  --cd-tfff3d6:var(--ts-accent-hi);
+  --cd-tfff3da:var(--ts-accent-hi);
+  --cd-tffffff:var(--ts-ink-0);
+  --cd-a26373210:color-mix(in srgb, var(--cd-t263732) 6%, transparent);
+  --cd-a26373233:color-mix(in srgb, var(--cd-t263732) 20%, transparent);
+  --cd-ad5e4ad13:color-mix(in srgb, var(--cd-td5e4ad) 7%, transparent);
+  --cd-a172c3540:color-mix(in srgb, var(--cd-t172c35) 25%, transparent);
+  --cd-a1c302ce8:color-mix(in srgb, var(--cd-t1c302c) 91%, transparent);
+  --cd-ab5b98266:color-mix(in srgb, var(--cd-tb5b982) 40%, transparent);
+  --cd-a07120fe8:color-mix(in srgb, var(--cd-t07120f) 91%, transparent);
+  --cd-a26373212:color-mix(in srgb, var(--cd-t263732) 7%, transparent);
+  --cd-a26373222:color-mix(in srgb, var(--cd-t263732) 13%, transparent);
+  --cd-aedc47c33:color-mix(in srgb, var(--cd-tedc47c) 20%, transparent);
+  --cd-a8ec97a40:color-mix(in srgb, var(--cd-t8ec97a) 25%, transparent);
+  --cd-ad9665a3d:color-mix(in srgb, var(--cd-td9665a) 24%, transparent);
+  --cd-aedc47c38:color-mix(in srgb, var(--cd-tedc47c) 22%, transparent);
+  --cd-aedc47c80:color-mix(in srgb, var(--cd-tedc47c) 50%, transparent);
+  --cd-affffff08:color-mix(in srgb, var(--cd-tffffff) 3%, transparent);
+  --cd-aedc47c20:color-mix(in srgb, var(--cd-tedc47c) 13%, transparent);
+  --cd-aedc47c18:color-mix(in srgb, var(--cd-tedc47c) 9%, transparent);
+  --cd-aa3675c33:color-mix(in srgb, var(--cd-ta3675c) 20%, transparent);
+  --cd-a3e555166:color-mix(in srgb, var(--cd-t3e5551) 40%, transparent);
+  --cd-a3e555133:color-mix(in srgb, var(--cd-t3e5551) 20%, transparent);
+}
+/* ==== END AUTO-GENERATED DECK ROLE MAP ==== */
