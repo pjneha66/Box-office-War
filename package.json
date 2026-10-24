@@ -1,6 +1,6 @@
 {
   "name": "box-office-war",
-  "version": "36.0.0",
+  "version": "37.0.0",
   "description": "A realistic movie-business simulation game that runs in any browser \u2014 phone, tablet, or PC. No installs, no dependencies, no server: pure HTML/CSS/JS, works offline (just open index.html).",
   "main": "data.js",
   "directories": {
@@ -45,6 +45,8 @@
     "test:management": "node test/command-deck.mjs && node test/management-audit.mjs && node test/header-settings-guide.mjs && node test/develop-deck.mjs && node test/boxoffice-deck.mjs && node test/boxoffice-charts.mjs && node test/rebrand-streamer.mjs && node test/ott-desk.mjs && node test/live-desk.mjs && node test/empire-desk.mjs && node test/library-desk.mjs && node test/cost-sheet.mjs",
     "test:library:desk": "node test/library-desk.mjs",
     "test:library:browser": "node test/library-desk-browser.cjs",
+    "test:gamestudio": "node test/game-studio-desk.mjs",
+    "test:gamestudio:browser": "node test/game-studio-desk-browser.cjs",
     "test:pitch": "node test/pitch-location-inbox-browser.cjs",
     "serve": "python3 -m http.server 8080 --bind 0.0.0.0",
     "test:rebrand": "node test/pitch-studio-greenlight-browser.cjs",

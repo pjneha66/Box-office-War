@@ -1229,7 +1229,7 @@ function _renderImpl(){
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header */
-    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "library", "notifications"].includes(TAB))
+    const kairoBanner = (typeof KairoTheme !== "undefined" && !["studiolot", "dashboard", "studio", "develop", "productions", "boxoffice", "fans", "ott", "live", "empire", "library", "games", "notifications"].includes(TAB))
       ? KairoTheme.renderBanner(TAB, (TAB === "develop" ? (typeof DEVELOP_SUB !== "undefined" ? DEVELOP_SUB : null) : null))
       : "";
     v.dataset.screen = TAB;
@@ -1267,6 +1267,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"37.0", label:"GAME STUDIO DESK — plan → Alpha/Beta/Master/Debug → bug-squash research → 4-critic /40 review → decay sales (Game Studio rebuilt: overview, development, catalog, studio & staff, contracts, awards, hardware; one persisted nav, direction-point planning, genre×theme synergy, burnout & saturation, career tree, traveling salesman, Your Console, Global Game Awards; classic adaptation + in-house GDD pipelines preserved)", status:"shipped" },
   { version:"36.0", label:"LIBRARY DESK — the studio catalogue (Library rebuilt: overview, films, series, rights & windows, catalogue & licensing, physical 4K, restoration vault; one persisted nav, real catalogue value breakdown, one rights rule shared with the OTT desk)", status:"shipped" },
   { version:"35.0", label:"EMPIRE DESK — the empire command desk (Franchises rebuilt: portfolio, dossier, sequel timing planner, merch & parks, universes, music label, IP market & sell, divisions ledger, endgame crown tracker)", status:"shipped" },
   { version:"34.9", label:"Live Desk — the broadcast command desk + Develop-a-Show lab (Live TV rebuilt: home, channels, shows, grid, stream, events, hosts)", status:"shipped" },
@@ -1927,7 +1928,7 @@ let DEVELOP_SUB = "scripts";   // v28.9: Develop sub-tab state
 let BOXOFFICE_SUB = "chart";
 let OTT_SUB = "home";          // v28.9 §15: streamer sub-tab state
 let LIBRARY_SUB = "overview";   // v36.0: mirror of G.libState.sub
-let GAMES_SUB = "dev";
+let GAMES_SUB = "overview";   /* v37: Game Studio desk default section */
 
 /* ═══════════ Central Pixel Art Icons for Subtabs ═══════════ */
 const SUBTAB_PIXEL_ICONS = {
@@ -1997,10 +1998,16 @@ const SUBTAB_PIXEL_ICONS = {
   "empire:universes": "assets/bos2-icons/logos/icons8-starburst-shape-100.png",
   "empire:divisions": "assets/itch-ui/icons/Icon_02.png",
   "empire:endgame": "assets/bos2-icons/logos/icons8-prism-96.png",
-  // games
+  // games (v37 command desk)
+  "games:overview": "assets/itch-ui/icons/Icon_08.png",
+  "games:develop": "assets/pixel-characters/char-robot.png",
+  "games:catalog": "assets/itch-ui/icons/Icon_09.png",
+  "games:studio": "assets/bos2-icons/general/group.png",
+  "games:contracts": "assets/bos2-icons/general/writer.png",
+  "games:awards": "assets/2d/executive.png",
+  "games:hardware": "assets/bos2-icons/logos/icons8-edge-level-96.png",
   "games:dev": "assets/pixel-characters/char-robot.png",
   "games:released": "assets/itch-ui/icons/Icon_09.png",
-  "games:hardware": "assets/bos2-icons/logos/icons8-edge-level-96.png",
   "games:greenlight": "assets/bos2-icons/general/film-clapper.png",
   // finance
   "finance:pnl": "assets/itch-ui/icons/Icon_01.png",
@@ -2045,7 +2052,7 @@ function renderSubTabs(){
   // These screens own a single branded navigation, shared across all viewports.
   // v34.6: fans joined them — its mailroom filter row is the only sub-nav now
   // (the strip's Mail/Trending/Viral chips wrote values the filter never read).
-  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire" || TAB === "library"){
+  if(TAB === "dashboard" || TAB === "studio" || TAB === "develop" || TAB === "boxoffice" || TAB === "fans" || TAB === "ott" || TAB === "live" || TAB === "empire" || TAB === "library" || TAB === "games"){
     bar.innerHTML = ""; bar.style.display = "none"; return;
   }
   const meta = (typeof TAB_META !== "undefined" && TAB_META) ? TAB_META[TAB] : null;
@@ -6814,7 +6821,7 @@ function bindView(){
   $$("[data-gdev]").forEach(b=>b.onclick=()=>{ GAMES.dev=b.dataset.gdev; beep("click"); render(); });
   const gsGo=$("#gsGo"); if(gsGo) gsGo.onclick=()=>{
     if(!GAMES.src){ toast("Pick a source first — a franchise or a hit film.","bad"); return; }
-    if(startGameDev(GAMES.src, GAMES.dev)){ beep("gold"); flashes(G.flash); render(); } else beep("bad");
+    if(startGameDev(GAMES.src, GAMES.dev, GAMES.platform||"console")){ beep("gold"); flashes(G.flash); render(); } else beep("bad");
   };
   /* ── prototype RPG: character sheets + in-house originals ── */
   $$("[data-pgdev-gdd]").forEach(b=>b.onclick=()=>{ beep("click"); gameDevGDDModal(); });
@@ -6906,10 +6913,13 @@ function bindView(){
   if(boScreen) boScreen.onclick=()=>{ beep("click"); if(typeof openFestivalPrModal==="function") openFestivalPrModal(); else if(typeof festivalPrModal==="function") festivalPrModal(); else toast("The festival desk is unavailable in this build.","bad"); };
   $$("[data-ottsub]").forEach(b=>b.onclick=()=>{ OTT_SUB=b.dataset.ottsub; beep("click"); render(); });
   $$("[data-ott-history]").forEach(b=>b.onclick=()=>{ OTT_HISTORY_MODE=b.dataset.ottHistory==="revenue"?"revenue":"subs"; beep("click"); render(); });
+  /* (legacy data-gamestab handler removed in v37 — see bindGameStudioDesk) */
   const ottRd=$("#ottOpenRd"); if(ottRd) ottRd.onclick=()=>{ beep("click"); switchTab("finance"); };
-  $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ GAMES_SUB=b.dataset.gamestab; beep("click"); render(); });
-
+  /* v37: the Game Studio desk owns one persisted nav (data-gamessub) bound in
+     bindGameStudioDesk(). The old data-gamestab handlers were duplicated — one
+     real, one a no-op that clobbered it — and are removed. */
   if(TAB==="library") bindLibraryDesk();   // v36.0 LIBRARY DESK
+  if(TAB==="games") bindGameStudioDesk();  // v37.0 GAME STUDIO DESK
   const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); LOC_DESK.focus=null; openLocationDesk(); };
   const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.renderProductPlacementModal === "function") StudioOperationsSuite.renderProductPlacementModal(); };
   const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderBlindBoxModal === "function") LiveOpsCoPro.renderBlindBoxModal(); };
@@ -6965,17 +6975,23 @@ function bindView(){
     render();
   });
   $$("[data-game-port]").forEach(b=>b.onclick=()=>{
-    if(portGame(+b.dataset.gamePort)){ beep("gold"); flashes(G.flash); render(); }
+    const id=+b.dataset.gamePort;
+    const sel=document.querySelector('[data-gport-target="'+id+'"]');
+    const target=(sel && sel.value) ? sel.value : "multi";
+    if(portGame(id, target)){ beep("gold"); flashes(G.flash); render(); }
+    else { beep("bad"); }
   });
   $$("[data-game-sequel]").forEach(b=>b.onclick=()=>{
     const id=+b.dataset.gameSequel;
     const g = (G.gamesDiv&&G.gamesDiv.released||[]).find(x=>x.id===id);
     if(!g) return;
-    g.isSequel = true;
     const devId = GAMES.dev || "partner";
     const dev = (DATA.GAME_DEVS||[]).find(d=>d.id===devId) || DATA.GAME_DEVS[0];
-    if(G.studio.cash < dev.cost){ toast("Not enough cash for sequel dev up-front ("+fmtM(dev.cost)+").","bad"); return; }
+    if(G.studio.cash < dev.cost){ beep("bad"); toast("Not enough cash for sequel dev up-front ("+fmtM(dev.cost)+").","bad"); return; }
+    /* Only consume the sequel right once the deal is actually funded —
+       otherwise the button would vanish on an unaffordable attempt. */
     spend("games", dev.cost);
+    g.isSequel = true;
     const weeks = rint(dev.weeks[0], dev.weeks[1]);
     const title = g.title + " II";
     G.gamesDiv.projects.push({id:nid(), title, srcKey:"sequel:"+g.id, srcKind:"film", srcId:g.id, srcName:g.title,
@@ -7129,7 +7145,8 @@ function bindView(){
     if(typeof saveGame==="function") saveGame();
     beep("click"); render();
   });
-  $$("[data-gamestab]").forEach(b=>b.onclick=()=>{ /* Games tabs are view-only for now */ beep("click"); });
+  /* v37: removed the duplicate no-op data-gamestab binder that clobbered the
+     real sub-tab handler. The Game Studio desk binds data-gamessub instead. */
 
   /* Financial Analysis Lab bindings */
   if(typeof FINANCE_TOOLS !== 'undefined' && FINANCE_TOOLS.bindFinancialAnalysis){
@@ -7932,118 +7949,617 @@ function sharedUniverseDashboard(){
   return h;
 }
 
-/* ═══════════ VIEW: game studio (v16) — the movie-game division ═══════════ */
-let GAMES={src:null, dev:"partner", platform:"console"};
-function viewGames(){
-  if(typeof GAMES_SUB === "undefined") GAMES_SUB = "dev";
-  const gameTabs = [
-    ["dev", "In Development"],
-    ["released", "Released Games"],
-    ["hardware", "Hardware Platforms"],
-    ["greenlight", "Greenlight Adaptation"]
-  ];
-  let h = "<div class='subnav-pills'>"+
-    gameTabs.map(([key, label]) => {
-      const ic = getSubTabPixelIcon("games", key);
-      const img = ic ? `<img class="subtab-pixel-icon" src="${ic}" alt="" />` : "";
-      return `<button class='subnav-pill ${GAMES_SUB===key?"active":""}' data-gamestab='${key}'>${img}<span>${label}</span></button>`;
-    }).join("")+
-  "</div>";
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIEW: game studio (v37) — the GAME STUDIO command desk
+   A Kairo-style dev loop: plan → Alpha/Beta/Master/Debug → bugs→data → 4-critic
+   review → sales decay, wrapped in the same command-desk language as the
+   Library / Empire / Live desks. One persisted nav, real state only, no legacy
+   .card/.section-title/.subnav-pills surfaces leak between sub-tabs.
+   ═════════════════════════════════════════════════════════════════════════ */
+/* K-aware money for the game-studio sub-economy (K-scale contracts,
+   items and training fees). The app-wide fmtM() always prints M, which
+   would render a $15K contract as "$0.0M". */
+function gsMoney(v){ const n=Number(v)||0; if(n===0) return "$0"; if(n<0) return "\u2212"+gsMoney(-n); if(n<1) return "$"+Math.round(n*1000)+"K"; return fmtM(n); }
+let GAMES = { src: null, dev: "partner", platform: "console" };
+const GAMES_SECTIONS = [
+  ["overview", "Overview"], ["develop", "Development"], ["catalog", "Catalog"],
+  ["studio", "Studio & Staff"], ["contracts", "Contracts"], ["awards", "Awards"], ["hardware", "Hardware"]
+];
+function gs() { return (typeof GameStudioDesk !== "undefined") ? GameStudioDesk : null; }
+function gsInt(n) { return Math.round(Number(n) || 0).toLocaleString(); }
+function gamesSub() {
+  const D = gs(); if (!D) return "overview";
+  D.reconcileLegacy(G);
+  const s = D.ensure(G);
+  const want = s.sub || (typeof GAMES_SUB !== "undefined" ? GAMES_SUB : "overview") || "overview";
+  const valid = GAMES_SECTIONS.some(x => x[0] === want) ? want : "overview";
+  s.sub = valid; GAMES_SUB = valid;
+  return valid;
+}
+function gamesSetSub(k) {
+  const D = gs(); if (!D) return;
+  const s = D.ensure(G); s.sub = k; GAMES_SUB = k;
+  if (typeof saveGame === "function") saveGame();
+  beep("click"); render();
+}
+function foundGameStudio() {
+  const D = gs(); if (!D) return toast("Game studio module unavailable.", "bad");
+  const r = D.found(G);
+  if (!r.ok) { beep("bad"); return toast(r.reason, "bad"); }
+  beep("gold"); flashes(G.flash); render();
+}
 
-  if(GAMES_SUB === "hardware"){
-    if(typeof GameDevHardware !== "undefined" && typeof GameDevHardware.renderHardwareSection === "function") return h + GameDevHardware.renderHardwareSection();
+/* ── shell ── */
+function gamesHead() {
+  const w = woyOf(G.week), m = DATA.seasonOf(w);
+  return `<header class="command-heading"><div><span class="command-edition">GAME STUDIO DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">DEVELOP / CATALOG / STAFF / CONTRACTS / AWARDS / HARDWARE</span><h1>Ship the next classic.</h1><p>Plan a title, shepherd it through Alpha → Beta → Master → Debug, squash bugs into research data, and launch to a four-critic review out of 40.</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2, "0")}</b><small>${esc(m.month)}</small></div></header>`;
+}
+function gamesNav() {
+  const active = gamesSub();
+  return `<nav class="command-section-nav command-games-nav" aria-label="Game studio desk sections"><div class="command-nav-brand"><span>GAME STUDIO DESK</span><small>PLAN / BUILD / SHIP / CELEBRATE</small></div><div class="command-nav-items">${GAMES_SECTIONS.map(([key, label], i) => {
+    const icon = getSubTabPixelIcon("games", key);
+    return `<button data-gamessub="${key}" class="${active === key ? "active" : ""}" aria-current="${active === key ? "page" : "false"}" aria-pressed="${active === key}"><small>0${i + 1}</small>${icon ? `<img class="subtab-pixel-icon" src="${icon}" alt="" />` : ""}<span>${label}</span></button>`;
+  }).join("")}</div></nav>`;
+}
+function gamesTelemetry() {
+  const D = gs(), s = D.ensure(G);
+  const sum = D.summary(G);
+  const fbTotal = Object.values(s.fanbase).reduce((a, b) => a + b, 0);
+  return `<div class="command-telemetry">` +
+    commandMetric("RESEARCH DATA", "💾 " + gsInt(s.researchData), "Floppy disks · earn by squashing bugs & finishing contracts") +
+    commandMetric("TITLES SHIPPED", gsInt(s.catalog.length) + (sum.hallOfFame ? " · 🏆" + sum.hallOfFame : ""), "Rolling 32-title buffer · Hall of Fame unlocks sequels") +
+    commandMetric("LIFETIME UNITS", gsInt(sum.totalUnits), "Cumulative units across the active roster") +
+    commandMetric("FANBASE", gsInt(fbTotal), "Young + Adult + Everyone") +
+    commandMetric("TROPHIES", gsInt(sum.trophies), "Global Game Awards & Hall of Fame") +
+    `</div>`;
+}
+function gamesPanel(eyebrow, title, description, content, aside, cls) {
+  return `<section class="produce-panel games-panel ${cls || ""}"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description ? `<p>${description}</p>` : ""}</div>${aside ? `<div class="games-panel-aside">${aside}</div>` : ""}</div><div class="games-panel-body">${content}</div></section>`;
+}
+function gamesShell(content) { return `<section class="command-deck command-produce command-games">${gamesHead()}${gamesNav()}${gamesTelemetry()}${content}</section>`; }
+function gamesEmpty(title, copy, action) { return `<div class="command-empty"><b>${title}</b><span>${copy}</span>${action || ""}</div>`; }
+function gsAwardCountdown() { const w = woyOf(G.week); return w <= 50 ? 50 - w : (52 - w) + 50; }
+function gsDexCountdown() { const w = woyOf(G.week); return (w >= 27 && w <= 30) ? 0 : (w < 27 ? 27 - w : (52 - w) + 27); }
+
+function viewGames() {
+  const D = gs();
+  if (!D) return `<section class="command-deck command-produce command-games">${gamesHead()}${gamesEmpty("Game studio offline", "The game-development module failed to load in this build.")}</section>`;
+  D.reconcileLegacy(G);
+  const sub = gamesSub();
+  let content;
+  if (sub === "develop") content = gamesDevelopPanel();
+  else if (sub === "catalog") content = gamesCatalogPanel();
+  else if (sub === "studio") content = gamesStudioPanel();
+  else if (sub === "contracts") content = gamesContractsPanel();
+  else if (sub === "awards") content = gamesAwardsPanel();
+  else if (sub === "hardware") content = gamesHardwarePanel();
+  else content = gamesOverviewPanel();
+  return gamesShell(content);
+}
+
+/* ── Overview ── */
+function gamesOverviewPanel() {
+  const D = gs(), s = D.ensure(G);
+  if (!s.foundedWeek) {
+    return gamesPanel("GETTING STARTED / 01", "Found your game studio", "A movie studio's game division starts as a four-desk garage. Turn your capital and reputation into a playable pipeline.",
+      `<div class="games-found"><div class="games-found-copy"><p>Founding costs <b>${gsMoney(50)}</b> (engines, licences, desks) and grants a starter crew of four — a Coder, Writer, Designer and Sound Engineer — plus <b>💾 30 research data</b> to level up jobs.</p><p>From here you can plan original games, take outsourced contracts, license hardware platforms, train staff to discover new themes, and eventually manufacture <b>Your Console</b>.</p></div><button class="command-primary" data-gs-found="1">Found the game studio — ${gsMoney(50)}</button></div>` +
+      gamesClassicPipelines());
   }
-
-  const D = G.gamesDiv || {unlocked:false, projects:[], released:[]};
-  h += "<div class='section-title'>Game studio</div>";
-  if(!D.unlocked){
-    h += "<div class='card'><div class='spread'><div><b>Found the "+esc(G.studio.name)+" game studio</b>"+
-      "<div class='tiny muted' style='margin-top:4px'>Turn your franchises and box-office hits into video games. Pick a developer house, platform, burn weekly through development, launch to a review score with a 12-week sales tail. A 70+ game re-heats its franchise brand, unlocks esports leagues, and allows porting deals.</div></div>"+
-      "<button class='btn btn-primary' data-games-unlock='1'>Found it — "+fmtM(50)+"</button></div>"+
-      "<div class='tiny muted' style='margin-top:6px'>+$0.4M/wk overhead once live. Up to 3 games in development at once.</div></div>";
-    h += gameDevLiteHTML();
-    return h;
+  let h = "";
+  /* active project quick card */
+  if (s.active) {
+    const p = s.active, pv = D.activePreview(G);
+    h += gamesPanel("ON THE FLOOR / 01", esc(p.title), D.genreOf(p.genre).name + " × " + D.THEME_LABEL(p.theme) + " · " + (p.platform === "your_console" ? (s.yourConsole && s.yourConsole.name) || "Your Console" : D.platformOf(p.platform).name),
+      `<div class="games-active-brief"><div class="games-phase-line"><b>${p.phase.toUpperCase()}</b> milestone · ${Math.round(p.progress)}% complete</div><div class="gs-bar"><i style="width:${Math.round(p.progress)}%"></i></div><div class="games-active-stats"><span>🐞 <b>${p.bugs}</b> bugs open</span><span>📊 projected review <b>${pv.reviewTotal}/40</b></span><span>💰 potential <b>${gsMoney(pv.potential)}</b></span></div></div>`,
+      `<button class="btn btn-sm btn-primary" data-gs-goto="develop">Open development ↗</button>`);
+  } else {
+    h += gamesPanel("ON THE FLOOR / 01", "The dev floor is quiet", "No title in development. Write a design doc and greenlight your next game.",
+      gamesEmpty("Ready when you are", "Plan a genre × theme pairing, allocate company direction points, then ship through four milestones.", `<button class="command-primary" data-gs-greenlight="1">🎮 Plan a new game</button>`),
+      `<button class="btn btn-sm btn-primary" data-gs-greenlight="1">Plan a game</button>`);
   }
-  h += "<div class='card'><div class='spread'><b>"+esc(G.studio.name)+" Interactive</b><span class='tag'>"+D.projects.length+"/3 in dev · "+D.released.length+" released</span></div></div>";
-  h += gameDevLiteHTML();
+  /* this week / signals */
+  const merchant = D.isMerchantWeek(G);
+  const sat = D.saturation(G);
+  const warns = [];
+  if (sat.both) warns.push("Market saturation: two straight games shared a genre & theme — first-week sales −40%.");
+  else if (sat.sameGenre) warns.push("Repeating a genre shrinks the fanbase 15% per week.");
+  const countdown = gsAwardCountdown();
+  h += gamesPanel("THIS WEEK / 02", "Studio signals", "Live state pulled from the dev engine — nothing projected here.",
+    `<div class="games-signals">` +
+    `<div class="games-signal"><span>🧳 TRAVELING SALESMAN</span><b class="${merchant ? "pos" : "muted"}">${merchant ? "In the lobby" : "Away"}</b><small>Boost items &amp; Career Manuals in May &amp; November.</small></div>` +
+    `<div class="games-signal"><span>🏆 GLOBAL GAME AWARDS</span><b>${countdown === 0 ? "Tonight" : "in " + countdown + " wk"}</b><small>December, week 3 · 5 categories + prize money.</small></div>` +
+    `<div class="games-signal"><span>📝 ACTIVE CONTRACTS</span><b>${s.contracts.length}/3</b><small>Outsourced work pays cash + research data.</small></div>` +
+    `<div class="games-signal"><span>⚡ AVG. ENERGY</span><b class="${D.summary(G).avgEnergy < 40 ? "neg" : ""}">${D.summary(G).avgEnergy}%</b><small>Tired teams spawn more bugs.</small></div>` +
+    `</div>` + (warns.length ? `<div class="games-warn">⚠ ${warns.map(esc).join(" ")}</div>` : ""));
+  /* recent releases */
+  const recent = s.catalog.slice(0, 4);
+  h += gamesPanel("RECENT RELEASES / 03", "Latest from the studio", "The most recent titles on your active roster.",
+    recent.length ? recent.map(g => gamesCatalogRow(g, true)).join("") : gamesEmpty("No releases yet", "Your first gold master is always the scariest. Greenlight a game to get here."),
+    `<button class="btn btn-sm btn-alt" data-gs-goto="catalog">Full catalog ↗</button>`);
+  /* nav shortcuts */
+  h += gamesPanel("JUMP TO / 04", "Desks", "Everything the game division can do.",
+    `<div class="command-desk-grid">` +
+    [["develop", "Development", "Plan & ship titles"], ["studio", "Studio & Staff", "Jobs, training, items"], ["contracts", "Contracts", "Outsourced work"], ["hardware", "Hardware", "Licences & Your Console"], ["awards", "Awards", "December ceremony"], ["catalog", "Catalog", "Your shipped games"]]
+      .map(([k, n, d]) => `<button data-gs-goto="${k}"><small>DESK</small><b>${n}</b><span>${d}</span></button>`).join("") +
+    `</div>` + gamesClassicPipelines());
+  return h;
+}
 
-  if(GAMES_SUB === "released"){
-    h += "<div class='section-title'>Released games ("+D.released.length+")</div>";
-    if(!D.released.length) h += "<div class='card muted small'>No releases yet — the first gold master is always the scariest.</div>";
-    D.released.forEach(g=>{
-      const platDef = (DATA.GAME_PLATFORMS||[]).find(p=>p.id===g.platform) || {name:g.platform||"Console"};
-      h += "<div class='card'><div class='spread'><div><b>"+esc(g.title)+"</b> <span class='tag'>"+platDef.name+"</span>"+
-        (g.score>=80? " <span class='tag gold'>Esports League (+$1.5M/wk)</span>":"")+
-        "<div class='tiny muted'>Y"+yearOf(g.when)+" · "+fmtM(g.earned)+" earned"+(g.weeksLeft>0? " · +"+fmtM(g.weekly)+"/wk for "+g.weeksLeft+" more wks":" · sales tail ended")+"</div></div>"+
-        "<div style='text-align:right'><div style='font-size:18px;font-weight:700' class='"+(g.score>=70?"pos":g.score<45?"neg":"gold")+"'>Review: "+g.score+"/100</div>"+
-        "<div class='row' style='gap:4px;margin-top:4px'>"+
-          (g.score>=65 && !g.isSequel ? "<button class='btn btn-xs btn-alt' data-game-sequel='"+g.id+"'>Sequel</button>" : "")+
-          (!g.ported ? "<button class='btn btn-xs btn-alt' data-game-port='"+g.id+"'>Port Deals (+$4M)</button>" : "<span class='tag green tiny'>✓ Ported</span>")+
-        "</div></div></div></div>";
+/* ── Development ── */
+function gamesPhaseStepper(p) {
+  const order = ["alpha", "beta", "master", "debug"];
+  const labels = { alpha: "Alpha", beta: "Beta", master: "Master", debug: "Debug" };
+  const idx = order.indexOf(p.phase);
+  return `<div class="games-phases">${order.map((ph, i) => `<div class="games-phase ${i < idx ? "done" : i === idx ? "active" : ""}"><span>${i < idx ? "✓" : "0" + (i + 1)}</span><b>${labels[ph]}</b><small>${({ alpha: "Fun & Creativity", beta: "Graphics", master: "Sound", debug: "Bug squash" })[ph]}</small></div>`).join("")}</div>`;
+}
+function gamesParamBar(label, val, color) {
+  const v = Math.round(val || 0), pct = Math.min(100, v);
+  return `<div class="games-param"><span>${label}</span><div class="gs-bar"><i style="width:${pct}%;background:${color}"></i></div><b>${v}</b></div>`;
+}
+function gamesDevelopPanel() {
+  const D = gs(), s = D.ensure(G);
+  if (!s.foundedWeek) return gamesPanel("DEVELOPMENT / 01", "Locked", "Found the game studio first.", gamesEmpty("Not founded", "Open the Overview tab to found your game division."), `<button class="btn btn-sm btn-alt" data-gs-goto="overview">Overview ↗</button>`);
+  let h = "";
+  if (s.active) {
+    const p = s.active, pv = D.activePreview(G), cap = D.directionCapacity(G);
+    const syn = D.synergyOf(p.genre, p.theme);
+    const bugWarn = p.bugs > 0;
+    h += gamesPanel("IN DEVELOPMENT / 01", esc(p.title),
+      D.genreOf(p.genre).name + " × " + D.THEME_LABEL(p.theme) + " · " + (p.platform === "your_console" ? (s.yourConsole && s.yourConsole.name) || "Your Console" : D.platformOf(p.platform).name) + " · " + (p.author === "gaichu" ? "outsourced author" : "in-house proposal"),
+      gamesPhaseStepper(p) +
+      `<div class="gs-bar gs-progress"><i style="width:${Math.round(p.progress)}%"></i></div>` +
+      `<div class="games-dev-cols"><div>` +
+      gamesParamBar("🎉 Fun", p.fun, "var(--green)") +
+      gamesParamBar("💡 Creativity", p.cre, "var(--purple)") +
+      gamesParamBar("🖼️ Graphics", p.gfx, "var(--blue)") +
+      gamesParamBar("🎵 Sound", p.snd, "var(--gold)") +
+      `<div class="games-dev-meta"><span>💰 spent <b>${gsMoney(p.spent)}</b> / ${gsMoney(p.budget)}</span><span>🎯 direction <b>${Object.values(p.directions).reduce((a, b) => a + b, 0)}/${cap}</b></span><span>🔥 hype <b>${p.hype}</b></span></div>` +
+      `</div><div class="games-dev-right">` +
+      `<div class="games-preview"><span class="command-eyebrow">PROJECTED AT RELEASE</span><div class="games-preview-score">${pv.reviewTotal}<small>/40</small></div><div class="tiny muted">4 critics · ${({ hall_of_fame: "Hall of Fame (32+)", solid: "Solid (25–31)", mixed: "Mixed (15–24)", flop: "Flop (<15)" })[pv.reviewTier]}</div><div class="games-preview-rows"><span>Potential revenue</span><b>${gsMoney(pv.potential)}</b><span>First-week shipment</span><b>${gsMoney(pv.firstWeek)}</b><span>Projected units</span><b>${gsInt(pv.units)}</b></div><div class="tiny muted" style="margin-top:6px">Genre × theme: <b class="${syn.tier === "great" ? "pos" : syn.tier === "disaster" ? "neg" : ""}">${syn.tier === "great" ? "great synergy ×1.35" : syn.tier === "disaster" ? "disaster ×0.55" : "neutral ×1.0"}</b></div>${pv.milestones.length ? `<div class="tiny gold" style="margin-top:4px">🏅 ${pv.milestones.join(" · ")}</div>` : ""}</div>` +
+      `<div class="games-bugbox ${bugWarn ? "warn" : ""}"><span>🐞 <b>${p.bugs}</b> open bug${p.bugs === 1 ? "" : "s"}</span><div class="row" style="gap:4px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-xs btn-alt" data-gs-squash="1">Squash 1</button><button class="btn btn-xs btn-alt" data-gs-squashall="1">Squash all</button><button class="btn btn-xs ${p.crunch ? "btn-primary" : "btn-ghost"}" data-gs-crunch="1">${p.crunch ? "🔥 Crunching" : "Rush / crunch"}</button></div><small class="tiny muted">Each squashed bug = +💾 1 research data. Shipping with bugs cuts reviews &amp; sales; crunch speeds progress but breeds bugs.</small></div>` +
+      `</div></div>`,
+      p.phase === "debug"
+        ? `<button class="btn btn-sm btn-primary" data-gs-release="1">${bugWarn ? "⚠ Ship anyway" : "🚀 Release game"}</button>`
+        : `<span class="tag">Next Week advances production</span>`,
+      "games-develop-live");
+    if (p.phase === "debug" && bugWarn) h += `<div class="games-warn" style="margin:0 0 12px">⚠ Releasing with ${p.bugs} unresolved bug${p.bugs === 1 ? "" : "s"} will penalise the review score (-3% each) and trigger returns/sales loss. Squash them first.</div>`;
+    return h + gamesClassicPipelines();
+  }
+  /* no active project — greenlight CTA + concept guide */
+  h += gamesPanel("DEVELOPMENT / 01", "Plan your next game", "Write a Game Design Doc: pick a platform, one of 20 genres and a theme, choose an in-house or outsourced proposal author, then allocate company direction points (capacity " + D.directionCapacity(G) + ").",
+    `<div class="games-found"><div class="games-found-copy"><p><b>Phase 1 — Planning &amp; Proposal.</b> Your proposal author's Writing/Scenario level sets the initial Fun &amp; Creativity. An outsourced author costs a flat fee for a predictable foundation.</p><p><b>Phase 2 — Production.</b> Alpha builds Fun &amp; Creativity (Coder + Writer), Beta builds Graphics (Designer), Master builds Sound (Sound Engineer), then Debug is your bug-squashing window.</p><p><b>Repeating a lead</b> (proposal, graphics or audio) burns them out — output ×0.40. Alternate staff or hire specialists.</p></div><button class="command-primary" data-gs-greenlight="1">🎮 Write a design doc</button></div>`);
+  /* concept guide: genre × theme matrix teaser */
+  const genreRows = D.GENRES.slice(0, 8).map(g => {
+    const good = Object.keys(D.SYNERGY_BOOST).filter(k => k.indexOf(g.id + "|") === 0).map(k => D.THEME_LABEL(k.split("|")[1]));
+    return `<div class="games-concept-row"><b>${g.emoji} ${g.name}</b><span class="tiny muted">${good.length ? "great with " + good.slice(0, 4).join(", ") : "balanced all-round"}</span></div>`;
+  }).join("");
+  h += gamesPanel("CONCEPT CODEX / 02", "Genre × theme synergies", "Great pairings boost review & sales ×1.35; disastrous pairings cut them to ×0.55. Train staff to discover more themes.",
+    `<div class="games-concept-list">${genreRows}</div><div class="tiny muted" style="margin-top:8px">Showing 8 of ${D.GENRES.length} genres. Unlocked themes: ${s.unlockedThemes.length}. Visit Studio &amp; Staff to train and discover more.</div>`,
+    `<button class="btn btn-sm btn-alt" data-gs-goto="studio">Studio &amp; Staff ↗</button>`);
+  return h + gamesClassicPipelines();
+}
+
+/* ── classic pipelines: v16 adaptation greenlight + in-house originals, in desk panels ── */
+function gamesClassicPipelines() {
+  const D = gs(), s = D.ensure(G);
+  let h = "";
+  if (!s.foundedWeek) { /* still show classic in-house originals teaser for legacy saves */ }
+  /* v16 adaptation deals */
+  const srcs = (typeof gameSources === "function") ? gameSources() : [];
+  let adapt = "";
+  if (!srcs.length) adapt = `<div class="tiny muted">No eligible sources — land a franchise or a 1.2× breakeven film to adapt into a game. Keep them out of development.</div>`;
+  else {
+    adapt += `<div class="small muted" style="margin-bottom:6px">1 · Source</div><div class="games-pickrow">` +
+      srcs.slice(0, 10).map(sr => `<button class="btn btn-sm ${GAMES.src === sr.key ? "btn-primary" : "btn-alt"}" data-gsrc="${esc(sr.key)}">${sr.emoji} ${esc(sr.name)} <span class="tiny muted">🔥${sr.heat}</span></button>`).join("") + `</div>`;
+    adapt += `<div class="small muted" style="margin:10px 0 6px">2 · Platform target</div><div class="games-pickrow">` +
+      (DATA.GAME_PLATFORMS || []).map(p => `<button class="btn btn-sm ${(GAMES.platform || "console") === p.id ? "btn-primary" : "btn-alt"}" data-gplat="${p.id}">${p.emoji} ${p.name} <span class="tiny muted">×${p.mult}</span></button>`).join("") + `</div>`;
+    adapt += `<div class="small muted" style="margin:10px 0 6px">3 · Developer house</div><div class="games-pickrow">` +
+      (DATA.GAME_DEVS || []).map(d => `<button class="btn btn-sm ${GAMES.dev === d.id ? "btn-primary" : "btn-alt"}" data-gdev="${d.id}">${esc(d.name)} · ${gsMoney(d.cost)} + ${gsMoney(d.weekly)}/wk</button>`).join("") + `</div>`;
+    adapt += `<div class="row" style="margin-top:12px"><button class="btn btn-primary" id="gsGo">🕹 Greenlight the adaptation</button></div>`;
+  }
+  h += gamesPanel("CLASSIC PIPELINE / A", "Movie-IP adaptation deals", "The original v16 division: turn a franchise or box-office hit into a game via a developer house. Ships on a 12-week sales tail.", adapt);
+  /* in-house originals (prototype RPG GDD) rendered in desk style */
+  const PD = G.prototypeData || {};
+  let orig = "";
+  if (!PD.gameDevUnlocked) orig = `<div class="tiny muted">In-house originals unlock at rep 40 &amp; ${gsMoney(250)} cash — you're at rep ${Math.round(G.studio.rep)} &amp; ${gsMoney(G.studio.cash)}.</div>`;
+  else if (!PD.currentProject) orig = `<div class="games-classic-empty"><span class="tiny muted">No original in development. Write a Game Design Doc to start an 8-phase in-house project.</span><button class="btn btn-sm btn-primary" data-pgdev-gdd="1">🎮 Write GDD</button></div>`;
+  else {
+    const pr = PD.currentProject, phases = (DATA.PROTOTYPE_GAME_DEV || {}).phases || [];
+    const pi = phases.findIndex(x => x.id === pr.phase), pct = Math.round(pr.progress || 0);
+    orig += `<div class="games-original"><div class="spread"><b>🕹 ${esc(pr.title || "Untitled")}</b><span class="tag">${pct}%</span></div><div class="gs-bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="tiny muted" style="margin-top:6px">Phase ${pi + 1}/${phases.length} · Quality ${Math.round(pr.quality || 50)}/100 · spent ${gsMoney(pr.spent || 0)} of ${gsMoney(pr.budget || 50)}</div>`;
+    if (pct >= 100) (((DATA.PROTOTYPE_GAME_DEV || {}).phaseChoices || {})[pr.phase] || []).forEach(def => {
+      orig += `<div class="small muted" style="margin-top:6px"><b>${esc(def.label)}</b></div><div class="games-pickrow" style="margin-top:2px">` +
+        (def.options || []).map(o => `<button class="btn btn-xs btn-alt" data-pgdev-choice="${o.id}">${esc(o.label)}</button>`).join("") + `</div>`;
     });
-    return h;
+    orig += `</div>`;
   }
+  const rel = (PD.releasedGames || []).slice(-4).reverse();
+  if (rel.length) orig += `<div class="games-classic-rel">` + rel.map(g => `<div class="games-classic-row"><span>🎮 ${esc(g.title || "Game")} ${g.goty ? '<span class="tag gold">🏆 GOTY</span>' : ""}</span><b>${g.quality}/100 · ${gsMoney(g.salesTotal || 0)}</b></div>`).join("") + `</div>`;
+  h += gamesPanel("CLASSIC PIPELINE / B", "In-house originals (8-phase GDD)", "The RPG prototype pipeline: genre × platform × theme × mechanic × business model, shepherded through eight dev phases.", orig);
+  return h;
+}
 
-  if(GAMES_SUB === "greenlight"){
-    const srcs = gameSources();
-    h += "<div class='section-title'>Greenlight an adaptation</div>";
-    if(!srcs.length){
-      h += "<div class='card muted small'>No eligible sources — land a franchise (any tier) or a 1.2× breakeven release first, and keep them out of development.</div>";
-    }else{
-      h += "<div class='card'><div class='tiny muted' style='margin-bottom:6px'>Pick a source, target platform, then a developer house. Hotter sources make better games.</div>"+
-        "<div class='small muted' style='margin-bottom:6px'>Source</div><div class='row' style='flex-wrap:wrap'>";
-      srcs.slice(0,10).forEach(s=>{
-        h += "<button class='btn btn-sm "+(GAMES.src===s.id?"btn-primary":"btn-alt")+"' data-gsrc='"+s.id+"'>"+esc(s.name)+" ("+s.heat.toFixed(1)+"x heat)</button>";
-      });
-      h += "</div></div>";
-    }
-    return h;
-  }
-
-  h += "<div class='section-title'>In development ("+D.projects.length+")</div>";
-  if(!D.projects.length) h += "<div class='card muted small'>The dev floor is quiet — greenlight an adaptation.</div>";
-  D.projects.forEach(pr=>{
-    const pct=Math.round((1-pr.weeksLeft/pr.weeks0)*100);
-    const platDef = (DATA.GAME_PLATFORMS||[]).find(p=>p.id===pr.platform) || {emoji:"🎮", name:pr.platform||"Console"};
-    h+="<div class='card'><div class='spread'><div><b>🕹 "+esc(pr.title)+"</b> <span class='tag'>"+platDef.emoji+" "+platDef.name+"</span><div class='tiny muted'>"+esc(pr.devName)+" · "+fmtM(pr.weekly)+"/wk · "+pr.weeksLeft+" wk"+(pr.weeksLeft===1?"":"s")+" to gold master</div></div>"+
-      "<span class='tag'>"+pct+"%</span></div>"+
-      "<div style='height:8px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden'><div style='height:100%;width:"+pct+"%;background:linear-gradient(90deg,var(--gold),var(--gold2))'></div></div></div>";
-  });
-  h+="<div class='section-title'>Released games ("+D.released.length+")</div>";
-  if(!D.released.length) h+="<div class='card muted small'>No releases yet — the first gold master is always the scariest.</div>";
-  D.released.forEach(g=>{
-    const platDef = (DATA.GAME_PLATFORMS||[]).find(p=>p.id===g.platform) || {emoji:"🎮", name:g.platform||"Console"};
-    h+="<div class='card'><div class='spread'><div><b>🎮 "+esc(g.title)+"</b> <span class='tag'>"+platDef.emoji+" "+platDef.name+"</span>"+
-      (g.score>=80? " <span class='tag gold'>🏆 Esports League (+$1.5M/wk)</span>":"")+
-      "<div class='tiny muted'>Y"+yearOf(g.when)+" · "+fmtM(g.earned)+" earned"+(g.weeksLeft>0? " · +"+fmtM(g.weekly)+"/wk for "+g.weeksLeft+" more wks":" · sales tail ended")+"</div></div>"+
-      "<div style='text-align:right'><div style='font-size:18px;font-weight:700' class='"+(g.score>=70?"pos":g.score<45?"neg":"gold")+"'>Review: "+g.score+"/100</div>"+
-      "<div class='row' style='gap:4px;margin-top:4px'>"+
-        (g.score>=65 && !g.isSequel ? "<button class='btn btn-xs btn-alt' data-game-sequel='"+g.id+"'>⚡ Sequel</button>" : "")+
-        (!g.ported ? "<button class='btn btn-xs btn-alt' data-game-port='"+g.id+"'>🚢 Port Deals (+$4M)</button>" : "<span class='tag green tiny'>✓ Ported</span>")+
-      "</div></div></div></div>";
-  });
-  const srcs=gameSources();
-  h+="<div class='section-title'>Greenlight an adaptation</div>";
-  if(!srcs.length){
-    h+="<div class='card muted small'>No eligible sources — land a franchise (any tier) or a 1.2× breakeven release first, and keep them out of development.</div>";
-  }else{
-    h+="<div class='card'><div class='tiny muted' style='margin-bottom:6px'>Pick a source, target platform, then a developer house. Hotter sources make better games.</div>"+
-      "<div class='small muted' style='margin-bottom:6px'>Source</div><div class='row' style='flex-wrap:wrap'>";
-    srcs.slice(0,10).forEach(s=>{
-      h+="<button class='btn btn-sm"+(GAMES.src===s.key?" btn-primary":"")+"' data-gsrc='"+esc(s.key)+"'>"+s.emoji+" "+esc(s.name)+" <span class='tiny muted'>🔥"+s.heat+"</span></button>";
-    });
-    h+="</div>"+
-      "<div class='small muted' style='margin:10px 0 6px'>Platform target</div><div class='row' style='flex-wrap:wrap;gap:4px'>"+
-      (DATA.GAME_PLATFORMS||[]).map(p=>"<button class='btn btn-sm "+((GAMES.platform||"console")===p.id?"btn-primary":"")+"' data-gplat='"+p.id+"'>"+p.emoji+" "+p.name+" ("+p.mult+"× sales)</button>").join("")+
-      "</div>"+
-      "<div class='small muted' style='margin:10px 0 6px'>Developer house</div><div class='plan-pick'>";
-    (DATA.GAME_DEVS||[]).forEach(d=>{
-      h+="<div class='plan-opt"+(GAMES.dev===d.id?" sel":"")+"' data-gdev='"+d.id+"'><div class='spread'><h5>"+d.name+"</h5><span class='tag "+(GAMES.dev===d.id?"gold":"")+"'>"+fmtM(d.cost)+" + "+fmtM(d.weekly)+"/wk</span></div>"+
-        "<div class='p-sub'>"+d.blurb+" Base quality ~"+d.quality+", "+d.weeks[0]+"–"+d.weeks[1]+" weeks.</div></div>";
-    });
-    h+="</div><div class='row' style='margin-top:10px'><button class='btn btn-primary' id='gsGo'>🕹 Greenlight the game</button></div></div>";
+/* ── Catalog ── */
+function gamesCatalogRow(g, compact) {
+  const D = gs();
+  const tierTag = g.hallOfFame ? '<span class="tag gold">🏆 Hall of Fame</span>' : g.tier === "flop" ? '<span class="tag neg">💀 flop</span>' : g.tier === "solid" ? '<span class="tag green">solid</span>' : "";
+  const tail = g.weekIndex < g.salesPlan.length ? `<span class="tiny muted">week ${g.weekIndex + 1}/${g.salesPlan.length} of sales tail</span>` : `<span class="tiny muted">sales tail ended</span>`;
+  return `<div class="games-row"><div class="games-row-main"><span class="games-row-title">🎮 <b>${esc(g.title)}</b> ${tierTag}${g.isSequel ? ' <span class="tag purple">sequel</span>' : ""}</span><span class="tiny muted">${D.genreOf ? esc(D.genreOf(g.genre).name) : esc(g.genre)} × ${esc(D.THEME_LABEL(g.theme))} · ${esc(g.platformName || g.platform)} · Y${g.year}${g.bugs ? " · 🐞" + g.bugs + " shipped" : ""}</span></div><div class="games-row-score"><b class="${g.review >= 32 ? "pos" : g.review < 15 ? "neg" : "gold"}">${g.review}<small>/40</small></b><span class="tiny muted">${g.judges ? g.judges.join("·") : ""}</span></div><div class="games-row-meta"><span>${gsInt(g.units)} units</span><span>${gsMoney(g.revenue)}</span>${compact ? "" : tail}</div>${compact ? "" : `<div class="games-row-actions"><button class="btn btn-xs btn-alt" data-gs-review="${g.id}">Review</button>${g.hallOfFame ? `<button class="btn btn-xs btn-alt" data-gs-sequel="${g.id}">Sequel</button>` : ""}${g.milestones && g.milestones.length ? `<span class="tag gold tiny">🏅 ${esc(g.milestones[g.milestones.length - 1])}</span>` : ""}</div>`}</div>`;
+}
+function gamesCatalogPanel() {
+  const D = gs(), s = D.ensure(G);
+  let h = gamesPanel("GAME CATALOG / 01", "Shipped titles", "The active roster holds up to 32 games. Releasing the 33rd purges the oldest — if it was Hall of Fame, its sequel rights lock permanently.",
+    s.catalog.length ? s.catalog.slice(0, 24).map(g => gamesCatalogRow(g, false)).join("") + (s.catalog.length > 24 ? `<div class="tiny muted" style="margin-top:8px">Showing 24 of ${s.catalog.length} — the rest remain in the save.</div>` : "") : gamesEmpty("No games shipped", "Greenlight and release your first title to fill the catalog."));
+  if (s.purgedHallOfFame.length) h += `<div class="games-warn">🔒 Sequel rights locked for ${s.purgedHallOfFame.length} purged Hall-of-Fame franchise(s): ${s.purgedHallOfFame.map(x => esc(D.THEME_LABEL(x))).join(", ")}.</div>`;
+  /* classic v16 released games */
+  const legacy = (G.gamesDiv && G.gamesDiv.released) || [];
+  if (legacy.length) {
+    h += gamesPanel("CLASSIC RELEASES / 02", "Adaptation catalog", "Games shipped through the v16 movie-IP adaptation pipeline (scored /100).",
+      legacy.slice(0, 12).map(g => {
+        const pd = (DATA.GAME_PLATFORMS || []).find(p => p.id === g.platform) || { name: g.platform || "Console", emoji: "🎮" };
+        return `<div class="games-row"><div class="games-row-main"><span class="games-row-title">🎮 <b>${esc(g.title)}</b> <span class="tag">${esc(pd.emoji)} ${esc(pd.name)}</span>${g.score >= 80 ? ' <span class="tag gold">🏆 esports</span>' : ""}</span><span class="tiny muted">Y${yearOf(g.when)} · ${gsMoney(g.earned)} earned${g.weeksLeft > 0 ? " · +" + gsMoney(g.weekly) + "/wk" : ""}</span></div><div class="games-row-score"><b class="${g.score >= 70 ? "pos" : g.score < 45 ? "neg" : "gold"}">${g.score}<small>/100</small></b></div><div class="games-row-actions">${(!g.isSequel && g.score >= 65) ? `<button class="btn btn-xs btn-alt" data-game-sequel="${g.id}">Sequel</button>` : ""}${!g.ported ? `<select class="gs-select" data-gport-target="${g.id}" style="min-height:26px;font:10px ui-monospace,monospace;padding:2px 6px">${(DATA.GAME_PLATFORMS||[]).map(p=>`<option value="${p.id}" ${g.platform===p.id?"disabled":""}>Port → ${esc(p.name)}</option>`).join("")}<option value="multi" selected>Port → Multi</option></select><button class="btn btn-xs btn-alt" data-game-port="${g.id}">Go · −$6M · +38% rev</button>` : '<span class="tag green tiny">✓ ported</span>'}</div></div>`;
+      }).join(""));
   }
   return h;
+}
+
+/* ── Studio & Staff ── */
+function gamesStaffRow(t) {
+  const D = gs();
+  const job = D.jobOf(t.job);
+  const energy = t.energy || 0;
+  return `<div class="games-staff-row ${energy < 40 ? "tired" : ""}"><div class="games-staff-id"><b>${esc(t.name)}</b>${t.secret ? ' <span class="tag gold tiny">★ secret</span>' : ""}<span class="tiny muted">${esc(job.emoji)} ${esc(job.name)} · energy ${energy}%</span></div><div class="gs-bar gs-energy"><i style="width:${Math.min(100, energy)}%"></i></div><div class="games-staff-levels">${["coder", "writer", "designer", "sound", "director", "producer", "hardware", "hacker"].filter(j => (t.levels && t.levels[j]) || t.job === j).map(j => `<span class="tag tiny" title="${esc(D.jobOf(j).name)}">${esc(D.jobOf(j).name.split(" ")[0])} ${t.levels[j] || 1}</span>`).join("")}</div><button class="btn btn-xs btn-alt" data-gs-staff="${t.id}">Manage ↗</button></div>`;
+}
+function gamesStudioPanel() {
+  const D = gs(), s = D.ensure(G);
+  if (!s.foundedWeek) return gamesPanel("STUDIO & STAFF / 01", "Locked", "Found the game studio first.", gamesEmpty("Not founded", "Open the Overview tab."), `<button class="btn btn-sm btn-alt" data-gs-goto="overview">Overview ↗</button>`);
+  let h = "";
+  const maxDesks = D.OFFICE_TIERS[s.office.tier - 1].desks;
+  h += gamesPanel("CREW / 01", "Your team (" + s.staff.filter(t => !t.retired).length + "/" + maxDesks + " desks)", "Level jobs with research data. Each base job reaches Lvl 5; Director needs Lvl 5 in all four, Producer needs Lvl 5 Director, Hardware Engineer needs Director+Producer, Hacker needs all seven.",
+    s.staff.filter(t => !t.retired).map(gamesStaffRow).join("") +
+    `<div class="games-hire"><span class="tiny muted">Hire a new base-job employee ($100K):</span><div class="games-pickrow" style="margin-top:6px">` +
+    ["coder", "writer", "designer", "sound"].map(j => `<button class="btn btn-xs btn-alt" data-gs-hire="${j}">+ ${esc(D.jobOf(j).name)}</button>`).join("") + `</div></div>`,
+    `<span class="tag">💾 ${gsInt(s.researchData)} data</span>`);
+  /* office theme + training pointer */
+  h += gamesPanel("OFFICE & IDENTITY / 02", D.OFFICE_TIERS[s.office.tier - 1].name, `${maxDesks} desks · direction capacity ${D.directionCapacity(G)}. Expand the office and reskin the studio here.`,
+    `<div class="small muted" style="margin-bottom:6px">Studio skin</div><div class="games-pickrow">` +
+    D.OFFICE_THEMES.map(t => `<button class="btn btn-xs ${s.office.theme === t.id ? "btn-primary" : "btn-alt"}" data-gs-theme="${t.id}">${esc(t.name)}</button>`).join("") + `</div>` +
+    `<div class="small muted" style="margin:10px 0 6px">Office expansion</div><div class="games-pickrow">` +
+    D.OFFICE_TIERS.map(t => `<button class="btn btn-xs ${s.office.tier === t.tier ? "btn-primary" : "btn-alt"}" data-gs-office="${t.tier}" ${t.tier <= s.office.tier ? "disabled" : ""}>${esc(t.name)}${t.tier > s.office.tier ? " · " + gsMoney(t.cost) : " · current"}</button>`).join("") + `</div>`);
+  /* training */
+  const anyStaff = s.staff.filter(t => !t.retired);
+  h += gamesPanel("TRAINING / 03", "Send staff to train", "Training costs cash & energy, raises stats, and can discover new themes for your design docs.",
+    anyStaff.length ? `<div class="games-train"><select id="gsTrainStaff" class="gs-select">${anyStaff.map(t => `<option value="${t.id}">${esc(t.name)} (energy ${t.energy || 0})</option>`).join("")}</select><div class="games-train-grid">` +
+      D.TRAINING.map(m => `<button class="games-train-opt" data-gs-train="${m.id}"><b>${esc(m.name)}</b><span>${gsMoney(m.cost)} · −${m.energy} energy</span><small>${m.unlocks.length ? "themes: " + m.unlocks.slice(0, 3).map(x => esc(D.THEME_LABEL(x))).join(", ") : "+stats"}</small></button>`).join("") + `</div></div>` : gamesEmpty("No staff", "Hire an employee first."));
+  /* merchant / items */
+  const merchant = D.isMerchantWeek(G);
+  h += gamesPanel("TRAVELING SALESMAN / 04", merchant ? "In the lobby — stock up" : "Away — returns in May & November", "Parameter boosts escalate each purchase: cost = base × (1 + 0.25 × times bought). Research cost scales with lifetime data earned.",
+    merchant ? `<div class="games-items">` + D.ITEMS.map(it => {
+      const price = D.itemPrice(G, it.id), data = D.itemDataCost(G, it.id);
+      const needActive = ["fun", "cre", "gfx", "snd", "bugs", "inspire"].includes(it.effect);
+      const dis = (!needActive || s.active) && G.studio.cash >= price && s.researchData >= data ? "" : "disabled";
+      return `<button class="games-item" data-gs-buy="${it.id}" ${dis}><b>${esc(it.name)}</b><span>${gsMoney(price)} · ${data} data</span><small>${esc(it.blurb)}</small></button>`;
+    }).join("") + `</div>` : `<div class="games-classic-empty"><span class="tiny muted">The salesman only calls in May (weeks 17–20) and November (weeks 45–48). Plan big purchases around those windows.</span></div>`);
+  /* secret characters */
+  h += gamesPanel("SECRET RECRUITS / 05", "Legendary characters", "Elite staff unlock through awards, milestones and Your Console. Hire them at the Hollywood Talent Agent when available.",
+    `<div class="games-secrets">` + D.SECRETS.map(sec => {
+      const unlocked = !!s.secrets[sec.id], hired = s.hiredSecrets.includes(sec.id);
+      return `<div class="games-secret ${unlocked ? "on" : ""}"><span class="games-secret-emoji">${sec.emoji}</span><div><b>${esc(sec.name)}</b> ${unlocked ? (hired ? '<span class="tag green tiny">hired</span>' : `<button class="btn btn-xs btn-primary" data-gs-secret="${sec.id}">Hire</button>`) : '<span class="tag tiny">locked</span>'}<div class="tiny muted">${esc(sec.cond)}</div><div class="tiny muted">${esc(sec.traits)}</div></div></div>`;
+    }).join("") + `</div>`);
+  return h;
+}
+
+/* ── Contracts ── */
+function gamesContractsPanel() {
+  const D = gs(), s = D.ensure(G);
+  if (!s.foundedWeek) return gamesPanel("CONTRACTS / 01", "Locked", "Found the game studio first.", gamesEmpty("Not founded", "Open the Overview tab."), `<button class="btn btn-sm btn-alt" data-gs-goto="overview">Overview ↗</button>`);
+  let h = "";
+  h += gamesPanel("ACTIVE WORK / 01", s.contracts.length + "/3 contracts running", "Outsourced work pays cash and research data on delivery. Each has a strict deadline — miss it and you forfeit the reward and lose reputation.",
+    s.contracts.length ? s.contracts.map(c => {
+      const pct = Math.min(100, Math.round(c.progress / c.work * 100));
+      return `<div class="games-contract"><div class="spread"><b>📝 ${esc(c.name)}</b><span class="tag ${c.weeksLeft <= 2 ? "neg" : ""}">${c.weeksLeft} wk left</span></div><div class="gs-bar" style="margin-top:6px"><i style="width:${pct}%"></i></div><div class="tiny muted" style="margin-top:6px">${c.domain} · ${pct}% done · reward ${gsMoney(c.reward)} + ${c.dataMin}–${c.dataMax} data</div></div>`;
+    }).join("") : gamesEmpty("No contracts running", "Take an outsourced contract below to earn cash and research data during downtime."));
+  h += gamesPanel("CONTRACT BOARD / 02", "Available work", "Higher difficulty pays more but demands a stronger team and a longer deadline.",
+    `<div class="games-contract-board">` + D.CONTRACTS.map(c => {
+      const taken = s.contracts.some(x => x.defId === c.id);
+      const dis = taken || s.contracts.length >= 3 || !s.staff.filter(t => !t.retired).length ? "disabled" : "";
+      return `<button class="games-contract-opt" data-gs-take="${c.id}" ${dis}><b>${esc(c.name)}</b><span class="tag tiny">${esc(c.difficulty)}</span><span class="tiny">${gsMoney(c.reward)} · ${c.dataMin}–${c.dataMax} data · ${c.weeks} wks</span><small>${esc(c.domain)}</small></button>`;
+    }).join("") + `</div>`);
+  if (s.contractHistory.length) h += gamesPanel("HISTORY / 03", "Past contracts", "Delivered and missed jobs.",
+    s.contractHistory.slice(0, 8).map(c => `<div class="games-classic-row"><span>${c.result === "success" ? "✅" : "⏰"} ${esc(c.name)}</span><b class="${c.result === "success" ? "pos" : "neg"}">${c.result === "success" ? "+" + gsMoney(c.reward) + " · +" + c.data + " data" : "missed · rep −2"}</b></div>`).join(""));
+  return h;
+}
+
+/* ── Awards ── */
+function gamesAwardsPanel() {
+  const D = gs(), s = D.ensure(G);
+  const countdown = gsAwardCountdown();
+  let h = gamesPanel("GLOBAL GAME AWARDS / 01", "December · week 3", "The industry's annual ceremony — " + (countdown === 0 ? "being held this week." : "next held in " + countdown + " week" + (countdown === 1 ? "" : "s") + ".") + " Prizes pay out automatically when the ceremony runs.",
+    `<div class="games-awards">` + D.AWARDS.map(a => `<div class="games-award"><span class="games-award-emoji">${a.emoji}</span><div><b>${esc(a.name)}</b><span class="tag ${a.prize < 0 ? "neg" : "gold"} tiny">${a.prize < 0 ? "−" + gsMoney(-a.prize) : "+" + gsMoney(a.prize)}</span><div class="tiny muted">${esc(a.desc)}</div></div></div>`).join("") + `</div>`);
+  h += gamesPanel("TROPHY CASE / 02", "Awards history", "Every category your studio has taken (or been awarded).",
+    s.awards.length ? s.awards.slice(0, 20).map(a => {
+      const def = D.AWARDS.find(x => x.id === a.category) || { name: a.category, emoji: "🏆" };
+      return `<div class="games-classic-row"><span>${def.emoji} Y${a.year} · ${esc(def.name)}</span><b>${esc(a.title)} <span class="${a.prize < 0 ? "neg" : "pos"}">${a.prize < 0 ? "−" + gsMoney(-a.prize) : "+" + gsMoney(a.prize)}</span></b></div>`;
+    }).join("") : gamesEmpty("No trophies yet", "Ship acclaimed titles and win a category at the December ceremony."));
+  /* July Game Dex — booths, costumes, hype & demographic fans (one booth / yr) */
+  const dexOpen = D.isGameDexWeek(G);
+  const dexDone = s.gameDexYear === yearOf(G.week);
+  let dexBody;
+  if (!s.foundedWeek) {
+    dexBody = gamesEmpty("Not founded", "Open the Overview tab to found your game studio first.");
+  } else if (dexDone) {
+    const rows = (s.gameDexHistory || []).slice(0, 6).map(x => {
+      const b = D.GAME_DEX_BOOTHS.find(z => z.id === x.booth) || { name: x.booth, emoji: "🎪" };
+      const c = D.DEX_COSTUMES.find(z => z.id === x.costume) || { name: x.costume, emoji: "👕" };
+      return `<div class="games-classic-row"><span>${b.emoji} Y${x.year} · ${esc(b.name)} · ${c.emoji} ${esc(c.name)}${x.staff ? " · " + esc(x.staff) : ""}</span><b>+${x.hype} hype · +${x.fans} fans</b></div>`;
+    }).join("");
+    dexBody = `<div class="games-dex-window">✅ Exhibited at Game Dex ${yearOf(G.week)}. Your booth drew crowds and new fans — the next convention is next July.</div>` + rows;
+  } else if (!dexOpen) {
+    const cd = gsDexCountdown();
+    dexBody = `<div class="games-dex-window">🎪 Game Dex runs every <b>July</b> (weeks 27–30) — next in <b>${cd} week${cd === 1 ? "" : "s"}</b>. ${s.dexHype ? "You have <b>+" + s.dexHype + " hype</b> banked from a past booth; it boosts your next greenlight." : "Reserve a booth when it opens to build launch hype and win over fans."}</div>` +
+      `<div class="tiny muted" style="margin-top:8px">Booth tiers: ` + D.GAME_DEX_BOOTHS.map(b => `${b.emoji} ${esc(b.name)} (${gsMoney(b.cost)}, +${b.hype} hype / +${b.fans} fans)`).join(" · ") + `</div>`;
+  } else {
+    dexBody = `<div class="games-dex-form">` +
+      `<div class="gsg-label">Booth tier</div><select id="gdexBooth" class="gs-select">` + D.GAME_DEX_BOOTHS.map(b => `<option value="${b.id}">${b.emoji} ${esc(b.name)} · ${gsMoney(b.cost)} · +${b.hype} hype / +${b.fans} fans</option>`).join("") + `</select>` +
+      `<div class="gsg-label">Staff costumes <span class="tiny muted">(skews which fans you attract)</span></div><select id="gdexCostume" class="gs-select">` + D.DEX_COSTUMES.map(c => `<option value="${c.id}">${c.emoji} ${esc(c.name)} — young ${Math.round(c.young * 100)}% / adult ${Math.round(c.adult * 100)}% / everyone ${Math.round(c.everyone * 100)}%</option>`).join("") + `</select>` +
+      `<div class="gsg-label">Send a staff member <span class="tiny muted">(optional · +15% turnout)</span></div><select id="gdexStaff" class="gs-select"><option value="">— nobody —</option>` + s.staff.filter(t => !t.retired).map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join("") + `</select>` +
+      `<div class="row" style="margin-top:12px"><button class="btn btn-primary" data-gs-dex="1">🎪 Attend Game Dex</button></div></div>`;
+  }
+  h += gamesPanel("JULY GAME DEX / 03", "Summer convention", "Book a booth and put your staff in costume to generate launch hype and attract new fan demographics. One booth per year.", dexBody);
+  return h;
+}
+
+/* ── Hardware ── */
+function gamesHardwarePanel() {
+  const D = gs(), s = D.ensure(G);
+  if (!s.foundedWeek) return gamesPanel("HARDWARE / 01", "Locked", "Found the game studio first.", gamesEmpty("Not founded", "Open the Overview tab."), `<button class="btn btn-sm btn-alt" data-gs-goto="overview">Overview ↗</button>`);
+  let h = "";
+  h += gamesPanel("DEV KITS / 01", s.licensed.length + " platform licences", "License commercial hardware to target it in a design doc. Bigger market share lifts shipments; the platform holder takes a royalty cut.",
+    `<div class="games-hardware">` + D.PLATFORMS.map(p => {
+      const owned = s.licensed.includes(p.id);
+      const canBuy = !owned && G.studio.cash >= p.license;
+      return `<div class="games-hw ${owned ? "owned" : ""}"><div class="spread"><b>${esc(p.name)}</b>${owned ? '<span class="tag green tiny">licensed</span>' : `<button class="btn btn-xs ${canBuy ? "btn-primary" : "btn-alt"}" data-gs-license="${p.id}" ${canBuy ? "" : "disabled"}>License · ${p.license ? gsMoney(p.license) : "free"}</button>`}</div><div class="tiny muted">${esc(p.type)} · ${esc(p.media)}</div><div class="tiny">market share ${Math.round(p.share * 100)}% · royalty ${Math.round(p.royalty * 100)}%</div></div>`;
+    }).join("") + `</div>`);
+  /* Your Console */
+  let consoleBody;
+  if (s.yourConsole) {
+    consoleBody = `<div class="games-console-built"><b>🛠️ ${esc(s.yourConsole.name)}</b><div class="tiny muted">${esc(s.yourConsole.processorName)} · ${esc(s.yourConsole.media)} · ${s.yourConsole.form === "home" ? "home console" : "handheld"}</div><div class="tiny pos">Zero third-party fees · 100% internal userbase capture · selected as a design-doc platform</div></div>`;
+  } else {
+    const reqs = [
+      ["Level 3 Large Studio", s.office.tier >= 3],
+      ["Active Hardware Engineer", D.hasHardwareEngineer(G)],
+      ["$5M capital reserve", G.studio.cash >= 5]
+    ];
+    const ready = reqs.every(r => r[1]);
+    consoleBody = `<div class="games-console-req">${reqs.map(([n, ok]) => `<div class="games-req ${ok ? "ok" : ""}">${ok ? "✓" : "○"} ${esc(n)}</div>`).join("")}</div>` +
+      `<div class="games-console-opts"><div class="small muted">Processor</div><div class="games-pickrow">${D.PROCESSORS.map(p => `<button class="btn btn-xs ${GS_CONSOLE.processor === p.id ? "btn-primary" : "btn-alt"}" data-gs-proc="${p.id}">${esc(p.name)}${p.cost ? " · " + gsMoney(p.cost) : ""}</button>`).join("")}</div>` +
+      `<div class="small muted" style="margin-top:8px">Media</div><div class="games-pickrow">${D.MEDIA.map(m => `<button class="btn btn-xs ${GS_CONSOLE.media === m ? "btn-primary" : "btn-alt"}" data-gs-media="${esc(m)}">${esc(m)}</button>`).join("")}</div>` +
+      `<div class="small muted" style="margin-top:8px">Form factor</div><div class="games-pickrow">${D.FORM_FACTORS.map(f => `<button class="btn btn-xs ${GS_CONSOLE.form === f.id ? "btn-primary" : "btn-alt"}" data-gs-form="${f.id}">${esc(f.name)}</button>`).join("")}</div>` +
+      `<div class="row" style="margin-top:12px"><button class="btn btn-primary" data-gs-buildconsole="1" ${ready ? "" : "disabled"}>🛠️ Manufacture Your Console</button></div></div>`;
+  }
+  h += gamesPanel("IN-HOUSE HARDWARE / 02", "Your Console", "Design a proprietary platform. Software released on it pays zero licensing fees and captures 100% of the internal userbase. Needs a Large Studio, a Hardware Engineer and a $5M reserve.", consoleBody);
+  /* legacy platform licensing + sabbatical desk — kept behind its modal so no
+     legacy .card surface leaks into the command desk (same rule as the Library). */
+  if (typeof GameDevHardware !== "undefined") {
+    h += gamesPanel("PLATFORM & RECOVERY DESK / 03", "Console dev kits & sabbaticals", "The original hardware-licensing and staff-recovery desk. Open it to license external console SDKs or send a tired lead on a $0.2M recovery retreat (fully restores energy).",
+      `<div class="games-legacy-hw"><div class="games-classic-row"><span>🎮 External console SDKs</span><b>${(GameDevHardware.GAMING_PLATFORMS || []).length} platforms</b></div><div class="games-classic-row"><span>⚡ Avg. staff energy</span><b>${GameDevHardware.getAverageStaffStamina ? GameDevHardware.getAverageStaffStamina() : "—"}%</b></div></div><div class="row" style="margin-top:10px"><button class="btn btn-sm btn-primary" data-gs-hwmodal="1">Open platform &amp; sabbatical desk ↗</button></div>`,
+      `<span class="tag">Game Dev Story parity</span>`);
+  }
+  return h;
+}
+let GS_CONSOLE = { processor: "16bit", media: "Cartridge", form: "home" };
+
+/* ═══════════════════════════ GAME STUDIO MODALS ═══════════════════════════ */
+let GS_DRAFT = null;
+function gsDraftReset() {
+  const D = gs(), s = D.ensure(G);
+  GS_DRAFT = { title: "", platform: s.licensed[0] || "pc", genre: "rpg", theme: s.unlockedThemes[0] || "fantasy", author: "inhouse", proposalAssignee: null, graphicsLead: null, audioLead: null, directions: {} };
+}
+function openGameGreenlightModal() {
+  const D = gs(), s = D.ensure(G);
+  if (!GS_DRAFT) gsDraftReset();
+  if (!s.licensed.includes(GS_DRAFT.platform)) GS_DRAFT.platform = s.licensed[0] || "pc";
+  if (!s.unlockedThemes.includes(GS_DRAFT.theme)) GS_DRAFT.theme = s.unlockedThemes[0] || "fantasy";
+  const cap = D.directionCapacity(G);
+  const used = Object.values(GS_DRAFT.directions).reduce((a, b) => a + b, 0);
+  const syn = D.synergyOf(GS_DRAFT.genre, GS_DRAFT.theme);
+  const genre = D.genreOf(GS_DRAFT.genre);
+  const plat = GS_DRAFT.platform === "your_console" ? { name: (s.yourConsole && s.yourConsole.name) || "Your Console", cost: 2 } : D.platformOf(GS_DRAFT.platform);
+  const budget = Math.round(Math.max(1.5, (2 + (plat.cost || 1)) * genre.costMult) * 10) / 10;
+  const fee = GS_DRAFT.author === "gaichu" ? 0.05 : 0;
+  const canAfford = G.studio.cash >= budget + fee;
+  const synLabel = syn.tier === "great" ? "Great synergy ×1.35" : syn.tier === "disaster" ? "Disaster pairing ×0.55" : "Neutral pairing ×1.0";
+
+  let h = `<h3>🎮 Game Design Doc</h3>`;
+  h += `<input type="text" id="gsgTitle" placeholder="Working title (optional)" maxlength="40" value="${esc(GS_DRAFT.title)}" style="width:100%;padding:9px 12px;border-radius:10px;background:#0b0f18;border:1px solid var(--line2);color:var(--text);margin-bottom:10px">`;
+
+  /* platform */
+  h += `<div class="gsg-label">Platform <span class="tiny muted">(${s.licensed.length} licensed)</span></div><div class="gsg-row">` +
+    s.licensed.map(id => {
+      const p = id === "your_console" ? { id, name: (s.yourConsole && s.yourConsole.name) || "Your Console", share: .2, royalty: 0 } : D.platformOf(id);
+      return `<button class="btn btn-xs ${GS_DRAFT.platform === id ? "btn-primary" : "btn-ghost"}" data-gsg="platform" data-gsg-val="${id}">${esc(p.name)} <span class="tiny muted">${Math.round(p.share * 100)}%</span></button>`;
+    }).join("") + `</div>`;
+  /* genre */
+  h += `<div class="gsg-label">Genre</div><div class="gsg-row">` +
+    D.GENRES.map(g => `<button class="btn btn-xs ${GS_DRAFT.genre === g.id ? "btn-primary" : "btn-ghost"}" data-gsg="genre" data-gsg-val="${g.id}" title="${esc(g.name)}">${g.emoji} ${esc(g.name)}</button>`).join("") + `</div>`;
+  /* theme */
+  h += `<div class="gsg-label">Theme <span class="tiny muted">(${s.unlockedThemes.length} discovered)</span></div><div class="gsg-row">` +
+    s.unlockedThemes.map(t => `<button class="btn btn-xs ${GS_DRAFT.theme === t ? "btn-primary" : "btn-ghost"}" data-gsg="theme" data-gsg-val="${t}">${esc(D.THEME_LABEL(t))}</button>`).join("") + `</div>`;
+  /* author */
+  h += `<div class="gsg-label">Proposal author</div><div class="gsg-row">` +
+    `<button class="btn btn-xs ${GS_DRAFT.author === "inhouse" ? "btn-primary" : "btn-ghost"}" data-gsg="author" data-gsg-val="inhouse">✍️ In-house employee</button>` +
+    `<button class="btn btn-xs ${GS_DRAFT.author === "gaichu" ? "btn-primary" : "btn-ghost"}" data-gsg="author" data-gsg-val="gaichu">🧾 Outsourced (+$50K)</button>` + `</div>`;
+  if (GS_DRAFT.author === "inhouse") {
+    const writers = s.staff.filter(t => !t.retired && ((t.levels && t.levels.writer) || t.job === "writer"));
+    h += `<div class="tiny muted" style="margin:4px 0 6px">Proposal lead (Writing/Scenario Lv3+ guarantees a strong foundation; repeating the last lead burns them out):</div><div class="gsg-row">` +
+      (writers.length ? writers.map(t => `<button class="btn btn-xs ${GS_DRAFT.proposalAssignee === t.id ? "btn-primary" : "btn-ghost"}" data-gsg="proposalAssignee" data-gsg-val="${t.id}">${esc(t.name)} · Lv${t.levels.writer || 1}</button>`).join("") : `<span class="tiny muted">No writers — hire one in Studio &amp; Staff, or use an outsourced author.</span>`) + `</div>`;
+  }
+  /* directions */
+  h += `<div class="gsg-label">Company direction <span class="tiny muted">${used}/${cap} points allocated</span></div>`;
+  h += `<div class="gsg-dirbar"><i style="width:${Math.min(100, used / cap * 100)}%"></i></div>`;
+  h += `<div class="gsg-dirs">` + D.DIRECTIONS.map(d => {
+    const v = GS_DRAFT.directions[d.id] || 0;
+    return `<div class="gsg-dir"><span>${d.emoji} ${esc(d.name)}</span><div class="gsg-dir-ctrl"><button class="btn btn-xs btn-ghost" data-gs-dir="${d.id}" data-gs-dir-delta="-1">−</button><b>${v}</b><button class="btn btn-xs btn-ghost" data-gs-dir="${d.id}" data-gs-dir-delta="1">+</button></div></div>`;
+  }).join("") + `</div>`;
+  /* summary */
+  h += `<div class="card" style="margin-top:10px;background:rgba(255,255,255,.03)"><div class="cost-line"><span>Dev budget</span><b>${gsMoney(budget)}${fee ? " + " + gsMoney(fee) + " author fee" : ""}</b></div>` +
+    `<div class="cost-line"><span>Genre × theme</span><b class="${syn.tier === "great" ? "pos" : syn.tier === "disaster" ? "neg" : ""}">${synLabel}</b></div>` +
+    `<div class="cost-line"><span>Direction points</span><b>${used}/${cap}</b></div>${!canAfford ? `<div class="tiny neg" style="margin-top:6px">⚠ Not enough cash — you need ${gsMoney(budget + fee)} to greenlight this concept.</div>` : ""}</div>`;
+  h += `<div class="modal-actions"><button class="btn btn-ghost" id="gsgCancel">Cancel</button><button class="btn btn-primary" id="gsgGo" ${canAfford ? "" : "disabled"}>🎮 Greenlight game</button></div>`;
+
+  const v = openModal(h);
+  v.querySelector("#gsgTitle").oninput = e => { GS_DRAFT.title = e.target.value; };
+  v.querySelectorAll("[data-gsg]").forEach(b => b.onclick = () => { GS_DRAFT[b.dataset.gsg] = b.dataset.gsgVal; beep("click"); openGameGreenlightModal(); });
+  v.querySelectorAll("[data-gs-dir]").forEach(b => b.onclick = () => {
+    const id = b.dataset.gsDir, delta = +b.dataset.gsDirDelta;
+    const cur = Object.values(GS_DRAFT.directions).reduce((a, x) => a + x, 0);
+    let v2 = (GS_DRAFT.directions[id] || 0) + delta;
+    if (delta > 0 && cur >= cap) { beep("bad"); toast("Direction capacity reached — upgrade the office or train a Producer.", "bad"); return; }
+    GS_DRAFT.directions[id] = Math.max(0, Math.min(6, v2));
+    beep("click"); openGameGreenlightModal();
+  });
+  v.querySelector("#gsgCancel").onclick = () => closeModal();
+  v.querySelector("#gsgGo").onclick = () => {
+    const r = D.greenlight(G, GS_DRAFT);
+    if (r.ok) { GS_DRAFT = null; beep("gold"); flashes(G.flash); closeModal(); render(); }
+    else { beep("bad"); if (r.reason) toast(r.reason, "bad"); }
+  };
+}
+
+function openGameStaffModal(staffId) {
+  const D = gs(), s = D.ensure(G);
+  const t = s.staff.find(x => x.id === staffId);
+  if (!t) return toast("Employee not found.", "bad");
+  let h = `<h3>👤 ${esc(t.name)} — ${esc(D.jobOf(t.job).name)}</h3><p class="tiny muted">Energy ${t.energy || 0}% · 💾 ${s.researchData} research data available. Level jobs to Lvl 5 to unlock the next career tier.</p>`;
+  h += `<div class="gsg-label">Career tree — level a job with research data</div><div class="gsg-jobs">` +
+    D.JOBS.map(job => {
+      const cur = t.levels[job.id] || 0;
+      const gate = D.canSelectJob(G, t, job.id);
+      const cost = D.jobLevelDataCost(G, t, job.id);
+      const lvlOk = gate.ok && isFinite(cost) && s.researchData >= cost;
+      return `<div class="gsg-job ${!gate.ok ? "locked" : ""}"><span>${job.emoji} <b>${esc(job.name)}</b> <span class="tiny muted">tier ${job.tier}</span></span>${isFinite(cost) ? `<span class="tag tiny">Lv${cur}${cur >= 5 ? " (max)" : " → Lv" + (cur + 1)}</span><button class="btn btn-xs ${lvlOk ? "btn-primary" : "btn-alt"}" data-gs-level="${job.id}" ${lvlOk ? "" : "disabled"}>${cur >= 5 ? "Max" : "Level · " + cost + " data"}</button>` : `<span class="tag green tiny">Lv${cur} MAX</span>`}<div class="tiny muted">${esc(job.desc)}</div>${!gate.ok ? `<div class="tiny neg">${esc(gate.reason)}</div>` : ""}</div>`;
+    }).join("") + `</div>`;
+  h += `<div class="gsg-label" style="margin-top:10px">Change active class</div><div class="gsg-row">` +
+    D.JOBS.filter(j => D.canSelectJob(G, t, j.id).ok).map(j => `<button class="btn btn-xs ${t.job === j.id ? "btn-primary" : "btn-ghost"}" data-gs-career="${j.id}">${esc(j.name)}</button>`).join("") +
+    `</div><div class="tiny muted" style="margin-top:6px">A class change costs $80K${s.careerTokens ? " — you have " + s.careerTokens + " free Career Manual token(s)" : ""}.</div>`;
+  h += `<div class="modal-actions"><button class="btn btn-ghost" id="gssClose">Done</button></div>`;
+  const v = openModal(h);
+  v.querySelectorAll("[data-gs-level]").forEach(b => b.onclick = () => {
+    const r = D.levelUpJob(G, t.id, b.dataset.gsLevel);
+    if (r.ok) { beep("gold"); openGameStaffModal(t.id); if (typeof render === "function") render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  v.querySelectorAll("[data-gs-career]").forEach(b => b.onclick = () => {
+    const r = D.changeCareer(G, t.id, b.dataset.gsCareer);
+    if (r.ok) { beep("gold"); openGameStaffModal(t.id); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  v.querySelector("#gssClose").onclick = () => closeModal();
+}
+
+function openGameReviewModal(gameId) {
+  const D = gs(), s = D.ensure(G);
+  const g = s.catalog.find(x => x.id === gameId);
+  if (!g) return toast("That title is no longer on the roster.", "bad");
+  const names = ["Cinema Quarterly", "Variety Chronicle", "Popcorn Express", "Indie Wirehouse"];
+  let h = `<h3>📊 ${esc(g.title)} — review &amp; sales</h3>`;
+  h += `<div class="games-judges">` + (g.judges || []).map((sc, i) => `<div class="games-judge"><span>${names[i] || "Critic " + (i + 1)}</span><b>${sc}<small>/10</small></b></div>`).join("") + `</div>`;
+  h += `<div class="cost-line"><span>Total review</span><b class="${g.review >= 32 ? "pos" : g.review < 15 ? "neg" : "gold"}">${g.review}/40</b></div>`;
+  h += `<div class="cost-line"><span>Parameters</span><b>🎉${g.fun} 💡${g.cre} 🖼️${g.gfx} 🎵${g.snd}</b></div>`;
+  h += `<div class="cost-line"><span>Units shipped</span><b>${gsInt(g.units)} · ${gsMoney(g.revenue)}</b></div>`;
+  h += `<div class="cost-line"><span>Bugs shipped</span><b class="${g.bugs ? "neg" : "pos"}">${g.bugs}</b></div>`;
+  if (g.milestones && g.milestones.length) h += `<div class="tiny gold" style="margin:6px 0">🏅 ${g.milestones.map(esc).join(" · ")}</div>`;
+  h += `<div class="gsg-label" style="margin-top:10px">Sales decay curve ($M per week)</div><div class="games-sales-curve">` +
+    g.salesPlan.map((w, i) => `<div class="games-sales-bar"><i style="height:${Math.min(100, w / Math.max(0.1, g.salesPlan[0]) * 100)}%"></i><span>W${i + 1}</span></div>`).join("") + `</div>`;
+  h += `<div class="modal-actions"><button class="btn btn-ghost" id="gsrClose">Close</button>${g.hallOfFame ? `<button class="btn btn-primary" data-gs-sequel="${g.id}" id="gsrSeq">Greenlight sequel</button>` : ""}</div>`;
+  const v = openModal(h);
+  v.querySelector("#gsrClose").onclick = () => closeModal();
+  const seq = v.querySelector("#gsrSeq"); if (seq) seq.onclick = () => { closeModal(); doGameSequel(g.id); };
+}
+
+/* ── action helpers used by bindings & modals ── */
+function doGameSequel(id) {
+  const D = gs(); const r = D.greenlightSequel(G, id);
+  if (r.ok) { gamesSetSub("develop"); toast("🎮 Sequel greenlit — revisit the design.", "good"); }
+  else { beep("bad"); toast(r.reason, "bad"); }
+}
+
+/* ═══════════════════════════ GAME STUDIO BINDINGS ═══════════════════════════ */
+function bindGameStudioDesk() {
+  const D = gs(); if (!D) return;
+  $$("[data-gamessub]").forEach(b => b.onclick = () => gamesSetSub(b.dataset.gamessub));
+  $$("[data-gs-goto]").forEach(b => b.onclick = () => gamesSetSub(b.dataset.gsGoto));
+  $$("[data-gs-found]").forEach(b => b.onclick = foundGameStudio);
+  $$("[data-gs-greenlight]").forEach(b => b.onclick = () => { beep("click"); gsDraftReset(); openGameGreenlightModal(); });
+  $$("[data-gs-squash]").forEach(b => b.onclick = () => {
+    const r = D.squashBugs(G, 1);
+    if (r.ok) { beep("gold"); toast("🐞 Squashed 1 bug · +💾1 data", "good"); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-squashall]").forEach(b => b.onclick = () => {
+    const r = D.squashBugs(G, 999);
+    if (r.ok) { beep("gold"); flashes(G.flash); toast("🐞 Squashed " + r.squashed + " bugs · +💾" + r.squashed + " data", "good"); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-crunch]").forEach(b => b.onclick = () => { const r = D.toggleCrunch(G); if (r.ok) { beep("click"); toast(r.crunch ? "🔥 Crunch on — faster progress, more bugs & fatigue." : "Crunch off.", ""); render(); } });
+  $$("[data-gs-release]").forEach(b => b.onclick = () => {
+    const r = D.release(G);
+    if (r.ok) { beep("gold"); flashes(G.flash); toast("🚀 " + r.game.title + " shipped — review " + r.review.total + "/40!", "good"); gamesSetSub("catalog"); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-sequel]").forEach(b => b.onclick = () => doGameSequel(b.dataset.gsSequel));
+  $$("[data-gs-review]").forEach(b => b.onclick = () => { beep("click"); openGameReviewModal(b.dataset.gsReview); });
+  $$("[data-gs-staff]").forEach(b => b.onclick = () => { beep("click"); openGameStaffModal(b.dataset.gsStaff); });
+  $$("[data-gs-hire]").forEach(b => b.onclick = () => {
+    const r = D.hireStaff(G, b.dataset.gsHire);
+    if (r.ok) { beep("gold"); render(); } else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-theme]").forEach(b => b.onclick = () => { D.setOfficeTheme(G, b.dataset.gsTheme); beep("click"); render(); });
+  $$("[data-gs-office]").forEach(b => b.onclick = () => {
+    const r = D.expandOffice(G, +b.dataset.gsOffice);
+    if (r.ok) { beep("gold"); flashes(G.flash); render(); } else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-train]").forEach(b => b.onclick = () => {
+    const sel = $("#gsTrainStaff"); const id = sel ? sel.value : null;
+    if (!id) return toast("Pick an employee to train.", "bad");
+    const r = D.train(G, id, b.dataset.gsTrain);
+    if (r.ok) { beep("gold"); flashes(G.flash); toast(r.discovered ? "🎓 Discovered the " + D.THEME_LABEL(r.discovered) + " theme!" : "🎓 Training complete.", "good"); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-buy]").forEach(b => b.onclick = () => {
+    const r = D.buyItem(G, b.dataset.gsBuy);
+    if (r.ok) { beep("gold"); toast("🛒 " + r.msg, "good"); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-secret]").forEach(b => b.onclick = () => {
+    const r = D.hireSecret(G, b.dataset.gsSecret);
+    if (r.ok) { beep("gold"); flashes(G.flash); render(); } else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-take]").forEach(b => b.onclick = () => {
+    const r = D.takeContract(G, b.dataset.gsTake);
+    if (r.ok) { beep("gold"); render(); } else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-license]").forEach(b => b.onclick = () => {
+    const r = D.licensePlatform(G, b.dataset.gsLicense);
+    if (r.ok) { toast("🔑 Licensed " + r.platform.name, "good"); beep("gold"); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-proc]").forEach(b => b.onclick = () => { GS_CONSOLE.processor = b.dataset.gsProc; beep("click"); render(); });
+  $$("[data-gs-media]").forEach(b => b.onclick = () => { GS_CONSOLE.media = b.dataset.gsMedia; beep("click"); render(); });
+  $$("[data-gs-form]").forEach(b => b.onclick = () => { GS_CONSOLE.form = b.dataset.gsForm; beep("click"); render(); });
+  $$("[data-gs-buildconsole]").forEach(b => b.onclick = () => {
+    const r = D.buildYourConsole(G, { processor: GS_CONSOLE.processor, media: GS_CONSOLE.media, form: GS_CONSOLE.form });
+    if (r.ok) { beep("gold"); flashes(G.flash); render(); } else { beep("bad"); toast(r.reason, "bad"); }
+  });
+  $$("[data-gs-hwmodal]").forEach(b => b.onclick = () => { beep("click"); if (typeof GameDevHardware !== "undefined" && GameDevHardware.renderHardwareModal) GameDevHardware.renderHardwareModal(); else if (typeof openHardwareDeskModal === "function") openHardwareDeskModal(); else toast("The platform desk is unavailable in this build.", "bad"); });
+  $$("[data-gs-dex]").forEach(b => b.onclick = () => {
+    const booth = $("#gdexBooth") ? $("#gdexBooth").value : "small";
+    const costume = $("#gdexCostume") ? $("#gdexCostume").value : "none";
+    const staffId = $("#gdexStaff") ? $("#gdexStaff").value : "";
+    const r = D.runGameDex(G, { booth, costume, staffId: staffId || undefined });
+    if (r.ok) { beep("gold"); flashes(G.flash); toast("🎪 Game Dex: +" + r.hype + " hype · +" + r.fans + " fans!", "good"); render(); }
+    else { beep("bad"); toast(r.reason, "bad"); }
+  });
 }
 
 /* ═══════════ EMPIRE view ═══════════ */
@@ -10302,54 +10818,6 @@ function csEventsHTML(t,p){
   h+="<div class='card' style='margin-top:8px'><b class='small'>📈 XP log</b>"+
     (hist.length? hist.map(x=>"<div class='cost-line'><span>"+(x.amount>=0?"+":"")+x.amount+" XP"+(x.source?" · "+esc(String(x.source).replace("film:","🎬 ").replace("award:","🏆 ").replace("mentorship:","🧑‍🏫 ")):"")+"</span><b class='tiny muted'>W"+x.week+"</b></div>").join("")
     : "<div class='tiny muted' style='margin-top:4px'>No XP yet.</div>")+"</div>";
-  return h;
-}
-
-/* ── Game Dev: GDD-driven in-house originals (separate from the v16 adaptation studio) ── */
-function gameDevLiteHTML(){
-  const PD=G.prototypeData||{};
-  if(!PD.gameDevUnlocked){
-    return "<div class='card' style='margin-top:8px'><div class='spread'><b>🧪 In-house originals</b><span class='tag'>Locked</span></div>"+
-      "<div class='tiny muted' style='margin-top:4px'>Beyond franchise adaptations: fund an original game from your own studio. Unlocks at rep 40 &amp; $250M cash — you're at rep "+Math.round(G.studio.rep)+" &amp; "+fmtM(G.studio.cash)+".</div></div>";
-  }
-  let h="<div class='section-title'>🧪 In-house originals</div>";
-  const pr=PD.currentProject;
-  if(!pr){
-    h+="<div class='card'><div class='spread'><div><b>Start an original game</b>"+
-      "<div class='tiny muted' style='margin-top:4px'>Write a Game Design Doc: genre × platform × theme × mechanic × business model, then shepherd it through 8 dev phases.</div></div>"+
-      "<button class='btn btn-primary' data-pgdev-gdd='1'>🎮 Write GDD</button></div></div>";
-  } else {
-    const phases=(DATA.PROTOTYPE_GAME_DEV||{}).phases||[];
-    const phaseIdx=phases.findIndex(x=>x.id===pr.phase);
-    const phaseDef=phases[phaseIdx]||{};
-    const pct=Math.round(pr.progress||0);
-    const gdef=(DATA.PROTOTYPE_GAME_DEV.genres||[]).find(g=>g.id===pr.genre)||{};
-    const pdef=(DATA.PROTOTYPE_GAME_DEV.platforms||[]).find(p=>p.id===pr.platform)||{};
-    const mdef=(DATA.PROTOTYPE_GAME_DEV.monetization||[]).find(m=>m.id===pr.monetization)||{};
-    h+="<div class='card'><div class='spread'><div><b>🕹 "+esc(pr.title||"Untitled")+"</b> <span class='tag'>"+(gdef.emoji||"")+" "+esc(gdef.name||pr.genre)+"</span> <span class='tag'>"+(pdef.emoji||"")+" "+esc(pdef.name||pr.platform)+"</span> <span class='tag'>"+(mdef.emoji||"")+" "+esc(mdef.name||pr.monetization)+"</span>"+
-      "<div class='tiny muted' style='margin-top:4px'>Quality "+Math.round(pr.quality||50)+"/100 · spent "+fmtM(pr.spent||0)+" of "+fmtM(pr.budget||50)+" · team "+((pr.team||[]).length)+"</div></div>"+
-      "<span class='tag'>"+pct+"%</span></div>"+
-      "<div style='display:flex;gap:3px;margin-top:8px'>"+phases.map((ph,i)=>
-        "<div style='flex:1;text-align:center' title='"+esc(ph.name)+"'><div style='height:8px;border-radius:4px;background:"+(i<phaseIdx?"var(--green)":i===phaseIdx?"linear-gradient(90deg,var(--gold),var(--gold2) "+pct+"%,rgba(255,255,255,.08) "+pct+"%)":"rgba(255,255,255,.08)")+"'></div><div class='tiny muted' style='font-size:9px;margin-top:2px'>"+esc(ph.name.split(" ")[0])+"</div></div>").join("")+"</div>";
-    if(pct>=100){
-      h+="<div class='tiny muted' style='margin-top:8px'><b>Phase gate</b> — pick an approach to move forward:</div>";
-      (((DATA.PROTOTYPE_GAME_DEV||{}).phaseChoices||{})[pr.phase]||[]).forEach(def=>{
-        h+="<div class='small muted' style='margin-top:6px'><b>"+esc(def.label)+"</b></div><div class='row' style='gap:4px;margin-top:2px'>";
-        (def.options||[]).forEach(o=>{ h+="<button class='btn btn-xs btn-alt' data-pgdev-choice='"+o.id+"' title='"+esc(o.desc||"")+"'>"+esc(o.label)+"</button>"; });
-        h+="</div>";
-      });
-    } else {
-      h+="<div class='tiny muted' style='margin-top:6px'>"+esc(phaseDef.desc||"In development")+" — advancing weeks makes progress. Choices unlock at 100%.</div>";
-    }
-    h+="</div>";
-  }
-  (PD.releasedGames||[]).slice(-5).reverse().forEach(g=>{
-    const mdef=(DATA.PROTOTYPE_GAME_DEV.monetization||[]).find(m=>m.id===g.monetization)||{};
-    h+="<div class='card'><div class='spread'><div><b>🎮 "+esc(g.title||"Game")+"</b>"+(g.goty?" <span class='tag gold'>🏆 GOTY</span>":"")+" <span class='tag'>"+(mdef.emoji||"")+" "+esc(mdef.name||g.monetization||"")+"</span> <span class='tag'>launched W"+(g.launchedWeek||0)+"</span>"+
-      "<div class='tiny muted'>Quality "+(g.quality||0)+"/100 · "+fmtM(g.salesTotal||0)+" earned"+(g.salesLeft>0? " · +"+fmtM(g.weeklyBase||0)+"/wk for "+g.salesLeft+" more wks":" · tail ended")+
-      ((g.liveOps||[]).length? " · "+(g.liveOps||[]).length+" live-ops events":"")+"</div></div>"+
-      "<div style='font-size:18px;font-weight:700' class='"+((g.quality||0)>=70?"pos":(g.quality||0)<45?"neg":"gold")+"'>"+(g.quality||0)+"/100</div></div></div>";
-  });
   return h;
 }
 
