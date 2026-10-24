@@ -1,0 +1,139 @@
+name: Android APK
+
+# Builds the signed, fully-offline release APK on GitHub's Android/JDK images.
+# Useful when the local machine has no Android SDK + JDK 21 toolchain:
+#   Actions -> "Android APK" -> Run workflow
+# The built APK is always attached to the run as a downloadable artifact, and
+# optionally published to a GitHub release tagged v<version> (publish_release).
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Create/update the GitHub release v<version> with this APK attached"
+        type: boolean
+        default: false
+  push:
+    paths:
+      - "apk/android/app/build.gradle"
+      - "apk/build-www.js"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: assembleRelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Android SDK packages (compileSdk 36)
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SDKMANAGER="$(find "$SDK" -path '*/cmdline-tools/*/bin/sdkmanager' | head -1)"
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+          ls "$SDK/build-tools"
+
+      # ── version gate: the APK must ship the same version the web release does ──
+      - name: Check version consistency
+        run: |
+          set -euo pipefail
+          WEB=$(node -p "require('./version.json').v")
+          META=$(grep -o 'name="app-version" content="[0-9.]*"' index.html | sed 's/.*content="//;s/"//')
+          NAME=$(grep -o 'versionName "[0-9.]*"' apk/android/app/build.gradle | sed 's/versionName "//;s/"//')
+          CODE=$(grep -o 'versionCode [0-9]*' apk/android/app/build.gradle | grep -o '[0-9]*')
+          echo "version.json=$WEB  index.html=$META  build.gradle=$NAME (code $CODE)"
+          [ "$WEB" = "$META" ] || { echo "::error::index.html app-version ($META) != version.json ($WEB)"; exit 1; }
+          [ "$WEB" = "$NAME" ] || { echo "::error::build.gradle versionName ($NAME) != version.json ($WEB)"; exit 1; }
+          echo "VERSION=$WEB" >> "$GITHUB_ENV"
+
+      # ── web bundle: game files -> apk/www -> android/app/src/main/assets/public ──
+      - name: Build web bundle
+        working-directory: apk
+        run: |
+          npm ci --omit=dev --no-audit --no-fund
+          node build-www.js
+          npx --no-install cap sync android
+
+      - name: Gradle assembleRelease
+        working-directory: apk/android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK (signature + bundled version)
+        run: |
+          set -euo pipefail
+          SRC=apk/android/app/build/outputs/apk/release/app-release.apk
+          APK="apk/dist/BoxOfficeWar-${VERSION}.apk"
+          mkdir -p apk/dist
+          cp "$SRC" "$APK"
+
+          # hard gate: the web assets actually packed into the APK must be this version
+          META=$(unzip -p "$APK" assets/public/index.html | grep -o 'name="app-version" content="[0-9.]*"')
+          [ "$META" = "name=\"app-version\" content=\"${VERSION}\"" ] \
+            || { echo "::error::bundled app-version is '$META' (expected ${VERSION}) — stale web assets"; exit 1; }
+          echo "✓ bundled app-version ${VERSION}"
+
+          "${SDK_ROOT}/build-tools/36.0.0/apksigner" verify --print-certs "$APK" \
+            | tee /tmp/certs.txt
+          grep -q "Signer #1 certificate SHA-256" /tmp/certs.txt || { echo "::error::APK is not signed"; exit 1; }
+
+          "${SDK_ROOT}/build-tools/36.0.0/aapt2" dump badging "$APK" \
+            | grep -E "^package:|^application-label:" || true
+          ls -lh "$APK"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BoxOfficeWar-apk
+          path: apk/dist/BoxOfficeWar-*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish to GitHub release
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+          APK="apk/dist/BoxOfficeWar-${VERSION}.apk"
+          NOTES=$(mktemp)
+          {
+            echo "Box Office War v${VERSION}"
+            echo
+            echo "Android: download the APK below — fully offline, installs over previous versions without losing saves."
+            echo
+            echo "Built from \`${GITHUB_SHA}\` by GitHub Actions (JDK 21, compileSdk 36, signed with the repo keystore)."
+          } > "$NOTES"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --title "v${VERSION} — Android APK (fully offline)" \
+              --notes-file "$NOTES" \
+              --target "$GITHUB_SHA"
+          fi
+          echo "✓ https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
