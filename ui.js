@@ -1253,7 +1253,7 @@ function _renderImpl(){
     else if(TAB==="finance") h=viewFinance();
     else if(TAB==="notifications") h=viewInboxScreen();
     if(TAB==="studio" && STUDIO_SUB!=="lot"){
-      const identity={csuite:["Leadership","Build the team behind every production."],board:["Strategy","Set priorities. Meet commitments. Grow with purpose."],operations:["Workforce","Keep your people, partnerships, and productions healthy."],crisis:["Reputation","Protect your studio’s standing when the pressure rises."],heritage:["Legacy","Build the partnerships and stories that outlast a single film."]}[STUDIO_SUB];
+      const identity={csuite:["Leadership","Build the team behind every production."],board:["Strategy","Set priorities. Meet commitments. Grow with purpose."],operations:["Workforce","Keep your people, partnerships, and productions healthy."],crisis:["Reputation","Protect your studio’s standing when the pressure rises."],heritage:["Legacy","Build the partnerships and stories that outlast a single film."],industry:["Industry Systems","One control room for production, markets, rights and studio growth."]}[STUDIO_SUB];
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
@@ -1300,6 +1300,8 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"40.0", label:"INDUSTRY SYSTEMS — 24-desk directory + ESG production credits, press relations, rights clearance, ratings recuts, territory localization and specialist studio labels; weekly engine, release and Android/PWA wiring", status:"shipped" },
+  { version:"39.1", label:"STAGE DIVISION — Broadway, the West End and the road (live theatre, tours, cast albums, staging licences and Tony season)", status:"shipped" },
   { version:"38.0", label:"TREASURY DESK — ledger \u2192 capital \u2192 forecast \u2192 equity \u2192 deals \u2192 analysis \u2192 board \u2192 invest (Finance rebuilt: live weekly P&L that reconciles to the ledger, credit facility + mezzanine + corporate bonds, maturity ladder, runway, five-scenario stress test, share price and secondary offerings, M&A, board & executives, capital projects; one persisted nav, every refusal explained, no fabricated rating or margin)", status:"shipped" },
   { version:"37.0", label:"GAME STUDIO DESK — plan → Alpha/Beta/Master/Debug → bug-squash research → 4-critic /40 review → decay sales (Game Studio rebuilt: overview, development, catalog, studio & staff, contracts, awards, hardware; one persisted nav, direction-point planning, genre×theme synergy, burnout & saturation, career tree, traveling salesman, Your Console, Global Game Awards; classic adaptation + in-house GDD pipelines preserved)", status:"shipped" },
   { version:"36.0", label:"LIBRARY DESK — the studio catalogue (Library rebuilt: overview, films, series, rights & windows, catalogue & licensing, physical 4K, restoration vault; one persisted nav, real catalogue value breakdown, one rights rule shared with the OTT desk)", status:"shipped" },
@@ -1598,6 +1600,12 @@ function viewStudio(){
   }
 
   if(STUDIO_SUB === "board") return commandStrategyContent(G,false);
+
+  if(STUDIO_SUB === "industry"){
+    return typeof IndustryExpansion !== "undefined" && IndustryExpansion.renderDesk
+      ? IndustryExpansion.renderDesk(G)
+      : "<div class='card'>Industry systems are still loading.</div>";
+  }
 
   if(STUDIO_SUB === "operations"){
     const exhibitor=Math.round(G.exhibitor??G.exhibRel??50), piracy=Math.round(G.piracy||0), guild=Math.round(G.unionMeter||0);
@@ -7440,6 +7448,23 @@ function bindView(){
   /* v28.9: develop/OTT sub-tabs, vault browser, firesale counter, ledger search */
   $$("[data-dashsub]").forEach(b=>b.onclick=()=>{ DASHBOARD_SUB=b.dataset.dashsub; beep("click"); render(); });
   $$("[data-studiosub]").forEach(b=>b.onclick=()=>{ STUDIO_SUB=b.dataset.studiosub; beep("click"); render(); });
+  if(typeof IndustryExpansion!=="undefined"){
+    $$("[data-industry-open]").forEach(b=>b.onclick=()=>{ beep("click"); openIndustrySystem(b.dataset.industryOpen); });
+    const finishIndustryAction=(r, message)=>{
+      if(r&&r.ok){ beep("gold"); if(typeof flashes==="function") flashes(G.flash||[]); if(message&&typeof toast==="function") toast(message,"good"); render(); }
+      else{ beep("bad"); if(typeof toast==="function") toast((r&&r.reason)||"That industry decision was refused.","bad"); }
+    };
+    $$("[data-esg-program]").forEach(b=>b.onclick=()=>finishIndustryAction(IndustryExpansion.buyGreenProgram(b.dataset.esgProgram,G),"Green production program installed."));
+    const pressOffice=$("[data-press-office]"); if(pressOffice) pressOffice.onclick=()=>finishIndustryAction(IndustryExpansion.openPressOffice(G),"Press-office status updated.");
+    $$("[data-press-campaign]").forEach(b=>b.onclick=()=>{ const [pid,campaign]=b.dataset.pressCampaign.split(":"); finishIndustryAction(IndustryExpansion.runPressCampaign(pid,campaign,G),"Press campaign booked."); });
+    $$("[data-rights-clear]").forEach(b=>b.onclick=()=>finishIndustryAction(IndustryExpansion.clearProjectRights(b.dataset.rightsClear,G),"Chain-of-title audit completed."));
+    $$("[data-rating-certify]").forEach(b=>b.onclick=()=>finishIndustryAction(IndustryExpansion.certifyProject(b.dataset.ratingCertify,G),"Ratings-board certificate filed."));
+    $$("[data-rating-recut]").forEach(b=>b.onclick=()=>finishIndustryAction(IndustryExpansion.recutForRating(b.dataset.ratingRecut,G),"PG-13 recut approved."));
+    $$("[data-imprint-create]").forEach(b=>b.onclick=()=>finishIndustryAction(IndustryExpansion.createImprint(b.dataset.imprintCreate,G),"Studio imprint launched."));
+    $$("[data-imprint-assign]").forEach(b=>b.onclick=()=>{ const [pid,label]=b.dataset.imprintAssign.split(":"); finishIndustryAction(IndustryExpansion.assignImprint(pid,label,G),"Production label assigned."); });
+    $$("[data-loc-package]").forEach(sel=>sel.onchange=()=>{ const row=sel.closest(".industry-project-actions"); const btn=row&&row.querySelector("[data-localize='"+sel.dataset.locPackage+"']"); if(btn) btn.disabled=!sel.value; });
+    $$("[data-localize]").forEach(b=>b.onclick=()=>{ const row=b.closest(".industry-project-actions"), sel=row&&row.querySelector("[data-loc-package='"+b.dataset.localize+"']"); const [pid,territory]=b.dataset.localize.split(":"); finishIndustryAction(IndustryExpansion.localizeProject(pid,territory,sel&&sel.value,G),"Territory localization booked."); });
+  }
   $$("[data-devsub]").forEach(b=>b.onclick=()=>{ DEVELOP_SUB=b.dataset.devsub; beep("click"); render(); });
   $$("[data-filter-genre]").forEach(b=>b.onclick=()=>{ SCRIPT_GENRE_FILTER=b.dataset.filterGenre; beep("click"); render(); });
   $$("[data-cast-unpin]").forEach(b=>b.onclick=()=>{ beep("click"); unpinCast(b.dataset.castUnpin); });
@@ -10730,10 +10755,66 @@ function commandSubpage(tab,title,description,content){
 function commandSectionNav(tab){
   const studio = tab === "studio";
   const sections = studio
-    ? [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"]]
+    ? [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"],["industry","Industry"]]
     : [["overview","Command deck"],["actions","Management desks"],["slate","Project tracker"],["macro","Industry pulse"]];
   const active = studio ? STUDIO_SUB : DASHBOARD_SUB;
   return `<nav class="command-section-nav" aria-label="${studio?'Studio':'Dashboard'} sections"><div class="command-nav-brand"><span>${studio?'STUDIO HQ':'DIRECTOR’S OFFICE'}</span><small>${studio?'PEOPLE / PLACES / POSSIBILITIES':'PLAN / PRODUCE / PREMIERE'}</small></div><div class="command-nav-items">${sections.map(([key,label],i)=>`<button ${studio?'data-studiosub':'data-dashsub'}="${key}" class="${active===key?'active':''}" aria-current="${active===key?'page':'false'}"><small>0${i+1}</small><span>${label}</span></button>`).join('')}</div>${studio?`<div class="command-nav-tools"><button id="btnAch" aria-label="Trophy Room — view achievements"><small>07 / MILESTONES</small><span>Trophy Room</span></button><button id="btnOpenCustomSandbox" aria-label="Creative Lab — sandbox creator"><small>08 / CUSTOM WORLDS</small><span>Creative Lab</span></button></div>`:''}</nav>`;
+}
+function openIndustryCampaigns(){
+  const scenarios=DATA.SCENARIOS||{};
+  const rows=Object.keys(scenarios).map(id=>{
+    const s=scenarios[id], progress=(G.scenarioProgress||{})[id]||{};
+    return `<article class="industry-project"><div><b>${esc(s.emoji||"🎬")} ${esc(s.name)}${progress.won?" · Cleared ✓":""}</b><small>${esc(s.desc)}${progress.bestRep?" · Best rep "+Math.round(progress.bestRep):""}</small></div><button class="industry-action" data-industry-scenario="${esc(id)}" ${id===G.scenario?"disabled":""}>${id===G.scenario?"Current run":"Start campaign"}</button></article>`;
+  }).join("");
+  const view=openModal(`<div class="industry-campaign-modal"><h3>🎬 Story Campaigns</h3><p class="tiny muted">Each campaign starts a fresh career with different cash, debt, reputation and studio expectations. Your current slot will be replaced after confirmation.</p><div class="industry-project-list">${rows}</div></div>`);
+  if(!view) return;
+  view.querySelectorAll("[data-industry-scenario]").forEach(button=>button.onclick=()=>{
+    const scenario=button.dataset.industryScenario;
+    if(!scenarios[scenario] || scenario===G.scenario) return;
+    const studioName=G.studio.name, archetype=G.studio.archId||"producer";
+    const options={scenario,difficulty:G.difficulty||"normal",sandbox:!!G.sandbox,slot:G.slot||1};
+    if(!confirm("Start the "+scenarios[scenario].name+" campaign? This replaces the current run in slot "+options.slot+".")) return;
+    closeModal();
+    newGame(archetype,studioName,options);
+    enterApp(true);
+    if(typeof toast==="function") toast("Story campaign started: "+scenarios[scenario].name,"gold");
+  });
+}
+function openIndustrySystem(id){
+  const item=typeof IndustryExpansion!=="undefined"?IndustryExpansion.system(id):null;
+  if(!item) return;
+  if(item.anchor){
+    if(TAB!=="studio" || STUDIO_SUB!=="industry"){
+      switchTab("studio");
+      STUDIO_SUB="industry";
+      render();
+    }
+    const targets={esg:"industryESG",press:"industryPress",labels:"industryLabels",ratings:"industryRatings",localization:"industryLocalization",rights:"industryRights"};
+    setTimeout(()=>{ const el=document.getElementById(targets[item.anchor]||""); if(el){ el.scrollIntoView({behavior:motionOK()?"smooth":"instant",block:"start"}); el.setAttribute("tabindex","-1"); el.focus({preventScroll:true}); } },0);
+    return;
+  }
+  if(item.open==="hall"){ hallOfFameModal(); return; }
+  if(item.open==="campaigns"){ openIndustryCampaigns(); return; }
+  if(item.open==="challenges"){ if(typeof openChallengeModal==="function") openChallengeModal(); return; }
+  if(item.open==="coproduction"){
+    if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderCoProductionModal==="function") LiveOpsCoPro.renderCoProductionModal();
+    else switchTab("develop");
+    return;
+  }
+  if(item.tab){
+    switchTab(item.tab);
+    if(item.sub){
+      if(item.tab==="studio") STUDIO_SUB=item.sub;
+      else if(item.tab==="develop") DEVELOP_SUB=item.sub;
+      else if(item.tab==="empire"){
+        G.empire=G.empire||{subTab:"franchises",activeSub:"franchises"};
+        G.empire.subTab=item.sub; G.empire.activeSub=item.sub;
+      }else if(item.tab==="finance" && typeof FinanceDesk!=="undefined"){
+        G.finState=G.finState||{}; G.finState.sub=item.sub==="deals"?"deals":item.sub==="equity"?"equity":G.finState.sub||"ledger";
+      }
+      render();
+    }
+  }
 }
 function commandMetric(label, value, note){
   return `<div class="command-metric"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`;

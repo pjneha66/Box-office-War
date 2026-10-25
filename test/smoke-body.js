@@ -765,6 +765,53 @@ if(typeof StageDivision !== "undefined"){
   console.log("v39.1 · Stage Division ok (opened at "+runningShow.reviews+" reviews, weekly ledger "+(G.weekTx.stage!=null?"live":"dead")+", tour "+(tourRes&&tourRes.ok?"mounted":"gated")+", album "+(albumRes&&albumRes.ok?"released":"gated")+", closed into history)");
 }
 
+// 36. Industry Expansion Desk — live-system directory and six new operating levers
+if(typeof IndustryExpansion !== "undefined"){
+  G.studio.cash=Math.max(G.studio.cash,600);
+  G.industrySuite={esg:{programs:[]},press:{standing:32,office:false,campaigns:0},imprints:[],localizations:{},clearances:{},ratingReviews:{}};
+  const p={id:88001,title:"Industry Proof",genre:"horror",scale:"mid",budget:100,spent:0,phase:"shoot",phaseWeek:0,phaseLen:{pre:1,shoot:8,post:2},rating:"R",quality:{overall:72,critic:70,aud:74},releaseWeek:0,buzzBonus:0,awareness:0,cast:[],location:"la"};
+  G.projects.push(p);
+  const esg=IndustryExpansion.buyGreenProgram("solar",G);
+  const reuse=IndustryExpansion.buyGreenProgram("reuse",G);
+  const lowCarbon=IndustryExpansion.buyGreenProgram("clean-stage",G);
+  if(!esg.ok || !reuse.ok || !lowCarbon.ok || IndustryExpansion.esgScore(G)!==68 || IndustryExpansion.esgUpkeep(G)!==0.6) throw new Error("green production programs failed");
+  const cashBeforeUpkeep=G.studio.cash;
+  IndustryExpansion.tick(G);
+  if(Math.round((cashBeforeUpkeep-G.studio.cash)*10)/10!==0.6) throw new Error("green production upkeep did not match its ledger charge");
+  const cashBeforeCredit=G.studio.cash;
+  const credit=IndustryExpansion.greenProductionCredit(p,10,G);
+  if(Math.abs(credit-1)>0.01 || p.greenCredits!==credit || Math.round((G.studio.cash-cashBeforeCredit)*10)/10!==credit) throw new Error("green production did not reach the 10% credit cap");
+  const imprint=IndustryExpansion.createImprint("genre",G);
+  if(!imprint.ok || !IndustryExpansion.assignImprint(p.id,"genre",G).ok) throw new Error("production imprint assignment failed");
+  const baseOpening=expectedOpening(Object.assign({},p,{imprint:null}),G.week);
+  if(!(IndustryExpansion.openingMultiplier(p,G)>1) || !(expectedOpening(p,G.week)>baseOpening)) throw new Error("matching imprint did not improve opening");
+  if(!IndustryExpansion.clearProjectRights(p.id,G).ok || !p.rightsCleared) throw new Error("chain-of-title clearance failed");
+  const loc=IndustryExpansion.localizeProject(p.id,"india","subtitles",G);
+  const censor=IndustryExpansion.localizeProject(p.id,"china","recut",G);
+  if(!loc.ok || !censor.ok || !p.censorCut || !(IndustryExpansion.internationalMultiplier({genre:"horror",localizationPlans:p.localizationPlans})>1)) throw new Error("territory localization did not change market mix or censorship status");
+  const film={id:p.id,genre:p.genre,dom:40,quality:{overall:70,critic:70,aud:72},territoryGross:{}};
+  IndustryExpansion.attachReleaseData(p,film);
+  const map=calcTerritoryGross(film,100);
+  const deniedMap=calcTerritoryGross(Object.assign({},film,{chinaDenied:true}),100);
+  if(!film.rightsCleared || Math.abs(map.total-100)>0.1 || Math.abs(map.territories.uscan-40)>0.1 || !(map.territories.india>0) || deniedMap.territories.china!==0) throw new Error("rights metadata or localized territory gross did not reconcile");
+  const board={id:88002,title:"Rating Board Proof",genre:"drama",budget:40,phase:"ready",rating:"R",releaseWeek:G.week+6,quality:{overall:68,critic:72,aud:70}};
+  G.projects.push(board);
+  const recut=IndustryExpansion.recutForRating(board.id,G);
+  if(!recut.ok || board.rating!=="PG-13" || !board.ratingReview.certified) throw new Error("ratings-board recut failed");
+  const certify={id:88003,title:"Certificate Proof",genre:"comedy",budget:25,phase:"ready",rating:"PG-13",quality:{overall:66,critic:68,aud:70}};
+  G.projects.push(certify);
+  if(!IndustryExpansion.certifyProject(certify.id,G).ok || !certify.ratingReview.certified) throw new Error("ratings-board certification failed");
+  const office=IndustryExpansion.openPressOffice(G);
+  const officePaused=office.ok && IndustryExpansion.openPressOffice(G).ok;
+  if(!office.ok || !officePaused || G.industrySuite.press.office) throw new Error("press office retainer toggle failed");
+  const openingBeforePress=expectedOpening(p,G.week);
+  const press=IndustryExpansion.runPressCampaign(p.id,"junket",G);
+  if(!press.ok || !(G.industrySuite.press.standing>32) || !p.pressCampaigns.includes("junket") || !(expectedOpening(p,G.week)>openingBeforePress)) throw new Error("press relations campaign failed");
+  if(!IndustryExpansion.system("series") || IndustryExpansion.SYSTEMS.length!==24) throw new Error("industry system directory incomplete");
+  G.projects=G.projects.filter(x=>x.id!==p.id&&x.id!==board.id&&x.id!==certify.id);
+  console.log("v40.0 · Industry Expansion Desk ok (24 systems indexed, ESG credit, label, clearance, localization, ratings and press wired)");
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;

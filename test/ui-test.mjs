@@ -103,6 +103,26 @@ step("chips populated", ()=>{
 for(const t of ["develop","productions","boxoffice","ott","live","finance","studio"]){
   step("tab "+t, ()=>{ click($(".tab[data-tab='"+t+"']")); if(!$("#view").innerHTML) throw new Error("empty view"); });
 }
+step("Industry Expansion desk surfaces 24 systems and installs ESG", ()=>{
+  window.eval("G.studio.cash=Math.max(G.studio.cash,250)");
+  const nav=$("[data-studiosub='industry']"); if(!nav) throw new Error("Industry section missing from Studio navigation");
+  click(nav);
+  if(!$("#view").textContent.includes("Every desk. One industry.")) throw new Error("Industry Expansion heading missing");
+  if($$(".industry-system-card").length!==24) throw new Error("expected 24 linked system cards, got "+$$(".industry-system-card").length);
+  const install=$("[data-esg-program='solar']"); if(!install) throw new Error("solar program action missing");
+  click(install);
+  if(!window.eval("G.industrySuite.esg.programs.includes('solar')")) throw new Error("ESG program did not persist to career");
+  click($("[data-industry-open='campaigns']"));
+  if(!$("#modalRoot").textContent.includes("Story Campaigns")) throw new Error("story campaign selector did not open");
+  window.eval("closeModal()");
+  click($("[data-industry-open='challenges']"));
+  if(!$("#modalRoot").textContent.includes("Seeded Challenges")) throw new Error("shareable challenge desk did not open");
+  window.eval("closeModal()");
+  click($("[data-industry-open='coproduction']"));
+  if(window.eval("TAB")!=="develop" || window.eval("DEVELOP_SUB")!=="scripts") throw new Error("international co-production route missed the greenlight room");
+  click($(".tab[data-tab='studio']"));
+  window.eval("STUDIO_SUB='lot';render();");
+});
 
 step("v30 live broadcasting, streaming, events and characters", ()=>{
   click($(".tab[data-tab='live']"));

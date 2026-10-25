@@ -2037,6 +2037,7 @@ function tickLegal(){
     try{ hit=G.films.filter(f=>(f.ww||0)>=breakevenWW(f)*1.5).slice(-1)[0]; }catch(e){}
     const rival=(G.rivals||[]).length?pick(G.rivals):null;
     if(!hit||!rival) return;
+    if(hit.rightsCleared && chance(0.85)) return; // a chain-of-title audit makes plagiarism claims much less likely
     const stake=Math.round(Math.max(5,(hit.ww||0)*0.02)*10)/10;
     G.pendingChoice={ icon:"⚖", title:"Lawsuit — "+rival.name+" claims \""+hit.title+"\" stole their idea",
       text:rival.name+" says \""+hit.title+"\" is their shelved script with the serial numbers filed off. They want "+fmtM(stake)+".",
@@ -2332,6 +2333,7 @@ function expectedOpening(p, weekAbs){
   if(p.aiBacklash) hype *= Math.max(0.85, 1-p.aiBacklash);   // v5: internet outrage compounds
   (p.mktBoosts||[]).forEach(b=>{ const m=DATA.mktBoost? DATA.mktBoost(b):null; if(m&&m.open) hype*=m.open; }); // v5 boosts
   hype *= timelineFactor(p, weekAbs);                 // v5: shared-universe timeline management
+  if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.openingMultiplier){ hype *= IndustryExpansion.openingMultiplier(p,G); }
   const exhib = G.exhibRel || G.exhibitor || 50;
   hype *= 1 + (exhib-50)/50*0.05;
   hype *= (0.95 + (G.exhibitor||50)/1000);
@@ -2745,6 +2747,9 @@ function tickProjects(){
       if(reb>0 && p.coProd && p.coProd.treaty) reb*=1.3;
       reb = Math.round(reb*100)/100;
       if(reb>0){ earn("incentives", reb); p.rebateEarned=(p.rebateEarned||0)+reb; }
+      if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.greenProductionCredit){
+        IndustryExpansion.greenProductionCredit(p,burn,G);
+      }
     }
     // v5: AI & synthetic media — the internet never really calms down
     if((p.aiCast||p.aiScript) && DATA.AI && chance(DATA.AI.backlashWeekly)){
@@ -2912,7 +2917,7 @@ function releaseFilm(p){
     if(p.rating==="R") pass-=CG.rPenalty;
     if(p.genre==="horror") pass-=CG.horrorPenalty;
     if(p.genre==="animation"||p.genre==="fantasy") pass+=CG.kidFriendly;
-    if(p.censorCut) pass-=0.15;
+    if(p.censorCut) pass+=0.15;
     if(!chance(clamp(pass,0.05,0.95))){
       chinaDenied = true;
       log("🇨🇳 "+CG.quotaName+": \""+p.title+"\" missed its import slot — no China release. (−"+Math.round(chShare0*100)+"pts of WW share)","bad");
@@ -2947,8 +2952,11 @@ function releaseFilm(p){
     franchiseName:p.franchiseName||null, sequelOf:p.sequelOf,
     franchiseableChecked:false, censorChecked:false,
   };
+  if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.attachReleaseData) IndustryExpansion.attachReleaseData(p,film);
+  if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.applyImprintToFilm) IndustryExpansion.applyImprintToFilm(film,G);
   if(typeof reviewFilm==="function") reviewFilm(film);
   G.films.push(film);
+  if(typeof calcTerritoryGross==="function") film.territoryGross=calcTerritoryGross(film,film.ww).territories;
   G.projects = G.projects.filter(x=>x!==p);
   freeProjectTalent(p);
   // v28: decrement filmsLeft on multi-film contracts when a film is completed
@@ -3017,7 +3025,6 @@ function tickTheatrical(){
     const splitMult = (typeof BOW_THEATERS !== "undefined" && typeof BOW_THEATERS.getExhibitionSplitMultiplier === "function") ? BOW_THEATERS.getExhibitionSplitMultiplier(G) : 1.0;
     // v17: Multi-territory gross breakdown
     if(typeof calcTerritoryGross==="function"){
-      calcTerritoryGross(f, gross);
       f.dom += gross; // track domestic (US/CA) gross
       const rentals = Math.round(gross*0.53*splitMult*10)/10;
       earn("theatrical", rentals);
@@ -3030,8 +3037,13 @@ function tickTheatrical(){
     }
     const curShare = f.presales ? 0 : ((DATA.GENRES[f.genre] && DATA.GENRES[f.genre].intlShare) || 0.45);
     const intlMult = (typeof econM === "function") ? econM("intl") : 1.0;
-    f.intl = Math.max(0, Math.round(((f.dom / Math.max(0.01, 1 - curShare) - f.dom) * intlMult) * 10) / 10);
+    const localizationMult = (typeof IndustryExpansion!=="undefined" && IndustryExpansion.internationalMultiplier) ? IndustryExpansion.internationalMultiplier(f) : 1;
+    f.intl = Math.max(0, Math.round(((f.dom / Math.max(0.01, 1 - curShare) - f.dom) * intlMult * localizationMult) * 10) / 10);
     f.ww = Math.round((f.dom + f.intl) * 10) / 10;
+    if(typeof calcTerritoryGross==="function"){
+      const regional=calcTerritoryGross(f,f.ww);
+      if(regional && regional.territories) f.territoryGross=regional.territories;
+    }
     if(typeof BOW_TERRITORIES !== "undefined" && typeof BOW_TERRITORIES.tickWeeklyRoyalties === "function"){
       try { BOW_TERRITORIES.tickWeeklyRoyalties(f, gross * curShare, G); } catch(e){}
     }
@@ -3043,24 +3055,35 @@ function tickTheatrical(){
 const _territoryCache = new Map();
 function calcTerritoryGross(film, weekGross){
   const genre = film.genre;
-  const cacheKey = genre + "|" + Math.round(weekGross);
+  const territoryBoost=film.territoryBoost||{};
+  const localizationPlans=film.localizationPlans||{};
+  const cacheKey = genre + "|" + Number(weekGross||0).toFixed(1) + "|" + Number(film.dom||0).toFixed(1) + "|" + !!film.chinaDenied + "|" + JSON.stringify(territoryBoost) + "|" + JSON.stringify(localizationPlans);
   if(_territoryCache.has(cacheKey)) return _territoryCache.get(cacheKey);
-  
-  const territories = DATA.TERRITORIES || [];
-  const results = {};
-  let total = 0;
-  for(const t of territories){
-    const genreMult = t.genre[genre] || 1.0;
-    const riskMult = 1 - (t.risk || 0);
-    const piracyMult = 1 - clamp((t.piracy||0)/100,0,1)*0.1;
-    const share = t.share || 0;
-    const gross = Math.round(weekGross * share * genreMult * riskMult * piracyMult * 10)/10;
-    results[t.id] = gross;
-    total += gross;
-  }
-  const result = { total, territories: results };
-  _territoryCache.set(cacheKey, result);
-  if(_territoryCache.size > 500) _territoryCache.clear(); // prevent memory bloat
+
+  const territories=DATA.TERRITORIES||[];
+  const world=Math.max(0,Number(weekGross)||0);
+  const domestic=Math.min(world,Math.max(0,Number(film.dom)||0));
+  const international=Math.max(0,world-domestic);
+  const weighted=territories.filter(t=>t.id!=="uscan").map(t=>{
+    const genreMult=(t.genre&&t.genre[genre])||1.0;
+    const riskMult=1-(t.risk||0);
+    const piracyMult=1-clamp((t.piracy||0)/100,0,1)*0.1;
+    const chinaMult=film.chinaDenied&&t.id==="china"?0:1;
+    const localMult=(typeof IndustryExpansion!=="undefined" && IndustryExpansion.territoryMultiplier)?IndustryExpansion.territoryMultiplier(film,t.id):1;
+    return {id:t.id,weight:Math.max(0,(t.share||0)*genreMult*riskMult*piracyMult*chinaMult*localMult)};
+  });
+  const weightTotal=weighted.reduce((sum,x)=>sum+x.weight,0)||1;
+  const results={uscan:Math.round(domestic*10)/10};
+  let internationalSplit=0;
+  weighted.forEach((item,index)=>{
+    const gross=index===weighted.length-1?Math.max(0,Math.round((international-internationalSplit)*10)/10):Math.round((international*item.weight/weightTotal)*10)/10;
+    results[item.id]=gross;
+    internationalSplit+=gross;
+  });
+  const total=Math.round((results.uscan+internationalSplit)*10)/10;
+  const result={total,territories:results};
+  _territoryCache.set(cacheKey,result);
+  if(_territoryCache.size>500) _territoryCache.clear(); // prevent memory bloat
   return result;
 }
 
@@ -6035,6 +6058,7 @@ function advanceWeek(){
   G.sfx=G.sfx||[];
   G.weekTx={};
   tickFinance();
+  if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.tick) IndustryExpansion.tick(G);
   if(typeof tickTrends==="function") tickTrends();
   if(typeof tickCareers==="function") tickCareers();
   if(typeof tickContracts==="function") tickContracts();

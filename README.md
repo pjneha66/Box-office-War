@@ -2,7 +2,7 @@
 
 > A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v33.0](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v40.0](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
@@ -32,6 +32,21 @@ Box Office War is an offline-capable Hollywood studio management simulation buil
 All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
 
 ---
+
+## What is New in v40.0 — The Industry Systems Expansion
+
+A new **Studio → Industry** command desk links 24 studio systems in one place and adds
+playable production-side investments for sustainability, press relations, ratings, legal
+clearance, localization and production labels. Existing systems remain on their specialist
+desks: series and live TV, the production calendar, talent chemistry and rewrites, finance/IPO
+and M&A, guilds, franchises and parks, rival studios, executive hiring, story campaigns,
+seeded challenges and the career Hall of Fame.
+
+New decisions have real save-backed effects: ESG programs earn up to 10% shoot credits; press
+campaigns improve awareness, opening buzz and reviewer standing; specialist imprints can lift
+matching releases; chain-of-title audits reduce litigation exposure; ratings recuts trade a
+small critic penalty for a wider audience; and territory localization shifts the international
+gross mix. Browser, offline PWA and Android bundle all include the new desk.
 
 ## What is New in v39.1 — The Stage Division
 

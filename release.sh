@@ -32,7 +32,7 @@ echo "── 1/6 preflight ─────────────────�
 if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain)" ]; then
   echo "✗ working tree is dirty — commit or stash first (or use --dry-run)"; exit 1
 fi
-for f in data.js engine.js i18n.js ui.js sw.js finance-tools.js v31-features.js \
+for f in data.js engine.js industry-expansion-suite.js i18n.js ui.js sw.js finance-tools.js v31-features.js \
          challenge-leaderboard.js theater-chains.js dynamic-soundtrack.js dynasty-legacy.js \
          bow-shorts.js talent-agency.js film-restoration.js festival-pr.js \
          studio-facilities.js syndication-tv.js talent-contracts.js bond-market.js \

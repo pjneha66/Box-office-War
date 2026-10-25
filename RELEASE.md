@@ -1,4 +1,28 @@
-# Release Notes — Box Office War v39.1
+# Release Notes — Box Office War v40.0
+
+## v40.0 — Industry Systems Expansion
+
+### New and expanded systems
+- **Industry command desk:** a 24-system directory in Studio HQ that links the production calendar, TV series, talent/chemistry, script rewrites, piracy/cybersecurity, IPO/equity, talent academy, international co-productions, trends, acquisitions, labor, franchises, parks, rival studios, executive hiring, story scenarios, seeded challenges and the Hall of Fame to their existing desks.
+- **Green production & ESG:** three investable backlot programs add a sustainability score, weekly upkeep and production credits of up to 10% of active shoot burn. Programs pause cleanly when the studio cannot cover upkeep.
+- **Entertainment press office:** an optional retainer builds standing over time; per-title trade junkets and critics previews add awareness/buzz, and preview campaigns can increase critic scores.
+- **Rights clearance:** chain-of-title audits are persisted to project/release records and materially reduce the chance of a rival plagiarism claim.
+- **Ratings board:** finished films can be certified. An R-rated film can pay for a PG-13 recut, with a small critic penalty and a wider audience profile.
+- **Global localization:** subtitles, dubs and censor-compliant recuts are booked by territory before release. They change market weights and international gross; a China recut also improves clearance odds.
+- **Studio labels:** launch up to three specialist imprints and assign them to matching projects for critic and opening lifts.
+- **International gross map:** release and theatrical-week territory breakdowns now reconcile to worldwide gross while honoring localization, partner boosts and China denial.
+
+### Wiring and compatibility
+- Added `industry-expansion-suite.js` and scoped `industry-expansion.css` to the browser app, offline cache, Android web bundle and smoke harness.
+- Wired weekly upkeep, shoot credits, opening multipliers, ratings/rights/localization metadata, international gross and UI actions into the existing engine; no new network service or external runtime dependency.
+- Career state is additive and lazy-initialized, so older saves need no destructive migration.
+
+### Verification
+- `node test/smoke.js` — full career simulation plus new Industry Expansion regressions.
+- `node test/ui-test.mjs` — Industry desk render, 24-system directory and ESG purchase, plus existing UI workflows.
+- Syntax checks passed for the module, engine, UI, service worker, test harness and Android bundler.
+
+---
 
 ## v39.1 — The Stage Division (Broadway, the West End and the road)
 
