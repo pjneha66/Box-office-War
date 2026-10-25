@@ -13,6 +13,7 @@ const SHIM = "if(typeof global.window === 'undefined') global.window = global;\n
 
 const dataJs = fs.readFileSync(path.join(ROOT, "data.js"), "utf8").replace(/"use strict";/g, "");
 const engineJs = fs.readFileSync(path.join(ROOT, "engine.js"), "utf8").replace(/"use strict";/g, "");
+const industryExpansionJs = fs.readFileSync(path.join(ROOT, "industry-expansion-suite.js"), "utf8").replace(/"use strict";/g, "");
 const financeToolsJs = fs.readFileSync(path.join(ROOT, "finance-tools.js"), "utf8").replace(/"use strict";/g, "");
 const challengeJs = fs.readFileSync(path.join(ROOT, "challenge-leaderboard.js"), "utf8").replace(/"use strict";/g, "");
 const theatersJs = fs.readFileSync(path.join(ROOT, "theater-chains.js"), "utf8").replace(/"use strict";/g, "");
@@ -56,6 +57,7 @@ const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8
 const bundle = SHIM +
   dataJs + "\n" +
   engineJs + "\n" +
+  industryExpansionJs + "\n" +
   financeToolsJs + "\n" +
   challengeJs + "\n" +
   theatersJs + "\n" +
