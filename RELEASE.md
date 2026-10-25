@@ -1,4 +1,36 @@
-# Release Notes — Box Office War v40.0
+# Release Notes — Box Office War v41.0
+
+## v41.0 — Next Wave Studio Systems
+
+### New and expanded systems
+- **Episode-level series production:** weekly ticks now burn a season budget by episode, record each episode’s score/focus/arc, award a season-finale lift, and carry episode records into the Library. Arc and production-focus controls are save-backed. Renewal cards compare audience rating, projected platform value and production cost.
+- **Production calendar:** shared cast, crew and locations can be reserved in conflict-free shoot windows. The Next Wave desk scans clashes; exterior weather can extend a reservation by a week and schedule a paid pickup reshoot.
+- **Rival strategy:** rivals counter-program against dated tentpoles, react to strong openings, make timed talent bids that the player can counter, and may absorb a smaller studio with its unreleased slate.
+- **Territory distribution marketplace:** film-level offers expose region, minimum-guarantee/revenue-share options and licensed status. Deals carry a 13, 26, 52 or 104 week term; weekly backend royalties stop when the rights window closes.
+- **Awards prestige:** winning films raise the heat and earned-award prestige of their billed talent. Awards credits feed future quote calculations; existing critics, festival and campaign systems remain the sources of eligibility and momentum.
+- **Consequential incidents:** new player-choice events cover unfinished-script leaks, cyberattacks, crew contract disputes and chain-of-title claims. Containment, disclosure, settlement and refusal have different cash, delay, quality, reputation and legal outcomes.
+- **Franchise lifecycle:** active/resting/legacy stages and cross-division health combine entries, fatigue, merchandise, parks, games and publishing. A paid revival campaign reduces fatigue and reactivates the brand multiplier.
+- **ESG accountability:** funded 25/45/65 carbon-score targets are audited after 52 weeks, rewarding achieved targets and penalizing missed ones.
+- **Campaign editor and First Film Lab:** local scenarios can define starting cash/debt/reputation, release/gross milestones and deadlines. The start screen defaults to a short guided campaign, and custom goals override the generic scenario win condition.
+- **Seasonal challenges:** quarter-based local boards store shareable `BOWS1` score codes; scores can be archived, copied and imported. A live, cross-device leaderboard remains contingent on adding a backend.
+- **Modding tools:** versioned content packs export/import custom film pitches, genres, talent, rivals, franchises and scenarios. Input is size-limited, type-checked and data-only; scripts are never executed.
+- **Career progression:** completing a career grants Legacy Credits for optional New Game+ cash, creative or talent-network perks. The existing Hall of Fame and heirloom start remain separate and optional.
+- **Save recovery and diagnostics:** readable JSON backup/download, preflight validation, pre-restore safety snapshots and a copyable balance/regression dashboard.
+- **Accessibility/localization:** Marathi joins English and Hindi for core chrome. Start scenarios are keyboard operable; the new desk labels file inputs, focus states and status checks, while existing reduced-motion and non-colour cues remain in Settings.
+
+### Wiring and compatibility
+- Added `studio-nextwave-suite.js` and scoped `studio-nextwave.css` to the browser app, offline cache, Android web bundle and smoke harness. Android version code/name and app cache-busters are advanced to 49 / 41.0.
+- All additions are stored in additive career state or local browser meta storage. Existing saves lazy-initialize the new structures. The shared data table is also exposed to extension modules that receive `window`/`global`.
+- The seasonal board is intentionally local/share-code based; no network service or real-time leaderboard is claimed.
+
+### Verification
+- `node test/smoke.js` — engine career simulation plus Next Wave regressions for episodes, conflict scheduling/weather, rights expiry, ESG, talent bids/prestige, campaigns, seasonal codes, content packs, backups, New Game+ and onboarding.
+- `node test/ui-test.mjs` — Next Wave desk, campaign builder, content-pack export, backup preflight, Marathi setting, and existing career flows.
+- Full `npm test`, packaging and syntax checks are run before release.
+
+---
+
+# Previous release notes — Box Office War v40.0
 
 ## v40.0 — Industry Systems Expansion
 

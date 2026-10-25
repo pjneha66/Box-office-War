@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    BOX OFFICE WAR — i18n.js (v2)
-   Hindi / English toggle. The app chrome (topbar, tabs, start
-   screen, settings, section titles, common buttons) is fully
+   English / Hindi / Marathi language selection. Core chrome
+   (topbar, tabs, start screen, settings and common buttons) is
    translated; long dynamic news copy stays in English.
    ═══════════════════════════════════════════════════════════ */
 "use strict";
@@ -70,6 +70,19 @@ const I18N = {
     "pv.title":"🔒 गोपनीयता और आपका डेटा","pv.note":"सब कुछ इसी डिवाइस पर रहता है — न अकाउंट, न ट्रैकिंग।",
     "emp.how":"साम्राज्य कैसे काम करता है",
     "help.title":"❓ यहाँ फ़िल्म बिज़नेस कैसे चलता है",
+  },
+  mr: {
+    "tab.studiolot":"🎬 2D स्टुडिओ","tab.dashboard":"🏠 डॅशबोर्ड","tab.library":"📚 संग्रह","tab.studio":"🏛 स्टुडिओ","tab.develop":"📝 विकास","tab.productions":"🎬 निर्मिती","tab.boxoffice":"📊 बॉक्स ऑफिस","tab.fans":"📬 प्रेक्षक","tab.ott":"📺 ओटीटी व मालिका","tab.live":"🔴 थेट टीव्ही","tab.empire":"🏰 साम्राज्य","tab.games":"🎮 गेम स्टुडिओ","tab.finance":"💼 वित्त","tab.notifications":"🔔 सूचना",
+    "btab.dashboard":"मुख्यपृष्ठ","btab.library":"संग्रह","btab.more":"अधिक","btab.studio":"स्टुडिओ","btab.develop":"निर्मिती","btab.productions":"चित्रपट","btab.boxoffice":"बाजार","btab.fans":"प्रेक्षक","btab.ott":"ओटीटी","btab.live":"थेट","btab.empire":"साम्राज्य","btab.finance":"वित्त",
+    "btn.week":"▶ पुढील आठवडा","btn.fast":"⏩ ×4","btn.help":"❓","btn.settings":"⚙","btn.auto":"⏵⏵","btn.autoOn":"⏸",
+    "chip.cash":"उपलब्ध रोख","chip.debt":"कर्ज","chip.rep":"प्रतिष्ठा","chip.date":"दिनांक",
+    "start.name":"स्टुडिओचे नाव द्या","start.origin":"सुरुवातीची कहाणी निवडा","start.scenario":"मोहीम","start.difficulty":"कठीणपणा","start.found":"स्टुडिओ सुरू करा","start.continue":"कारकीर्द पुढे सुरू ठेवा",
+    "start.note":"ऑफलाइन खेळा. प्रगती या डिव्हाइसवरच जतन होते.","start.slot":"सेव्ह स्लॉट",
+    "sec.market":"स्क्रिप्ट बाजार","sec.talent":"उपलब्ध कलाकार","sec.prod":"निर्मितीत","sec.ready":"प्रदर्शनासाठी तयार","sec.chart":"या आठवड्याचा चार्ट","sec.live":"थिएटरमधील तुमचे चित्रपट","sec.library":"संग्रह","sec.offers":"करार प्रस्ताव","sec.series":"तुमच्या मालिका","sec.platforms":"प्लॅटफॉर्म","sec.feed":"उद्योग बातम्या","sec.share":"बाजारातील हिस्सा","sec.awards":"🏆 पुरस्कार हंगाम",
+    "stat.cash":"उपलब्ध रोख","stat.debt":"कर्ज","stat.rep":"प्रतिष्ठा","stat.films":"प्रदर्शित चित्रपट","stat.ww":"एकूण जागतिक कमाई","stat.subs":"सदस्य","stat.credit":"कर्ज मर्यादा","stat.overhead":"नियमित खर्च",
+    "btn.greenlight":"🎥 निर्मिती मंजूर","btn.pitch":"📡 प्रस्ताव द्या","btn.schedule":"📅 थिएटर प्रदर्शन","btn.shop":"📺 स्ट्रीमिंगला विक्री","btn.accept":"✅ स्वीकारा","btn.counter":"📈 प्रतिप्रस्ताव","btn.decline":"✕ नकारा","btn.loan":"कर्ज घ्या","btn.repay":"परतफेड","btn.save":"जतन करा","btn.close":"बंद करा",
+    "set.title":"⚙ सेटिंग्ज","set.lang":"🌐 भाषा","set.font":"🔠 मजकूराचा आकार","set.saves":"💾 सेव्ह निर्यात / आयात","set.export":"निर्यात कोड कॉपी करा","set.import":"कोड आयात करा","set.theme":"🎨 थीम","set.vault":"💾 सेव्ह व्हॉल्ट","set.slot":"स्लॉटमध्ये जतन करा","set.menu":"🚪 सुरुवातीच्या स्क्रीनवर जा","set.on":"चालू","set.off":"बंद",
+    "ach.title":"🏆 उपलब्धी","ach.locked":"बंद","pv.title":"🔒 गोपनीयता आणि तुमचा डेटा","pv.note":"सर्व माहिती या डिव्हाइसवरच राहते — खाते नाही, ट्रॅकिंग नाही.","emp.how":"मनोरंजन साम्राज्य कसे चालते","help.title":"❓ चित्रपट व्यवसाय कसा चालतो"
   }
 }
 
@@ -135,7 +148,8 @@ function tNews(key, params={}){
 /* ── v29: direction + numerals ── */
 const LANGS = {
   en:{ name:"English", locale:"en", dir:"ltr", numerals:"latn" },
-  hi:{ name:"हिन्दी", locale:"hi", dir:"ltr", numerals:"deva" }
+  hi:{ name:"हिन्दी", locale:"hi", dir:"ltr", numerals:"deva" },
+  mr:{ name:"मराठी", locale:"mr-IN", dir:"ltr", numerals:"latn" }
 };
 function langMeta(){ return LANGS[LANG] || LANGS.en; }
 function resolvedDir(){ return langMeta().dir || "ltr"; }
@@ -177,13 +191,13 @@ if(typeof module!=="undefined" && module.exports){
 };
 
 let LANG = "en";
-try{ LANG = localStorage.getItem("bow_lang")==="hi" ? "hi" : "en"; }catch(e){}
+try{ const savedLang=localStorage.getItem("bow_lang"); LANG=LANGS[savedLang]?savedLang:"en"; }catch(e){}
 function t(key){
   const d = I18N[LANG]||I18N.en;
   return d[key] || I18N.en[key] || key;
 }
 function setLang(l){
-  LANG = (l==="hi")? "hi":"en";
+  LANG = LANGS[l]?l:"en";
   try{ localStorage.setItem("bow_lang", LANG); }catch(e){}
   applyChromeLang();
 }
@@ -204,5 +218,5 @@ function applyChromeLang(){
   const fd=document.querySelector("#fieldDifficulty"); if(fd) fd.textContent=t("start.difficulty");
   set("#btnStart","start.found"); set("#btnContinue","start.continue");
   const nt=document.querySelector(".start-note"); if(nt) nt.textContent=t("start.note");
-  document.title = LANG==="hi" ? "बॉक्स ऑफ़िस वॉर — मूवी व सीरीज़ स्टूडियो टाइकून" : "Box Office War — Movie & Series Studio Tycoon";
+  document.title = LANG==="hi" ? "बॉक्स ऑफ़िस वॉर — मूवी व सीरीज़ स्टूडियो टाइकून" : LANG==="mr" ? "बॉक्स ऑफिस वॉर — चित्रपट व मालिका स्टुडिओ टायकून" : "Box Office War — Movie & Series Studio Tycoon";
 }

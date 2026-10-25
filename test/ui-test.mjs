@@ -76,6 +76,7 @@ function initTestGame() {
 step("start screen renders archetypes", ()=>{
   if($$(".arch").length!==3) throw new Error("archetypes missing");
   if(!$("#btnStart")) throw new Error("start button missing");
+  if(!$("[data-scen='producer_school']")?.classList.contains("sel")) throw new Error("first-run guided campaign should be the default start option");
 });
 step("found studio", async ()=>{
   await initTestGame();
@@ -122,6 +123,38 @@ step("Industry Expansion desk surfaces 24 systems and installs ESG", ()=>{
   if(window.eval("TAB")!=="develop" || window.eval("DEVELOP_SUB")!=="scripts") throw new Error("international co-production route missed the greenlight room");
   click($(".tab[data-tab='studio']"));
   window.eval("STUDIO_SUB='lot';render();");
+});
+
+step("Next Wave desk, local campaign builder, backups, content packs and Marathi settings", ()=>{
+  click($(".tab[data-tab='studio']"));
+  const nav=$("[data-studiosub='nextwave']"); if(!nav) throw new Error("Next Wave desk missing from Studio sections");
+  click(nav);
+  if(!$("#view").textContent.includes("Episode production room") || !$("#view").textContent.includes("Economy & feature checks")) throw new Error("Next Wave systems did not render");
+  if(!$(".nw-check-grid [role]") && !$$(".nw-check").length) throw new Error("balance checks missing");
+  click($("#nwArchiveScore"));
+  if(!window.eval("Object.keys(NextWaveSuite.seasonalScores()).length")) throw new Error("seasonal score was not stored locally");
+  click($("#nwBuildCampaign"));
+  if(!$("#nwcName")) throw new Error("campaign designer did not open");
+  $("#nwcName").value="UI Lab Campaign";
+  click($("#nwcSave"));
+  if(!window.eval("Object.values(DATA.SCENARIOS).some(s=>s.name==='UI Lab Campaign'&&s.customCampaign)")) throw new Error("custom scenario was not restored into the start menu data");
+  click($("#nwOpenPack"));
+  if(!$("#nwPackText")) throw new Error("content pack editor did not open");
+  const pack=JSON.parse($("#nwPackText").value); if(pack.kind!=="box-office-war-content-pack"||pack.schemaVersion!==1||!Array.isArray(pack.films)||!Array.isArray(pack.genres)||!Array.isArray(pack.talent)) throw new Error("exported mod pack schema is wrong");
+  window.eval("closeModal()");
+  click($("#nwSaveBackup"));
+  const backup=JSON.parse($("#nwBackupText").value); if(backup.kind!=="box-office-war-save-backup"||!backup.save.studio) throw new Error("career backup is not readable/complete JSON");
+  if(!window.eval("NextWaveSuite.validateBackup(document.querySelector('#nwBackupText').value).ok")) throw new Error("valid backup failed preflight");
+  window.eval("const uiCareerName=G.studio.name;NextWaveSuite.restoreBackup(document.querySelector('#nwBackupText').value);window.__uiCareerName=uiCareerName;closeModal()");
+  click($("#nwSaveBackup"));
+  if(!$("#nwBackupRecover")||$("#nwBackupRecover").disabled) throw new Error("pre-restore recovery snapshot was not offered");
+  click($("#nwBackupRecover"));
+  if(window.eval("G.studio.name!==window.__uiCareerName")) throw new Error("pre-restore safety snapshot did not restore the original career");
+  window.eval("settingsModal()");
+  if(!$("#langMr")) throw new Error("Marathi language option missing");
+  click($("#langMr"));
+  if(window.eval("LANG")!=="mr"||window.eval("t('btn.week')")!=="▶ पुढील आठवडा") throw new Error("Marathi language selection did not apply");
+  window.eval("closeModal();setLang('en');STUDIO_SUB='lot';render();");
 });
 
 step("v30 live broadcasting, streaming, events and characters", ()=>{
