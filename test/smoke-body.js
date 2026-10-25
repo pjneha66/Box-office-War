@@ -812,6 +812,103 @@ if(typeof IndustryExpansion !== "undefined"){
   console.log("v40.0 · Industry Expansion Desk ok (24 systems indexed, ESG credit, label, clearance, localization, ratings and press wired)");
 }
 
+// 37. Next Wave: episode production, schedule windows, rights, ESG, careers and safety tools
+if(typeof NextWaveSuite!=="undefined"){
+  NextWaveSuite.ensure(G);G.studio.cash=Math.max(G.studio.cash,700);
+  const breachEvent=DATA.EVENTS.find(e=>e.id==="nw_data_breach"),incidentProject={id:97000,title:"Incident Proof",phase:"shoot",phaseWeek:2,phaseLen:{shoot:6},location:"la",cast:[]},incidentProjects=G.projects;
+  G.projects=[incidentProject];const incidentCash=G.studio.cash,incidentStats=G.nextWave?.incidentStats?.contained||0;
+  if(!breachEvent||breachEvent.kind!=="choice"||!breachEvent.when(G)||breachEvent.choices(G).length!==3) throw new Error("interactive incident choice was not installed");
+  breachEvent.choices(G)[0].run(G);
+  if(G.studio.cash!==incidentCash-7||incidentProject.phaseWeek!==1||(G.nextWave.incidentStats.contained||0)!==incidentStats+1) throw new Error("incident containment did not carry its costs and production trade-off");
+  G.studio.cash=incidentCash;G.projects=incidentProjects;
+  const nwSeries={id:97001,title:"Episode Proof",genre:"drama",platform:"streamflix",eps:2,perEp:6,budget:12,concept:72,
+    showrunner:{id:97002,name:"Showrunner",skill:76,genreFit:"drama"},cast:[],seasons:[],phase:"shoot",status:"producing",spent:0,weeksLeft:10,weeksLeft0:10,storyArc:"mystery",episodeFocus:"story"};
+  let delivered=0;
+  for(let i=0;i<4;i++) if(!NextWaveSuite.tickSeriesProduction(nwSeries,G,()=>delivered++)) throw new Error("episode production did not tick");
+  if(delivered!==1||nwSeries.episodeRecords.length!==2||nwSeries.episodeRecords[1].title!=="Season finale"||nwSeries.episodeRecords[1].quality<=nwSeries.episodeRecords[0].quality) throw new Error("episode-level records or finale arc missing");
+  const renewal=NextWaveSuite.seasonRenewalAnalysis({...nwSeries,seasons:[{viewership:80}]},{value:18,budget:12},G);
+  if(!renewal.renew||renewal.margin!==6) throw new Error("renewal analysis did not compare rating and license against cost");
+
+  const previousProjects=G.projects;
+  const calendarA={id:97011,title:"Calendar A",phase:"shoot",phaseWeek:0,phaseLen:{shoot:3},location:"la",cast:[{id:97020}]};
+  const calendarB={id:97012,title:"Calendar B",phase:"shoot",phaseWeek:0,phaseLen:{shoot:2},location:"la",cast:[{id:97020}]};
+  G.projects=[calendarA,calendarB];calendarA.scheduledWindow={startWeek:G.week+1,endWeek:G.week+3,duration:3};
+  const conflict=NextWaveSuite.scheduleConflicts(calendarB,G.week+1,G);
+  const window=NextWaveSuite.scheduleNextClearSlot(calendarB.id,G);
+  if(conflict.length!==1||!window.ok||window.window.startWeek!==G.week+4||NextWaveSuite.calendarWarnings(G).length) throw new Error("calendar did not detect and resolve a shared-cast/location conflict");
+  const oldRandom=Math.random,oldWeek=G.week,weatherCash=G.studio.cash;Math.random=()=>0;G.week=calendarA.scheduledWindow.startWeek;NextWaveSuite.tick(G);Math.random=oldRandom;G.week=oldWeek;
+  if(calendarA.scheduledWindow.weatherDelays!==1||calendarA.scheduledWindow.weatherReshoots!==1||calendarA.reshootCount!==1||calendarA.scheduledWindow.endWeek!==G.week+4||G.studio.cash!==weatherCash-0.8) throw new Error("weather delay did not extend the production reservation and fund a pickup reshoot");
+  G.studio.cash=weatherCash;G.projects=previousProjects;
+
+  const rightsFilm={id:97021,title:"Rights Window Proof",genre:"drama",budget:50,cast:[],quality:{overall:72,critic:70,aud:74},territoryDeals:{},releaseWeek:G.week,inTheaters:true};
+  G.films.push(rightsFilm);
+  const rights=NextWaveSuite.signDistributionOffer(rightsFilm.id,"europe","MINIMUM_GUARANTEE",false,13,G);
+  if(!rights.ok||rights.deal.endWeek!==G.week+13||rights.deal.windowWeeks!==13) throw new Error("distribution term was not stored with the territory guarantee");
+  const savedWeek=G.week;G.week=rights.deal.endWeek+1;
+  if(BOW_TERRITORIES.tickWeeklyRoyalties(rightsFilm,10,G)!==0) throw new Error("expired territory rights still earned royalties");
+  G.week=savedWeek;G.films=G.films.filter(f=>f!==rightsFilm);
+
+  const pledge=NextWaveSuite.setESGTarget(65,G);
+  if(!pledge.ok) throw new Error("sustainability pledge was refused despite sufficient cash");
+  G.nextWave.esgCommitment.dueWeek=G.week;NextWaveSuite.tick(G);
+  if(G.nextWave.esgCommitment.status!=="met") throw new Error("achieved ESG target did not pass its audit");
+  const ownRenew=NextWaveSuite.seasonRenewalAnalysis({...nwSeries,platform:"own",seasons:[{viewership:80}]},{platform:"own",value:0,budget:12},G);
+  const lossRenew=NextWaveSuite.seasonRenewalAnalysis({...nwSeries,seasons:[{viewership:80}]},{platform:"streamflix",value:10,budget:12},G);
+  if(!ownRenew.renew||lossRenew.renew) throw new Error("renewal analysis did not compare ratings with financing/costs");
+  const lifecycleFr={id:97041,name:"Lifecycle Test",built:1,entries:[{week:1}],fatigue:0.5,decay:0.4,park:1,gameSold:1,merch:2,publishing:true};G.franchises.push(lifecycleFr);
+  const life=NextWaveSuite.updateFranchiseLifecycle(lifecycleFr,{week:210});
+  if(life.stage!=="legacy"||life.divisions<3) throw new Error("franchise lifecycle did not age or connect its divisions");
+  const reviveCash=G.studio.cash,reviveFatigue=lifecycleFr.fatigue;
+  if(!NextWaveSuite.franchiseRevive(lifecycleFr.id,G).ok||G.studio.cash!==reviveCash-8||lifecycleFr.fatigue>=reviveFatigue) throw new Error("franchise revival did not spend or relieve fatigue");
+  G.studio.cash=reviveCash;G.franchises=G.franchises.filter(f=>f!==lifecycleFr);
+
+  const poachTalent={id:97031,name:"Poach Test",kind:"actor",power:3,skill:70,fee:4,heat:0,pics:0,bookedUntil:0,scandal:0,age:30};G.talent.push(poachTalent);
+  G.nextWave.rivals.offers.push({id:"poach_test",talentId:poachTalent.id,talentName:poachTalent.name,rivalName:G.rivals[0].name,fee:5,week:G.week,expires:G.week+3,status:"open"});
+  if(!NextWaveSuite.counterRivalOffer("poach_test",G).ok||!poachTalent.rivalProtectedUntil) throw new Error("counterbid did not protect the talent");
+  const rivalMock={week:10,studio:{cash:1000,rep:50},projects:[{id:1,title:"Tentpole Test",scale:"tentpole",marketing:60,releaseWeek:18,phase:"shoot"}],films:[],talent:[],rivals:[{name:"Counter Studio",style:"balanced",cash:100,slate:[{title:"Competing Release",week:18}],ytd:10}],log:()=>{},nextWave:{rivals:{offers:[],reactions:[],deals:[],lastPoachAt:10,lastAcquisitionAt:10}}};
+  NextWaveSuite.tickRivalStrategies(rivalMock);
+  if(rivalMock.rivals[0].slate[0].week===18||!rivalMock.nextWave.rivals.reactions.some(x=>x.kind==="counter-program")) throw new Error("rival did not counter-program against a tentpole");
+  const mergerMock={week:52,studio:{cash:100,rep:50},projects:[],films:[],talent:[],rivals:[{name:"Buyer",cash:1000,slate:[],ytd:0},{name:"Seller",cash:90,slate:[{title:"Acquired Slate",week:60}],ytd:50},{name:"Third",cash:300,slate:[],ytd:20}],log:()=>{},nextWave:{rivals:{offers:[],reactions:[],deals:[],lastPoachAt:52,lastAcquisitionAt:0}}};
+  const randomSave=Math.random;Math.random=()=>0;NextWaveSuite.tickRivalStrategies(mergerMock);Math.random=randomSave;
+  if(mergerMock.rivals[1].acquiredBy!=="Buyer"||!mergerMock.rivals[0].slate.some(f=>f.title==="Acquired Slate")) throw new Error("rival acquisition did not absorb the unreleased slate");
+  const feeBefore=actorFee(poachTalent);awardHeatBump({director:poachTalent,cast:[]});
+  if(poachTalent.awardWins!==1||poachTalent.prestigeScore!==8||actorFee(poachTalent)<=feeBefore) throw new Error("award recognition did not raise talent prestige and future quote");
+  G.talent=G.talent.filter(t=>t!==poachTalent);
+
+  const campaign=NextWaveSuite.createCampaign({name:"Smoke Campaign",cash:210,debt:25,rep:35,films:2,gross:150,deadline:78,desc:"Regression scenario"}),campaignGame={scenario:campaign.campaign.id,week:1,studio:{cash:100,rep:25,debt:0},projects:[],films:[],series:[],stats:{films:0,seriesSeasons:0},log:()=>{}};
+  NextWaveSuite.onNewGame(campaignGame,{});
+  if(!campaign.ok||!DATA.SCENARIOS[campaign.campaign.id]?.customCampaign||DATA.SCENARIOS[campaign.campaign.id].goal.gross!==150||campaignGame.studio.cash!==210||campaignGame.studio.debt!==25||campaignGame.studio.rep!==35) throw new Error("custom campaign did not apply exact starting conditions and goals");
+  const scores=NextWaveSuite.archiveSeasonalScore(G),decoded=NextWaveSuite.decodeCode(scores.code);
+  if(!decoded||decoded.season!==scores.season||!NextWaveSuite.importSeasonalCode(scores.code).ok) throw new Error("seasonal leaderboard code did not round-trip");
+  const pack={kind:"box-office-war-content-pack",schemaVersion:1,name:"Smoke Pack",films:[{title:"Imported Spec",genre:"smokenoir",scale:"indie",concept:"Safe authored data",buzz:72,quality:75}],genres:[{id:"smokenoir",name:"Smoke Noir",base:"thriller",emoji:"🌌",color:"#7889d9",critic:6,aud:2}],talent:[{name:"Pack Actor",kind:"actor",power:3,skill:72,favGenre:"smokenoir",age:30}],rivals:[{name:"Pack Rival",style:"balanced",cash:40,rep:45,color:"#7a83a1"}],franchises:[{name:"Pack Universe",genre:"smokenoir",tier:2,lore:"An authored story world"}],campaigns:[{name:"Pack Scenario",startCash:190,debt:5,rep:35,goal:{films:2,gross:200,deadlineWeeks:104},desc:"Imported goal"}]};
+  const imported=NextWaveSuite.importContentPack(pack,G),exportedPack=NextWaveSuite.contentPack(G);
+  if(!imported.ok||imported.added.films!==1||imported.added.genres!==1||imported.added.talent!==1||imported.added.rivals!==1||imported.added.franchises!==1||imported.added.campaigns!==1||!G.custom.people.some(t=>t.name==="Pack Actor")||!G.rivals.some(r=>r.name==="Pack Rival")||!G.franchises.some(f=>f.name==="Pack Universe")||DATA.GENRES.smokenoir?.custom!==true||!Object.values(DATA.SCENARIOS).some(s=>s.name==="Pack Scenario"&&s.customCampaign)||!exportedPack.films.some(x=>x.title==="Imported Spec")||!exportedPack.genres.some(x=>x.id==="smokenoir")||!exportedPack.talent.some(t=>t.name==="Pack Actor")||!exportedPack.rivals.some(r=>r.name==="Pack Rival")||!exportedPack.franchises.some(f=>f.name==="Pack Universe")) throw new Error("validated film/genre/talent/rival/franchise/campaign mod-pack data did not round-trip into the career");
+  if(NextWaveSuite.importContentPack({kind:"box-office-war-content-pack",schemaVersion:99},G).ok||NextWaveSuite.importContentPack("x".repeat(250001),G).ok) throw new Error("unsupported or oversized content pack was accepted");
+
+  const backup=NextWaveSuite.backupJSON(G),preflight=NextWaveSuite.validateBackup(backup);
+  if(!preflight.ok||preflight.save.studio.name!==G.studio.name||NextWaveSuite.validateBackup("not json").ok) throw new Error("save backup validation failed");
+  const report=NextWaveSuite.balanceReport(G);
+  if(report.total<7||!report.checks.some(x=>x.id==="calendar")||!NextWaveSuite.balanceText(G).includes("BALANCE / REGRESSION")) throw new Error("economy regression dashboard is incomplete");
+
+  const pointsBefore=NextWaveSuite.metaInfo().points,reward=NextWaveSuite.recordCareer({seed:"nw-smoke-"+Date.now(),score:600});
+  if(!reward||reward.credits!==2) throw new Error("career completion did not award New Game+ credits");
+  const pointsAfterReward=NextWaveSuite.metaInfo().points,fake={scenario:"standard",week:1,studio:{cash:100,rep:28,devBonus:0},log:()=>{}};
+  NextWaveSuite.onNewGame(fake,{ngPerk:"cash"});
+  if(fake.studio.cash!==120||NextWaveSuite.metaInfo().points!==pointsAfterReward-1||pointsAfterReward!==pointsBefore+2) throw new Error("New Game+ perk spend/carry-over failed");
+
+  const tutorial={scenario:"producer_school",week:1,studio:{cash:100,rep:30,devBonus:2},projects:[],films:[],series:[],stats:{films:0,seriesSeasons:0},scenarioProgress:{},log:()=>{}};
+  NextWaveSuite.onNewGame(tutorial,{tutorial:false});
+  tutorial.projects.push({id:1,phase:"pre"});NextWaveSuite.updateGuide(tutorial);
+  tutorial.projects[0].phase="ready";NextWaveSuite.updateGuide(tutorial);
+  tutorial.stats.films=1;tutorial.films.push({ww:20});NextWaveSuite.updateGuide(tutorial);
+  if(!tutorial.nextWave.guide.done||!NextWaveSuite.campaignProgress(tutorial).met) throw new Error("guided first-film campaign did not complete its production-to-results loop");
+
+  const careerName=G.studio.name,modifiedBackup=JSON.parse(NextWaveSuite.backupJSON(G));modifiedBackup.save.studio.name="Recovery Smoke";
+  if(!NextWaveSuite.restoreBackup(modifiedBackup).ok||G.studio.name!=="Recovery Smoke"||!NextWaveSuite.hasSafetySnapshot()) throw new Error("backup import did not retain a recoverable pre-restore snapshot");
+  if(!NextWaveSuite.restoreSafetySnapshot().ok||G.studio.name!==careerName) throw new Error("pre-restore safety snapshot could not recover the prior career");
+  console.log("v41.0 · Next Wave ok (episodes, calendar/weather, rights, ESG/incidents, rivals, awards, campaign/challenge/mod pack, backup recovery, NG+ and guide)");
+}
+
 // ── game-over path: insolvent studio is seized after 3 weeks ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;

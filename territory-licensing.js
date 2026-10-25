@@ -108,7 +108,7 @@
       };
     },
 
-    signTerritoryDeal(filmId, regionId, modelKey, localize, optState){
+    signTerritoryDeal(filmId, regionId, modelKey, localize, optState, windowWeeks){
       const g = this._getG(optState);
       if(!g) return false;
       const f = (g.projects || []).find(p => p.id === filmId) || (g.films || []).find(f => f.id === filmId);
@@ -139,6 +139,7 @@
         else g.studio.cash -= Math.abs(netCashDelta);
       }
 
+      const rightsWeeks = Math.max(13, Math.min(104, Math.floor(Number(windowWeeks) || 52)));
       f.territoryDeals[regionId] = {
         modelKey,
         modelName: offer.modelName,
@@ -146,6 +147,9 @@
         royaltyRate: offer.royaltyRate,
         localized: !!localize,
         signedWeek: g.week,
+        startWeek: g.week,
+        endWeek: g.week + rightsWeeks,
+        windowWeeks: rightsWeeks,
         cumEarned: offer.upfront
       };
 
@@ -169,6 +173,8 @@
       this.REGIONS.forEach(reg => {
         const deal = film.territoryDeals[reg.id];
         if(!deal) return;
+        if(g && Number.isFinite(deal.startWeek) && g.week < deal.startWeek) return;
+        if(g && Number.isFinite(deal.endWeek) && g.week > deal.endWeek) return;
         let regGross = intlGross * reg.marketShare;
         if(deal.localized) regGross *= this.LOCALIZATION_BOOST;
         const royalty = regGross * deal.royaltyRate;
@@ -199,6 +205,7 @@
     }
 
     let activeFilm = candidates.find(f => f.id === optFilmId) || candidates[0];
+    let rightsTerm = 26;
     const fmtMFn = (typeof fmtM === "function") ? fmtM : (x => "$" + x + "M");
 
     function renderInnerContent(){
@@ -219,6 +226,9 @@
       h += "<div><b>Selected Picture:</b> <span class='gold'>\"" + activeFilm.title + "\"</span> <span class='muted tiny'>(" + (activeFilm.scale || "Standard") + " · Budget: " + fmtMFn(activeFilm.budget || 20) + ")</span></div>";
       h += "<div class='tiny muted'>Signed Regions: " + Object.keys(activeFilm.territoryDeals).length + "/4</div>";
       h += "</div></div>";
+      h += "<label class='tiny muted' style='display:flex;align-items:center;gap:8px;margin:8px 0 12px'>Rights window"+
+        "<select id='territoryRightsWindow' aria-label='Territory rights window' style='background:#101721;color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:7px'>"+
+        [[13,"13 weeks"],[26,"26 weeks"],[52,"52 weeks"],[104,"104 weeks"]].map(x=>"<option value='"+x[0]+"' "+(rightsTerm===x[0]?"selected":"")+">"+x[1]+"</option>").join("")+"</select></label>";
 
       h += "<div class='territory-deal-grid'>";
       BOW_TERRITORIES.REGIONS.forEach(reg => {
@@ -232,7 +242,7 @@
         if(deal){
           h += "<div class='card card-sub' style='border-left:3px solid var(--green);padding:8px;margin-top:6px'>";
           h += "<b class='pos'>[LICENSED] " + deal.modelName + "</b>";
-          h += "<div class='tiny muted' style='margin:3px 0'>Upfront: " + fmtMFn(deal.upfront) + " | Backend: " + Math.round(deal.royaltyRate*100) + "%" + (deal.localized ? " | Localized (+25%)" : "") + "</div>";
+          h += "<div class='tiny muted' style='margin:3px 0'>Upfront: " + fmtMFn(deal.upfront) + " | Backend: " + Math.round(deal.royaltyRate*100) + "%" + (deal.localized ? " | Localized (+25%)" : "") + (deal.endWeek?" | Rights through W"+deal.endWeek:"") + "</div>";
           h += "<div class='tiny gold'>Cumulative Revenue Earned: " + fmtMFn(deal.cumEarned || deal.upfront) + "</div>";
           h += "</div>";
         } else {
@@ -283,6 +293,8 @@
     }
 
     function attachListeners(modalEl){
+      const rightsSelect=modalEl.querySelector("#territoryRightsWindow");
+      if(rightsSelect) rightsSelect.onchange=()=>{ rightsTerm=Math.max(13,Math.min(104,parseInt(rightsSelect.value,10)||26)); };
       modalEl.querySelectorAll("[data-sel-film]").forEach(b => {
         b.onclick = function(){
           const fid = b.dataset.selFilm;
@@ -298,7 +310,7 @@
           const chk = modalEl.querySelector("#chk_loc_" + regId);
           const localize = chk ? chk.checked : false;
 
-          if(BOW_TERRITORIES.signTerritoryDeal(activeFilm.id, regId, modelKey, localize)){
+          if(BOW_TERRITORIES.signTerritoryDeal(activeFilm.id, regId, modelKey, localize, g, rightsTerm)){
             if(typeof global.beep === "function") global.beep("gold");
             if(typeof global.render === "function") global.render();
             refresh(modalEl);

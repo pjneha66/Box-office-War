@@ -32,7 +32,8 @@ echo "── 1/6 preflight ─────────────────�
 if [ "$DRY_RUN" = false ] && [ -n "$(git status --porcelain)" ]; then
   echo "✗ working tree is dirty — commit or stash first (or use --dry-run)"; exit 1
 fi
-for f in data.js engine.js industry-expansion-suite.js i18n.js ui.js sw.js finance-tools.js v31-features.js \
+
+for f in data.js engine.js industry-expansion-suite.js studio-nextwave-suite.js i18n.js ui.js sw.js finance-tools.js v31-features.js \
          challenge-leaderboard.js theater-chains.js dynamic-soundtrack.js dynasty-legacy.js \
          bow-shorts.js talent-agency.js film-restoration.js festival-pr.js \
          studio-facilities.js syndication-tv.js talent-contracts.js bond-market.js \
@@ -43,7 +44,7 @@ for f in data.js engine.js industry-expansion-suite.js i18n.js ui.js sw.js finan
          marketing-blitz-engine.js production-creativity-suite.js \
          studio-lot-engine.js studio-lot-2d.js \
          box-office-sim-2-cast.js gamestudio-gdd-engine.js social-viral-network.js \
-         sports-stadium-deals.js kairo-theme-suite.js; do node --check "$f"; done
+         sports-stadium-deals.js kairo-theme-suite.js test/smoke.js test/smoke-body.js test/ui-test.mjs; do node --check "$f"; done
 echo "✓ syntax clean (all core and modular engine files)"
 if [ "$SKIP_TESTS" = false ]; then
   npm test > /tmp/bow-test.log 2>&1 || { echo "✗ tests failed — see /tmp/bow-test.log"; grep -E "✗|ERRORS|FAILED" /tmp/bow-test.log | head; exit 1; }

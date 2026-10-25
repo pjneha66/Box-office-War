@@ -2,7 +2,7 @@
 
 > A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v40.0](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v41.0](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
@@ -32,6 +32,19 @@ Box Office War is an offline-capable Hollywood studio management simulation buil
 All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
 
 ---
+
+## What is New in v41.0 — Next Wave Studio Systems
+
+The Studio HQ **Next Wave** desk turns several existing foundations into connected, actionable workflows:
+
+- TV seasons now produce episode records with selectable arcs and focus, a scored finale, and a renewal readout comparing audience ratings with order value and production cost.
+- The production calendar reserves shared cast, below-the-line crew and locations, finds clear shoot windows, warns on conflicts, and extends reservations for weather delays and paid pickup reshoots.
+- Rival studios counter-program, react to hits, bid for talent (with player counteroffers) and can acquire a rival. Territory distributor offers retain minimum guarantees/revenue shares and now expire at explicit 13–104 week rights terms.
+- ESG pledges are audited after a year with incentives or reputation consequences. A scenario editor saves custom start conditions, milestones and deadlines; the First Film Lab is the default guided first-run campaign.
+- Seasonal challenge codes can be archived, imported and ranked locally. Cross-device/live leaderboards are not represented as online—the game has no leaderboard backend.
+- Studio content packs use validated, versioned JSON for film pitches, genres, talent, rivals, franchises and scenarios (no executable scripts). Completed careers award optional New Game+ credits; backup/restore, a balance/regression dashboard, Marathi core UI, keyboard states and labelled workflows round out the desk.
+
+See the Next Wave desk for detailed in-game instructions. Existing Industry Systems, Creative Lab, awards, festivals, territory licensing, legacy and accessibility controls remain available.
 
 ## What is New in v40.0 — The Industry Systems Expansion
 

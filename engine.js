@@ -14,6 +14,7 @@ let G = null; // global game state
 /* ═══════════ state ═══════════ */
 function newGame(archId, name, opts){
   opts = opts||{};
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.clearCustomGenres) NextWaveSuite.clearCustomGenres();
   const arch = DATA.ARCHETYPES.find(a=>a.id===archId) || DATA.ARCHETYPES[1];
   const scen = DATA.SCENARIOS[opts.scenario||"standard"] || DATA.SCENARIOS.standard;
   G = {
@@ -85,7 +86,8 @@ function newGame(archId, name, opts){
   if(typeof initLiveState==="function") initLiveState(G);
   if(typeof ensureEmpireState==="function") ensureEmpireState(G);
   G.log = log;
-  log("🎬 "+G.studio.name+" is founded ("+DATA.SCENARIOS[G.scenario].name+" · "+DATA.DIFFICULTIES[G.difficulty].name+(G.sandbox?" · sandbox":"")+") . "+arch.sub, "gold");
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.onNewGame) NextWaveSuite.onNewGame(G,opts);
+  log("🎬 "+G.studio.name+" is founded ("+(DATA.SCENARIOS[G.scenario]?.name||G.scenario)+" · "+DATA.DIFFICULTIES[G.difficulty].name+(G.sandbox?" · sandbox":"")+") . "+arch.sub, "gold");
   log("💡 Tip: Greenlight a film in the Develop tab, or pitch a series in OTT & Series.", "");
   if(G.studio.debt>0) log("🧯 Turnaround: you inherited "+fmtM(G.studio.debt)+" of debt. Interest never sleeps.", "bad");
   saveGame();
@@ -795,6 +797,7 @@ function loadGame(){
     G = save;
     if(typeof window !== "undefined") window.G = G;
     if(typeof global !== "undefined") global.G = G;
+    if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.applyCustomGenres) NextWaveSuite.applyCustomGenres(G);
     if(typeof ensureLiveState==="function") ensureLiveState(G);
     if(typeof ensureEmpireState==="function") ensureEmpireState(G);
     G.log = log;
@@ -814,6 +817,7 @@ function importCode(code){
     G = g;
     if(typeof window !== "undefined") window.G = G;
     if(typeof global !== "undefined") global.G = G;
+    if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.applyCustomGenres) NextWaveSuite.applyCustomGenres(G);
     if(typeof ensureLiveState==="function") ensureLiveState(G);
     if(typeof ensureEmpireState==="function") ensureEmpireState(G);
     G.log = log; saveGame(); return true;
@@ -1273,6 +1277,7 @@ function actorFee(t){
   }
   // v5: wage inflation — talent compound faster than the market
   f *= (G.wageInfl||1);
+  f *= 1+Math.min(0.15,(t.awardWins||0)*0.025); // earned awards deepen prestige and future quotes
   return Math.round(f*10)/10;
 }
 
@@ -1512,6 +1517,7 @@ function computeQuality(p){
   let prodScore = 52 + 48*pv;
   if(p.producer) prodScore += clamp((p.producer.skill-55)/6, -3, 7);
   let craft = 0.30*scriptScoreOf(p) + 0.24*dirScore + 0.22*castScore + 0.24*prodScore;
+  if(p.qualityRisk) craft -= clamp(p.qualityRisk,0,10); // unresolved script/publicity leaks can damage the finished cut
   if(G.upgrades.vfx && p.scale==="tentpole") craft += 3;
   if(hqOwned("anim") && (p.genre==="animation"||p.genre==="fantasy")) craft += 2;
   if(techDone("cameras") && p.scale==="tentpole") craft += 2;
@@ -2709,6 +2715,7 @@ function sequelTitle(t){
 function tickProjects(){
   for(const p of G.projects){
     if(p.phase==="ready"||p.phase==="delivered") continue;
+    if(p.phase==="shoot" && p.scheduledWindow && G.week<p.scheduledWindow.startWeek) continue;
     if(p.strikePause>0){ p.strikePause--; if(p.strikePause===0) log("✊ Crews back on set for \""+p.title+"\"",""); continue; }
     const spatialWork=typeof StudioLotBridge==='undefined'||StudioLotBridge.resolveProductionWeek(p,G);
     if(spatialWork)p.phaseWeek++;
@@ -4420,11 +4427,14 @@ function seriesQuality(s){
   let q = 0.3*s.concept + 0.25*dirScore + 0.2*castScore + 0.25*(45+55*clamp(s.perEp/12,0.4,1.1));
   if(s.formatId==="docuseries") q += 4;
   if(s.formatId==="limitedevent") q += 6;
+  const episodes=s.episodeRecords||s.episodeProduction?.episodes||[];
+  if(episodes.length) q=q*0.62+episodes.reduce((a,e)=>a+(e.quality||60),0)/episodes.length*0.38;
   return clamp(Math.round(q+gauss()*5), 10, 97);
 }
 function tickSeries(){
   for(const s of G.series){
     if(s.phase==="shoot"){
+      if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.tickSeriesProduction && NextWaveSuite.tickSeriesProduction(s,G,deliverSeason)) continue;
       const burn = s.budget/(s.weeksLeft0||s.weeksLeft||1);
       s.spent += burn; spend("production", burn);
       earn("incentives", burn*0.06);
@@ -4454,9 +4464,10 @@ function deliverSeason(s){
     earn("series", license);
   }
   const sGenre=DATA.GENRES[s.genre]||{critic:0,aud:0};
+  const episodeRecords=(s.episodeRecords||s.episodeProduction?.episodes||[]).map(e=>({...e}));
   s.seasons.push({num, quality:q, license, viewership:0, // series ratings ride the same biases as films
     critic:clamp(Math.round(q+sGenre.critic+gauss()*4),5,99),
-    audience:0});
+    audience:0, episodes:episodeRecords.length||s.eps||0, episodeRecords, arc:s.storyArc||"ensemble"});
   // talent free
   if(s.showrunner){s.showrunner.bookedUntil=0;}
   s.cast.forEach(c=>{c.bookedUntil=0;});
@@ -4517,6 +4528,7 @@ function acceptRenewal(o){
   s.budget=o.budget; s.perEp=Math.round(o.budget/s.eps);
   s.weeksLeft0 = s.weeksLeft = Math.round(s.eps*1.2+6);
   s.phase="shoot"; s.status="producing";
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.initializeSeriesSeason) NextWaveSuite.initializeSeriesSeason(s,G);
   // re-book talent
   if(s.showrunner){s.showrunner.bookedUntil=G.week+s.weeksLeft;}
   s.cast.forEach(c=>{c.bookedUntil=G.week+s.weeksLeft;});
@@ -4527,6 +4539,7 @@ function acceptRenewal(o){
 function seedRivalYear(){
   const yr = yearOf(G.week);
   for(const r of G.rivals){
+    if(r.acquiredBy) continue;
     const count = r.style==="tentpole"? rint(6,9) : r.style==="prestige"? rint(9,13) : rint(11,15);
     const weeks=[];
     for(let i=0;i<count;i++){
@@ -4554,6 +4567,7 @@ function seedRivalYear(){
 function range(a,b){ const r=[]; for(let i=a;i<=b;i++)r.push(i); return r; }
 function tickRivals(){
   for(const r of G.rivals){
+    if(r.acquiredBy) continue;
     for(const f of r.slate){
       if(f.week===G.week){
         // release
@@ -5548,7 +5562,11 @@ function awardSeason(){
 }
 function awardHeatBump(f){ // wins make talent: heat up the billed cast & director
   [(f.director||null)].concat(f.cast||[]).forEach(t=>{
-    if(t&&Number.isFinite(t.heat)) t.heat=Math.min(3,t.heat+1); });
+    if(!t)return;
+    if(Number.isFinite(t.heat)) t.heat=Math.min(3,t.heat+1);
+    t.awardWins=(t.awardWins||0)+1;
+    t.prestigeScore=Math.min(100,(t.prestigeScore||0)+8);
+  });
 }
 /* ── reputation identities: earned from behavior, never just labels ──
    Six scores derive from released films, awards, franchises and streaming.
@@ -5984,6 +6002,10 @@ function careerLegacy(){
 function recordLegacy(){
   try{
     const entry=careerLegacy(); entry.when=Date.now();
+    if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.recordCareer){
+      const reward=NextWaveSuite.recordCareer(entry);
+      if(reward&&reward.credits) entry.legacyCredits=reward.credits;
+    }
     const hall=legacyHall(); hall.unshift(entry);
     localStorage.setItem(LEGACY_KEY, JSON.stringify(hall.slice(0,8)));
     return entry;
@@ -6059,6 +6081,7 @@ function advanceWeek(){
   G.weekTx={};
   tickFinance();
   if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.tick) IndustryExpansion.tick(G);
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.tick) NextWaveSuite.tick(G);
   if(typeof tickTrends==="function") tickTrends();
   if(typeof tickCareers==="function") tickCareers();
   if(typeof tickContracts==="function") tickContracts();
@@ -6113,6 +6136,7 @@ function advanceWeek(){
   if(typeof tickTheatrical==="function") tickTheatrical();
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.tickRivalStrategies) NextWaveSuite.tickRivalStrategies(G);
   if(typeof tickBuzz==="function") tickBuzz();
   if(typeof tickEmpire==="function") tickEmpire();
   if(typeof tickStreamer==="function") tickStreamer();
@@ -6218,19 +6242,24 @@ if(typeof performance!=="undefined" && performance.mark && performance.measure){
   performance.mark("bow_advance_end");
   try{ performance.measure("bow_advance_week", "bow_advance_start", "bow_advance_end"); }catch(e){}
 }
-// v28: Scenario progress tracking
+// Scenario progress: campaign-editor goals override the generic reputation/survival win.
 if(G.scenario && !G.sandbox){
   const sc = G.scenarioProgress || (G.scenarioProgress = {});
-  if(!sc[G.scenario]){
-    sc[G.scenario] = { started: G.week, bestRep: G.studio.rep, won: false };
-  }
+  if(!sc[G.scenario]) sc[G.scenario] = { started: G.week, bestRep: G.studio.rep, won: false };
   const sp = sc[G.scenario];
   sp.bestRep = Math.max(sp.bestRep || 0, G.studio.rep);
-  // Win condition: rep >= 75 or survive 200 weeks
-  if(!sp.won && (G.studio.rep >= 75 || G.week >= 200)){
-    sp.won = true;
-    sp.wonAt = G.week;
-    log("🏆 SCENARIO COMPLETE: "+DATA.SCENARIOS[G.scenario].name+" won at week "+G.week+" (rep: "+G.studio.rep+")","gold");
+  const goal=G.nextWave&&G.nextWave.campaignGoal;
+  const progress=goal&&typeof NextWaveSuite!=="undefined"&&NextWaveSuite.campaignProgress?NextWaveSuite.campaignProgress(G):null;
+  const guide=G.nextWave&&G.nextWave.guide;
+  if(!sp.won && goal && progress && progress.met && (G.scenario!=="producer_school" || (guide&&guide.done))){
+    sp.won=true;sp.wonAt=G.week;sp.outcome="won";
+    log("🏆 SCENARIO COMPLETE: "+(DATA.SCENARIOS[G.scenario]?.name||G.scenario)+" met its milestones at week "+G.week+".","gold");
+  }else if(!sp.won && goal && G.week-(G.nextWave.campaignStartWeek||1)>=goal.deadlineWeeks){
+    sp.failed=true;sp.outcome="deadline";sp.failedAt=G.week;
+    log("⏳ CAMPAIGN DEADLINE: "+(DATA.SCENARIOS[G.scenario]?.name||G.scenario)+" ended before all milestones were met.","bad");
+  }else if(!sp.won && !goal && (G.studio.rep >= 75 || G.week >= 200)){
+    sp.won = true;sp.wonAt = G.week;
+    log("🏆 SCENARIO COMPLETE: "+(DATA.SCENARIOS[G.scenario]?.name||G.scenario)+" won at week "+G.week+" (rep: "+G.studio.rep+")","gold");
   }
 }
 if(typeof StudioLotBridge !== "undefined" && typeof StudioLotBridge.syncWithGameState === "function"){

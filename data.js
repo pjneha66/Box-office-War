@@ -151,6 +151,9 @@ DATA.DIFFICULTIES = {
   hard:   {name:"Hard",   emoji:"🔥", rent:0.88, eventRate:1.3, desc:"Rentals −12% · harsher events"},
 };
 DATA.SCENARIOS = {
+  producer_school:{name:"First Film Lab", emoji:"🎓", cash:-20, debt:0, rep:+4, overhead:0, flopPenalty:0,
+               devBonus:1, guided:true, goal:{films:1,gross:20,deadlineWeeks:52},
+               desc:"A short, guided first-studio campaign. Release one film, earn $20M worldwide and learn the production loop in 52 weeks."},
   standard:   {name:"Standard",     emoji:"🎬", cash:0,   debt:0,   rep:0,   overhead:0,   flopPenalty:0,
                desc:"Found a studio and climb from nothing."},
   turnaround: {name:"Turnaround",   emoji:"🧯", cash:-20, debt:180, rep:-6,  overhead:0.2, flopPenalty:0,
@@ -2089,4 +2092,8 @@ DATA.BOARD = { voteAbove: 60 };
 
 /* ── SAVE_VERSION bump for v31 ── */
 DATA.SAVE_VERSION = 15;
+
+// Expose the shared data table to extension modules that receive window/global.
+if(typeof window!=="undefined") window.DATA=DATA;
+if(typeof global!=="undefined") global.DATA=DATA;
 

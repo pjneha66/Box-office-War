@@ -8,7 +8,7 @@ let WZ = null;          // greenlight/pitch wizard state
 let SCHEDULE = null;    // release scheduling state
 let SOUND = true;
 let AUTO = null;        // auto-play interval handle
-let SEL = { scenario:"standard", difficulty:"normal", sandbox:false, slot:1, legacy:"" }; // start-screen meta picks
+let SEL = { scenario:"producer_school", difficulty:"normal", sandbox:false, slot:1, legacy:"", ngPerk:"" }; // guided first-run default + optional New Game+
 /* v5: reduced-motion preference: "auto" follows the OS, "off" kills animations, "on" forces them */
 let MOTION = "auto";
 try{ MOTION = localStorage.getItem("bow_motion") || "auto"; }catch(e){}
@@ -661,6 +661,7 @@ if(typeof window!=="undefined"){
 
 /* ═══════════ boot ═══════════ */
 window.addEventListener("DOMContentLoaded", ()=>{
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.restoreCampaigns) NextWaveSuite.restoreCampaigns();
   // start screen
   const names=["Parallax Pictures","Lighthouse Films","Meridian Studios","Blackwater Pics","Golden Hour Entertainment","Astra House"];
   const sug=$("#nameSuggests");
@@ -723,7 +724,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("#btnContinue").onclick=()=>{ const g=loadGame(); if(g){ enterApp(); } };
   $("#btnStart").onclick=()=>{
     const nm=($("#studioName").value||"Parallax Pictures").trim().slice(0,26);
-    newGame(archSel, nm, {scenario:SEL.scenario, difficulty:SEL.difficulty, sandbox:SEL.sandbox, slot:SEL.slot, legacy:SEL.legacy});
+    newGame(archSel, nm, {scenario:SEL.scenario, difficulty:SEL.difficulty, sandbox:SEL.sandbox, slot:SEL.slot, legacy:SEL.legacy, ngPerk:SEL.ngPerk, tutorial:SEL.scenario==="producer_school"?false:undefined});
     enterApp(true);
   };
   try{
@@ -1253,10 +1254,11 @@ function _renderImpl(){
     else if(TAB==="finance") h=viewFinance();
     else if(TAB==="notifications") h=viewInboxScreen();
     if(TAB==="studio" && STUDIO_SUB!=="lot"){
-      const identity={csuite:["Leadership","Build the team behind every production."],board:["Strategy","Set priorities. Meet commitments. Grow with purpose."],operations:["Workforce","Keep your people, partnerships, and productions healthy."],crisis:["Reputation","Protect your studio’s standing when the pressure rises."],heritage:["Legacy","Build the partnerships and stories that outlast a single film."],industry:["Industry Systems","One control room for production, markets, rights and studio growth."]}[STUDIO_SUB];
+      const identity={csuite:["Leadership","Build the team behind every production."],board:["Strategy","Set priorities. Meet commitments. Grow with purpose."],operations:["Workforce","Keep your people, partnerships, and productions healthy."],crisis:["Reputation","Protect your studio’s standing when the pressure rises."],heritage:["Legacy","Build the partnerships and stories that outlast a single film."],industry:["Industry Systems","One control room for production, markets, rights and studio growth."],nextwave:["Next Wave","Build a repeatable studio: episode room, calendar, market and career systems."]}[STUDIO_SUB];
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
+    const nwGuide = typeof NextWaveSuite!=="undefined" && NextWaveSuite.renderGuide ? NextWaveSuite.renderGuide(G) : "";
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header.
        v38.0: finance joined them too. Its Kairo banner was the last one still
        rendering, and it carried hardcoded fiction ("AAA Investment", "+34.8%
@@ -1267,7 +1269,7 @@ function _renderImpl(){
       : "";
     v.dataset.screen = TAB;
     const commandNav = ["dashboard", "studio"].includes(TAB) ? commandSectionNav(TAB) : (TAB === "develop" ? commandDevelopNav() : "");
-    v.innerHTML = (tb? tb : "") + kairoBanner + commandNav + h;
+    v.innerHTML = (nwGuide?nwGuide:"") + (tb? tb : "") + kairoBanner + commandNav + h;
     bindView();
     bindFolds(v);   // v15: collapsible sections remember their state
     updateBellBadge();   // v28.16: keep the bell badge fresh on every render
@@ -1300,6 +1302,7 @@ let FAN_MAIL_FILTER = "all";
    no game state: the list ships with the build, newest version first.
    status: "shipped" (gold) | "active" (in progress, teal) | "planned" (muted). */
 const NEXT_UPDATES = [
+  { version:"41.0", label:"NEXT WAVE — episode-level TV production, shoot calendar and weather, rival bids/acquisitions/counter-programming, territory rights terms, ESG pledges, custom campaigns/packs, seasonal codes, New Game+, backups, regression checks, Marathi and First Film Lab onboarding", status:"shipped" },
   { version:"40.0", label:"INDUSTRY SYSTEMS — 24-desk directory + ESG production credits, press relations, rights clearance, ratings recuts, territory localization and specialist studio labels; weekly engine, release and Android/PWA wiring", status:"shipped" },
   { version:"39.1", label:"STAGE DIVISION — Broadway, the West End and the road (live theatre, tours, cast albums, staging licences and Tony season)", status:"shipped" },
   { version:"38.0", label:"TREASURY DESK — ledger \u2192 capital \u2192 forecast \u2192 equity \u2192 deals \u2192 analysis \u2192 board \u2192 invest (Finance rebuilt: live weekly P&L that reconciles to the ledger, credit facility + mezzanine + corporate bonds, maturity ladder, runway, five-scenario stress test, share price and secondary offerings, M&A, board & executives, capital projects; one persisted nav, every refusal explained, no fabricated rating or margin)", status:"shipped" },
@@ -1605,6 +1608,11 @@ function viewStudio(){
     return typeof IndustryExpansion !== "undefined" && IndustryExpansion.renderDesk
       ? IndustryExpansion.renderDesk(G)
       : "<div class='card'>Industry systems are still loading.</div>";
+  }
+  if(STUDIO_SUB === "nextwave"){
+    return typeof NextWaveSuite !== "undefined" && NextWaveSuite.renderDesk
+      ? NextWaveSuite.renderDesk(G)
+      : "<div class='card'>Next Wave systems are still loading.</div>";
   }
 
   if(STUDIO_SUB === "operations"){
@@ -7108,6 +7116,7 @@ function bindView(){
   /* v31: render the sub-tab strip FIRST so the data-* bindings below attach to
      the live chips — rendering it last replaced them with dead nodes. */
   renderSubTabs();
+  if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.bindView) NextWaveSuite.bindView(document);
   $$("[data-dev]").forEach(b=>b.onclick=()=>{
     const idea=G.ideas.find(i=>i.id===+b.dataset.dev);
     if(idea){ beep("click"); startWizard(idea); }
@@ -10134,7 +10143,7 @@ function buildStartOptions(){
     const won = sp.won ? " [Cleared]" : "";
     const bestRep = sp.bestRep ? " (best rep: "+sp.bestRep+")" : "";
     const cleanScenName = s.name;
-    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"'><h4>"+cleanScenName+won+"</h4><div class='a-sub'>"+s.desc+bestRep+"</div></div>";
+    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"' role='button' tabindex='0' aria-pressed='"+(SEL.scenario===id)+"'><h4>"+cleanScenName+won+"</h4><div class='a-sub'>"+s.desc+bestRep+"</div></div>";
   });
   h+="</div>";
 
@@ -10149,6 +10158,11 @@ function buildStartOptions(){
   h+="</div>";
 
   h+="<div class='start-sandbox-wrap'><label class='sandbox-lbl'><input type='checkbox' id='chkSandbox'"+(SEL.sandbox?" checked":"")+"> Creative Sandbox Mode (Infinite Cash, No Bankruptcy, Instant Experimentation)</label></div>";
+  try{
+    const ng=NextWaveSuite.ngPlusState();
+    h+="<div class='card start-ngplus'><div class='spread'><b>🌱 New Game+ (optional)</b><span class='tag gold'>"+ng.points+" Legacy Credits</span></div><div class='tiny muted' style='margin:5px 0 8px'>Earn credits by completing a career. Choose one carry-over perk—or leave this at a fresh start.</div><label class='field-label' for='startNgPerk'>Next-career reward</label><select id='startNgPerk' class='input' style='width:100%'><option value=''>No carry-over perk</option>"+
+      ng.perks.map(p=>"<option value='"+p.id+"' "+(SEL.ngPerk===p.id?"selected ":"")+(!p.available?"disabled":"")+">"+p.label+" · "+p.desc+" ("+p.cost+" credit"+(p.cost===1?"":"s")+")</option>").join("")+"</select></div>";
+  }catch(e){}
 
   h+="<label class='field-label'>"+t("start.slot")+"</label><div class='start-slot-grid' id='slotRow'>";
   for(let n=1;n<=SAVE_SLOT_COUNT;n++){
@@ -10187,9 +10201,13 @@ function buildStartOptions(){
     }
   }catch(e){}
   wrap.innerHTML=h;
-  $$("[data-scen]").forEach(el=>el.onclick=()=>{ SEL.scenario=el.dataset.scen; beep("click"); buildStartOptions(); });
+  $$("[data-scen]").forEach(el=>{
+    el.onclick=()=>{ SEL.scenario=el.dataset.scen; beep("click"); buildStartOptions(); };
+    el.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } };
+  });
   $$("[data-diff]").forEach(el=>el.onclick=()=>{ SEL.difficulty=el.dataset.diff; beep("click"); buildStartOptions(); });
   const chk=$("#chkSandbox"); if(chk) chk.onchange=()=>{ SEL.sandbox=chk.checked; };
+  const ngSelect=$("#startNgPerk"); if(ngSelect) ngSelect.onchange=()=>{ SEL.ngPerk=ngSelect.value; };
   $$("[data-slot]").forEach(el=>{
     el.onclick=()=>{ SEL.slot=+el.dataset.slot; beep("click"); buildStartOptions(); };
     el.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } };
@@ -10301,8 +10319,9 @@ function settingsModal(){
   let h="<h3>"+t("set.title")+"</h3>";
   h+="<div class='card'><div class='spread'><b>"+t("set.lang")+"</b><div class='row'>"+
     "<button class='btn btn-sm "+(LANG==="en"?"btn-primary":"")+"' id='langEn'>English</button>"+
-    "<button class='btn btn-sm "+(LANG==="hi"?"btn-primary":"")+"' id='langHi'>हिन्दी</button></div></div>"+
-    "<div class='tiny muted' style='margin-top:4px'>Menus & chrome translate fully; long news copy stays in English.</div></div>";
+    "<button class='btn btn-sm "+(LANG==="hi"?"btn-primary":"")+"' id='langHi'>हिन्दी</button>"+
+    "<button class='btn btn-sm "+(LANG==="mr"?"btn-primary":"")+"' id='langMr'>मराठी</button></div></div>"+
+    "<div class='tiny muted' style='margin-top:4px'>Core menus are available in English, Hindi and Marathi; long news copy remains in English.</div></div>";
   /* Currency formatting */
   const curCode = (typeof getActiveCurrencyCode==="function") ? getActiveCurrencyCode() : "USD";
   h+="<div class='card'><div class='spread'><b>Currency display</b><div class='row' style='gap:4px;flex-wrap:wrap'>"+
@@ -10383,6 +10402,7 @@ function settingsModal(){
   if(btnUac) btnUac.onclick=()=>{ if(typeof unlockAllCast==="function") unlockAllCast(); beep("gold"); closeModal(); if(typeof render==="function") render(); };
   v.querySelector("#langEn").onclick=()=>{ setLang("en"); beep("click"); closeModal(); settingsModal(); render(); };
   v.querySelector("#langHi").onclick=()=>{ setLang("hi"); beep("click"); closeModal(); settingsModal(); render(); };
+  v.querySelector("#langMr").onclick=()=>{ setLang("mr"); beep("click"); closeModal(); settingsModal(); render(); };
   const curFont=()=>parseFloat(localStorage.getItem("bow_font")||"15px");
   const setFont=(px)=>{ localStorage.setItem("bow_font",px+"px"); document.documentElement.style.fontSize=px+"px"; };
   v.querySelector("#fontMinus").onclick=()=>setFont(Math.max(12,curFont()-1));
@@ -10755,7 +10775,7 @@ function commandSubpage(tab,title,description,content){
 function commandSectionNav(tab){
   const studio = tab === "studio";
   const sections = studio
-    ? [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"],["industry","Industry"]]
+    ? [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"],["industry","Industry"],["nextwave","Next Wave"]]
     : [["overview","Command deck"],["actions","Management desks"],["slate","Project tracker"],["macro","Industry pulse"]];
   const active = studio ? STUDIO_SUB : DASHBOARD_SUB;
   return `<nav class="command-section-nav" aria-label="${studio?'Studio':'Dashboard'} sections"><div class="command-nav-brand"><span>${studio?'STUDIO HQ':'DIRECTOR’S OFFICE'}</span><small>${studio?'PEOPLE / PLACES / POSSIBILITIES':'PLAN / PRODUCE / PREMIERE'}</small></div><div class="command-nav-items">${sections.map(([key,label],i)=>`<button ${studio?'data-studiosub':'data-dashsub'}="${key}" class="${active===key?'active':''}" aria-current="${active===key?'page':'false'}"><small>0${i+1}</small><span>${label}</span></button>`).join('')}</div>${studio?`<div class="command-nav-tools"><button id="btnAch" aria-label="Trophy Room — view achievements"><small>07 / MILESTONES</small><span>Trophy Room</span></button><button id="btnOpenCustomSandbox" aria-label="Creative Lab — sandbox creator"><small>08 / CUSTOM WORLDS</small><span>Creative Lab</span></button></div>`:''}</nav>`;
