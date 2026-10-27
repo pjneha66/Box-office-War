@@ -228,3 +228,118 @@ body::before,body::after { display:none!important; }
 .hiring-card button { flex-shrink:0; min-height:44px; }
 #hiringStatus { padding:8px; background:#28483e; }
 @media(max-width:600px) { .hiring-filters { grid-template-columns:1fr; } .hiring-columns { grid-template-columns:1fr; } }
+
+/* ═══════════════ Premium lot chrome: minimap + build dock ═══════════════
+   Both float above the canvas. Every rule that styles a button is scoped
+   under .studiolot-viewport so it outweighs the flat chrome defaults. */
+
+/* ── 1A. Campus minimap: collapsible, top-right, 110px down the stage ──── */
+/* Scoped under #app so it outweighs the global chrome reset above, which
+   otherwise forces backdrop-filter:none on every descendant. */
+#app .lot-minimap{
+  position:absolute; top:110px; right:14px; z-index:30; width:260px;
+  background:rgba(12,22,28,0.74);
+  -webkit-backdrop-filter:blur(14px) saturate(140%)!important;
+  backdrop-filter:blur(14px) saturate(140%)!important;
+  border:1px solid rgba(233,205,141,0.34); border-radius:12px;
+  box-shadow:0 16px 36px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  overflow:hidden;
+}
+.lot-minimap-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px 7px 12px; border-bottom:1px solid rgba(233,205,141,0.2); }
+.lot-minimap-title{ font:700 8.5px/1 ui-monospace,monospace; letter-spacing:1.6px; color:#e9cd8d; }
+.studiolot-viewport .lot-minimap-btn{
+  width:26px!important; min-width:26px!important; height:26px!important; min-height:26px!important;
+  padding:0!important; border-radius:8px!important;
+  background:rgba(24,41,47,0.9)!important; border:1px solid rgba(233,205,141,0.35)!important;
+  color:#edce7d!important; font:700 15px/1 system-ui!important; display:grid; place-items:center;
+}
+.studiolot-viewport .lot-minimap-btn:hover{ background:rgba(73,96,105,0.95)!important; }
+.lot-minimap-body{ padding:8px; }
+.lot-minimap.is-collapsed .lot-minimap-body{ display:none; }
+.lot-minimap.is-collapsed{ width:150px; }
+#lotMinimapCanvas{
+  display:block; width:100%; height:auto; border-radius:8px; cursor:crosshair;
+  background:#16262b; border:1px solid rgba(233,205,141,0.22);
+}
+.lot-minimap-foot{ padding-top:6px; font:9.5px/1.3 system-ui; color:#9fb3b0; text-align:center; }
+
+/* ── 2A. Premium glass build dock ─────────────────────────────────────── */
+/* Two-ID specificity is deliberate: an earlier rule pins this element to the
+   top of the stage, and the dock belongs directly above the command deck. */
+#app #lotPaletteRoot{
+  position:absolute; left:50%; top:auto!important;
+  bottom:calc(var(--lot-deck-height, 71px) + 14px);
+  transform:translateX(-50%); z-index:31; display:none;
+}
+#app .lot-build-dock{
+  display:flex; align-items:stretch; gap:10px; padding:8px; max-width:min(960px,94vw);
+  background:rgba(12,22,28,0.74);
+  -webkit-backdrop-filter:blur(16px) saturate(140%)!important;
+  backdrop-filter:blur(16px) saturate(140%)!important;
+  border:1px solid rgba(233,205,141,0.38); border-radius:999px;
+  box-shadow:0 20px 44px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.lot-build-head{ display:flex; flex-direction:column; justify-content:center; gap:5px; padding:2px 8px 2px 16px; border-right:1px solid rgba(233,205,141,0.22); }
+.lot-build-title{ font:700 8.5px/1 ui-monospace,monospace; letter-spacing:1.6px; color:#e9cd8d; }
+.lot-build-wallet{ font:600 10px/1 system-ui; color:#a9bdb9; white-space:nowrap; }
+.lot-build-wallet b{ color:#f3ead7; }
+.lot-build-cards{ display:flex; gap:6px; padding:2px; overflow-x:auto; scrollbar-width:thin; }
+.studiolot-viewport .lot-build-card{
+  display:grid; grid-template-columns:auto 1fr; column-gap:10px; row-gap:1px;
+  align-items:center; min-width:158px; padding:7px 13px 7px 7px; text-align:left;
+  background:rgba(24,41,47,0.72)!important; border:1px solid rgba(233,205,141,0.22)!important;
+  border-radius:16px!important; color:#f3ead7!important;
+}
+.studiolot-viewport .lot-build-card:hover,
+.studiolot-viewport .lot-build-card:focus-visible{ background:rgba(48,74,82,0.92)!important; border-color:#edce7d!important; }
+.studiolot-viewport .lot-build-card.is-active{ border-color:#edce7d!important; box-shadow:inset 0 0 0 2px rgba(237,206,125,0.3); }
+.lot-build-thumb{
+  position:relative; grid-row:span 3; width:40px; height:40px; display:grid; place-items:center;
+  background:radial-gradient(circle at 50% 32%, rgba(233,205,141,0.22), rgba(10,18,22,0.6));
+  border:1px solid rgba(233,205,141,0.3); border-radius:11px;
+}
+.lot-build-thumb img{ width:28px; height:28px; object-fit:contain; image-rendering:pixelated; }
+.lot-build-badge{
+  position:absolute; right:-5px; bottom:-5px; padding:3px 5px; border-radius:6px;
+  font:700 7.5px/1 ui-monospace,monospace; letter-spacing:.7px; background:#edce7d; color:#12202a;
+}
+.studiolot-viewport .lot-build-card[data-state="locked"] .lot-build-badge{ background:#7d8794; color:#0d1418; }
+.studiolot-viewport .lot-build-card[data-state="short"] .lot-build-badge{ background:#c96a5f; color:#fff5f3; }
+.studiolot-viewport .lot-build-card[data-state="locked"]{ opacity:.55; }
+.lot-build-name{ font:650 12px/1.15 system-ui; }
+.lot-build-price{ font:700 10px/1 ui-monospace,monospace; color:#edce7d; }
+.lot-build-note{ grid-column:2; font:9.5px/1.3 system-ui; color:#9fb3b0; }
+.studiolot-viewport .lot-build-close{
+  padding:0 18px!important; border-radius:999px!important;
+  background:rgba(24,41,47,0.7)!important; border:1px solid rgba(233,205,141,0.32)!important; color:#f3ead7!important;
+}
+@media(max-width:820px){
+  #app .lot-minimap{ width:200px; }
+  #app .lot-build-dock{ border-radius:20px; flex-wrap:wrap; }
+  .lot-build-head{ flex-direction:row; justify-content:space-between; align-items:center; gap:14px; border-right:0; border-bottom:1px solid rgba(233,205,141,0.22); padding:2px 10px 6px; }
+  .studiolot-viewport .lot-build-card{ min-width:138px; }
+}
+
+/* The inspector shares the right column with the map, so its height is capped
+   by the command deck rather than the viewport. --lot-inspector-max is set from
+   layoutRightColumn(); the fallback preserves the previous behaviour. */
+#app .lot-inspector{ max-height:var(--lot-inspector-max, calc(100dvh - 180px))!important; }
+
+/* ── 4C. Station readout: the regional line and the All aboard goal ────── */
+.lot-train-card{
+  display:grid; gap:3px; margin:10px 0; padding:9px 11px;
+  background:rgba(10,20,24,0.6); border:1px solid rgba(233,205,141,0.28);
+  border-left:3px solid #c69ad8; border-radius:8px;
+}
+.lot-train-card span{ font:700 8px/1 ui-monospace,monospace; letter-spacing:1.4px; color:#c69ad8; }
+.lot-train-card b{ font:650 12.5px/1.2 system-ui; color:#f3ead7; }
+.lot-train-card small{ font:9.5px/1.3 system-ui; color:#9fb3b0; }
+.lot-train-card em{ font:600 9px/1.3 system-ui; font-style:normal; color:#edce7d; }
+
+/* Short viewports (landscape phones): the map shrinks and drops its caption so
+   it still clears the command deck instead of colliding with it. */
+@media(max-height:620px){
+  #app .lot-minimap{ top:88px; right:10px; width:150px; }
+  #app .lot-minimap .lot-minimap-foot{ display:none; }
+}
+#app .lot-minimap.is-hidden-for-panel{ display:none!important; }

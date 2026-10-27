@@ -61,7 +61,11 @@
 #startScreen.start-screen .resume-meta { font-size:10px; color:var(--welcome-muted); }
 #startScreen.start-screen .resume-stats-row,#startScreen.start-screen .resume-divider { display:none; }
 #startScreen.start-screen #btnResumeHero { margin-top:10px!important; font-size:13px; min-height:44px; }
-#startScreen.start-screen #startCard { grid-area:setup; background:var(--welcome-panel)!important; border:1px solid var(--welcome-border)!important; border-radius:3px!important; color:var(--welcome-text); padding:20px; min-height:0; overflow-y:auto; scrollbar-gutter:stable; }
+/* scrollbar-gutter:stable is deliberately absent. Combined with overflow-y:auto on a
+   grid item in a minmax(0,1fr) track it puts Chromium into a layout loop that can
+   freeze the renderer on the start screen. min-height:0 is what keeps the track
+   from growing with content, so the gutter is not needed to avoid reflow. */
+#startScreen.start-screen #startCard { grid-area:setup; background:var(--welcome-panel)!important; border:1px solid var(--welcome-border)!important; border-radius:3px!important; color:var(--welcome-text); padding:20px; min-height:0; overflow-y:auto; }
 #startScreen.start-screen .start-card-header { padding-bottom:12px; border-bottom:1px solid var(--welcome-border); margin-bottom:16px; }
 #startScreen.start-screen .start-section-tag { padding:0!important; border:0!important; letter-spacing:1px; font-size:9px; }
 #startScreen.start-screen .start-card-title { font:750 24px/1.2 system-ui; margin-top:6px; }

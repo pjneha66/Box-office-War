@@ -69,7 +69,7 @@
     }
 
     can_place(typeStr, x, y) {
-      const spans = {soundstage:[3,3],virtual_led:[3,3],led_volume:[3,3],post_suite:[2,2],writers_bungalow:[2,2],cinema_theater:[3,3],backlot:[3,2],prop_workshop:[3,2],executive:[2,2],studio_gate:[2,1]};
+      const spans = {soundstage:[3,3],virtual_led:[3,3],led_volume:[3,3],post_suite:[2,2],writers_bungalow:[2,2],cinema_theater:[3,3],backlot:[3,2],prop_workshop:[3,2],executive:[2,2],studio_gate:[2,1],train_station:[3,2]};
       const span = spans[typeStr];
       if (!span || !Number.isInteger(x) || !Number.isInteger(y)) return false;
       for (let r=y;r<y+span[1];r++) for(let c=x;c<x+span[0];c++) {
@@ -92,7 +92,8 @@
         writers_bungalow: [2, 2],
         backlot: [3, 2],
         prop_workshop: [3, 2],
-        studio_gate: [2, 1]
+        studio_gate: [2, 1],
+        train_station: [3, 2]
       };
       const span = spanMap[typeStr] || [2, 2];
       const spanW = span[0];
@@ -123,7 +124,8 @@
         writers_bungalow: "Writers Guild Bungalow",
         backlot: "Modular Backlot & Props",
         prop_workshop: "Modular Backlot & Props",
-        studio_gate: "Historic Studio Gate"
+        studio_gate: "Historic Studio Gate",
+        train_station: "Regional Train Station"
       };
 
       const bld = {

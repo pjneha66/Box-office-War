@@ -23,7 +23,7 @@
   let _logicalWidth = 0, _logicalHeight = 0;
   const career = () => typeof G !== "undefined" ? G : global.G;
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const costs = {soundstage:15,virtual_led:25,post_suite:8,writers_bungalow:5};
+  const costs = {soundstage:15,virtual_led:25,post_suite:8,writers_bungalow:5,train_station:12};
   function feedback(text) {
     const el = document.getElementById("lotStatus");
     if (el) el.textContent = text;
@@ -207,6 +207,8 @@
     if(changed && _currentLotView==='campus')_campusCamera={x:camera.x,y:camera.y,zoom:camera.zoom};
     _currentLotView = view;
     const viewport=document.querySelector('.studiolot-viewport');if(viewport)viewport.dataset.lotView=view;
+    const mm=document.getElementById('lotMinimapRoot');if(mm)mm.style.display=view==='campus'?'block':'none';
+    layoutRightColumn();
     if(changed){_selectedAgentId=null;if(view==='campus')_selectedBuildingId=null;const panel=document.getElementById('lotInspectorRoot');if(panel)panel.style.display='none';}
     if(previousArea&&_campusCamera)_campusCamera.x+=(sceneViewport().w-previousArea.w)/2;
     if(changed)feedback(view==='campus'?'Updated interiors: use Stage, Post & VFX, Cinema or Executive tabs above · Drag to pan':'Live department · Select staff for assignments · Campus returns to the lot');
@@ -262,6 +264,7 @@
 
     if (_currentLotView === "campus") renderCampusView(_ctx,dt);
     else global.StudioDepartments.draw(_ctx,engine,_currentLotView,_selectedBuildingId,_logicalWidth,_logicalHeight,_selectedAgentId,reducedMotion(),{x:camera.x-_viewBase.x,y:camera.y-_viewBase.y,zoom:camera.zoom/_viewBase.zoom,viewport:sceneViewport()});
+    if (_currentLotView === "campus") drawMinimap();
 
     let debug=document.getElementById('lotSimDebug');
     if(debugMode){
@@ -295,7 +298,7 @@
   }
   function paintFacility(ctx,b) {
     const r=buildingBounds(b), z=camera.zoom;
-    const colors={soundstage:'#456574',virtual_led:'#426a76',post_suite:'#767295',writers_bungalow:'#b28b60',cinema_theater:'#a96058',executive:'#697c8b',studio_gate:'#8e927e'};
+    const colors={soundstage:'#456574',virtual_led:'#426a76',post_suite:'#767295',writers_bungalow:'#b28b60',cinema_theater:'#a96058',executive:'#697c8b',studio_gate:'#8e927e',train_station:'#7d6f8f',backlot:'#6f7a5a',prop_workshop:'#6f7a5a'};
     const asset=spriteCache[b.b_type];
     if(asset?.loaded) {
       ctx.imageSmoothingEnabled=false;ctx.drawImage(asset.img,r.x,r.y,r.w,r.h);
@@ -318,21 +321,82 @@
     const visual=global.StudioActors.position(a,global.StudioLotBridge.getEngine().alpha),p=gridToScreen(visual.x,visual.y);
     return global.StudioActors.draw(ctx,a,p.x,p.y,camera.zoom,_selectedAgentId===a.id,reducedMotion());
   }
+  /* ── Premium ground (plan 3A): lush landscaped grass ───────────────────
+     Baked once per terrain revision, so the cost is paid on change only:
+     multi-tone turf, mown patches, turf blades, a thin champagne-gold grid
+     and a polished plinth rim. Everything is deterministic from the grid
+     coordinates, so the ground is identical across reloads and saves. */
+  const GRASS_TONES = ['#5d8a57','#67925e','#5a8455','#719c66','#4f7a4e'];
+  function hash2(x, y, s) {
+    let n = (x | 0) * 374761393 + (y | 0) * 668265263 + (s | 0) * 1442695041;
+    n = (n ^ (n >>> 13)) * 1274126177; n ^= n >>> 16;
+    return ((n >>> 0) % 100000) / 100000;
+  }
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.min(255, Math.round(((n >> 16) & 255) * f));
+    const g = Math.min(255, Math.round(((n >> 8) & 255) * f));
+    const b = Math.min(255, Math.round((n & 255) * f));
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+  function diamondPath(c, x, y) {
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + 32, y + 16);
+    c.lineTo(x, y + 32); c.lineTo(x - 32, y + 16); c.closePath();
+  }
+  function bakeGround(c, engine, lot) {
+    const tiles = engine.get_tiles_flat(), origin = lot.rows * 32;
+    c.clearRect(0, 0, (lot.cols + lot.rows) * 32 + 64, (lot.cols + lot.rows) * 16 + 32);
+    for (let y = 0; y < lot.rows; y++) for (let x = 0; x < lot.cols; x++) {
+      const sx = (x - y) * 32 + origin, sy = (x + y) * 16, kind = tiles[y * lot.cols + x];
+      const n = hash2(x, y, 7);
+      diamondPath(c, sx, sy);
+      let base;
+      if (kind === 0) base = GRASS_TONES[Math.floor(n * GRASS_TONES.length) % GRASS_TONES.length];
+      else if (kind === 1) base = n > .5 ? '#b9b29a' : '#b0a991';       // road
+      else if (kind === 2) base = n > .5 ? '#c8bf9f' : '#c0b795';       // plaza
+      else if (kind === 3) base = n > .5 ? '#8d9a90' : '#869389';       // concrete pad
+      else base = n > .5 ? '#4f8b98' : '#46818e';                       // water
+      const grad = c.createLinearGradient(sx, sy, sx, sy + 32);
+      grad.addColorStop(0, shade(base, 1.07)); grad.addColorStop(1, shade(base, 0.88));
+      c.fillStyle = grad; c.fill();
+      if (kind === 0) {
+        // Mown patches: a few tiles read darker, a few catch the light.
+        if (n > .78) {
+          c.save(); diamondPath(c, sx, sy); c.clip();
+          c.fillStyle = 'rgba(58,102,64,0.34)';
+          c.beginPath();
+          c.ellipse(sx + (hash2(x, y, 11) - .5) * 26, sy + 16 + (hash2(x, y, 13) - .5) * 10, 19, 7, 0, 0, Math.PI * 2);
+          c.fill(); c.restore();
+        } else if (n < .13) {
+          c.save(); diamondPath(c, sx, sy); c.clip();
+          c.fillStyle = 'rgba(158,196,136,0.20)';
+          c.beginPath();
+          c.ellipse(sx + (hash2(x, y, 17) - .5) * 24, sy + 16, 15, 6, 0, 0, Math.PI * 2);
+          c.fill(); c.restore();
+        }
+        // Turf blades, clipped to the tile so nothing bleeds onto paths.
+        c.save(); diamondPath(c, sx, sy); c.clip();
+        for (let i = 0; i < 3; i++) {
+          const bx = sx + (hash2(x, y, 20 + i) - .5) * 46, by = sy + 11 + hash2(x, y, 30 + i) * 15;
+          c.globalAlpha = .30 + hash2(x, y, 40 + i) * .38;
+          c.fillStyle = i % 2 ? '#8fbc78' : '#3e6a45';
+          c.fillRect(bx, by, 1.5, 2.5);
+        }
+        c.restore(); c.globalAlpha = 1;
+      }
+      // Thin champagne-gold grid: barely there on grass, clearer on hardscape.
+      c.strokeStyle = kind === 0 ? 'rgba(228,201,142,0.13)' : 'rgba(228,201,142,0.22)';
+      c.lineWidth = kind === 0 ? 0.6 : 0.8; c.stroke();
+    }
+  }
+
   function renderCampusView(ctx, dt) {
     const engine=global.StudioLotBridge.getEngine(), lot=engine;
     ctx.fillStyle='#182c32';ctx.fillRect(0,0,_logicalWidth,_logicalHeight);
     if(_terrainEngine!==engine||_terrainRevision!==engine.revision){
       if(!_terrain)_terrain=document.createElement('canvas');
       _terrain.width=(lot.cols+lot.rows)*32+64;_terrain.height=(lot.cols+lot.rows)*16+32;
-      const c=_terrain.getContext('2d'),tiles=engine.get_tiles_flat(),origin=lot.rows*32;
-      for(let y=0;y<lot.rows;y++)for(let x=0;x<lot.cols;x++){
-        const sx=(x-y)*32+origin,sy=(x+y)*16;
-        c.beginPath();c.moveTo(sx,sy);c.lineTo(sx+32,sy+16);c.lineTo(sx,sy+32);c.lineTo(sx-32,sy+16);c.closePath();
-        const kind=tiles[y*lot.cols+x];
-        c.fillStyle=[(x*7+y*13)%3?'#6e8d71':'#748f73','#c6bea3','#d1c3a1','#7c8e87','#578c99'][kind];c.fill();c.strokeStyle=kind===0?'#718c70':'#a9ab95';c.lineWidth=.5;c.stroke();
-        if(kind===0){c.fillStyle='#8ba17b';const n=(x*17+y*29)%19;c.fillRect(sx-8+n,sy+14,2,2);c.fillStyle='#5c7b64';c.fillRect(sx+8-n,sy+20,3,1);}
-
-      }
+      bakeGround(_terrain.getContext('2d'), engine, lot);
       _terrainEngine=engine;_terrainRevision=engine.revision;
     }
     ctx.imageSmoothingEnabled=false;
@@ -345,8 +409,18 @@
     }
     // Raised campus foundation; the surrounding landscaping is outside the playable grid.
     const edges=[gridToScreen(0,lot.rows),gridToScreen(lot.cols,lot.rows),gridToScreen(lot.cols,0)];
-    ctx.beginPath();edges.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));for(const p of [...edges].reverse())ctx.lineTo(p.x,p.y+10*camera.zoom);ctx.closePath();ctx.fillStyle='#3b5556';ctx.fill();
+    const rimDepth=11*camera.zoom;
+    ctx.beginPath();edges.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));for(const p of [...edges].reverse())ctx.lineTo(p.x,p.y+rimDepth);ctx.closePath();
+    // Polished plinth rim: light catches the top edge, shadow pools beneath.
+    const rimTop=Math.min(edges[0].y,edges[1].y,edges[2].y);
+    const rim=ctx.createLinearGradient(0,rimTop,0,rimTop+rimDepth);
+    rim.addColorStop(0,'#6b9086');rim.addColorStop(.35,'#476a66');rim.addColorStop(1,'#20373a');
+    ctx.fillStyle=rim;ctx.fill();
+    ctx.beginPath();ctx.moveTo(edges[0].x,edges[0].y);ctx.lineTo(edges[1].x,edges[1].y);ctx.lineTo(edges[2].x,edges[2].y);
+    ctx.strokeStyle='rgba(233,205,141,0.6)';ctx.lineWidth=Math.max(1,1.3*camera.zoom);ctx.stroke();
     ctx.drawImage(_terrain,camera.x-lot.rows*32*camera.zoom,camera.y,_terrain.width*camera.zoom,_terrain.height*camera.zoom);
+
+    drawTrain(ctx, engine, dt);
 
     const objects=[...lot.buildings.map(b=>({depth:b.grid_x+b.grid_y+b.span_w+b.span_h, b})),...lot.agents.filter(a=>!a.inside).map(a=>({depth:a.x+a.y,a}))];
     for(const [x,y,key]of [[-1,2,'palm'],[-1,18,'palm'],[4,-1,'palm'],[10,-1,'palm'],[lot.cols-3,-1,'palm'],[lot.cols+.6,5,'shrub'],[5,lot.rows+.6,'shrub'],[-3,8.5,'studio_van'],[-3,11.5,'studio_car']])objects.push({depth:x+y,prop:{x,y,key}});
@@ -360,6 +434,247 @@
       const span=_buildModeType==='soundstage'||_buildModeType==='virtual_led'?3:2;
       for(let r=y;r<y+span;r++)for(let c=x;c<x+span;c++)tile(ctx,c,r,valid?'#75bb91':'#c16d65','#f7ead1');
     }
+    drawGroundVignette(ctx);
+  }
+
+  /* ── Campus minimap (plan 1A) ────────────────────────────────────────
+     Sits top-right under the HUD bar, collapsible to a title pill, and jumps
+     the camera wherever it is tapped. It never overlaps the bottom deck and
+     hands the rest of the right column to the inspector. */
+  const MINIMAP_W = 236, MINIMAP_H = 118;
+  let _minimapAt = 0;
+  let _minimapOpen = true;
+  try { const saved = localStorage.getItem('bow_lot_minimap'); if (saved === '0') _minimapOpen = false; } catch (e) {}
+
+  function minimapVisible() {
+    const root = document.getElementById('lotMinimapRoot');
+    return !!root && root.style.display !== 'none' && _minimapOpen && _currentLotView === 'campus';
+  }
+  function syncMinimapChrome() {
+    const root = document.getElementById('lotMinimapRoot');
+    if (!root) return;
+    root.classList.toggle('is-collapsed', !_minimapOpen);
+    const btn = document.getElementById('lotMinimapToggle');
+    if (btn) { btn.textContent = _minimapOpen ? '–' : '+'; btn.setAttribute('aria-expanded', String(_minimapOpen)); btn.title = _minimapOpen ? 'Collapse campus map' : 'Expand campus map'; }
+  }
+  function toggleMinimap(force) {
+    _minimapOpen = typeof force === 'boolean' ? force : !_minimapOpen;
+    try { localStorage.setItem('bow_lot_minimap', _minimapOpen ? '1' : '0'); } catch (e) {}
+    syncMinimapChrome();
+    const root = document.getElementById('lotMinimapRoot');
+    if (root && root.style.display !== 'none') layoutRightColumn();
+  }
+
+  // Terrain pixel -> grid, the inverse of the isometric projection used to bake it.
+  function minimapToGrid(tx, ty, engine) {
+    const origin = engine.rows * 32, d = (tx - origin) / 32, s = ty / 16;
+    return { x: (d + s) / 2, y: (s - d) / 2 };
+  }
+  function gridToMinimap(gx, gy, engine) {
+    const origin = engine.rows * 32;
+    return { tx: (gx - gy) * 32 + origin, ty: (gx + gy) * 16 };
+  }
+
+  function drawMinimap(force) {
+    const root = document.getElementById('lotMinimapRoot');
+    if (!root || root.style.display === 'none' || !_minimapOpen) return;
+    const cv = document.getElementById('lotMinimapCanvas');
+    const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
+    if (!cv || !engine || !_terrain || !_terrain.width) return;
+    const now = performance.now();
+    if (!force && now - _minimapAt < 110) return;
+    _minimapAt = now;
+    const c = cv.getContext('2d'), kx = cv.width / _terrain.width, ky = cv.height / _terrain.height;
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.imageSmoothingEnabled = true;
+    c.drawImage(_terrain, 0, 0, cv.width, cv.height);
+
+    for (const b of engine.buildings) {
+      const m = gridToMinimap(b.grid_x + b.span_w / 2, b.grid_y + b.span_h / 2, engine);
+      const px = m.tx * kx, py = m.ty * ky, w = Math.max(3, 4.5 * (b.span_w + b.span_h) / 2);
+      c.fillStyle = b.b_type === 'train_station' ? '#c69ad8' : '#edce7d';
+      c.fillRect(px - w / 2, py - w / 2, w, w);
+      c.strokeStyle = 'rgba(8,16,20,0.75)'; c.lineWidth = 1;
+      c.strokeRect(px - w / 2 - .5, py - w / 2 - .5, w + 1, w + 1);
+    }
+
+    // What the camera can currently see, as a gold frame.
+    c.beginPath();
+    [[0, 0], [_logicalWidth, 0], [_logicalWidth, _logicalHeight], [0, _logicalHeight]].forEach(([x, y], i) => {
+      const gx = ((x - camera.x) / camera.zoom / 32 + (y - camera.y) / camera.zoom / 16) / 2;
+      const gy = ((y - camera.y) / camera.zoom / 16 - (x - camera.x) / camera.zoom / 32) / 2;
+      const m = gridToMinimap(gx, gy, engine);
+      const px = m.tx * kx, py = m.ty * ky;
+      if (i) c.lineTo(px, py); else c.moveTo(px, py);
+    });
+    c.closePath();
+    c.strokeStyle = 'rgba(247,234,209,0.9)'; c.lineWidth = 1.5; c.stroke();
+
+    const info = document.getElementById('lotMinimapInfo');
+    if (info) {
+      const station = trainStation(engine);
+      info.textContent = station
+        ? (station.name.replace(/ #\d+$/, '') + ' · ' + (career()?.studioLot?.trainArrivals || 0) + ' arrivals')
+        : engine.buildings.length + ' facilities';
+    }
+  }
+
+  function minimapJump(ev) {
+    const cv = document.getElementById('lotMinimapCanvas');
+    const engine = global.StudioLotBridge ? global.StudioLotBridge.getEngine() : null;
+    if (!cv || !engine || !_terrain) return;
+    const r = cv.getBoundingClientRect();
+    const mx = (ev.clientX - r.left) * (cv.width / r.width), my = (ev.clientY - r.top) * (cv.height / r.height);
+    const g = minimapToGrid(mx * (_terrain.width / cv.width), my * (_terrain.height / cv.height), engine);
+    const gx = Math.max(-2, Math.min(engine.cols + 2, g.x)), gy = Math.max(-2, Math.min(engine.rows + 2, g.y));
+    camera.x = _logicalWidth / 2 - (gx - gy) * 32 * camera.zoom;
+    camera.y = _logicalHeight / 2 - (gx + gy) * 16 * camera.zoom;
+    drawMinimap(true);
+  }
+
+  // The right column: minimap first, inspector directly beneath it, never overlapping.
+  function layoutRightColumn() {
+    const map = document.getElementById('lotMinimapRoot'), panel = document.getElementById('lotInspectorRoot');
+    const stage = document.getElementById('studiolotGlobalStage');
+    const deck = document.querySelector('.kairo-bottom-deck');
+    if (!panel) return;
+    const base = 50;
+    const sr = stage ? stage.getBoundingClientRect() : null;
+    const stageTop = sr ? sr.top : 0;
+    const deckTop = deck ? deck.getBoundingClientRect().top - stageTop : 0;
+    // While the lot tab is still hidden every rect is zero. Measuring then would
+    // fold the map away for good, so layout decisions wait for a real layout.
+    const measured = !!sr && sr.height > 0 && deckTop > 0;
+    const panelOpen = panel.style.display !== 'none' && !!panel.querySelector('.lot-inspector');
+    const hiddenNow = !!map && map.classList.contains('is-hidden-for-panel');
+    // A hidden map measures as zero and would read as "plenty of room", so the
+    // current decision is carried forward until the panel closes.
+    let top = base, hideMap = hiddenNow;
+
+    if (measured && map && map.style.display !== 'none') {
+      if (!panelOpen) hideMap = false;
+      else if (!hiddenNow) {
+        if (_minimapOpen && deckTop - (map.getBoundingClientRect().bottom - stageTop + 12) < 140) {
+          _minimapOpen = false; syncMinimapChrome();          // fold to the title pill
+        }
+        const under = map.getBoundingClientRect().bottom - stageTop + 12;
+        if (deckTop - under >= 120) { top = Math.round(Math.max(base, under)); hideMap = false; }
+        else hideMap = true;                                   // too short for both
+      }
+    } else if (!panelOpen) hideMap = false;
+
+    if (map) map.classList.toggle('is-hidden-for-panel', hideMap);
+    panel.style.setProperty('top', top + 'px', 'important');
+    // The panel is bounded by the command deck, not the viewport, so it can
+    // never spill over the deck no matter how tall its content is.
+    if (measured) stage.style.setProperty('--lot-inspector-max', Math.max(96, Math.round(deckTop - top - 12)) + 'px');
+  }
+
+  /* ── Regional train (plan 4C) ──────────────────────────────────────────
+     A new lot has no rail bed and no train at all. Both appear only after the
+     player builds a Train Station; from then on the service runs on a visible
+     schedule, drops visitors at the platform and pays fares. No station means
+     nothing is drawn and nothing is simulated. */
+  let _train = null;
+  const TRAIN_A = -4.5, TRAIN_SPEED = 2.6, TRAIN_DWELL = 7;
+  const trainStation = engine => engine.buildings.find(b => b.b_type === 'train_station') || null;
+
+  function trainArrival(engine, station) {
+    const g = career(), fares = Math.round((0.35 + 0.06 * (station.tier || 1)) * 100) / 100;
+    if (g && g.studio && typeof g.studio.cash === 'number') g.studio.cash = Math.round((g.studio.cash + fares) * 100) / 100;
+    if (g) { g.studioLot = g.studioLot || {}; g.studioLot.trainArrivals = (g.studioLot.trainArrivals || 0) + 1; }
+    if (typeof log === 'function') log('Regional train arrived at ' + (station.name || 'the station') + ' — visitors for the lot, $' + fares.toFixed(2) + 'M in fares.', 'good');
+    // A couple of visitors walk in from the platform; capped so the lot never floods.
+    if (engine.agents.length < 26 && typeof engine.free_spawn === 'function') {
+      for (let i = 0; i < 2; i++) { const spot = engine.free_spawn(); if (spot) engine.spawn_agent('extra', 'Day Visitor', spot.x, spot.y, null); }
+    }
+    updateLotHud();
+  }
+
+  // "All aboard": the regional line is proven once it has delivered five services.
+  const TRAIN_GOAL = 5;
+  function trainCardText(engine) {
+    const arrivals = (career() && career().studioLot && career().studioLot.trainArrivals) || 0;
+    const station = trainStation(engine);
+    let state = 'Scheduled', detail = 'First service on the way';
+    if (_train && station) {
+      const stopX = station.grid_x + station.span_w / 2;
+      if (_train.dwell > 0 && Math.abs(_train.x - stopX) < 0.02) state = 'At the platform · ' + Math.ceil(_train.dwell) + 's';
+      else state = (_train.dir > 0 ? 'Eastbound' : 'Westbound') + ' · next stop ' + Math.max(1, Math.round(Math.abs(stopX - _train.x) / TRAIN_SPEED)) + 's';
+      detail = arrivals + ' arrival' + (arrivals === 1 ? '' : 's') + ' · fares banked';
+    }
+    return { state: state, detail: detail, arrivals: arrivals };
+  }
+  function trainGoalText(engine) {
+    const t = trainCardText(engine);
+    if (t.arrivals >= TRAIN_GOAL) return 'All aboard — the regional line is established.';
+    return 'All aboard — ' + t.arrivals + '/' + TRAIN_GOAL + ' services delivered.';
+  }
+
+  function paintTrainCar(ctx, gx, gy, w, h, body, roof, accent) {
+    const p = gridToScreen(gx, gy), z = camera.zoom, cw = w * z, ch = h * z;
+    ctx.fillStyle = 'rgba(8,16,18,0.26)'; ctx.fillRect(p.x - cw / 2 + 2 * z, p.y - 2 * z, cw, 3 * z);
+    ctx.fillStyle = body; ctx.fillRect(p.x - cw / 2, p.y - ch, cw, ch);
+    ctx.fillStyle = roof; ctx.fillRect(p.x - cw / 2, p.y - ch, cw, ch * 0.30);
+    ctx.fillStyle = accent; ctx.fillRect(p.x - cw / 2, p.y - ch * 0.36, cw, ch * 0.07);
+    ctx.fillStyle = 'rgba(186,226,240,0.85)';
+    const n = Math.max(2, Math.round(cw / (12 * z)));
+    for (let i = 0; i < n; i++) ctx.fillRect(p.x - cw / 2 + cw * 0.10 + i * (cw * 0.8 / n), p.y - ch * 0.74, (cw * 0.8 / n) * 0.55, ch * 0.20);
+    ctx.strokeStyle = 'rgba(10,18,22,0.6)'; ctx.lineWidth = Math.max(1, z);
+    ctx.strokeRect(p.x - cw / 2, p.y - ch, cw, ch);
+  }
+
+  function drawTrain(ctx, engine, dt) {
+    const station = trainStation(engine);
+    if (!station) { _train = null; return; }
+    const B = engine.cols + 4.5, stopX = station.grid_x + station.span_w / 2, step = dt || 0;
+    if (!_train) _train = { x: TRAIN_A, dir: 1, dwell: 3, arrivals: 0 };
+    if (_train.dwell > 0) { _train.dwell -= step; if (_train.dwell <= 0) _train.dir *= -1; }
+    else {
+      const prev = _train.x;
+      _train.x += _train.dir * TRAIN_SPEED * step;
+      const crossed = (_train.dir > 0 && prev < stopX && _train.x >= stopX) || (_train.dir < 0 && prev > stopX && _train.x <= stopX);
+      if (crossed) { _train.x = stopX; _train.dwell = TRAIN_DWELL; _train.arrivals++; trainArrival(engine, station); }
+      else if (_train.dir > 0 && _train.x >= B) { _train.x = B; _train.dwell = 3; }
+      else if (_train.dir < 0 && _train.x <= TRAIN_A) { _train.x = TRAIN_A; _train.dwell = 3; }
+    }
+    const gy = -1.7, z = camera.zoom, A = TRAIN_A - 1, Z = B + 1;
+    const a = gridToScreen(A, gy), b = gridToScreen(Z, gy);
+    ctx.save();
+    ctx.strokeStyle = '#6d6b60'; ctx.lineWidth = Math.max(3, 13 * z);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.strokeStyle = '#585750'; ctx.lineWidth = Math.max(1, 1.2 * z);
+    for (let t = A; t < Z; t += 0.5) {
+      const p1 = gridToScreen(t, gy - 0.34), p2 = gridToScreen(t, gy + 0.34);
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+    for (const off of [-0.16, 0.16]) {
+      const r1 = gridToScreen(A, gy + off), r2 = gridToScreen(Z, gy + off);
+      ctx.strokeStyle = off < 0 ? '#bcc6c9' : '#8d989c'; ctx.lineWidth = Math.max(1, 1.8 * z);
+      ctx.beginPath(); ctx.moveTo(r1.x, r1.y); ctx.lineTo(r2.x, r2.y); ctx.stroke();
+    }
+    // Platform apron, lit while a service is standing at it.
+    const docked = Math.abs(_train.x - stopX) < 0.01;
+    const pa = gridToScreen(station.grid_x - 0.4, gy + 0.75), pb = gridToScreen(station.grid_x + station.span_w + 0.4, gy + 0.75);
+    ctx.fillStyle = docked ? 'rgba(240,224,178,0.95)' : 'rgba(196,186,158,0.85)';
+    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
+    ctx.lineTo(pb.x, pb.y + 7 * z); ctx.lineTo(pa.x, pa.y + 7 * z); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    const cars = [['#3f5c6b', '#6f93a3', '#e6c47f'], ['#4a5f56', '#7d9683', '#cbb98d'], ['#4a5f56', '#7d9683', '#cbb98d']];
+    for (let i = 0; i < cars.length; i++) paintTrainCar(ctx, _train.x - _train.dir * i * 0.72, gy, 26, 20, cars[i][0], cars[i][1], cars[i][2]);
+  }
+
+  /* ── Premium ground: soft vignette, keeps the eye on the lot centre ───── */
+  function drawGroundVignette(ctx) {
+    const cx=_logicalWidth/2, cy=_logicalHeight/2;
+    const inner=Math.min(_logicalWidth,_logicalHeight)*0.34;
+    const outer=Math.hypot(_logicalWidth,_logicalHeight)*0.62;
+    if(outer<=inner) return;
+    const g=ctx.createRadialGradient(cx,cy,inner,cx,cy,outer);
+    g.addColorStop(0,'rgba(7,18,20,0)');
+    g.addColorStop(0.65,'rgba(7,18,20,0.16)');
+    g.addColorStop(1,'rgba(5,12,14,0.46)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,_logicalWidth,_logicalHeight);
   }
 
   function zoomAt(factor,x=_logicalWidth/2,y=_logicalHeight/2) {
@@ -510,48 +825,69 @@
     if(button){button.textContent='Build Facility';button.setAttribute('aria-expanded','false');}
   }
 
+  /* ── Premium build dock (plan 2A) ─────────────────────────────────────
+     A blurred dark-glass pill that floats above the command deck. Each entry
+     is a card with a thumbnail, a price and a lock badge, so the cost of a
+     facility and the reason it is unavailable are visible before it is armed. */
+  const BUILD_CATALOGUE = [
+    { id: "writers_bungalow", name: "Writer Pod",    cost: 5,  blurb: "Story department rooms",  thumb: "writers_bungalow" },
+    { id: "post_suite",       name: "Atmos Suite",   cost: 8,  blurb: "Grade, mix and master",   thumb: "post_suite" },
+    { id: "soundstage",       name: "Stage 2",       cost: 15, blurb: "Physical shooting space", thumb: "soundstage" },
+    { id: "train_station",    name: "Train Station", cost: 12, blurb: "Opens the regional line", thumb: "studio_gate", needs: { rep: 20, label: "STANDING 20" } },
+    { id: "virtual_led",      name: "LED Volume",    cost: 25, blurb: "In-camera real-time VFX", thumb: "virtual_led", needs: { rep: 35, label: "STANDING 35" } }
+  ];
+  function buildCatalogue() {
+    const g = career(), rep = (g && g.studio && g.studio.rep) || 0, cash = (g && g.studio && g.studio.cash) || 0;
+    return BUILD_CATALOGUE.map(t => ({
+      ...t,
+      locked: !!(t.needs && rep < t.needs.rep),
+      afford: cash >= t.cost
+    }));
+  }
+
   function renderPalette() {
     const root = document.getElementById("lotPaletteRoot");
     if (!root) return;
-    const types = [
-      { id: "soundstage", name: "Stage 2", cost: 15 },
-      { id: "virtual_led", name: "LED Volume", cost: 25 },
-      { id: "post_suite", name: "Atmos Suite", cost: 8 },
-      { id: "writers_bungalow", name: "Writer Pod", cost: 5 }
-    ];
+    const items = buildCatalogue(), g = career();
+    const cash = (g && g.studio && g.studio.cash) || 0;
 
-    let h = `<div class="palette-bar" style="display:flex;gap:6px;background:rgba(15,23,42,0.95);border:1px solid var(--gold);padding:8px;border-radius:8px">`;
-    h += `<span style="font-size:11px;font-weight:700;color:var(--gold);margin-right:4px">EXPAND CAMPUS:</span>`;
-    for (const t of types) {
-      const active = _buildModeType === t.id ? "style='border-color:#10b981;background:#064e3b'" : "";
-      h += `<button class="btn btn-sm btn-alt" data-btype="${t.id}" ${active}>+ ${t.name} ($${t.cost}M)</button>`;
+    let h = `<div class="lot-build-dock" role="toolbar" aria-label="Build facility">`;
+    h += `<div class="lot-build-head"><span class="lot-build-title">EXPAND CAMPUS</span><span class="lot-build-wallet">WAR CHEST <b>$${cash.toFixed(1)}M</b></span></div>`;
+    h += `<div class="lot-build-cards">`;
+    for (const t of items) {
+      const state = t.locked ? "locked" : (t.afford ? "ready" : "short");
+      const on = _buildModeType === t.id;
+      h += `<button class="lot-build-card${on ? " is-active" : ""}" data-btype="${t.id}" data-state="${state}" aria-pressed="${on}"${t.locked ? ' aria-disabled="true"' : ""}>` +
+        `<span class="lot-build-thumb"><img src="assets/studio/${t.thumb}.png" alt=""><i class="lot-build-badge">${t.locked ? "LOCK" : (t.afford ? "$" + t.cost + "M" : "FUNDS")}</i></span>` +
+        `<span class="lot-build-name">${t.name}</span>` +
+        `<span class="lot-build-price">$${t.cost}M</span>` +
+        `<span class="lot-build-note">${t.locked ? "Needs " + t.needs.label : (t.afford ? t.blurb : "Not enough cash")}</span>` +
+        `</button>`;
     }
-    h += `<button id="btnClosePalette" class="btn btn-sm btn-ghost">Done</button>`;
-    h += `</div>`;
+    h += `</div><button id="btnClosePalette" class="lot-build-close">Done</button></div>`;
     root.innerHTML = h;
 
     root.querySelectorAll("button[data-btype]").forEach(btn => {
       btn.addEventListener("click", () => {
+        const t = items.find(i => i.id === btn.dataset.btype);
+        if (!t) return;
+        if (t.locked) return feedback(t.name + " is locked. Reach " + t.needs.label + " to unlock it.");
+        if (!t.afford) return feedback(t.name + " costs $" + t.cost + "M. Your war chest is $" + cash.toFixed(1) + "M.");
         setLotView("campus");
-        _touchSite=null;_hoveredGridPos=null;
-        _buildModeType = btn.dataset.btype;
-        _selectedAgentId=null;_selectedBuildingId=null;renderInspector();
-        // The open palette covered almost the entire fitted campus on landscape phones.
-        root.style.display='none';
-        const toggle=document.getElementById('btnTogglePalette');
-        toggle.textContent='Cancel build';toggle.setAttribute('aria-expanded','false');
-        feedback('Choose clear ground for $'+costs[_buildModeType]+'M. Touch: tap a site twice to confirm. Cancel build or Escape cancels.');
+        _touchSite = null; _hoveredGridPos = null;
+        _buildModeType = t.id;
+        _selectedAgentId = null; _selectedBuildingId = null; renderInspector();
+        // The open dock covered almost the entire fitted campus on landscape phones.
+        root.style.display = 'none';
+        const toggle = document.getElementById('btnTogglePalette');
+        if (toggle) { toggle.textContent = 'Cancel build'; toggle.setAttribute('aria-expanded', 'false'); }
+        feedback('Choose clear ground for $' + costs[t.id] + 'M. Touch: tap a site twice to confirm. Cancel build or Escape cancels.');
         if (typeof beep === "function") beep("click");
       });
     });
 
     const btnClose = document.getElementById("btnClosePalette");
-    if (btnClose) {
-      btnClose.addEventListener("click", () => {
-        cancelConstruction();
-        feedback('Construction cancelled.');
-      });
-    }
+    if (btnClose) btnClose.addEventListener("click", () => { cancelConstruction(); feedback('Construction cancelled.'); });
   }
 
   function openInteriors(roomId) {
@@ -630,8 +966,9 @@
     const wasOpen=root.style.display!=='none';
     const engine=global.StudioLotBridge.getEngine();
     const a=engine.agents.find(a=>a.id===_selectedAgentId),b=engine.buildings.find(b=>b.id===_selectedBuildingId);
-    if(!a&&!b){root.style.display='none';if(wasOpen&&_currentLotView==='campus')centerCamera();return;}
+    if(!a&&!b){root.style.display='none';layoutRightColumn();if(wasOpen&&_currentLotView==='campus')centerCamera();return;}
     root.style.display='block';
+    layoutRightColumn();
     const views={soundstage:'soundstage',virtual_led:'soundstage',post_suite:'post',writers_bungalow:'writers',cinema_theater:'cinema',executive:'executive'};
     if(a){
       root.innerHTML=`<section class="lot-inspector"><div class="people-inspector-head"><span class="people-portrait" style="${global.StudioActors.portrait(a)}" aria-hidden="true"></span><div><strong>${esc(a.name)}</strong><span class="people-role">${esc(a.job_title||a.specialty||a.kind_str.replaceAll('_',' '))}</span></div></div><p id="lotAgentTask">${esc(a.life?.task?.label||a.life?.reason||'Choosing task')}</p><p id="lotAgentNeeds">Energy ${Math.round(a.life?.energy||0)}% · ${esc(a.life?.mood||'calm')}</p><p id="lotAgentState">${esc(a.kind_str)} · ${esc(a.state_str)}</p><p>${esc(a.economic_assignment|| (a.talent_id!=null ? "Contracted talent · available" : "Studio operations crew"))}</p><label>Assignment<select id="lotAssignment">${engine.buildings.filter(b=>b.b_type!=='studio_gate').map(b=>`<option value="${b.id}" ${b.id===a.assigned_building_id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label><button id="lotAssign">Assign destination</button><button id="lotContract">Talent & contracts</button><button id="lotClose">Close</button></section>`;
@@ -641,7 +978,8 @@
       const definition=global.FacilitiesModule?.FACILITY_TYPES?.[b.b_type];
       const equipment=career()?.facilities?.[b.b_type]?.tier||0;
       const price=definition?definition.baseCost*(equipment+1):0;
-      root.innerHTML=`<section class="lot-inspector"><strong>${esc(b.name)}</strong><p>${esc(b.active_title||'Available')} · ${b.span_w}×${b.span_h} campus tiles</p><p>${definition?'Equipment tier '+equipment+'/'+definition.maxTier:'Studio operations facility'}</p><p>${b.active_project_id?esc(b.active_phase)+' · '+Math.round(b.progress*100)+'%':'Assign productions through Slate.'}</p><button id="lotVisit">Visit department</button>${definition?`<button id="lotEquipment" ${equipment>=definition.maxTier?'disabled':''}>Upgrade equipment · $${price}M</button>`:''}${views[b.b_type]?'<button id="lotInterior">Customise this interior</button>':''}<button id="lotUpgrade">Facilities management</button><button id="lotClose">Close</button></section>`;
+      const trainCard = b.b_type==='train_station' ? (()=>{const t=trainCardText(engine);return `<div class="lot-train-card"><span>REGIONAL LINE</span><b>${esc(t.state)}</b><small>${esc(t.detail)}</small><em>${esc(trainGoalText(engine))}</em></div>`;})() : '';
+      root.innerHTML=`<section class="lot-inspector"><strong>${esc(b.name)}</strong><p>${esc(b.active_title||'Available')} · ${b.span_w}×${b.span_h} campus tiles</p><p>${definition?'Equipment tier '+equipment+'/'+definition.maxTier:'Studio operations facility'}</p><p>${b.active_project_id?esc(b.active_phase)+' · '+Math.round(b.progress*100)+'%':'Assign productions through Slate.'}</p>${trainCard}<button id="lotVisit">Visit department</button>${definition?`<button id="lotEquipment" ${equipment>=definition.maxTier?'disabled':''}>Upgrade equipment · $${price}M</button>`:''}${views[b.b_type]?'<button id="lotInterior">Customise this interior</button>':''}<button id="lotUpgrade">Facilities management</button><button id="lotClose">Close</button></section>`;
       root.querySelector('#lotVisit').onclick=()=>{setLotView(views[b.b_type]||'executive');feedback('Department view. Return to Campus to manage the layout.');};
       const upgrade=root.querySelector('#lotEquipment');
       if(upgrade)upgrade.onclick=()=>{const result=global.upgradeFacility(b.b_type,career());if(!result.ok)return feedback(result.error);global.StudioLotBridge.syncWithGameState(career());persistLot();renderInspector();feedback('Equipment upgraded to tier '+result.tier+' for $'+result.cost+'M.');};
@@ -656,6 +994,7 @@
       updateStoryPanel();
     }
     if(!wasOpen&&_currentLotView==='campus')centerCamera();
+    layoutRightColumn();
     root.querySelector('#lotClose').onclick=()=>{_selectedBuildingId=null;_selectedAgentId=null;renderInspector();};
   }
 
@@ -716,8 +1055,20 @@
             </div>
           </div>
 
-          <!-- Collapsible Facilities Build Palette Top Left -->
-          <div id="lotPaletteRoot" style="position:absolute;top:50px;left:12px;z-index:30;display:none"></div>
+          <!-- Collapsible premium build dock, floating above the command deck -->
+          <div id="lotPaletteRoot" style="display:none"></div>
+
+          <!-- Campus minimap: collapsible, top-right, under the HUD bar -->
+          <div id="lotMinimapRoot" class="lot-minimap" style="display:none">
+            <div class="lot-minimap-head">
+              <span class="lot-minimap-title">CAMPUS MAP</span>
+              <button id="lotMinimapToggle" type="button" class="lot-minimap-btn" aria-expanded="true" title="Collapse campus map">\u2013</button>
+            </div>
+            <div class="lot-minimap-body">
+              <canvas id="lotMinimapCanvas" width="236" height="118" role="button" tabindex="0" aria-label="Campus overview. Select a point to jump the camera."></canvas>
+              <div class="lot-minimap-foot"><span id="lotMinimapInfo"></span></div>
+            </div>
+          </div>
 
           <!-- Bottom Kairosoft Command Deck -->
           <div class="kairo-bottom-deck">
@@ -772,6 +1123,18 @@
       centerCamera();
       setupEvents();
       renderPalette();
+
+      const mmRoot = document.getElementById('lotMinimapRoot');
+      if (mmRoot) mmRoot.style.display = 'block';
+      syncMinimapChrome();
+      const mmBtn = document.getElementById('lotMinimapToggle');
+      if (mmBtn) mmBtn.onclick = () => { toggleMinimap(); if (typeof beep === 'function') beep('click'); };
+      const mmCv = document.getElementById('lotMinimapCanvas');
+      if (mmCv) {
+        mmCv.addEventListener('click', minimapJump);
+        mmCv.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); minimapJump({ clientX: mmCv.getBoundingClientRect().left + mmCv.getBoundingClientRect().width / 2, clientY: mmCv.getBoundingClientRect().top + mmCv.getBoundingClientRect().height / 2 }); } });
+      }
+      layoutRightColumn();
 
       // Hook control buttons
       const btnNext = document.getElementById("btnLotNextWeek");
