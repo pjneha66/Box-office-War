@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),chromium=require('@sparticuz/chromium').default;
 (async()=>{const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||await chromium.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote'],headless:true});try{
  const p=await browser.newPage();await p.setViewport({width:1280,height:800,deviceScaleFactor:1});const errors=[];p.on('pageerror',e=>errors.push(e.message));
- await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');await p.waitForFunction(()=>StudioDepartments.artReady());
+ await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');await p.waitForFunction(()=>StudioDepartments.artReady());
  // Controlled production fixture tests the spatial projection; original UI suite tests real greenlighting.
  await p.evaluate(()=>{const writer=G.talent.find(t=>t.kind==='writer');G.projects.push({id:'room-qa',title:'The Last Picture',phase:'pre',phaseWeek:1,phaseLen:{pre:4},writer});StudioLotBridge.syncWithGameState(G);for(let i=0;i<2400;i++)StudioLotBridge.engine.tick(1/60);});
  const clickWorld=async(x,y)=>{const t=await p.evaluate(([x,y])=>{const s=StudioLot2D.project(x,y),r=document.querySelector('#studioLotCanvas').getBoundingClientRect();return {x:s.x+r.left,y:s.y+r.top}},[x,y]);await p.mouse.click(t.x,t.y);};

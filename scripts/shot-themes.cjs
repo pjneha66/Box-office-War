@@ -1,6 +1,6 @@
 /* Dev helper: capture dashboard + settings screenshots under several themes. */
 const pp = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium");
+const chromium = require("@sparticuz/chromium").default;
 const URL = process.env.GAME_URL || "http://127.0.0.1:8080";
 const THEMES = (process.env.SHOT_THEMES || "gold,violet,aurora,cyberpunk,emerald,noir,silver,carpet,slate").split(",");
 const OUT = process.env.SHOT_DIR || "/home/user/shots";

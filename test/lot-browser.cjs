@@ -10,7 +10,7 @@ try {
 const page=await browser.newPage();await page.setViewport({width:1280,height:800,deviceScaleFactor:2});
 const errors=[],failed=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)failed.push(r.url());});
 await page.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});
-await page.click('#btnStart');await page.waitForSelector('#studioLotCanvas');
+await page.click('#btnStart');await page.evaluate(()=>switchTab('studiolot'));await page.waitForSelector('#studioLotCanvas');
 await page.evaluate(()=>{document.querySelectorAll('.modal-backdrop').forEach(e=>e.remove());});
 await new Promise(r=>setTimeout(r,500));
 await page.waitForFunction(()=>document.getElementById('studiolotGlobalStage').getBoundingClientRect().top>=document.getElementById('tabsNav').getBoundingClientRect().bottom-1);

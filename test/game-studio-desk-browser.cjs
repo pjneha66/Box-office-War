@@ -44,7 +44,7 @@ const OUT = '/tmp/gamestudio-shots';
       if (/^https?:\/\/(127\.0\.0\.1|localhost)/.test(u) || u.startsWith('data:') || u.startsWith('blob:')) r.continue();
       else r.abort();
     });
-    await page.goto('http://127.0.0.1:3000/', { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.goto(process.env.GAME_URL||'http://127.0.0.1:3000/', { waitUntil: 'networkidle0', timeout: 60000 });
     await page.evaluate(() => {
       SEL = { scenario: 'standard', difficulty: 'normal', sandbox: false, slot: 1, legacy: '' };
       newGame(DATA.ARCHETYPES[1].id, 'Game Studio Desk Browser', SEL);

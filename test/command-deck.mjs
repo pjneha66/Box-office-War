@@ -34,7 +34,7 @@ assert.equal($('#view > section.command-deck'),$('.command-studio'));
 assert.equal($('#view').dataset.screen,'studio');
 assert.equal(w.document.querySelectorAll('.command-section-nav').length,1);
 assert.equal(w.document.querySelectorAll('#view .subnav-pills').length,0);
-assert.equal(w.document.querySelectorAll('.command-nav-items button').length,6);
+assert.equal(w.document.querySelectorAll('.command-nav-items button').length,8,'eight studio sections, including Industry and Next Wave');
 assert.equal($('#fabLot'),null,'legacy floating 2D-lot button must stay gone');
 assert.equal($('#app').dataset.activeTab,'studio');
 assert.equal($('#btnAch span').textContent,'Trophy Room');
