@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),c
 (async()=>{const browser=await puppeteer.launch({executablePath:process.env.CHROME_PATH||await chromium.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote'],headless:true});try{
  for(const viewport of [{width:1280,height:800},{width:844,height:390,isMobile:true,hasTouch:true}]){
   const page=await browser.newPage();await page.setViewport(viewport);const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await page.click('#btnStart');await page.waitForSelector('#studioLotCanvas');
+  await page.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await page.click('#btnStart');await page.evaluate(()=>switchTab('studiolot'));await page.waitForSelector('#studioLotCanvas');
   await page.evaluate(()=>{G.studio.name='A Very Long Production Company Name';render();});
   await page.waitForFunction(()=>document.getElementById('studiolotGlobalStage').getBoundingClientRect().top>=document.getElementById('tabsNav').getBoundingClientRect().bottom-1);
   for(const view of ['writers','post','soundstage','cinema','executive']){

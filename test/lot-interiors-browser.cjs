@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),chromium=require('@sparticuz/chromium').default;
 (async()=>{const b=await puppeteer.launch({executablePath:process.env.CHROME_PATH||await chromium.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote'],headless:true});try{for(const touch of [false,true]){
  const p=await b.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.setViewport({width:touch?844:1280,height:touch?390:800,isMobile:touch,hasTouch:touch});
- await p.goto(process.env.GAME_URL||'http://127.0.0.1:8081',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');await p.click('#lotPause');
+ await p.goto(process.env.GAME_URL||'http://127.0.0.1:8081',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');await p.click('#lotPause');
  const rooms=await p.evaluate(()=>StudioLotBridge.engine.buildings.filter(b=>b.b_type!=='studio_gate').map(b=>({id:String(b.id),type:b.b_type})));assert(rooms.some(r=>r.type==='cinema_theater'));
  const state=()=>p.evaluate(()=>({cash:G.studio.cash,buildings:JSON.stringify(StudioLotBridge.engine.buildings),facilities:JSON.stringify(G.facilities)}));const before=await state();
  const selectRoom=async id=>{await p.click('#btnLotInteriors');if(await p.$('#interiorRooms'))await p.click('#interiorRooms');assert.equal(await p.$$eval('[data-interior-room]',els=>els.length),rooms.length);await p.click('[data-interior-room="'+id+'"]');assert.equal(await p.$eval('.lot-interiors',e=>e.dataset.roomId),id);assert.equal(await p.$('#interiorTarget'),null,'no all-room overwrite selector');};
@@ -23,7 +23,7 @@ const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),c
  const cinema=rooms.find(r=>r.type==='cinema_theater');await selectRoom(cinema.id);await p.click('#interiorCancel');const styled=await render();
  await selectRoom(cinema.id);await p.click('#interiorReset');assert.notEqual(await render(),styled,'saved finishes must change actual theatre pixels');
  expected[cinema.id]={style:'original',floor:'original',seating:'original',decor:'original'};assert.deepEqual(await p.evaluate(()=>G.lotInteriors),expected,'reset only affects this theatre');assert.deepEqual(await state(),before);
- await p.reload({waitUntil:'networkidle0'});await p.waitForSelector('#btnContinue',{visible:true});await p.click('#btnContinue');await p.waitForSelector('#studioLotCanvas');assert.deepEqual(await p.evaluate(()=>G.lotInteriors),expected);
+ await p.reload({waitUntil:'networkidle0'});await p.waitForSelector('#btnContinue',{visible:true});await p.click('#btnContinue');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');assert.deepEqual(await p.evaluate(()=>G.lotInteriors),expected);
  // Test the same editor from expanded desktop, where modal hit-testing also matters.
  if(!touch){await p.click('#btnLotFullscreen');await selectRoom(cinema.id);await p.select('#interior-seating','wine');await p.click('#interiorApply');assert.equal(await p.evaluate(id=>G.lotInteriors[id].seating,cinema.id),'wine');}
  assert.deepEqual(errors,[]);console.log('PASS '+(touch?'touch landscape':'desktop')+' separate editors for every room/theatre, reachable Save, independent apply/reset, real changed pixels, Cancel, unchanged finances and saved career reload');await p.close();

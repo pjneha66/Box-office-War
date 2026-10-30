@@ -359,10 +359,11 @@ try{
   assert(viewText().includes('Nothing matches')||viewText().includes('No titles'),'an empty Films shelf has a real empty state');
 
   /* ── release plumbing ── */
-  assert.equal($('meta[name="app-version"]').content,'38.0','app-version is 38.0');
-  assert(rawIndex.includes('ui.js?v=53.0'),'ui.js is pinned to v53.0');
-  assert(rawIndex.includes('command-deck.css?v=52.0'),'command-deck.css is pinned to v52.0');
-  assert(fs.readFileSync('sw.js','utf8').includes('bow-v98-cache'),'service-worker cache is bow-v98');
+  const release=JSON.parse(fs.readFileSync('version.json','utf8')).v;
+  assert.equal($('meta[name="app-version"]').content,release,'app-version matches version.json');
+  assert(rawIndex.includes(`ui.js?v=${release}`),'ui.js uses the current release version');
+  assert(rawIndex.includes(`command-deck.css?v=${release}`),'command-deck.css uses the current release version');
+  assert(fs.readFileSync('sw.js','utf8').includes('bow-v102-cache'),'service-worker cache is bow-v102');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='38.0').status`),'shipped','38.0 Treasury Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='37.0').status`),'shipped','37.0 Game Studio Desk is still marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='36.0').status`),'shipped','36.0 Library Desk is marked shipped');
@@ -370,7 +371,7 @@ try{
 
   assert.equal(errors.length,0,'no console errors across the whole run: '+errors.join(' | '));
   console.log('PASS library desk: A1–A14 + shell + C1–C11 + zero-legacy sweep');
-  console.log('PASS release: 38.0 / 53.0 / 52.0 / bow-v98');
+  console.log(`PASS release: ${release} / bow-v102`);
 } catch(err){
   console.error('\nFAIL:',err && err.message);
   if(errors.length) console.error('console errors:',errors.join('\n'));

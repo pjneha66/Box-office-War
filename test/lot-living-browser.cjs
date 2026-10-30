@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),chromium=require('@sparticuz/chromium').default;
 (async()=>{const b=await puppeteer.launch({executablePath:process.env.CHROME_PATH||await chromium.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote'],headless:true});try{
  const p=await b.newPage();await p.setViewport({width:1280,height:800});const errors=[],failed=[];p.on('pageerror',e=>errors.push(e.message));p.on('response',r=>{if(r.status()>=400)failed.push(r.url());});
- await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');
+ await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');
  const result=await p.evaluate(()=>{
   G.projects=[{id:'living-browser',title:'Living production fixture',phase:'pre',phaseWeek:0,phaseLen:{pre:4,shoot:4,post:4},budget:40,spent:0,cast:[],genre:'drama',plan:'later'}];StudioLotBridge.syncWithGameState(G);
   const before=G.studio.cash;tickProjects();const project=G.projects[0];StudioLotBridge.syncWithGameState(G);

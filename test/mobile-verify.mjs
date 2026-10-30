@@ -18,7 +18,9 @@ const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8")
 const virtualConsole = new VirtualConsole();
 const errors = [];
 virtualConsole.on("jsdomError", e => {
-  if (e.message && e.message.includes("scrollTo")) return; // ignore jsdom scrollTo stub
+  // jsdom has no canvas implementation; real canvas behavior is covered by the
+  // Chromium lot suites. Keep every other runtime error visible.
+  if (e.message && /scrollTo|HTMLCanvasElement/.test(e.message)) return;
   errors.push("jsdomError: " + e.message);
 });
 virtualConsole.on("error", (...a) => errors.push("console.error: " + a.join(" ")));

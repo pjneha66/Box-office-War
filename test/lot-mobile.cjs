@@ -4,7 +4,7 @@ const puppeteer=require('puppeteer-core');
 const chromium=require('@sparticuz/chromium').default;
 (async()=>{const b=await puppeteer.launch({executablePath:process.env.CHROME_PATH||await chromium.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote'],headless:true});try{
  const p=await b.newPage();await p.setViewport({width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true});const errors=[];p.on('pageerror',e=>errors.push(e.message));
- await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');await new Promise(r=>setTimeout(r,500));
+ await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');await new Promise(r=>setTimeout(r,500));
  const t=await p.evaluate(()=>{const s=StudioLot2D.boundsForBuilding(3),r=document.querySelector('#studioLotCanvas').getBoundingClientRect();return {x:s.x+s.w/2+r.left,y:s.y+s.h*.45+r.top}});
  await p.touchscreen.tap(t.x,t.y);assert(await p.$('#lotVisit'));console.log('PASS mobile facility tap opens inspector');
  assert.equal(await p.$eval('#lotPause',e=>e.getBoundingClientRect().height),44);console.log('PASS 44px mobile controls');

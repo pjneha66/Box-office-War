@@ -7,11 +7,11 @@ const puppeteer=require('puppeteer-core'),chromium=require('@sparticuz/chromium'
   const p=await b.newPage(),errors=[];p.on('pageerror',e=>errors.push(e.message));
   await p.setViewport({width:1280,height:800});
   await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});
-  await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');
+  await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');
   const before=await p.evaluate(async()=>{saveGame();await navigator.serviceWorker.ready;return {cash:G.studio.cash,buildings:StudioLotBridge.getLotState().buildings.length};});
   await p.waitForFunction(()=>!!navigator.serviceWorker.controller);
   await p.setOfflineMode(true);await p.reload({waitUntil:'domcontentloaded'});
-  await p.waitForSelector('#btnContinue');await p.click('#btnContinue');await p.waitForSelector('#studioLotCanvas');
+  await p.waitForSelector('#btnContinue');await p.click('#btnContinue');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');
   const after=await p.evaluate(()=>({cash:G.studio.cash,buildings:StudioLotBridge.getLotState().buildings.length}));
   assert.deepEqual(after,before);assert(after.buildings>=6);
   const assets=await p.evaluate(async()=>{

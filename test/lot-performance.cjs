@@ -2,7 +2,7 @@
 const fs=require('node:fs'),assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),chromium=require('@sparticuz/chromium').default;
 (async()=>{const b=await puppeteer.launch({executablePath:process.env.CHROME_PATH||await chromium.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote'],headless:true});try{
  const p=await b.newPage();await p.setViewport({width:1280,height:800,deviceScaleFactor:2});const errors=[],failed=[];p.on('pageerror',e=>errors.push(e.message));p.on('requestfailed',r=>failed.push(r.url()));
- await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');
+ await p.goto(process.env.GAME_URL||'http://127.0.0.1:8080',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');
  await p.evaluate(()=>{G.projects.push({id:'soak',title:'Performance QA fixture',phase:'pre',phaseWeek:1,phaseLen:{pre:4}});StudioLotBridge.syncWithGameState(G);for(let i=0;i<10;i++)StudioLotBridge.engine.trigger_box_office_surge('Crowd QA '+i,30);});
  const cdp=await p.createCDPSession();await cdp.send('HeapProfiler.collectGarbage');const initial=await cdp.send('Runtime.getHeapUsage');
  const measurements=[];

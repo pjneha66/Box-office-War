@@ -132,6 +132,10 @@ const require=createRequire(import.meta.url);
       /* [a-zA-Z_0-9] — a category id may contain a digit (e.g. `pay1`), and a
          narrower class would silently skip it and pass a broken census. */
       for(const m of src.matchAll(/\b(?:global\.)?(?:earn|spend)\(\s*"([a-zA-Z_0-9]+)"/g)) written.add(m[1]);
+      /* Stage Division routes both earning and spending through its _money()
+         adapter. Count its literal categories too; otherwise the bijection
+         check incorrectly reports the mapped stage category as dead weight. */
+      for(const m of src.matchAll(/\b_money\(\s*[^,]+,\s*"([a-zA-Z_0-9]+)"/g)) written.add(m[1]);
     }
     assert.ok(written.size>=39,'F11: the census found a plausible set of categories ('+written.size+')');
     const mapped=new Set(Object.keys(FD.CATEGORIES));

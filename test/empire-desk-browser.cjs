@@ -23,7 +23,7 @@ const OUT='/tmp/empire-shots';
     page.on('console',m=>{ if(m.type()==='error') errors.push('console: '+m.text()); });
     await page.setRequestInterception(true);
     page.on('request',r=>{ const u=r.url(); if(/^https?:\/\/(127\.0\.0\.1|localhost)/.test(u)||u.startsWith('data:')||u.startsWith('blob:')) r.continue(); else r.abort(); });
-    await page.goto('http://127.0.0.1:3000/',{waitUntil:'networkidle0',timeout:60000});
+    await page.goto(process.env.GAME_URL||'http://127.0.0.1:3000/',{waitUntil:'networkidle0',timeout:60000});
     await page.evaluate(()=>{
       SEL={scenario:'standard',difficulty:'normal',sandbox:false,slot:1,legacy:''};
       newGame(DATA.ARCHETYPES[1].id,'Empire Desk Browser',SEL);enterApp(false);closeModal();
