@@ -28,6 +28,10 @@
 - `node test/ui-test.mjs` — Next Wave desk, campaign builder, content-pack export, backup preflight, Marathi setting, and existing career flows.
 - Full `npm test`, packaging and syntax checks are run before release.
 
+### Store art
+- `assets/store/` holds 13 screenshots shot from this build (start, dashboard, studio, studio lot, develop, productions, box office, empire, library, finance, plus three 390×844 mobile views). The previous set dated from v28.9 and showed a UI that no longer exists.
+- Regenerate with `node scripts/capture-store-screenshots.cjs` (serves the game on 127.0.0.1:8080, drives a real career in headless Chrome, seeds `Math.random` so the result is reproducible).
+
 ---
 
 # Previous release notes — Box Office War v40.0
