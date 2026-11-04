@@ -2,13 +2,13 @@
 
 > A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v41.0](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v41.1](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
 ## Screenshots
 
-Captured from the v41.0 build (headless Chrome, a career simulated to year 3). Regenerate with `node scripts/capture-store-screenshots.cjs`.
+Captured from the v41.1 build (headless Chrome, a career simulated to year 3). Regenerate with `node scripts/capture-store-screenshots.cjs`.
 
 | | |
 |---|---|
@@ -42,6 +42,20 @@ Box Office War is an offline-capable Hollywood studio management simulation buil
 All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
 
 ---
+
+## What is New in v41.1 — Compact Landscape Phone UI
+
+The Android build is landscape-locked, but the mobile layout switched at `max-width: 760px` — and a phone held sideways is 640–940px **wide** with only 360–430px of height. Landscape phones therefore got the desktop shell inside a viewport barely taller than the header: at 844×390 the chrome alone ate 219px of 390, the 12-tab bar was cut off mid-word, and the section nav stacked into two rows.
+
+`landscape-phone.css` now keys off viewport **height** (untouched on tablets and desktop) and compacts the shell:
+
+- header on one row — 75px of chrome instead of 87, content starts at 141px instead of 219
+- ledger keeps capital + calendar; liabilities and standing stay on their own desks
+- section nav collapses to a single 42px row with 30px buttons — it was hiding up to 324px of sections behind the Studio tools
+- tab strip stays one scrollable row with an edge fade; toasts move to the bottom so they stop covering the header
+- one navigation everywhere: the full tab strip, not tabs *plus* a bottom bar
+
+Verified at 667×375 through 932×430. The APK also stopped shipping the store screenshots (10 MB of art the game never loads), dropping from 21 MB to 19 MB.
 
 ## What is New in v41.0 — Next Wave Studio Systems
 
@@ -291,8 +305,8 @@ python3 -m http.server 8080
 # Open http://localhost:8080 in Chrome, Safari, Firefox, or Edge
 ```
 
-### Android APK (v41.0)
-1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest) — `BoxOfficeWar-41.0.apk`, 21 MB.
+### Android APK (v41.1)
+1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest) — `BoxOfficeWar-41.1.apk`, 19 MB.
 2. Install the APK on your Android device (Android 7.0 Nougat or higher — `minSdk 24`).
 3. The application operates 100% offline, caching all scripts, audio synthesis engines, and SVG assets locally.
 4. Updates install over the previous version without losing saves: every release is signed with the same key.
