@@ -29,7 +29,11 @@ const FILES = [
 // Filtering the source is not enough: this volume stores extended attributes as
 // ._ files, so the kernel re-creates them whenever a file is written. Prune the
 // bundle after copying, otherwise ~600 junk files get packed into the APK.
-const skipJunk = (src) => !path.basename(src).startsWith("._");
+// assets/store/ is marketing art for the store listings (10 MB of PNGs); the
+// game never loads it, so it must not ship inside the APK either.
+const STORE_ART = path.join(ROOT, "assets", "store");
+const skipJunk = (src) =>
+  !path.basename(src).startsWith("._") && !src.startsWith(STORE_ART + path.sep);
 
 function pruneSidecars(dir) {
   let removed = 0;
