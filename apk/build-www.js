@@ -25,11 +25,27 @@ const FILES = [
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 
+// macOS AppleDouble sidecars (._*) are filesystem metadata, never game content.
+// Filtering the source is not enough: this volume stores extended attributes as
+// ._ files, so the kernel re-creates them whenever a file is written. Prune the
+// bundle after copying, otherwise ~600 junk files get packed into the APK.
+const skipJunk = (src) => !path.basename(src).startsWith("._");
+
+function pruneSidecars(dir) {
+  let removed = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) { removed += pruneSidecars(p); continue; }
+    if (entry.name.startsWith("._")) { fs.unlinkSync(p); removed++; }
+  }
+  return removed;
+}
+
 fs.rmSync(WWW, { recursive: true, force: true });
 fs.mkdirSync(WWW, { recursive: true });
 for (const f of FILES) fs.copyFileSync(path.join(ROOT, f), path.join(WWW, f));
-if (fs.existsSync(path.join(ROOT, "assets"))) fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true });
-if (fs.existsSync(path.join(ROOT, "pkg"))) fs.cpSync(path.join(ROOT, "pkg"), path.join(WWW, "pkg"), { recursive: true });
+if (fs.existsSync(path.join(ROOT, "assets"))) fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true, filter: skipJunk });
+if (fs.existsSync(path.join(ROOT, "pkg"))) fs.cpSync(path.join(ROOT, "pkg"), path.join(WWW, "pkg"), { recursive: true, filter: skipJunk });
 
 // strip the SW registration <script> block from the copied index.html
 const idxPath = path.join(WWW, "index.html");
@@ -39,4 +55,9 @@ if (!swBlock.test(idx)) throw new Error("SW registration block not found in inde
 idx = idx.replace(swBlock, "");
 fs.writeFileSync(idxPath, idx);
 
+// prune last: every write above (including the index.html rewrite) regenerates
+// ._ sidecars on this volume, so the sweep has to come after all of them.
+const pruned = pruneSidecars(WWW);
+
 console.log("www/ built:", fs.readdirSync(WWW).join(", "));
+console.log(`www/ pruned ${pruned} AppleDouble sidecar(s)`);
