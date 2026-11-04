@@ -2,13 +2,13 @@
 
 > A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v41.1](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v41.2](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
 ## Screenshots
 
-Captured from the v41.1 build (headless Chrome, a career simulated to year 3). Regenerate with `node scripts/capture-store-screenshots.cjs`.
+Captured from the v41.2 build (headless Chrome, a career simulated to year 3). Regenerate with `node scripts/capture-store-screenshots.cjs`.
 
 | | |
 |---|---|
@@ -42,6 +42,12 @@ Box Office War is an offline-capable Hollywood studio management simulation buil
 All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
 
 ---
+
+## What is New in v41.2 — UI System
+
+The interface had accumulated four palettes that disagreed (`--cd-t*`, `--ts-*`, `--bow-*`, plus ~960 raw hex) across 10,456 lines of CSS in 12 layers. `system/` is now the single source of truth: `tokens.css` (palette, type and spacing scales, density), `components.css` (normalisation plus the `ui-*` set), and a **generated** `legacy-map.css` that re-points all 333 legacy variables at semantic tokens — so the existing CSS adopts the new palette without being edited. `system/styleguide.html` is the living reference (developer only, not shipped in the APK).
+
+Landscape phones also stop scrolling: a phone held sideways leaves ~310px under the shell and the dashboard was using 627px. The shell is a fixed-height flex column and the deck takes exactly the remaining space, so the command desk fits one screen.
 
 ## What is New in v41.1 — Compact Landscape Phone UI
 
@@ -305,8 +311,8 @@ python3 -m http.server 8080
 # Open http://localhost:8080 in Chrome, Safari, Firefox, or Edge
 ```
 
-### Android APK (v41.1)
-1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest) — `BoxOfficeWar-41.1.apk`, 19 MB.
+### Android APK (v41.2)
+1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest) — `BoxOfficeWar-41.2.apk`, 19 MB.
 2. Install the APK on your Android device (Android 7.0 Nougat or higher — `minSdk 24`).
 3. The application operates 100% offline, caching all scripts, audio synthesis engines, and SVG assets locally.
 4. Updates install over the previous version without losing saves: every release is signed with the same key.

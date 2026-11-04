@@ -9,7 +9,7 @@ Paste-ready payload for the [Orion Store](https://www.orionstore.net) catalogue.
 3. A maintainer applies the `approved` label and runs the workflow (it is `workflow_dispatch` only). The script dedupes on `id` / `githubRepo` / `repoUrl`, appends to `apps.json`, commits, and closes the issue.
 4. From then on the app updates itself: `mirror_generator.py` scans every entry with a `githubRepo`, pulls its GitHub releases, and rebuilds `mirror.json` every 6 hours.
 
-**The asset name is a contract.** `releaseKeyword` is matched as a case-insensitive substring against release **asset** names (falling back to the release name/tag). `BoxOfficeWar` matches `BoxOfficeWar-41.1.apk`. Renaming the asset or shipping an AAB-only release silently drops the app out of the store.
+**The asset name is a contract.** `releaseKeyword` is matched as a case-insensitive substring against release **asset** names (falling back to the release name/tag). `BoxOfficeWar` matches `BoxOfficeWar-41.2.apk`. Renaming the asset or shipping an AAB-only release silently drops the app out of the store.
 
 Current submission: https://github.com/RookieEnough/Orion-Data/issues/2583
 
@@ -47,8 +47,8 @@ Current submission: https://github.com/RookieEnough/Orion-Data/issues/2583
 
 ## Submission details
 
-- **APK asset:** `BoxOfficeWar-41.1.apk` — signed universal release, `minSdk 24`, `targetSdk 36`, 19 MB (20,219,187 bytes).
-- **Release:** https://github.com/pjneha66/Box-office-War/releases/tag/v41.1
+- **APK asset:** `BoxOfficeWar-41.2.apk` — signed universal release, `minSdk 24`, `targetSdk 36`, 19 MB (20,231,474 bytes).
+- **Release:** https://github.com/pjneha66/Box-office-War/releases/tag/v41.2
 - **License:** MIT (`LICENSE`).
 - **Permissions:** none beyond the Android default. Fully bundled offline build; no runtime network calls.
 - **Signing:** same key on every release, so updates install over the previous version without wiping local saves.
