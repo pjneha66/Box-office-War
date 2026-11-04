@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOX OFFICE WAR — UI SYSTEM / TOKENS
+   ═══════════════════════════════════════════════════════════════════════════
+
+   One palette. One scale. One radius set. This file is the single source of
+   truth for the Android APK product, and it is loaded LAST so it wins over the
+   v30 tokens and the four palettes that grew on top of them
+   (--cd-t*, --ts-*, --bow-*, plus ~960 raw hex literals).
+
+   Layers:
+     1. primitives   raw values, never referenced by components directly
+     2. semantic     what components actually use (surface, text, line, accent…)
+     3. legacy alias the v30 names other stylesheets already depend on
+     4. scales       type, space, radius, elevation, motion, density
+
+   Target device is a phone in landscape (360–430px tall), so the default
+   density is the compact one and desktop opts up via `data-density`.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── 1. primitives ─────────────────────────────────────────────────────── */
+  /* Neutral-cool graphite. Deliberately desaturated: the old layers tinted the
+     base green (command deck) and blue (v30), which is why screens never quite
+     matched each other. */
+  --p-neutral-0:  #08090b;
+  --p-neutral-1:  #0d0f12;
+  --p-neutral-2:  #121519;
+  --p-neutral-3:  #181c22;
+  --p-neutral-4:  #1f242b;
+  --p-neutral-5:  #272d36;
+  --p-neutral-6:  #333a45;
+  --p-neutral-7:  #4a525f;
+  --p-neutral-8:  #6b7482;
+  --p-neutral-9:  #9aa2af;
+  --p-neutral-10: #c6ccd6;
+  --p-neutral-11: #eef1f5;
+
+  /* Brand gold — slightly desaturated from the old #f5b942 so it reads as
+     brass rather than neon, and stays legible on dark surfaces. */
+  --p-gold-300: #f7d590;
+  --p-gold-400: #e8b44a;
+  --p-gold-500: #d29a34;
+  --p-gold-600: #a8781f;
+  --p-gold-900: #3a2c11;
+
+  --p-green-400: #3dbe7a;
+  --p-green-900: #12301f;
+  --p-red-400:   #e5544b;
+  --p-red-900:   #351715;
+  --p-blue-400:  #4c8de0;
+  --p-blue-900:  #14263c;
+  --p-amber-400: #e0a83c;
+  --p-violet-400:#9a7ae0;
+
+  /* ── 2. semantic ───────────────────────────────────────────────────────── */
+  --surface-0: var(--p-neutral-0);   /* app background          */
+  --surface-1: var(--p-neutral-1);   /* panels                  */
+  --surface-2: var(--p-neutral-2);   /* cards                   */
+  --surface-3: var(--p-neutral-3);   /* raised / hover          */
+  --surface-4: var(--p-neutral-4);   /* inputs, wells           */
+
+  --line-1: var(--p-neutral-4);      /* hairlines               */
+  --line-2: var(--p-neutral-5);      /* emphasised borders      */
+  --line-3: var(--p-neutral-6);      /* hover borders           */
+
+  --text-1: var(--p-neutral-11);     /* primary                 */
+  --text-2: var(--p-neutral-9);      /* secondary               */
+  --text-3: var(--p-neutral-8);      /* tertiary / labels       */
+
+  --accent:        var(--p-gold-400);
+  --accent-strong: var(--p-gold-300);
+  --accent-dim:    var(--p-gold-600);
+  --accent-ink:    #241a05;          /* text on accent fills    */
+  --accent-wash:   rgba(232, 180, 74, .12);
+
+  --success: var(--p-green-400);
+  --danger:  var(--p-red-400);
+  --info:    var(--p-blue-400);
+  --warn:    var(--p-amber-400);
+  --violet:  var(--p-violet-400);
+
+  --success-wash: rgba(61, 190, 122, .13);
+  --danger-wash:  rgba(229, 84, 75, .13);
+  --info-wash:    rgba(76, 141, 224, .13);
+  --warn-wash:    rgba(224, 168, 60, .13);
+
+  --focus-ring: 0 0 0 2px var(--surface-0), 0 0 0 4px var(--accent);
+
+  /* ── 3. legacy aliases ─────────────────────────────────────────────────── */
+  /* The v30 names. style.css / ui-v33.css / lot-*.css reference these, so
+     pointing them at the new semantic layer restyles those files without
+     touching them. */
+  --bg: var(--surface-0);
+  --bg-elev: var(--surface-1);
+  --bg-card: var(--surface-2);
+  --bg-card-hover: var(--surface-3);
+  --bg-input: var(--surface-4);
+  --bg2: var(--surface-1);
+  --card: var(--surface-2);
+  --card2: var(--surface-3);
+
+  --border: var(--line-1);
+  --border-bright: var(--line-2);
+  --border-focus: var(--accent);
+  --line: var(--line-1);
+  --line2: var(--line-2);
+
+  --text: var(--text-1);
+  --text-muted: var(--text-2);
+  --text-dim: var(--text-3);
+  --dim: var(--text-2);
+  --dim2: var(--text-3);
+
+  --gold: var(--accent);
+  --gold-light: var(--accent-strong);
+  --gold-dark: var(--accent-dim);
+  --gold2: var(--accent-strong);
+  --goldDim: var(--accent-dim);
+  --gold-glow: var(--accent-wash);
+  --gold-gradient: linear-gradient(135deg, var(--p-gold-500), var(--p-gold-400) 55%, var(--p-gold-300));
+
+  --green: var(--success);
+  --red: var(--danger);
+  --blue: var(--info);
+  --cyan: var(--info);
+  --purple: var(--violet);
+  --success-glow: var(--success-wash);
+  --danger-glow: var(--danger-wash);
+  --info-glow: var(--info-wash);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow: 0 2px 8px rgba(0, 0, 0, .38), 0 1px 2px rgba(0, 0, 0, .30);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, .50), 0 2px 8px rgba(0, 0, 0, .35);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, .58);
+  --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, .04);
+
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r: 10px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-full: 999px;
+
+  /* ── 4. scales ─────────────────────────────────────────────────────────── */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 19px;
+  --text-2xl: 23px;
+  --text-3xl: 28px;
+
+  --leading-tight: 1.18;
+  --leading-snug: 1.32;
+  --leading-normal: 1.5;
+
+  /* Display headings: tight tracking, heavy weight, no serif. */
+  --heading-weight: 700;
+  --heading-tracking: -.011em;
+  --label-tracking: .06em;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --space-12: 48px; --space-16: 64px;
+
+  /* Control height is the single biggest lever on "feels too big".
+     Compact is the default because the primary device is a landscape phone. */
+  --ctl-h: 36px;
+  --ctl-h-sm: 30px;
+  --ctl-h-lg: 44px;
+  --ctl-pad-x: 12px;
+  --ctl-radius: var(--r-sm);
+  --tap-min: 36px;
+
+  --row-h: 40px;
+  --header-h: 44px;
+  --tabbar-h: 34px;
+  --sectionnav-h: 40px;
+
+  --fast: 110ms cubic-bezier(.2, .7, .3, 1);
+  --normal: 170ms cubic-bezier(.2, .7, .3, 1);
+  --slow: 260ms cubic-bezier(.2, .7, .3, 1);
+  --spring: 220ms cubic-bezier(.3, 1.2, .5, 1);
+
+  --container-max: 1240px;
+
+  --z-nav: 50;
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-toast: 300;
+  --z-tooltip: 400;
+}
+
+/* Comfortable density: tablets and desktop. Everything scales up one notch
+   rather than redefining the palette. */
+@media (min-width: 900px) and (min-height: 561px) {
+  :root {
+    --ctl-h: 40px;
+    --ctl-h-sm: 32px;
+    --ctl-h-lg: 48px;
+    --ctl-pad-x: 14px;
+    --tap-min: 40px;
+    --row-h: 44px;
+    --header-h: 52px;
+    --tabbar-h: 40px;
+    --sectionnav-h: 46px;
+    --text-base: 14px;
+    --text-md: 15px;
+    --text-xl: 21px;
+    --text-2xl: 26px;
+    --text-3xl: 32px;
+  }
+}
+
+/* Light theme is not the product default (the store art and the icon are dark),
+   but the palette is defined so print and accessibility modes have a target. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --surface-0: #f4f6f9;
+    --surface-1: #ffffff;
+    --surface-2: #ffffff;
+    --surface-3: #eef1f6;
+    --surface-4: #ffffff;
+    --line-1: #e2e6ed;
+    --line-2: #cfd6e0;
+    --line-3: #b6bfcd;
+    --text-1: #10151c;
+    --text-2: #4b5563;
+    --text-3: #7b8698;
+    --accent: #a8781f;
+    --accent-strong: #8a6115;
+    --accent-ink: #ffffff;
+    --shadow: 0 1px 2px rgba(16, 21, 28, .06), 0 2px 8px rgba(16, 21, 28, .08);
+  }
+}
+
+/* ── base ────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+  font-variant-numeric: tabular-nums;   /* money columns stop jittering */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--r-sm);
+}
+
+::selection { background: var(--accent-wash); color: var(--text-1); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: var(--r-full);
+  border: 3px solid var(--surface-0);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--line-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --fast: 0ms; --normal: 0ms; --slow: 0ms; --spring: 0ms; }
+}

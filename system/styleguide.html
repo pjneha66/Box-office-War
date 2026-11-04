@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Box Office War — UI System</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  html, body { margin: 0; background: var(--surface-0); color: var(--text-1);
+    font: 400 var(--text-base)/1.5 var(--font-sans); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; }
+  .sg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    border-bottom: 1px solid var(--line-1); padding-bottom: 14px; margin-bottom: 26px; }
+  .sg-head h1 { font-size: 26px; margin: 0; letter-spacing: -0.02em; }
+  .sg-head p { margin: 0; color: var(--text-3); font-size: 12px; }
+  section { margin-bottom: 34px; }
+  h2.sec { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-3); margin: 0 0 12px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+  .sw { border: 1px solid var(--line-1); border-radius: 8px; overflow: hidden; }
+  .sw i { display: block; height: 44px; }
+  .sw span { display: block; padding: 5px 7px; font-size: 10px; color: var(--text-3);
+    font-family: var(--font-mono); border-top: 1px solid var(--line-1); }
+  .demo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .panel { background: var(--surface-1); border: 1px solid var(--line-1); border-radius: 10px; padding: 14px; }
+  .type-row { display: flex; align-items: baseline; gap: 14px; padding: 5px 0; border-bottom: 1px dashed var(--line-1); }
+  .type-row b { min-width: 116px; font-size: 10px; font-weight: 600; color: var(--text-3); font-family: var(--font-mono); }
+  .scale { display: grid; gap: 4px; }
+  .scale div { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+  .scale i { height: 10px; background: var(--accent-wash); border-radius: 2px; }
+  .note { font-size: 12px; color: var(--text-3); margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="sg-head">
+    <div>
+      <h1>Box Office War — UI System</h1>
+      <p>One palette, one scale, one component set. Target device: phone in landscape.</p>
+    </div>
+    <p>v1.0 · tokens.css + components.css</p>
+  </div>
+
+  <section>
+    <h2 class="sec">Surfaces &amp; lines</h2>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--surface-0)"></i><span>surface-0</span></div>
+      <div class="sw"><i style="background:var(--surface-1)"></i><span>surface-1</span></div>
+      <div class="sw"><i style="background:var(--surface-2)"></i><span>surface-2</span></div>
+      <div class="sw"><i style="background:var(--surface-3)"></i><span>surface-3</span></div>
+      <div class="sw"><i style="background:var(--surface-4)"></i><span>surface-4</span></div>
+      <div class="sw"><i style="background:var(--line-1)"></i><span>line-1</span></div>
+      <div class="sw"><i style="background:var(--line-2)"></i><span>line-2</span></div>
+      <div class="sw"><i style="background:var(--line-3)"></i><span>line-3</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Text &amp; accent</h2>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--text-1)"></i><span>text-1</span></div>
+      <div class="sw"><i style="background:var(--text-2)"></i><span>text-2</span></div>
+      <div class="sw"><i style="background:var(--text-3)"></i><span>text-3</span></div>
+      <div class="sw"><i style="background:var(--accent)"></i><span>accent</span></div>
+      <div class="sw"><i style="background:var(--accent-strong)"></i><span>accent-str</span></div>
+      <div class="sw"><i style="background:var(--accent-dim)"></i><span>accent-dim</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Semantic</h2>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--success)"></i><span>success</span></div>
+      <div class="sw"><i style="background:var(--danger)"></i><span>danger</span></div>
+      <div class="sw"><i style="background:var(--warn)"></i><span>warn</span></div>
+      <div class="sw"><i style="background:var(--info)"></i><span>info</span></div>
+      <div class="sw"><i style="background:var(--violet)"></i><span>violet</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Type scale</h2>
+    <div class="panel">
+      <div class="type-row"><b>text-3xl / 28</b><span style="font-size:var(--text-3xl);font-weight:700;letter-spacing:-.02em">This week, make history.</span></div>
+      <div class="type-row"><b>text-2xl / 23</b><span style="font-size:var(--text-2xl);font-weight:700;letter-spacing:-.02em">Management desks</span></div>
+      <div class="type-row"><b>text-xl / 19</b><span style="font-size:var(--text-xl);font-weight:700">$646.0M</span></div>
+      <div class="type-row"><b>text-md / 14</b><span style="font-size:var(--text-md)">The Rhythm Street is ready for release.</span></div>
+      <div class="type-row"><b>text-sm / 12</b><span style="font-size:var(--text-sm);color:var(--text-2)">Secondary copy and table cells sit here.</span></div>
+      <div class="type-row"><b>label / 9.5</b><span style="font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)">Available capital</span></div>
+      <p class="note">Headings are sans with tight tracking. Numbers use tabular figures so columns never jitter.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Spacing — 4px base</h2>
+    <div class="scale">
+      <div><i style="width:4px"></i>1 · 4</div>
+      <div><i style="width:8px"></i>2 · 8</div>
+      <div><i style="width:12px"></i>3 · 12</div>
+      <div><i style="width:16px"></i>4 · 16</div>
+      <div><i style="width:24px"></i>6 · 24</div>
+      <div><i style="width:32px"></i>8 · 32</div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Buttons</h2>
+    <div class="demo">
+      <button class="ui-btn ui-btn--primary">Next week</button>
+      <button class="ui-btn">Greenlight</button>
+      <button class="ui-btn ui-btn--ghost">Cancel</button>
+      <button class="ui-btn ui-btn--danger">Sell studio</button>
+      <button class="ui-btn ui-btn--sm">Small</button>
+      <button class="ui-btn ui-btn--lg">Large</button>
+      <button class="ui-btn" disabled>Disabled</button>
+    </div>
+    <p class="note">Default height is <code>--ctl-h</code>: 36px on a landscape phone, 40px from 900×561 up.</p>
+  </section>
+
+  <section>
+    <h2 class="sec">Badges</h2>
+    <div class="demo">
+      <span class="ui-badge">Draft</span>
+      <span class="ui-badge ui-badge--accent">Tentpole</span>
+      <span class="ui-badge ui-badge--success">On track</span>
+      <span class="ui-badge ui-badge--danger">Overdue</span>
+      <span class="ui-badge ui-badge--info">In production</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Stats</h2>
+    <div class="ui-grid-4">
+      <div class="ui-stat"><span class="ui-stat__label">Available capital</span><strong class="ui-stat__value">$646.0M</strong><span class="ui-stat__note">Cash on hand</span></div>
+      <div class="ui-stat ui-stat--up"><span class="ui-stat__label">Net flow / 8W</span><strong class="ui-stat__value">+$138.2M</strong><span class="ui-stat__note">Recorded weekly profit</span></div>
+      <div class="ui-stat"><span class="ui-stat__label">Reputation</span><strong class="ui-stat__value">11/100</strong><span class="ui-stat__note">Industry standing</span></div>
+      <div class="ui-stat ui-stat--down"><span class="ui-stat__label">On the big screen</span><strong class="ui-stat__value">0</strong><span class="ui-stat__note">Active releases</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Cards</h2>
+    <div class="ui-grid-2">
+      <div class="ui-card">
+        <div class="ui-card__head">
+          <span class="ui-card__title">The Rhythm Street</span>
+          <span class="ui-card__meta">Ready to release</span>
+        </div>
+        <div class="ui-row"><div class="ui-row__main"><div class="ui-row__title">Budget</div></div><span class="ui-row__value">$42.0M</span></div>
+        <div class="ui-row"><div class="ui-row__main"><div class="ui-row__title">Marketing</div></div><span class="ui-row__value">$12.0M</span></div>
+        <div class="ui-row"><div class="ui-row__main"><div class="ui-row__title">Projected opening</div></div><span class="ui-row__value">$18.4M</span></div>
+        <div class="ui-progress" style="margin-top:10px"><i style="width:72%"></i></div>
+      </div>
+      <div class="ui-card">
+        <div class="ui-card__head"><span class="ui-card__title">Studio ledger</span><span class="ui-badge ui-badge--success">Healthy</span></div>
+        <table class="ui-table">
+          <thead><tr><th>Week</th><th>Line</th><th style="text-align:right">Amount</th></tr></thead>
+          <tbody>
+            <tr><td>131</td><td>Theatrical gross</td><td class="num" style="color:var(--success)">+$24.1M</td></tr>
+            <tr><td>131</td><td>Marketing</td><td class="num" style="color:var(--danger)">−$6.2M</td></tr>
+            <tr><td>131</td><td>Overhead</td><td class="num" style="color:var(--danger)">−$1.8M</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Forms</h2>
+    <div class="panel" style="display:grid;gap:12px;max-width:420px">
+      <label class="ui-field"><span class="ui-field__label">Studio name</span><input value="Lighthouse Pictures"></label>
+      <label class="ui-field"><span class="ui-field__label">Distribution plan</span>
+        <select><option>Theatrical</option><option>Streaming first</option></select>
+      </label>
+      <div class="ui-segmented" role="group" aria-label="Density">
+        <button aria-pressed="true">Compact</button><button aria-pressed="false">Comfortable</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Toolbar &amp; empty state</h2>
+    <div class="ui-toolbar" style="margin-bottom:12px">
+      <button class="ui-btn ui-btn--sm">Filter</button>
+      <button class="ui-btn ui-btn--sm">Sort</button>
+      <span class="ui-toolbar__spacer"></span>
+      <button class="ui-btn ui-btn--sm ui-btn--primary">Greenlight</button>
+    </div>
+    <div class="ui-card">
+      <div class="ui-empty">
+        <div class="ui-empty__title">No productions in flight</div>
+        <div class="ui-empty__hint">Greenlight a screenplay from the Development desk to start shooting.</div>
+        <button class="ui-btn ui-btn--primary" style="margin-top:8px">Open Development</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

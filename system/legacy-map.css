@@ -1,0 +1,424 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GENERATED FILE — do not edit by hand.
+   Regenerate with:  python3 scripts/build-legacy-map.py
+
+   Re-points the legacy palettes (--cd-t*, --ts-*, --bow-*) at the new
+   semantic tokens. The legacy stylesheets keep their selectors and
+   rules; they simply lose the ability to choose their own colours.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bow-cyan: var(--info);
+  --bow-dim: var(--text-3);
+  --bow-edge: var(--surface-1);
+  --bow-gold: var(--accent-strong);
+  --bow-green: var(--success);
+  --bow-ink: var(--surface-0);
+  --bow-line: var(--surface-4);
+  --bow-pink: var(--text-2);
+  --bow-purple: var(--info);
+  --bow-red: var(--danger);
+  --bow-text: var(--text-1);
+  --cd-t07120f: var(--surface-0);
+  --cd-t0a0e16: var(--surface-1);
+  --cd-t0d1119: var(--surface-1);
+  --cd-t0d1b19: var(--surface-1);
+  --cd-t0e1a15: var(--surface-1);
+  --cd-t0e1c1a: var(--surface-1);
+  --cd-t0e1f1c: var(--surface-1);
+  --cd-t0f1e1c: var(--surface-1);
+  --cd-t10201c: var(--surface-1);
+  --cd-t10221f: var(--surface-1);
+  --cd-t102720: var(--surface-2);
+  --cd-t12211f: var(--surface-1);
+  --cd-t122223: var(--surface-1);
+  --cd-t122722: var(--surface-2);
+  --cd-t122820: var(--surface-2);
+  --cd-t122823: var(--surface-2);
+  --cd-t122a19: var(--surface-2);
+  --cd-t132624: var(--surface-2);
+  --cd-t132722: var(--surface-2);
+  --cd-t14251e: var(--surface-2);
+  --cd-t142625: var(--surface-2);
+  --cd-t142a26: var(--surface-2);
+  --cd-t152b26: var(--surface-2);
+  --cd-t152b28: var(--surface-2);
+  --cd-t172c35: var(--surface-2);
+  --cd-t172d29: var(--surface-2);
+  --cd-t172e25: var(--surface-2);
+  --cd-t172f25: var(--surface-2);
+  --cd-t182e28: var(--surface-2);
+  --cd-t182f2c: var(--surface-2);
+  --cd-t192b2c: var(--surface-2);
+  --cd-t19302a: var(--surface-2);
+  --cd-t19312b: var(--surface-2);
+  --cd-t1a1204: var(--surface-1);
+  --cd-t1a2f29: var(--surface-2);
+  --cd-t1a3330: var(--surface-2);
+  --cd-t1b302b: var(--surface-2);
+  --cd-t1b302c: var(--surface-2);
+  --cd-t1b3128: var(--surface-2);
+  --cd-t1b312b: var(--surface-2);
+  --cd-t1b3a2c: var(--surface-3);
+  --cd-t1c302c: var(--surface-2);
+  --cd-t1d2a20: var(--surface-2);
+  --cd-t1d332c: var(--surface-3);
+  --cd-t1d3733: var(--surface-3);
+  --cd-t1e352f: var(--surface-3);
+  --cd-t1f3a32: var(--surface-3);
+  --cd-t20352c: var(--surface-3);
+  --cd-t20352f: var(--surface-3);
+  --cd-t203532: var(--surface-3);
+  --cd-t20372f: var(--surface-3);
+  --cd-t20392d: var(--surface-3);
+  --cd-t203b2c: var(--surface-3);
+  --cd-t213832: var(--surface-3);
+  --cd-t22362f: var(--surface-3);
+  --cd-t223732: var(--surface-3);
+  --cd-t223738: var(--surface-3);
+  --cd-t231f14: var(--surface-2);
+  --cd-t233b2f: var(--surface-3);
+  --cd-t233b32: var(--surface-3);
+  --cd-t241d1a: var(--surface-2);
+  --cd-t24332e: var(--surface-3);
+  --cd-t243d34: var(--surface-3);
+  --cd-t24402f: var(--surface-3);
+  --cd-t25382e: var(--surface-3);
+  --cd-t253d32: var(--surface-3);
+  --cd-t253f32: var(--surface-3);
+  --cd-t254439: var(--surface-3);
+  --cd-t263732: var(--surface-3);
+  --cd-t263e35: var(--surface-3);
+  --cd-t263e38: var(--surface-3);
+  --cd-t26423a: var(--surface-3);
+  --cd-t27384a: var(--surface-4);
+  --cd-t273e37: var(--surface-3);
+  --cd-t293d31: var(--surface-3);
+  --cd-t29402d: var(--surface-3);
+  --cd-t294031: var(--surface-3);
+  --cd-t2a1414: var(--surface-2);
+  --cd-t2a2314: var(--surface-2);
+  --cd-t2a2a1e: var(--surface-2);
+  --cd-t2a3a2a: var(--surface-3);
+  --cd-t2a3a33: var(--surface-3);
+  --cd-t2a3b2a: var(--surface-3);
+  --cd-t2a4331: var(--surface-3);
+  --cd-t2a443a: var(--surface-4);
+  --cd-t2a4a3a: var(--surface-4);
+  --cd-t2b4332: var(--surface-4);
+  --cd-t2b4436: var(--surface-4);
+  --cd-t2c1f1c: var(--surface-2);
+  --cd-t2c4038: var(--surface-3);
+  --cd-t2c403a: var(--surface-3);
+  --cd-t2c4432: var(--surface-4);
+  --cd-t2d4b3e: var(--surface-4);
+  --cd-t2e4832: var(--surface-4);
+  --cd-t2f3f36: var(--surface-4);
+  --cd-t2f453c: var(--surface-4);
+  --cd-t304733: var(--surface-4);
+  --cd-t304a45: var(--surface-4);
+  --cd-t31483d: var(--surface-4);
+  --cd-t314a38: var(--surface-4);
+  --cd-t314b35: var(--surface-4);
+  --cd-t314b40: var(--surface-4);
+  --cd-t332720: var(--surface-3);
+  --cd-t33493f: var(--surface-4);
+  --cd-t344d36: var(--surface-4);
+  --cd-t37282a: var(--surface-3);
+  --cd-t374e38: var(--surface-4);
+  --cd-t3a2722: var(--surface-3);
+  --cd-t3a2a1e: var(--surface-3);
+  --cd-t3a4a3e: var(--surface-4);
+  --cd-t3a5045: var(--surface-4);
+  --cd-t3c5542: var(--line-1);
+  --cd-t3d5043: var(--line-1);
+  --cd-t3d5943: var(--line-1);
+  --cd-t3e4933: var(--surface-4);
+  --cd-t3e5551: var(--line-1);
+  --cd-t3f6f63: var(--line-2);
+  --cd-t42564a: var(--line-1);
+  --cd-t43563e: var(--line-1);
+  --cd-t435e49: var(--line-1);
+  --cd-t4a6a8a: var(--info);
+  --cd-t4b6053: var(--line-1);
+  --cd-t4b6450: var(--line-2);
+  --cd-t4c5637: var(--line-1);
+  --cd-t4d6079: var(--line-2);
+  --cd-t4d6549: var(--line-2);
+  --cd-t4e6355: var(--line-2);
+  --cd-t4f6e4d: var(--line-2);
+  --cd-t4f7185: var(--line-2);
+  --cd-t50634d: var(--line-2);
+  --cd-t516044: var(--line-1);
+  --cd-t526055: var(--line-2);
+  --cd-t52624b: var(--line-1);
+  --cd-t52685f: var(--line-2);
+  --cd-t52694f: var(--line-2);
+  --cd-t526a58: var(--line-2);
+  --cd-t527164: var(--line-2);
+  --cd-t566e5f: var(--line-2);
+  --cd-t57697a: var(--line-2);
+  --cd-t5a6b60: var(--line-2);
+  --cd-t5c6f5f: var(--line-2);
+  --cd-t5c7f57: var(--line-2);
+  --cd-t5e5a7a: var(--line-2);
+  --cd-t5e7c9b: var(--info);
+  --cd-t5f8a52: var(--line-2);
+  --cd-t627360: var(--line-2);
+  --cd-t62744f: var(--line-2);
+  --cd-t647c55: var(--line-2);
+  --cd-t657c62: var(--line-2);
+  --cd-t667958: var(--line-2);
+  --cd-t687452: var(--line-2);
+  --cd-t6a5c8a: var(--line-3);
+  --cd-t6e6044: var(--line-2);
+  --cd-t6f8478: var(--line-3);
+  --cd-t6f8679: var(--line-3);
+  --cd-t6f8a55: var(--line-2);
+  --cd-t6f8a5f: var(--line-3);
+  --cd-t6f8fae: var(--info);
+  --cd-t718a60: var(--line-3);
+  --cd-t728b66: var(--line-3);
+  --cd-t728d7a: var(--line-3);
+  --cd-t789384: var(--line-3);
+  --cd-t7a4438: var(--danger);
+  --cd-t7a5a4e: var(--line-2);
+  --cd-t7c9a6a: var(--line-3);
+  --cd-t7f917f: var(--line-3);
+  --cd-t7f9470: var(--line-3);
+  --cd-t7f9486: var(--line-3);
+  --cd-t7f94a8: var(--text-3);
+  --cd-t7f9689: var(--line-3);
+  --cd-t7f9a63: var(--line-3);
+  --cd-t7fa86a: var(--success);
+  --cd-t7fb3a2: var(--text-3);
+  --cd-t7fb86a: var(--success);
+  --cd-t819568: var(--line-3);
+  --cd-t81996c: var(--line-3);
+  --cd-t83986f: var(--line-3);
+  --cd-t839c70: var(--line-3);
+  --cd-t87936a: var(--line-3);
+  --cd-t87976b: var(--line-3);
+  --cd-t88996a: var(--line-3);
+  --cd-t8a5b4a: var(--danger);
+  --cd-t8a5b52: var(--line-2);
+  --cd-t8a5f48: var(--warn);
+  --cd-t8a7748: var(--accent);
+  --cd-t8a7a4a: var(--accent);
+  --cd-t8a9d6b: var(--line-3);
+  --cd-t8aa372: var(--line-3);
+  --cd-t8b7eb8: var(--info);
+  --cd-t8b9a87: var(--text-3);
+  --cd-t8c5347: var(--danger);
+  --cd-t8c9a68: var(--line-3);
+  --cd-t8ca48c: var(--text-3);
+  --cd-t8ec97a: var(--success);
+  --cd-t8fa392: var(--text-3);
+  --cd-t8fa394: var(--text-3);
+  --cd-t8fa47c: var(--text-3);
+  --cd-t8fa692: var(--text-3);
+  --cd-t8fb7d8: var(--info);
+  --cd-t8fd0bd: var(--success);
+  --cd-t91a181: var(--text-3);
+  --cd-t91a392: var(--text-3);
+  --cd-t93a28f: var(--text-3);
+  --cd-t93a692: var(--text-3);
+  --cd-t99a183: var(--text-3);
+  --cd-t9ac99d: var(--text-2);
+  --cd-t9cad7d: var(--text-3);
+  --cd-t9cb18c: var(--text-3);
+  --cd-t9d9276: var(--line-3);
+  --cd-t9daf90: var(--text-3);
+  --cd-t9fb0a2: var(--text-3);
+  --cd-t9fb59f: var(--text-2);
+  --cd-ta3675c: var(--danger);
+  --cd-ta4bb80: var(--success);
+  --cd-ta5b17e: var(--text-3);
+  --cd-ta8834a: var(--accent);
+  --cd-ta8b57c: var(--text-2);
+  --cd-ta8d69a: var(--success);
+  --cd-ta98547: var(--accent);
+  --cd-ta9bda9: var(--text-2);
+  --cd-ta9c2d8: var(--text-2);
+  --cd-ta9c7dd: var(--text-2);
+  --cd-ta9ce9e: var(--text-2);
+  --cd-ta9d99a: var(--success);
+  --cd-taabd9e: var(--text-2);
+  --cd-tacbcb0: var(--text-2);
+  --cd-tb0bc86: var(--text-3);
+  --cd-tb1c48c: var(--text-3);
+  --cd-tb48c42: var(--accent);
+  --cd-tb49b60: var(--accent-strong);
+  --cd-tb5b982: var(--text-3);
+  --cd-tb5c5a4: var(--text-2);
+  --cd-tb6c5a4: var(--text-2);
+  --cd-tb6dba8: var(--text-2);
+  --cd-tb7ac83: var(--text-3);
+  --cd-tb7c8a4: var(--text-2);
+  --cd-tb7cadd: var(--text-2);
+  --cd-tb8bda2: var(--text-2);
+  --cd-tb8cde2: var(--text-1);
+  --cd-tb8d99e: var(--success);
+  --cd-tb9a06a: var(--accent-strong);
+  --cd-tb9c6b6: var(--text-2);
+  --cd-tb9c9a8: var(--text-2);
+  --cd-tb9c9e0: var(--text-1);
+  --cd-tbdc9b1: var(--text-2);
+  --cd-tbdcbb7: var(--text-2);
+  --cd-tc0392b: var(--danger);
+  --cd-tc0cbb6: var(--text-2);
+  --cd-tc1cdab: var(--text-2);
+  --cd-tc2dda6: var(--text-2);
+  --cd-tc3b4e6: var(--text-1);
+  --cd-tc3cba5: var(--text-2);
+  --cd-tc3cca9: var(--text-2);
+  --cd-tc3cfb7: var(--text-2);
+  --cd-tc4d4af: var(--text-2);
+  --cd-tc5d1b5: var(--text-2);
+  --cd-tc6d2c0: var(--text-2);
+  --cd-tc8c0b4: var(--text-2);
+  --cd-tc8c4a3: var(--text-2);
+  --cd-tc8d3ba: var(--text-2);
+  --cd-tc8d3bd: var(--text-2);
+  --cd-tc9705c: var(--danger);
+  --cd-tc99a8f: var(--danger);
+  --cd-tc9d2b3: var(--text-2);
+  --cd-tc9e0b5: var(--text-2);
+  --cd-tcbe0ac: var(--text-2);
+  --cd-tcfd8c2: var(--text-1);
+  --cd-tcfe0c0: var(--text-1);
+  --cd-td5e4ad: var(--text-2);
+  --cd-td6a280: var(--warn);
+  --cd-td6ad63: var(--accent-strong);
+  --cd-td6c99b: var(--accent-strong);
+  --cd-td8dcc8: var(--text-1);
+  --cd-td8e8ba: var(--text-1);
+  --cd-td9665a: var(--danger);
+  --cd-tdccfae: var(--text-2);
+  --cd-te09a86: var(--danger);
+  --cd-te2a35f: var(--accent-strong);
+  --cd-te2b978: var(--accent-strong);
+  --cd-te4dfc3: var(--text-1);
+  --cd-te5b6aa: var(--danger);
+  --cd-te6bc70: var(--accent-strong);
+  --cd-te6e0c9: var(--text-1);
+  --cd-te8a091: var(--danger);
+  --cd-te8c98a: var(--accent-strong);
+  --cd-te8d9b9: var(--text-1);
+  --cd-te8e3ca: var(--text-1);
+  --cd-te9a99a: var(--danger);
+  --cd-te9dfc6: var(--text-1);
+  --cd-tedc47c: var(--accent-strong);
+  --cd-tedd59a: var(--accent-strong);
+  --cd-tf0a98d: var(--danger);
+  --cd-tf0cf94: var(--accent-strong);
+  --cd-tf1d49b: var(--accent-strong);
+  --cd-tf2ddb1: var(--accent-strong);
+  --cd-tf2e6bd: var(--text-1);
+  --cd-tf2e6c9: var(--text-1);
+  --cd-tf2edda: var(--text-1);
+  --cd-tf3b9a0: var(--warn);
+  --cd-tf3c9a0: var(--accent-strong);
+  --cd-tf3d597: var(--accent-strong);
+  --cd-tf3e8cc: var(--text-1);
+  --cd-tf4e3ba: var(--accent-strong);
+  --cd-tf4eedc: var(--text-1);
+  --cd-tf5e4bb: var(--accent-strong);
+  --cd-tf6ecd2: var(--text-1);
+  --cd-tf6f0d9: var(--text-1);
+  --cd-tf7dfac: var(--accent-strong);
+  --cd-tf7e4b8: var(--accent-strong);
+  --cd-tfdf6e3: var(--text-1);
+  --cd-tff5f7a: var(--danger);
+  --cd-tffdf9a: var(--accent-strong);
+  --cd-tfff2d6: var(--text-1);
+  --cd-tfff3d6: var(--text-1);
+  --cd-tfff3da: var(--text-1);
+  --cd-tffffff: var(--text-1);
+  --ts-accent: var(--accent-strong);
+  --ts-danger: var(--danger);
+  --ts-info: var(--text-2);
+  --ts-paper: var(--text-1);
+  --ts-purple: var(--text-1);
+  --ts-success: var(--text-2);
+}
+
+/* Legacy rules that painted a light token as a background.
+   They become dark surfaces, and because their text was dark
+   (it was written for a light panel) the text ramp is reapplied
+   to the panel and its children. */
+#app #view[data-screen="develop"] .develop-brief .develop-ghost:hover{background:var(--surface-2)!important;color:var(--text-1)!important;}
+#app #view[data-screen="develop"] .develop-brief .develop-ghost:hover :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+#app #view[data-screen="develop"] .develop-brief .develop-ghost:hover :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+#app #view[data-screen="productions"] .produce-brief .produce-ghost:hover{background:var(--surface-2)!important;color:var(--text-1)!important;}
+#app #view[data-screen="productions"] .produce-brief .produce-ghost:hover :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+#app #view[data-screen="productions"] .produce-brief .produce-ghost:hover :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+#modalRoot .command-modal .guide-reading #helpSearch{background:var(--surface-2)!important;color:var(--text-1)!important;}
+#modalRoot .command-modal .guide-reading #helpSearch :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+#modalRoot .command-modal .guide-reading #helpSearch :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.command-brief{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.command-brief :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.command-brief :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.develop-brief{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.develop-brief :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.develop-brief :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.guide-reading{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.guide-reading :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.guide-reading :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.guide-reading #helpSearch{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.guide-reading #helpSearch :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.guide-reading #helpSearch :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.inbox-filters button.on{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.inbox-filters button.on :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.inbox-filters button.on :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.inbox-page .inbox-filters button.on{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.inbox-page .inbox-filters button.on :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.inbox-page .inbox-filters button.on :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.pitch-step.on{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.pitch-step.on :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.pitch-step.on :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+.produce-brief{background:var(--surface-2)!important;color:var(--text-1)!important;}
+.produce-brief :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+.produce-brief :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief){background:var(--surface-2)!important;color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] #app #view :is(.command-brief,.develop-brief,.produce-brief) :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+body.ts-deck-theme[data-theme] .command-brief{background:var(--surface-2)!important;color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .command-brief :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .command-brief :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+body.ts-deck-theme[data-theme] .develop-brief{background:var(--surface-2)!important;color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .develop-brief :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .develop-brief :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+body.ts-deck-theme[data-theme] .guide-reading{background:var(--surface-2)!important;color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .guide-reading :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .guide-reading :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+body.ts-deck-theme[data-theme] .guide-reading #helpSearch{background:var(--surface-2)!important;color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .guide-reading #helpSearch :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .guide-reading #helpSearch :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+body.ts-deck-theme[data-theme] .produce-brief{background:var(--surface-2)!important;color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .produce-brief :is(h1,h2,h3,h4,h5,b,strong,em){color:var(--text-1)!important;}
+body.ts-deck-theme[data-theme] .produce-brief :is(p,small,span,li,label,td){color:var(--text-2)!important;}
+
+/* Rules that painted text with a surface token — invisible once
+   the panels went dark. Same selectors, text ramp instead. */
+.command-brief{color:var(--text-2)!important;}
+.command-brief h2{color:var(--text-2)!important;}
+.command-primary{color:var(--text-2)!important;}
+.guide-reading{color:var(--text-2)!important;}
+.guide-reading #helpSearch{color:var(--text-2)!important;}
+.guide-topic h3{color:var(--text-2)!important;}
+#modalRoot .command-modal .guide-topic h3{color:var(--text-2)!important;}
+#modalRoot .command-modal .guide-reading #helpSearch{color:var(--text-2)!important;}
+.develop-brief{color:var(--text-2)!important;}
+.develop-brief h2{color:var(--text-2)!important;}
+#app #view[data-screen="develop"] .develop-brief .develop-ghost{color:var(--text-2)!important;}
+.develop-brief footer>b{color:var(--text-2)!important;}
+.pitch-step.on{color:var(--text-2)!important;}
+.pitch-filter.on b{color:var(--text-2)!important;}
+.inbox-filters button.on{color:var(--text-2)!important;}
+.inbox-page .inbox-filters button.on{color:var(--text-2)!important;}
+.produce-brief{color:var(--text-2)!important;}
+.produce-brief h2{color:var(--text-2)!important;}
+#app #view[data-screen="productions"] .produce-brief .produce-ghost{color:var(--text-2)!important;}
+.produce-brief footer>b{color:var(--text-2)!important;}
+#app #view[data-screen="finance"] .command-finance .fin-chipbtn.active{color:var(--text-2)!important;}

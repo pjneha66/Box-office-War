@@ -27,6 +27,11 @@
 <link rel="stylesheet" href="studio-nextwave.css?v=41.1">
 <link rel="stylesheet" href="theme-studio.css?v=41.1">
 <link rel="stylesheet" href="landscape-phone.css?v=41.1">
+<!-- UI system: single source of truth. Loaded last so it wins over every
+     legacy layer; legacy-map.css re-points the old palettes at these tokens. -->
+<link rel="stylesheet" href="system/tokens.css?v=41.1">
+<link rel="stylesheet" href="system/legacy-map.css?v=41.1">
+<link rel="stylesheet" href="system/components.css?v=41.1">
 </head>
 <body>
 <div id="offlineBanner" class="offline-banner" style="display:none">Offline mode — changes saved locally in device storage</div>
