@@ -8,14 +8,24 @@
 
 ## Screenshots
 
+Captured from the v41.0 build (headless Chrome, a career simulated to year 3). Regenerate with `node scripts/capture-store-screenshots.cjs`.
+
 | | |
 |---|---|
-| ![2D Studio Lot at night](screenshots/showcase-lot-night-web.jpg) | ![Executive dashboard](screenshots/showcase-dashboard-web.jpg) |
-| **2D Studio Lot — night lighting** | **Executive dashboard** |
-| ![Box office charts](screenshots/showcase-boxoffice-web.jpg) | ![Development pipeline](screenshots/showcase-develop-web.jpg) |
-| **Box office charts** | **Development pipeline** |
-| ![Studio lot by day](screenshots/showcase-lot-day-web.jpg) | ![Studio operations](screenshots/showcase-studio-web.jpg) |
-| **Studio lot by day** | **Studio operations** |
+| ![2D studio lot](assets/store/screenshot-studiolot-desktop.png) | ![Executive command desk](assets/store/screenshot-dashboard-desktop.png) |
+| **2D studio lot** | **Executive command desk** |
+| ![Box office desk](assets/store/screenshot-boxoffice-desktop.png) | ![Development desk](assets/store/screenshot-develop-desktop.png) |
+| **Box office** | **Development** |
+| ![Empire desk](assets/store/screenshot-empire-desktop.png) | ![Library desk](assets/store/screenshot-library-desktop.png) |
+| **Empire — franchises and divisions** | **Library — the studio catalogue** |
+
+<p>
+<img src="assets/store/screenshot-home-mobile.png" width="240" alt="Mobile home">
+<img src="assets/store/screenshot-studio-mobile.png" width="240" alt="Mobile studio">
+<img src="assets/store/screenshot-develop-mobile.png" width="240" alt="Mobile develop">
+</p>
+
+*Mobile layout at 390 × 844.*
 
 ---
 
@@ -185,9 +195,9 @@ The v32.13 release delivers a major 2D visual and mechanical overhaul, synthesiz
 
 ---
 
-## Simulation Architecture: 33 Modular Systems
+## Simulation Architecture: 36 Modular Systems
 
-Box Office War is structured into 33 decoupled simulation modules operating on an event-driven weekly tick loop:
+Box Office War is structured into 36 decoupled simulation modules operating on an event-driven weekly tick loop:
 
 | Module File | Simulation System | Core Mechanics |
 |---|---|---|
@@ -225,6 +235,8 @@ Box Office War is structured into 33 decoupled simulation modules operating on a
 | `social-viral-network.js` | Social Viral Network | 4 digital social platforms, algorithmic trend velocity, 6 viral campaigns, and creator ambassador endorsement deals. |
 | `stage-division.js` | Broadway Stage Division | Theatrical houses, musical greenlights, previews & retools, weekly runs, recoupment, national tours, cast albums, staging licences, Tony season. |
 | `sports-stadium-deals.js` | Sports Stadium Megadome | Stadium tier upgrades, corporate naming rights, and exclusive live sports streaming broadcast rights packages. |
+| `industry-expansion-suite.js` | Industry Systems Desk | 24-system directory, green production & ESG shoot credits, press office, chain-of-title clearance, ratings recuts, localization, studio labels, international gross map. |
+| `studio-nextwave-suite.js` | Next Wave Studio Systems | Episode-level series production, production calendar, rival strategy, territory rights terms, awards prestige, consequential incidents, franchise lifecycle, campaign editor, content packs, New Game+. |
 
 ---
 
@@ -279,10 +291,11 @@ python3 -m http.server 8080
 # Open http://localhost:8080 in Chrome, Safari, Firefox, or Edge
 ```
 
-### Android APK (v32.3)
-1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest).
-2. Install the APK on your Android device (Android 8.0 Oreo or higher supported).
+### Android APK (v41.0)
+1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest) — `BoxOfficeWar-41.0.apk`, 21 MB.
+2. Install the APK on your Android device (Android 7.0 Nougat or higher — `minSdk 24`).
 3. The application operates 100% offline, caching all scripts, audio synthesis engines, and SVG assets locally.
+4. Updates install over the previous version without losing saves: every release is signed with the same key.
 
 ### Building the Android APK from Source
 Prerequisites: Node.js 18+, JDK 21, and Android SDK command-line tools.
@@ -328,7 +341,7 @@ npm run validate:slots  # Save slot structural validation (validate-slots.js)
 - **Zero Framework Overhead**: Written in standard, high-performance vanilla JavaScript (ES6+), semantic HTML5, and pure CSS custom properties (`design-tokens.css`).
 - **Deterministic State Serialization**: All game state is encapsulated in a single global object `G`, validated via schema migrations (`migrateSave`), and serialized to browser `localStorage` and `IndexedDB`.
 - **Keyboard Power Tools**: Built-in Command Palette (`Cmd+K` / `Ctrl+K`), arrow-key grid navigation, and comprehensive keyboard shortcuts for high-speed management.
-- **Accessibility & Internationalization**: Screen-reader live regions (`role="status"`, `role="alert"`), system motion preference detection (`prefers-reduced-motion`), and full English / Hindi localization dictionaries.
+- **Accessibility & Internationalization**: Screen-reader live regions (`role="status"`, `role="alert"`), system motion preference detection (`prefers-reduced-motion`), and English / Hindi / Marathi localization dictionaries.
 
 ---
 
