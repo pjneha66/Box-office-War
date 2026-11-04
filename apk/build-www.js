@@ -50,8 +50,14 @@ fs.mkdirSync(WWW, { recursive: true });
 for (const f of FILES) fs.copyFileSync(path.join(ROOT, f), path.join(WWW, f));
 if (fs.existsSync(path.join(ROOT, "assets"))) fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true, filter: skipJunk });
 // The UI system lives in system/ (tokens, legacy palette map, components).
-// Directory copy, not the FILES list, so it keeps its path.
-if (fs.existsSync(path.join(ROOT, "system"))) fs.cpSync(path.join(ROOT, "system"), path.join(WWW, "system"), { recursive: true, filter: skipJunk });
+// Directory copy, not the FILES list, so it keeps its path. The style guide is
+// a developer reference and is not shipped to users.
+if (fs.existsSync(path.join(ROOT, "system"))) {
+  fs.cpSync(path.join(ROOT, "system"), path.join(WWW, "system"), {
+    recursive: true,
+    filter: (src) => skipJunk(src) && !src.endsWith("styleguide.html"),
+  });
+}
 if (fs.existsSync(path.join(ROOT, "pkg"))) fs.cpSync(path.join(ROOT, "pkg"), path.join(WWW, "pkg"), { recursive: true, filter: skipJunk });
 
 // strip the SW registration <script> block from the copied index.html
