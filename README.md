@@ -25,7 +25,7 @@ Captured from the v41.0 build (headless Chrome, a career simulated to year 3). R
 <img src="assets/store/screenshot-develop-mobile.png" width="240" alt="Mobile develop">
 </p>
 
-*Mobile layout at 390 × 844.*
+*Phone layout at 844 × 390 — the Android build is landscape-locked.*
 
 ---
 

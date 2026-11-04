@@ -29,9 +29,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--hide-scrollbars"],
   });
 
-  const page = await browser.newPage();
+  // `page` is reassigned per capture profile: switching a page between desktop
+  // and a mobile profile makes Chrome reload it, which wipes the in-memory
+  // career, so each profile gets its own page and its own seeded simulation.
+  let page;
   const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  const openPage = async (viewport) => {
+    page = await browser.newPage();
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.setViewport(viewport);
+    await page.goto(BASE, { waitUntil: "networkidle0", timeout: 60000 });
+    await sleep(1200);
+    return page;
+  };
 
   const shot = async (name, opts = {}) => {
     const file = path.join(OUT, `${name}.png`);
@@ -58,17 +68,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await sleep(250);
   };
 
-  try {
-    await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
-    await page.goto(BASE, { waitUntil: "networkidle0", timeout: 60000 });
-    await sleep(1200);
-
-    // ---- 1. start screen (pre-career) -------------------------------------
-    await shot("screenshot-start-desktop");
-
-    // ---- boot a career and give it a history ------------------------------
-    // Same scripted-player recipe the balance harness uses: greenlight every
-    // few weeks, date the finished films, and clear pending choices each tick.
+  // Boots the career and fast-forwards it. Same scripted-player recipe the
+  // balance harness uses: greenlight every few weeks, date the finished films,
+  // and clear pending choices each tick. Deterministic via the seeded RNG.
+  const simulate = async () => {
     await page.evaluate((seedInit) => {
       // Deterministic run: seed Math.random so the captured studio is identical
       // on every machine and re-runs do not silently change the store art.
@@ -156,7 +159,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       await clearModals();
     }
 
-    const stats = await page.evaluate(() => ({
+    return page.evaluate(() => ({
       week: G.week,
       films: (G.films || []).length,
       cash: Math.round(G.studio.cash),
@@ -165,6 +168,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       inFlight: (G.projects || []).filter((p) => p.phase !== "delivered").length,
       net8: Math.round((G.txHistory || []).slice(-8).reduce((s, t) => s + (t.net || 0), 0)),
     }));
+  };
+
+  try {
+    // ── desktop ────────────────────────────────────────────────────────────
+    await openPage({ width: 1440, height: 900, deviceScaleFactor: 2 });
+    await shot("screenshot-start-desktop");   // start screen, pre-career
+    const stats = await simulate();
 
     if (SCAN) {
       console.log(
@@ -172,7 +182,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           `$${stats.cash}M · rep ${stats.rep} · net8 ${stats.net8 >= 0 ? "+" : ""}${stats.net8}M`
       );
       return;
-    }    console.log(
+    }
+    console.log(
       `  week ${stats.week} · ${stats.films} releases · ${stats.active} in flight · $${stats.cash}M · rep ${stats.rep}`
     );
 
@@ -199,8 +210,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
 
     // ---- mobile ----------------------------------------------------------
-    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 3 });
-    await sleep(500);
+    // The Android build is landscape-locked (sensorLandscape), so the phone
+    // shots are landscape too: 844x390 CSS px at 3x = 2532x1170. A separate
+    // page is required — flipping a page to a mobile profile reloads it.
+    await openPage({ width: 844, height: 390, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+    await simulate();
     for (const [name, tab] of [
       ["screenshot-home-mobile", "dashboard"],
       ["screenshot-studio-mobile", "studio"],
