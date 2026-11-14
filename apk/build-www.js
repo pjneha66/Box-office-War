@@ -7,6 +7,16 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const WWW = path.join(__dirname, "www");
 
+// --rebuild: package the fresh mobile-first game in game/ as the whole app.
+// The legacy 60-file build below is untouched and still the default.
+const REBUILD = process.argv.includes("--rebuild");
+const GAME_FILES = [
+  "index.html", "style.css", "data.js", "engine.js", "ui.js",
+  "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js",
+  "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js",
+  "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"
+];
+
 const FILES = [
   "index.html",
   "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css", "command-deck.css", "industry-expansion.css", "studio-nextwave.css", "theme-studio.css", "landscape-phone.css",
@@ -47,6 +57,9 @@ function pruneSidecars(dir) {
 
 fs.rmSync(WWW, { recursive: true, force: true });
 fs.mkdirSync(WWW, { recursive: true });
+if (REBUILD) {
+  for (const f of GAME_FILES) fs.copyFileSync(path.join(ROOT, "game", f), path.join(WWW, f));
+} else {
 for (const f of FILES) fs.copyFileSync(path.join(ROOT, f), path.join(WWW, f));
 if (fs.existsSync(path.join(ROOT, "assets"))) fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true, filter: skipJunk });
 // The UI system lives in system/ (tokens, legacy palette map, components).
@@ -59,12 +72,16 @@ if (fs.existsSync(path.join(ROOT, "system"))) {
   });
 }
 if (fs.existsSync(path.join(ROOT, "pkg"))) fs.cpSync(path.join(ROOT, "pkg"), path.join(WWW, "pkg"), { recursive: true, filter: skipJunk });
+}
+
+// strip the SW registration <script> block from the copied index.html
+// (both modes: game/index.html carries the same /* PWA: */ marker)
 
 // strip the SW registration <script> block from the copied index.html
 const idxPath = path.join(WWW, "index.html");
 let idx = fs.readFileSync(idxPath, "utf8");
 const swBlock = /<script>\s*\/\* PWA:[^]*?<\/script>/;
-if (!swBlock.test(idx)) throw new Error("SW registration block not found in index.html");
+if (!swBlock.test(idx)) throw new Error("SW registration block not found in index.html" + (REBUILD ? " (game/)" : ""));
 idx = idx.replace(swBlock, "");
 fs.writeFileSync(idxPath, idx);
 
@@ -72,5 +89,5 @@ fs.writeFileSync(idxPath, idx);
 // ._ sidecars on this volume, so the sweep has to come after all of them.
 const pruned = pruneSidecars(WWW);
 
-console.log("www/ built:", fs.readdirSync(WWW).join(", "));
+console.log("www/ built" + (REBUILD ? " (rebuild)" : "") + ":", fs.readdirSync(WWW).join(", "));
 console.log(`www/ pruned ${pruned} AppleDouble sidecar(s)`);

@@ -1,0 +1,804 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOX OFFICE WAR — UI SYSTEM / GAME SKIN  ("TOYBOX")
+   ═══════════════════════════════════════════════════════════════════════════
+
+   A complete game-style redesign, layered on top of the token system.
+   Activated by `data-skin="game"` on <html>; remove the attribute (or set
+   `data-skin="classic"`) and the app falls back to the graphite/gold skin
+   with zero other changes. Nothing in this file touches :root unconditionally,
+   so the classic skin keeps working.
+
+   Two layers:
+     1. TOKEN RESKIN   html[data-skin="game"] remaps the semantic tokens the
+                        whole app already reads — legacy aliases follow because
+                        they point at the same variables.
+     2. GX COMPONENTS  the game-component library (gx-*), ported from the
+                        requested 21st.dev/uselayouts patterns into vanilla
+                        CSS this WebView can run: tactile-button,
+                        accessible-action, dynamic-toolbar, curve-drawer,
+                        flower-menu, stacked-list, memory-card-stack,
+                        8-bit progress, paper-shred, polaroid-stack, slider,
+                        confidential-folder.
+
+   Rules:
+     - chunky geometry: thick borders, hard bottom edges, deep radii
+     - colour from gx tokens only; no new hex outside this file's token block
+     - every interactive gx component keeps a 44px+ target
+     - `prefers-reduced-motion` kills the theatrics
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ 1. TOKEN RESKIN ═════════════════════════════════════════════════════ */
+
+html[data-skin="game"] {
+  /* Primitives: deep mint-arcade ramp (green-tinted graphite). */
+  --p-neutral-0:  #0a120c;
+  --p-neutral-1:  #0e1a11;
+  --p-neutral-2:  #132216;
+  --p-neutral-3:  #1a2c1d;
+  --p-neutral-4:  #213626;
+  --p-neutral-5:  #2a4230;
+  --p-neutral-6:  #35503b;
+  --p-neutral-7:  #4b6b52;
+  --p-neutral-8:  #71907a;
+  --p-neutral-9:  #9fb8a5;
+  --p-neutral-10: #cfe0d2;
+  --p-neutral-11: #eef6ee;
+
+  --p-gold-300: #ffe89a;
+  --p-gold-400: #ffd45c;
+  --p-gold-500: #eab531;
+  --p-gold-600: #b98a1c;
+  --p-gold-900: #3a2c11;
+
+  /* Semantic layer: the whole app reads these. */
+  --surface-0: var(--p-neutral-0);
+  --surface-1: var(--p-neutral-1);
+  --surface-2: var(--p-neutral-2);
+  --surface-3: var(--p-neutral-3);
+  --surface-4: var(--p-neutral-4);
+
+  --line-1: var(--p-neutral-4);
+  --line-2: var(--p-neutral-5);
+  --line-3: var(--p-neutral-6);
+
+  --text-1: var(--p-neutral-11);
+  --text-2: var(--p-neutral-9);
+  --text-3: var(--p-neutral-8);
+
+  --accent:        #55cc6e;
+  --accent-strong: #7ee08c;
+  --accent-dim:    #2e8f47;
+  --accent-ink:    #04180a;
+  --accent-wash:   rgba(85, 204, 110, .14);
+
+  --success: #55cc6e;
+  --danger:  #ff6a5c;
+  --info:    #58b6ff;
+  --warn:    #ffd45c;
+  --violet:  #b48cff;
+
+  --success-wash: rgba(85, 204, 110, .15);
+  --danger-wash:  rgba(255, 106, 92, .15);
+  --info-wash:    rgba(88, 182, 255, .15);
+  --warn-wash:    rgba(255, 212, 92, .16);
+
+  /* Chunkier geometry. */
+  --r-xs: 8px;
+  --r-sm: 10px;
+  --r: 14px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+
+  --shadow-sm: 0 2px 0 rgba(0, 0, 0, .30);
+  --shadow:    0 3px 0 rgba(0, 0, 0, .35), 0 6px 16px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 6px 0 rgba(0, 0, 0, .35), 0 18px 44px rgba(0, 0, 0, .45);
+  --shadow-xl: 0 10px 0 rgba(0, 0, 0, .30), 0 30px 80px rgba(0, 0, 0, .55);
+
+  /* gx component tokens. */
+  --gx-green:       #55cc6e;
+  --gx-green-hi:    #7ee08c;
+  --gx-green-deep:  #2e8f47;
+  --gx-green-edge:  #1d5c30;
+  --gx-yellow:      #ffd45c;
+  --gx-yellow-deep: #d9a521;
+  --gx-red:         #ff6a5c;
+  --gx-red-deep:    #b23a30;
+  --gx-blue:        #58b6ff;
+  --gx-blue-deep:   #2c6ea8;
+  --gx-violet:      #b48cff;
+  --gx-violet-deep: #6c4bb0;
+  --gx-ink:         #04180a;
+  --gx-paper:       #f6f2e4;
+  --gx-paper-edge:  #d8d1b8;
+  --gx-paper-ink:   #2b2a22;
+  --gx-edge:        rgba(0, 0, 0, .42);
+}
+
+html[data-skin="game"] {
+  color-scheme: dark;
+}
+
+/* Legacy aliases that hardcode the OLD gold hues get re-pointed here, because
+   components.css and legacy-map.css reference them by name only. */
+
+/* ═══ 2. SHELL RESKIN ═════════════════════════════════════════════════════ */
+
+/* TYPE DISCIPLINE — the single biggest de-clutter move. Legacy decks force
+   serif faces with late !important rules; the skin wins the cascade and allows
+   exactly one family. Numbers stay tabular via the root rule in tokens.css. */
+html[data-skin="game"] #app,
+html[data-skin="game"] #app h1, html[data-skin="game"] #app h2,
+html[data-skin="game"] #app h3, html[data-skin="game"] #app h4,
+html[data-skin="game"] #app h5, html[data-skin="game"] #app h6,
+html[data-skin="game"] #app b, html[data-skin="game"] #app strong,
+html[data-skin="game"] #app th, html[data-skin="game"] #app .brand,
+html[data-skin="game"] #app .command-metric > strong,
+html[data-skin="game"] #app .command-desk-grid b,
+html[data-skin="game"] #app .command-brief h2,
+html[data-skin="game"] #app .command-brief b,
+html[data-skin="game"] .modal,
+html[data-skin="game"] .modal h1, html[data-skin="game"] .modal h2,
+html[data-skin="game"] .modal h3, html[data-skin="game"] .modal b,
+html[data-skin="game"] #startScreen,
+html[data-skin="game"] #startScreen h1, html[data-skin="game"] #startScreen h2,
+html[data-skin="game"] #startScreen h3, html[data-skin="game"] #startScreen b {
+  font-family: var(--font-sans) !important;
+  text-decoration: none !important;
+}
+
+/* Buttons become tactile: hard bottom edge, press-down physics. */
+html[data-skin="game"] #app button,
+html[data-skin="game"] #app .btn,
+html[data-skin="game"] .modal button,
+html[data-skin="game"] .modal .btn {
+  box-shadow: 0 3px 0 var(--gx-edge) !important;
+  border-width: 1px !important;
+  font-weight: 700 !important;
+  transition: transform 90ms ease, box-shadow 90ms ease,
+              background var(--fast), border-color var(--fast), color var(--fast) !important;
+}
+html[data-skin="game"] #app button:active,
+html[data-skin="game"] #app .btn:active,
+html[data-skin="game"] .modal button:active,
+html[data-skin="game"] .modal .btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--gx-edge) !important;
+}
+
+/* Primary: green fill, deep green bottom edge. */
+html[data-skin="game"] #app .btn-primary,
+html[data-skin="game"] #app #view .command-primary,
+html[data-skin="game"] .modal .btn-primary {
+  background: var(--gx-green) !important;
+  border-color: var(--gx-green-deep) !important;
+  color: var(--gx-ink) !important;
+  box-shadow: 0 3px 0 var(--gx-green-edge) !important;
+}
+html[data-skin="game"] #app .btn-primary:active,
+html[data-skin="game"] #app #view .command-primary:active {
+  box-shadow: 0 1px 0 var(--gx-green-edge) !important;
+}
+html[data-skin="game"] #app .btn-primary:hover {
+  background: var(--gx-green-hi) !important;
+}
+
+/* Cards: chunky radius, quiet 1px hairline — 2px is reserved for the big
+   containers (deck, modal) so inner cards stop shouting over each other. */
+html[data-skin="game"] #app .card,
+html[data-skin="game"] #app .panel,
+html[data-skin="game"] #app .stat {
+  border-width: 1px !important;
+  border-color: var(--line-2) !important;
+  border-radius: var(--r) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+html[data-skin="game"] #app .modal {
+  border-width: 2px !important;
+  border-color: var(--line-3) !important;
+  border-radius: var(--r-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Ledger chips: quiet pills — 1px, no double-ring against the header. */
+html[data-skin="game"] #app .chip {
+  border: 1px solid var(--line-2) !important;
+  border-radius: var(--r-full) !important;
+  background: var(--surface-2) !important;
+  padding: 3px 9px !important;
+}
+html[data-skin="game"] #app .chip > b { font-weight: 800 !important; }
+html[data-skin="game"] #app .chip-cash {
+  border-color: color-mix(in srgb, var(--gx-green) 55%, var(--line-1)) !important;
+}
+html[data-skin="game"] #app .chip-cash > b { color: var(--gx-green-hi) !important; }
+
+/* Header mark: game cartridge badge. */
+html[data-skin="game"] #app .command-header-mark {
+  background: var(--gx-green) !important;
+  color: var(--gx-ink) !important;
+  border-radius: 9px !important;
+  box-shadow: 0 2px 0 var(--gx-green-edge) !important;
+  font-weight: 900 !important;
+}
+
+/* Tabs: rounded arcade tabs. */
+html[data-skin="game"] #app #tabsNav .tab {
+  border-radius: var(--r-sm) var(--r-sm) 0 0 !important;
+  font-weight: 700 !important;
+}
+html[data-skin="game"] #app #tabsNav .tab.active {
+  color: var(--gx-ink) !important;
+  background: var(--gx-green) !important;
+  border-bottom-color: transparent !important;
+  box-shadow: 0 -2px 0 var(--gx-green-deep) inset, 0 2px 0 var(--gx-green-deep) !important;
+}
+
+/* Section nav sits INSIDE the deck; stop it overlapping the deck border. */
+html[data-skin="game"] #app .command-section-nav {
+  border-radius: var(--r-full) !important;
+  border-width: 1px !important;
+}
+html[data-skin="game"] #app .command-deck .command-section-nav,
+html[data-skin="game"] #app #view .command-section-nav {
+  margin-top: 0 !important;
+}
+html[data-skin="game"] #app .command-section-nav .command-nav-items button {
+  border-radius: var(--r-full) !important;
+  font-weight: 700 !important;
+}
+html[data-skin="game"] #app .command-section-nav .command-nav-items button.active {
+  background: var(--gx-green) !important;
+  border-color: var(--gx-green-deep) !important;
+  color: var(--gx-ink) !important;
+  box-shadow: 0 2px 0 var(--gx-green-edge) !important;
+}
+
+/* Mobile bottom nav: chunky game dock. */
+html[data-skin="game"] #app .bottomnav {
+  background: var(--surface-1) !important;
+  border-top: 2px solid var(--line-2) !important;
+}
+html[data-skin="game"] #app .bottomnav .btab {
+  font-weight: 800 !important;
+  border-radius: var(--r-sm) !important;
+}
+html[data-skin="game"] #app .bottomnav .btab.active {
+  background: var(--gx-green) !important;
+  color: var(--gx-ink) !important;
+  box-shadow: 0 3px 0 var(--gx-green-edge) !important;
+}
+
+/* Next Week FAB: the star of the show. */
+html[data-skin="game"] #app .fab-week {
+  background: var(--gx-green) !important;
+  color: var(--gx-ink) !important;
+  border: 2px solid var(--gx-green-deep) !important;
+  border-radius: var(--r-full) !important;
+  box-shadow: 0 4px 0 var(--gx-green-edge), 0 10px 24px rgba(0, 0, 0, .45) !important;
+  font-weight: 900 !important;
+}
+html[data-skin="game"] #app .fab-week:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--gx-green-edge) !important;
+}
+
+/* Topbar stays glassy but with a thicker game ledge. */
+html[data-skin="game"] #app .topbar {
+  border-bottom: 2px solid var(--line-2) !important;
+}
+
+/* ═══ 3. GX COMPONENTS ════════════════════════════════════════════════════ */
+
+/* ── 3.1 gx-btn — tactile button ─────────────────────────────────────────── */
+.gx-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 16px;
+  font: 800 14px/1 var(--font-sans);
+  color: var(--text-1);
+  background: var(--surface-3);
+  border: 2px solid var(--line-3);
+  border-radius: var(--r-sm);
+  cursor: pointer; user-select: none; white-space: nowrap;
+  box-shadow: 0 4px 0 var(--gx-edge);
+  transition: transform 90ms ease, box-shadow 90ms ease,
+              background var(--fast), border-color var(--fast), color var(--fast);
+}
+.gx-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--gx-edge);
+}
+.gx-btn[disabled], .gx-btn.is-disabled { opacity: .45; pointer-events: none; }
+
+.gx-btn--primary {
+  background: var(--gx-green); border-color: var(--gx-green-deep);
+  color: var(--gx-ink);
+  box-shadow: 0 4px 0 var(--gx-green-edge);
+}
+.gx-btn--primary:active { box-shadow: 0 1px 0 var(--gx-green-edge); }
+.gx-btn--primary:hover { background: var(--gx-green-hi); }
+
+.gx-btn--star {
+  background: var(--gx-yellow); border-color: var(--gx-yellow-deep);
+  color: var(--gx-ink);
+  box-shadow: 0 4px 0 var(--gx-yellow-deep);
+}
+.gx-btn--star:active { box-shadow: 0 1px 0 var(--gx-yellow-deep); }
+
+.gx-btn--danger {
+  background: var(--gx-red); border-color: var(--gx-red-deep);
+  color: #fff6f4;
+  box-shadow: 0 4px 0 var(--gx-red-deep);
+}
+.gx-btn--danger:active { box-shadow: 0 1px 0 var(--gx-red-deep); }
+
+.gx-btn--ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text-2); }
+.gx-btn--ghost:active { transform: none; }
+.gx-btn--ghost:hover { background: var(--surface-3); color: var(--text-1); }
+
+.gx-btn--sm { min-height: 34px; padding: 0 10px; font-size: 12px; border-radius: var(--r-xs); }
+.gx-btn--lg { min-height: 52px; padding: 0 22px; font-size: 16px; border-radius: var(--r); }
+.gx-btn--block { width: 100%; }
+
+/* ── 3.2 gx-action — accessible action (56px, guaranteed contrast) ───────── */
+.gx-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 56px; min-width: 56px; padding: 0 22px;
+  font: 800 16px/1.2 var(--font-sans);
+  color: var(--gx-ink);
+  background: var(--gx-green);
+  border: 2px solid var(--gx-green-deep);
+  border-radius: var(--r);
+  cursor: pointer; user-select: none;
+  box-shadow: 0 5px 0 var(--gx-green-edge);
+  transition: transform 90ms ease, box-shadow 90ms ease, background var(--fast);
+}
+.gx-action:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--gx-green-edge); }
+.gx-action:focus-visible {
+  outline: none;
+  box-shadow: 0 5px 0 var(--gx-green-edge), 0 0 0 3px var(--surface-0), 0 0 0 6px var(--gx-yellow);
+}
+.gx-action--danger { background: var(--gx-red); border-color: var(--gx-red-deep); color: #fff6f4; box-shadow: 0 5px 0 var(--gx-red-deep); }
+.gx-action--block { width: 100%; }
+.gx-action__icon { font-size: 20px; line-height: 1; }
+
+/* ── 3.3 gx-toolbar — dynamic toolbar ────────────────────────────────────── */
+.gx-toolbar {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r-full);
+  backdrop-filter: blur(10px);
+}
+.gx-toolbar__spacer { flex: 1; }
+.gx-toolbar .gx-btn { min-height: 38px; }
+/* Buttons pop out of the rail on hover — the "dynamic" bit. */
+.gx-toolbar .gx-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--gx-edge); }
+.gx-toolbar .gx-btn--primary:hover { box-shadow: 0 6px 0 var(--gx-green-edge); }
+
+/* ── 3.4 gx-drawer — curve drawer (bottom sheet) ─────────────────────────── */
+.gx-drawer-scrim {
+  position: fixed; inset: 0; z-index: calc(var(--z-modal) - 2);
+  background: rgba(4, 12, 6, .55);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--slow);
+}
+.gx-drawer-scrim.is-open { opacity: 1; pointer-events: auto; }
+
+.gx-drawer {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: calc(var(--z-modal) - 1);
+  max-height: min(78dvh, 560px);
+  display: flex; flex-direction: column;
+  background: var(--surface-2);
+  border: 2px solid var(--line-2);
+  border-bottom: 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(105%);
+  transition: transform var(--slow);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.gx-drawer.is-open { transform: translateY(0); }
+.gx-drawer__grip {
+  width: 56px; height: 6px; margin: 10px auto 4px;
+  border-radius: var(--r-full);
+  background: var(--line-3);
+  flex: 0 0 auto;
+}
+.gx-drawer__head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding: 4px var(--space-4) 10px;
+  border-bottom: 2px solid var(--line-1);
+}
+.gx-drawer__title { font: 800 var(--text-lg)/1.2 var(--font-sans); color: var(--text-1); }
+.gx-drawer__body { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-3) var(--space-4); }
+
+/* ── 3.5 gx-flower — flower menu ─────────────────────────────────────────── */
+.gx-flower { position: relative; display: inline-grid; place-items: center; }
+.gx-flower__toggle {
+  position: relative; z-index: 2;
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  font: 900 22px/1 var(--font-sans);
+  color: var(--gx-ink);
+  background: var(--gx-green);
+  border: 2px solid var(--gx-green-deep);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--gx-green-edge);
+  transition: transform var(--spring), background var(--fast);
+}
+.gx-flower__toggle:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--gx-green-edge); }
+.gx-flower.is-open .gx-flower__toggle { transform: rotate(45deg); background: var(--gx-yellow); border-color: var(--gx-yellow-deep); box-shadow: 0 4px 0 var(--gx-yellow-deep); }
+
+.gx-flower__petal {
+  position: absolute; left: 50%; top: 50%;
+  width: 48px; height: 48px; margin: -24px 0 0 -24px;
+  display: grid; place-items: center;
+  font: 800 11px/1 var(--font-sans);
+  color: var(--text-1);
+  background: var(--surface-3);
+  border: 2px solid var(--line-3);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--gx-edge);
+  transform: rotate(calc(var(--i) * (360deg / var(--gx-petals, 6)))) translateY(0) scale(.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--spring), opacity var(--fast);
+}
+.gx-flower.is-open .gx-flower__petal {
+  transform: rotate(calc(var(--i) * (360deg / var(--gx-petals, 6)))) translateY(calc(-1 * var(--gx-radius, 92px))) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.gx-flower__petal:hover { background: var(--gx-green); color: var(--gx-ink); border-color: var(--gx-green-deep); }
+.gx-flower__petal.is-active { background: var(--gx-yellow); color: var(--gx-ink); border-color: var(--gx-yellow-deep); }
+
+/* ── 3.6 gx-stacklist — stacked list (CAST) ──────────────────────────────── */
+.gx-stacklist { display: grid; gap: 10px; }
+.gx-stacklist__item {
+  position: relative;
+  background: var(--surface-2);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r);
+  box-shadow: 0 3px 0 var(--gx-edge);
+  overflow: hidden;
+}
+/* A second card peeking from under the bottom edge — the "stack". */
+.gx-stacklist__item::after {
+  content: "";
+  position: absolute; left: 10px; right: 10px; bottom: -7px; height: 12px;
+  background: var(--surface-3);
+  border: 2px solid var(--line-1);
+  border-radius: var(--r-sm);
+  z-index: -1;
+}
+.gx-stacklist__row {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 10px 12px;
+  background: transparent; border: 0; cursor: pointer;
+  font: 600 var(--text-sm)/1.3 var(--font-sans); color: var(--text-1);
+  text-align: left; min-height: 48px;
+}
+.gx-stacklist__avatar {
+  flex: 0 0 auto; width: 40px; height: 40px;
+  display: grid; place-items: center;
+  font: 900 14px/1 var(--font-sans);
+  color: var(--gx-ink);
+  background: var(--gx-green);
+  border: 2px solid var(--gx-green-deep);
+  border-radius: 50%;
+}
+.gx-stacklist__avatar--alt { background: var(--gx-yellow); border-color: var(--gx-yellow-deep); }
+.gx-stacklist__avatar--alt2 { background: var(--gx-violet); border-color: var(--gx-violet-deep); }
+.gx-stacklist__main { flex: 1; min-width: 0; }
+.gx-stacklist__name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gx-stacklist__meta { font-size: var(--text-xs); color: var(--text-3); }
+.gx-stacklist__side { flex: 0 0 auto; text-align: right; font-variant-numeric: tabular-nums; }
+.gx-stacklist__body { padding: 0 12px 12px; font-size: var(--text-sm); color: var(--text-2); border-top: 2px dashed var(--line-1); padding-top: 10px; }
+.gx-stacklist__item.is-open .gx-stacklist__body { display: block; }
+.gx-stacklist__item .gx-stacklist__body { display: none; }
+
+/* ── 3.7 gx-cardstack — memory card stack (SAVE SLOTS) ───────────────────── */
+.gx-cardstack { position: relative; perspective: 800px; min-height: 150px; }
+.gx-cardstack__card {
+  position: absolute; inset: 0;
+  background: var(--surface-2);
+  border: 2px solid var(--line-3);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-4);
+  transform: rotate(var(--tilt, 0deg)) translateY(var(--lift, 0px)) scale(var(--zoom, 1));
+  transform-origin: 50% 120%;
+  transition: transform var(--spring), opacity var(--fast);
+  cursor: pointer;
+  user-select: none;
+}
+.gx-cardstack__card.is-top { z-index: 3; }
+.gx-cardstack__card:nth-last-child(2) { --tilt: -3deg; --zoom: .95; z-index: 2; opacity: .9; }
+.gx-cardstack__card:nth-last-child(3) { --tilt: 3deg;  --zoom: .9;  z-index: 1; opacity: .75; }
+.gx-cardstack__card.is-sent-left  { transform: rotate(-14deg) translate(-140%, 6%) scale(.9); opacity: 0; }
+.gx-cardstack__card.is-sent-right { transform: rotate(14deg) translate(140%, 6%) scale(.9); opacity: 0; }
+.gx-cardstack__label {
+  font: 600 10px/1 var(--font-sans); letter-spacing: var(--label-tracking);
+  text-transform: uppercase; color: var(--text-3);
+}
+.gx-cardstack__title { font: 900 var(--text-xl)/1.2 var(--font-sans); color: var(--text-1); margin: 4px 0 2px; }
+.gx-cardstack__meta { font-size: var(--text-sm); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.gx-cardstack__stamp {
+  position: absolute; right: 14px; top: 14px;
+  font: 900 11px/1 var(--font-sans); letter-spacing: .08em;
+  color: var(--gx-green-deep);
+  border: 2px solid var(--gx-green-deep);
+  border-radius: var(--r-xs);
+  padding: 4px 7px; transform: rotate(6deg);
+}
+.gx-cardstack__stamp--empty { color: var(--text-3); border-color: var(--line-3); }
+
+/* ── 3.8 gx-progress — 8-bit progress ────────────────────────────────────── */
+.gx-progress { display: grid; gap: 5px; }
+.gx-progress__track {
+  display: flex; gap: 3px;
+  padding: 4px;
+  background: var(--surface-4);
+  border: 2px solid var(--line-3);
+  border-radius: var(--r-xs);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, .35);
+}
+.gx-progress__block {
+  flex: 1; height: 12px; min-width: 6px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .25);
+}
+.gx-progress__block.is-filled {
+  background: var(--gx-green);
+  box-shadow: inset 0 2px 0 var(--gx-green-hi), inset 0 -2px 0 var(--gx-green-edge);
+}
+.gx-progress__block.is-filled:last-child { animation: gx-block-pop 160ms steps(2) 1; }
+.gx-progress--star .gx-progress__block.is-filled {
+  background: var(--gx-yellow);
+  box-shadow: inset 0 2px 0 #ffe89a, inset 0 -2px 0 var(--gx-yellow-deep);
+}
+.gx-progress--danger .gx-progress__block.is-filled {
+  background: var(--gx-red);
+  box-shadow: inset 0 2px 0 #ff9a8f, inset 0 -2px 0 var(--gx-red-deep);
+}
+.gx-progress__label {
+  display: flex; justify-content: space-between;
+  font: 700 10px/1 var(--font-sans); letter-spacing: var(--label-tracking);
+  text-transform: uppercase; color: var(--text-3);
+}
+@keyframes gx-block-pop {
+  0% { transform: scaleY(.4); }
+  100% { transform: scaleY(1); }
+}
+
+/* ── 3.9 gx-shred — paper shred (destructive confirm) ────────────────────── */
+.gx-shredable { position: relative; display: inline-block; }
+.gx-shredable.is-shredding { animation: gx-shred-fall 520ms ease-in forwards; }
+.gx-shred-strip {
+  position: absolute; top: -4px;
+  width: 8px; height: 24px;
+  background: var(--gx-paper);
+  border: 1px solid var(--gx-paper-edge);
+  border-radius: 2px;
+  pointer-events: none;
+  animation: gx-shred-strip 620ms ease-in forwards;
+}
+@keyframes gx-shred-fall {
+  0%   { transform: translateY(0); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateY(18px) rotate(2deg); opacity: 0; }
+}
+@keyframes gx-shred-strip {
+  0%   { transform: translateY(0) rotate(var(--spin, 0deg)); opacity: 1; }
+  100% { transform: translateY(90px) rotate(calc(var(--spin, 0deg) * 3)); opacity: 0; }
+}
+/* Two-step confirm: armed state is loud before the shred. */
+.gx-btn--shred.is-armed {
+  background: var(--gx-red); border-color: var(--gx-red-deep);
+  color: #fff6f4;
+  box-shadow: 0 4px 0 var(--gx-red-deep);
+  animation: gx-arm-shake 300ms ease 1;
+}
+@keyframes gx-arm-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* ── 3.10 gx-polaroid — polaroid stack ───────────────────────────────────── */
+.gx-polaroid-stack { position: relative; display: inline-block; }
+.gx-polaroid {
+  width: 150px;
+  background: var(--gx-paper);
+  border: 1px solid var(--gx-paper-edge);
+  border-radius: 6px;
+  padding: 8px 8px 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .35);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform var(--spring);
+}
+.gx-polaroid__photo {
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(145deg, var(--surface-4), var(--surface-2));
+  border: 1px solid rgba(0, 0, 0, .18);
+  border-radius: 3px;
+  display: grid; place-items: center;
+  font-size: 30px;
+  overflow: hidden;
+}
+.gx-polaroid__photo > img { width: 100%; height: 100%; object-fit: cover; }
+.gx-polaroid__caption {
+  padding-top: 5px;
+  font: 600 italic 11px/1.3 var(--font-sans);
+  color: var(--gx-paper-ink);
+  text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gx-polaroid-stack > .gx-polaroid { position: absolute; inset: 0; }
+.gx-polaroid-stack > .gx-polaroid:nth-child(1) { --tilt: -5deg; }
+.gx-polaroid-stack > .gx-polaroid:nth-child(2) { --tilt: 2.5deg; }
+.gx-polaroid-stack > .gx-polaroid:nth-child(3) { --tilt: 6deg; z-index: 2; }
+.gx-polaroid-stack.is-fanned > .gx-polaroid:nth-child(1) { transform: rotate(-11deg) translate(-14px, 4px); }
+.gx-polaroid-stack.is-fanned > .gx-polaroid:nth-child(2) { transform: rotate(3deg) translate(6px, 2px); }
+.gx-polaroid-stack.is-fanned > .gx-polaroid:nth-child(3) { transform: rotate(9deg) translate(16px, -2px); }
+
+/* ── 3.11 gx-slider — chunky slider ──────────────────────────────────────── */
+.gx-slider { display: grid; gap: 6px; }
+.gx-slider__head { display: flex; justify-content: space-between; align-items: baseline; }
+.gx-slider__label { font: 700 var(--text-sm)/1 var(--font-sans); color: var(--text-2); }
+.gx-slider__value {
+  font: 900 var(--text-md)/1 var(--font-sans); font-variant-numeric: tabular-nums;
+  color: var(--gx-ink);
+  background: var(--gx-yellow);
+  border: 2px solid var(--gx-yellow-deep);
+  border-radius: var(--r-xs);
+  padding: 3px 8px;
+}
+.gx-slider input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 26px;
+  background: transparent; cursor: pointer;
+}
+.gx-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 14px;
+  background:
+    linear-gradient(90deg, var(--gx-green) 0 var(--gx-fill, 50%), var(--surface-4) var(--gx-fill, 50%) 100%);
+  border: 2px solid var(--line-3);
+  border-radius: var(--r-full);
+  box-shadow: inset 0 2px 0 rgba(0, 0, 0, .3);
+}
+.gx-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px; height: 26px; margin-top: -8px;
+  background: var(--gx-yellow);
+  border: 2px solid var(--gx-yellow-deep);
+  border-radius: 50%;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .35);
+}
+.gx-slider input[type="range"]:focus-visible { outline: none; }
+.gx-slider input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .35), 0 0 0 3px var(--surface-0), 0 0 0 5px var(--gx-green);
+}
+
+/* ── 3.12 gx-folder — confidential folder ────────────────────────────────── */
+.gx-folder {
+  position: relative;
+  background: var(--gx-paper);
+  border: 1px solid var(--gx-paper-edge);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--gx-paper-ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .25);
+}
+.gx-folder::before {
+  content: "";
+  position: absolute; left: 0; top: -12px;
+  width: 44%; height: 14px;
+  background: var(--gx-paper);
+  border: 1px solid var(--gx-paper-edge);
+  border-bottom: 0;
+  border-radius: 8px 10px 0 0;
+}
+.gx-folder__stamp {
+  position: absolute; right: 12px; top: 12px;
+  font: 900 10px/1 var(--font-sans); letter-spacing: .12em;
+  color: var(--gx-red-deep);
+  border: 2px solid var(--gx-red-deep);
+  border-radius: 4px;
+  padding: 4px 8px;
+  transform: rotate(7deg);
+  opacity: .85;
+  pointer-events: none;
+}
+.gx-folder__title { font: 900 14px/1.2 var(--font-sans); margin: 0 0 4px; }
+.gx-folder__body { font-size: var(--text-sm); line-height: 1.45; }
+/* Locked state: content blurred until opened. */
+.gx-folder.is-locked .gx-folder__body {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+.gx-folder.is-locked::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(-45deg, transparent 0 12px, rgba(178, 58, 48, .07) 12px 24px);
+}
+.gx-folder__unlock { margin-top: 10px; }
+
+/* ═══ 4. DEMO/SHOWCASE HELPERS (used by game-ui-demo.html) ═════════════════ */
+.gx-demo-wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 60px; }
+.gx-demo-section {
+  background: var(--surface-1);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-top: 18px;
+}
+.gx-demo-section > h2 { margin: 0 0 12px; font: 900 var(--text-lg)/1.2 var(--font-sans); color: var(--text-1); }
+.gx-demo-section > p { margin: 0 0 12px; font-size: var(--text-sm); color: var(--text-2); }
+.gx-demo-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+/* ═══ 5. LANDSCAPE PHONE ═══════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 480px) {
+
+  /* HEADER: one clean row. Brand short, chips tight, buttons compact. */
+  html[data-skin="game"] #app .topbar-row { gap: 6px !important; padding: 4px 8px !important; }
+  html[data-skin="game"] #app .command-header-eyebrow { display: none !important; }
+  html[data-skin="game"] #app .brand {
+    font-size: 12px !important;
+    max-width: 110px !important;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  html[data-skin="game"] #app .command-header-mark {
+    width: 22px !important; height: 22px !important;
+    line-height: 22px !important; font-size: 10px !important;
+  }
+  html[data-skin="game"] #app .command-header-ledger { gap: 4px !important; }
+  html[data-skin="game"] #app .command-header-ledger .chip { padding: 2px 6px !important; gap: 4px; }
+  html[data-skin="game"] #app .command-header-ledger .chip > span { font-size: 7.5px !important; }
+  html[data-skin="game"] #app .command-header-ledger .chip > b { font-size: 11px !important; }
+  html[data-skin="game"] #app .command-time-controls { gap: 3px !important; }
+  html[data-skin="game"] #app .command-time-controls .btn { padding: 0 8px !important; font-size: 11px !important; }
+  html[data-skin="game"] #app .command-header-utilities { gap: 3px !important; padding-left: 0 !important; }
+  html[data-skin="game"] #app .command-header-utilities .btn {
+    min-height: 26px !important; padding: 2px 7px !important; font-size: 10px !important;
+    box-shadow: none !important;
+  }
+  html[data-skin="game"] #app .command-header-actions { gap: 4px !important; }
+  html[data-skin="game"] #app .command-header-actions .btn { min-height: 28px !important; font-size: 11px !important; }
+
+  /* TAB STRIP: tighter, keeps 44px-class targets via height not padding. */
+  html[data-skin="game"] #app #tabsNav .tab { padding: 0 9px !important; font-size: 11.5px !important; }
+
+  /* DENSE DESKS: trim card padding so lists read without the sever look. */
+  html[data-skin="game"] #app #view .card,
+  html[data-skin="game"] #app #view .panel { padding: 10px !important; }
+  html[data-skin="game"] #app #view h1,
+  html[data-skin="game"] #app #view h2 { font-size: 16px !important; }
+
+  /* gx components compact. */
+  .gx-flower__toggle { width: 48px; height: 48px; font-size: 19px; }
+  .gx-flower__petal { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
+  html[data-skin="game"] { --gx-radius: 78px; }
+  .gx-drawer { max-height: 82dvh; }
+  .gx-cardstack { min-height: 118px; }
+  .gx-polaroid { width: 118px; }
+  .gx-action { min-height: 48px; }
+  .gx-btn { min-height: 38px; padding: 0 12px; }
+}
+
+/* ═══ 6. MOTION SAFETY ═════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .gx-btn, .gx-action, .gx-flower__toggle, .gx-flower__petal,
+  .gx-drawer, .gx-drawer-scrim, .gx-cardstack__card,
+  .gx-polaroid, .gx-shredable, .gx-shred-strip {
+    transition: none !important;
+    animation: none !important;
+  }
+}

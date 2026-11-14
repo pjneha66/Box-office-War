@@ -109,6 +109,19 @@
 #app .command-header-actions .btn,
 #app .command-header-utilities .btn { flex: 0 0 auto; }
 
+/* The unread badge is absolutely positioned; with the system's tighter padding
+   it landed on top of the "Inbox" label instead of in the corner. */
+#app #btnBell { position: relative; padding-right: 15px !important; }
+#app #btnBell .bell-badge {
+  top: -3px !important;
+  right: 1px !important;
+  min-width: 13px;
+  height: 13px;
+  line-height: 13px;
+  font-size: 8px;
+  padding: 0 3px;
+}
+
 #app .command-header-mark {
   width: 26px !important; height: 26px !important;
   border-radius: var(--r-xs) !important;

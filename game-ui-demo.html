@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-skin="game">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Box Office War — Game Skin Showcase</title>
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="system/tokens.css?v=41.2">
+<link rel="stylesheet" href="system/legacy-map.css?v=41.2">
+<link rel="stylesheet" href="system/components.css?v=41.2">
+<link rel="stylesheet" href="system/game-ui.css?v=41.2">
+<style>
+  body { margin: 0; background: var(--surface-0); color: var(--text-1); font-family: var(--font-sans); }
+  /* The app shell locks html/body in landscape; this page is a scrollable
+     showcase, so unlock it — this override only affects the demo page. */
+  @media (orientation: landscape) and (max-height: 480px) {
+    html, body { height: auto !important; overflow: auto !important; }
+    .gx-demo-grid { grid-template-columns: 1fr !important; }
+    .gx-flower-demo-pad { padding: 40px 0 24px; }
+  }
+  .gx-demo-masthead { padding: 22px 16px 0; max-width: 1240px; margin: 0 auto; }
+  .gx-demo-masthead h1 { margin: 0; font: 900 26px/1.15 var(--font-sans); letter-spacing: var(--heading-tracking); }
+  .gx-demo-masthead p { margin: 6px 0 0; color: var(--text-2); font-size: var(--text-sm); }
+  .gx-demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .gx-flower-demo-pad { padding: 96px 0 72px; display: grid; place-items: center; }
+</style>
+</head>
+<body>
+<header class="gx-demo-masthead">
+  <h1>TOYBOX — game skin showcase</h1>
+  <p>Every gx-* component in the redesign. The live app reads the same tokens: <code>data-skin="game"</code> on <code>&lt;html&gt;</code> turns it on, removing it restores the classic graphite skin.</p>
+</header>
+
+<main class="gx-demo-wrap">
+  <div class="gx-demo-grid">
+
+    <section class="gx-demo-section">
+      <h2>Tactile buttons</h2>
+      <p>Hard bottom edge, press-down physics.</p>
+      <div class="gx-demo-row">
+        <button class="gx-btn">Studio</button>
+        <button class="gx-btn gx-btn--primary">Next Week</button>
+        <button class="gx-btn gx-btn--star">Awards</button>
+        <button class="gx-btn gx-btn--danger">Cancel Deal</button>
+        <button class="gx-btn gx-btn--ghost">Ghost</button>
+        <button class="gx-btn gx-btn--sm">Small</button>
+        <button class="gx-btn gx-btn--lg gx-btn--primary">Greenlight</button>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Accessible action</h2>
+      <p>56px target, guaranteed contrast, visible focus ring.</p>
+      <div class="gx-demo-row">
+        <button class="gx-action"><span class="gx-action__icon">+</span> Start Production</button>
+        <button class="gx-action gx-action--danger gx-action__icon">Delete Save</button>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Dynamic toolbar</h2>
+      <p>Buttons pop out of the rail on hover.</p>
+      <div class="gx-toolbar">
+        <button class="gx-btn gx-btn--sm gx-btn--primary">Week 12</button>
+        <button class="gx-btn gx-btn--sm">Cast</button>
+        <button class="gx-btn gx-btn--sm">Marketing</button>
+        <span class="gx-toolbar__spacer"></span>
+        <button class="gx-btn gx-btn--sm gx-btn--star">Premiere</button>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>8-bit progress</h2>
+      <p>Segmented blocks; JS fills N of M from a percentage.</p>
+      <div class="gx-progress" data-fill="64" data-blocks="12">
+        <div class="gx-progress__label"><span>HYPE</span><span class="gx-progress__num">64%</span></div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="gx-progress gx-progress--star" data-fill="80" data-blocks="8">
+        <div class="gx-progress__label"><span>MORALE</span><span class="gx-progress__num">80%</span></div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="gx-progress gx-progress--danger" data-fill="30" data-blocks="10">
+        <div class="gx-progress__label"><span>CASH BURN</span><span class="gx-progress__num">30%</span></div>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Stacked list — cast</h2>
+      <p>Tap a row to expand; a second card peeks from under each one.</p>
+      <div class="gx-stacklist">
+        <div class="gx-stacklist__item">
+          <button class="gx-stacklist__row" onclick="this.parentElement.classList.toggle('is-open')">
+            <span class="gx-stacklist__avatar">PB</span>
+            <span class="gx-stacklist__main"><span class="gx-stacklist__name">Parker Bettany</span>
+            <span class="gx-stacklist__meta">Deer · Actor · Star Power 18</span></span>
+            <span class="gx-stacklist__side">$12.5M</span>
+          </button>
+          <div class="gx-stacklist__body">Energy 82 · Morale 100 · Best in Action and Drama. asking for backend points on the next deal.</div>
+        </div>
+        <div class="gx-stacklist__item">
+          <button class="gx-stacklist__row" onclick="this.parentElement.classList.toggle('is-open')">
+            <span class="gx-stacklist__avatar gx-stacklist__avatar--alt">MR</span>
+            <span class="gx-stacklist__main"><span class="gx-stacklist__name">M. Rodrigo</span>
+            <span class="gx-stacklist__meta">Raccoon · Director · 4 hits</span></span>
+            <span class="gx-stacklist__side">$8.0M</span>
+          </button>
+          <div class="gx-stacklist__body">Specialty: ensemble comedies. in a 3-picture handshake.</div>
+        </div>
+        <div class="gx-stacklist__item">
+          <button class="gx-stacklist__row" onclick="this.parentElement.classList.toggle('is-open')">
+            <span class="gx-stacklist__avatar gx-stacklist__avatar--alt2">FZ</span>
+            <span class="gx-stacklist__main"><span class="gx-stacklist__name">F. Zebra</span>
+            <span class="gx-stacklist__meta">Zebra · Writer · optioned 2 scripts</span></span>
+            <span class="gx-stacklist__side">$1.2M</span>
+          </button>
+          <div class="gx-stacklist__body">Drafting the sequel treatment. deliverable in Week 15.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Memory card stack — save slots</h2>
+      <p>Tap the deck to shuffle to the next slot.</p>
+      <div class="gx-cardstack" style="max-width:340px">
+        <div class="gx-cardstack__card">
+          <span class="gx-cardstack__label">Save slot 2</span>
+          <div class="gx-cardstack__title">Lighthouse Pictures</div>
+          <div class="gx-cardstack__meta">Year 3 · Week 22 · $164.5M · 6 releases</div>
+          <span class="gx-cardstack__stamp">SAVED</span>
+        </div>
+        <div class="gx-cardstack__card">
+          <span class="gx-cardstack__label">Save slot 1</span>
+          <div class="gx-cardstack__title">Meridian Films</div>
+          <div class="gx-cardstack__meta">Year 1 · Week 40 · $7.8M · 2 releases</div>
+          <span class="gx-cardstack__stamp">SAVED</span>
+        </div>
+        <div class="gx-cardstack__card">
+          <span class="gx-cardstack__label">Save slot 3</span>
+          <div class="gx-cardstack__title">Empty slot</div>
+          <div class="gx-cardstack__meta">Start a new studio here</div>
+          <span class="gx-cardstack__stamp gx-cardstack__stamp--empty">FREE</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Curve drawer</h2>
+      <p>Rounded bottom sheet with scrim and Escape/scrim dismissal.</p>
+      <div class="gx-demo-row">
+        <button class="gx-btn gx-btn--primary" data-gx-drawer-open="#gxDemoDrawer">Open release calendar</button>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Flower menu</h2>
+      <p>Radial petal menu; petals orbit the toggle.</p>
+      <div class="gx-flower-demo-pad">
+        <div class="gx-flower">
+          <button class="gx-flower__toggle" aria-label="Quick actions">+</button>
+          <button class="gx-flower__petal">Cast</button>
+          <button class="gx-flower__petal">Script</button>
+          <button class="gx-flower__petal">Ads</button>
+          <button class="gx-flower__petal">Loan</button>
+          <button class="gx-flower__petal">Scout</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Confidential folder</h2>
+      <p>Script spoilers stay blurred until unlocked.</p>
+      <div class="gx-folder is-locked">
+        <span class="gx-folder__stamp">CONFIDENTIAL</span>
+        <h3 class="gx-folder__title">Project: NEON TIDE — draft 2</h3>
+        <div class="gx-folder__body">
+          Third-act twist: the stunt double was the saboteur all along. Budget $22M,
+          shoot in Vancouver, target a summer corridor release against the sequel.
+        </div>
+        <button class="gx-btn gx-btn--sm gx-folder__unlock">Reveal treatment</button>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Paper shred</h2>
+      <p>Two-step confirm, then the card shreds. Tap once, then again.</p>
+      <div class="gx-demo-row">
+        <div class="gx-shredable" id="gxShredCard" style="background:var(--gx-paper);border-radius:10px;padding:14px;width:230px;color:var(--gx-paper-ink)">
+          <b style="font-size:13px">Terminated contract</b>
+          <div style="font-size:12px;margin-top:4px">M. Rodrigo — pay-or-play, $8.0M</div>
+        </div>
+        <button class="gx-btn gx-btn--sm" data-gx-shred="#gxShredCard">Shred contract</button>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Polaroid stack</h2>
+      <p>Behind-the-scenes stills; tap to fan.</p>
+      <div class="gx-demo-row">
+        <div class="gx-polaroid-stack" style="position:relative;width:150px;height:190px">
+          <div class="gx-polaroid"><div class="gx-polaroid__photo">🎬</div><div class="gx-polaroid__caption">Day 42, night shoot</div></div>
+          <div class="gx-polaroid"><div class="gx-polaroid__photo">🦌</div><div class="gx-polaroid__caption">Parker, close-up</div></div>
+          <div class="gx-polaroid"><div class="gx-polaroid__photo">🏆</div><div class="gx-polaroid__caption">Gold Reel win</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="gx-demo-section">
+      <h2>Chunky slider</h2>
+      <p>Marketing budget allocation.</p>
+      <div class="gx-slider" style="max-width:340px">
+        <div class="gx-slider__head">
+          <span class="gx-slider__label">Trailers + TV spot</span>
+          <span class="gx-slider__value">45</span>
+        </div>
+        <input type="range" min="0" max="100" value="45" aria-label="Marketing allocation">
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- demo drawer -->
+<div class="gx-drawer-scrim"></div>
+<aside class="gx-drawer" id="gxDemoDrawer" aria-hidden="true" aria-label="Release calendar">
+  <div class="gx-drawer__grip"></div>
+  <div class="gx-drawer__head">
+    <span class="gx-drawer__title">Release calendar</span>
+    <button class="gx-btn gx-btn--sm" data-gx-drawer-close>Close</button>
+  </div>
+  <div class="gx-drawer__body">
+    <div class="gx-stacklist">
+      <div class="gx-stacklist__item"><div class="gx-stacklist__row" style="cursor:default">
+        <span class="gx-stacklist__avatar">W12</span>
+        <span class="gx-stacklist__main"><span class="gx-stacklist__name">NEON TIDE</span><span class="gx-stacklist__meta">3,200 screens · action</span></span>
+      </div></div>
+      <div class="gx-stacklist__item"><div class="gx-stacklist__row" style="cursor:default">
+        <span class="gx-stacklist__avatar gx-stacklist__avatar--alt">W14</span>
+        <span class="gx-stacklist__main"><span class="gx-stacklist__name">PAPER ZOO</span><span class="gx-stacklist__meta">1,800 screens · comedy</span></span>
+      </div></div>
+    </div>
+  </div>
+</aside>
+
+<script src="system/game-ui.js?v=41.2"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="description" content="Box Office War — a clean, phone-first Hollywood studio tycoon. Greenlight films, cast stars, pick your release date and win the weekend.">
+<title>Box Office War</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Icon sprite (inline SVG, zero requests) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5 7 5v13M9.5 12h1m3 0h1m-5 4h1m3 0h1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-clap" viewBox="0 0 24 24"><path d="M4 10h16v10H4zM4 10l1.6-4.2L21 8l-1 2M8.3 4.6 9.8 8.9m2.7-3.2 1.5 4.3m2.7-3.2 1.5 4.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 9V7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a3 3 0 0 0 0 6v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a3 3 0 0 0 0-6zM14 6.5v11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.6"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="7" ry="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.5 9.7l5.9-.8z" fill="currentColor"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4m8-4v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 4v16m8-16v16M3.5 9h4.5m8 0h4.5M3.5 15h4.5m8 0h4.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div id="app">
+  <header id="topbar" hidden>
+    <div class="brand" id="hudStudio">Studio</div>
+    <div class="hud">
+      <span class="chip chip-cash" id="hudCash">$0</span>
+      <span class="chip" id="hudRep" title="Reputation">★ 0</span>
+      <span class="chip" id="hudWeek">Y1·W1</span>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <nav id="tabbar" hidden>
+    <button class="tab" data-action="nav" data-view="studio" aria-label="Studio"><svg><use href="#i-home"/></svg><span>Studio</span></button>
+    <button class="tab" data-action="nav" data-view="develop" aria-label="Develop"><svg><use href="#i-clap"/></svg><span>Develop</span></button>
+    <button class="weekBtn" id="btnWeek" aria-label="Advance one week"><svg><use href="#i-play"/></svg><span>Week</span></button>
+    <button class="tab" data-action="nav" data-view="playing" aria-label="Now playing"><svg><use href="#i-ticket"/></svg><span>Playing</span></button>
+    <button class="tab" data-action="nav" data-view="ledger" aria-label="Ledger"><svg><use href="#i-coin"/></svg><span>Ledger</span></button>
+    <button class="tab" data-action="nav" data-view="more" aria-label="More features"><svg><use href="#i-film"/></svg><span>More</span></button>
+  </nav>
+
+  <div id="sheetWrap" hidden>
+    <div class="sheet-backdrop" data-close="1"></div>
+    <div class="sheet" role="dialog" aria-modal="true" id="sheetBody"></div>
+  </div>
+  <div id="toast" hidden></div>
+</div>
+
+<script>
+  /* PWA: offline cache — stripped from the APK bundle by apk/build-www.js */
+  if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+</script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="tv.js"></script>
+<script src="empire.js"></script>
+<script src="pr.js"></script>
+<script src="biz.js"></script>
+<script src="ott.js"></script>
+<script src="games.js"></script>
+<script src="library.js"></script>
+<script src="exhibition.js"></script>
+<script src="creative.js"></script>
+<script src="finance.js"></script>
+<script src="challenges.js"></script>
+<script src="i18n.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

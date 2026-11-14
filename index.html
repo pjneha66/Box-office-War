@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-skin="game">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#181b1e" id="themeColorMeta">
+<meta name="theme-color" content="#0a120c" id="themeColorMeta">
 <meta name="app-version" content="41.2">
 <meta name="description" content="Box Office War — a movie & series studio tycoon simulation. Greenlight films, survive the box office, build franchises, launch your own streamer and broadcast live TV channels.">
 <meta property="og:title" content="Box Office War — Movie & Series Studio Tycoon">
@@ -32,6 +32,9 @@
 <link rel="stylesheet" href="system/tokens.css?v=41.2">
 <link rel="stylesheet" href="system/legacy-map.css?v=41.2">
 <link rel="stylesheet" href="system/components.css?v=41.2">
+<!-- Game skin ("Toybox"): loaded last so it wins the cascade. Remove
+     data-skin="game" from <html> to fall back to the classic graphite skin. -->
+<link rel="stylesheet" href="system/game-ui.css?v=41.2">
 </head>
 <body>
 <div id="offlineBanner" class="offline-banner" style="display:none">Offline mode — changes saved locally in device storage</div>
@@ -226,6 +229,7 @@
 <script src="box-office-sim-2-cast.js?v=41.2"></script>
 <script src="gamestudio-gdd-engine.js?v=41.2"></script>
 <script src="gamestudio-desk.js?v=41.2"></script>
+<script src="system/game-ui.js?v=41.2"></script>
 <script src="social-viral-network.js?v=41.2"></script>
 <script src="sports-stadium-deals.js?v=41.2"></script>
 <script src="stage-division.js?v=41.2"></script>
