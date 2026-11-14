@@ -50,3 +50,15 @@ AndroidManifest rotation unlocked · fresh save namespace · ES2017-safe JS with
 
 ## 5. Still intentionally out
 2D pixel-lot renderer + agent-life sim + department cutaways (visual layer; its economics live in Lot & staff/facilities) · 16-bit theme suite · synth soundtrack · poster-frame cosmetics. Every mechanic from the v41 game is now in.
+
+---
+
+## 6. Wave 4 (2026-11-15) — the update menu, built
+
+All items from the update menu plus the portrait APK:
+
+- **New systems:** procedural film posters + poster wall · talent social followings · casting chemistry & legendary duos · talent lifecycles (retirements, comebacks, legend status) · youth academy · trailer market · critics relationships · script development passes · ratings board appeals · festival premiere bidding · streaming wars · dynamic ticket pricing · co-production financing · IP marketplace · local-language divisions · CinePass · 24 achievements + trophy gallery · career top-250 · audience analytics · scenario forge · game-studio depth (sequels, engine IP) · deep script-sabotage ops · franchise fatigue review-bombs · theme studio (dark/light/contrast + 4 accents) · synth sound design (opt-in) · genre economics table · text scaling · PWA install prompt
+- **APK is now PORTRAIT-locked** (versionCode 42, versionName 42.1) — built via apktool decode/rebuild of the shell + full web-asset swap, signed with the original keystore
+- Release: https://github.com/pjneha66/Box-office-War/releases/tag/v42.1
+- Verification: all 16 module suites + 300-week sims with 20 files loaded (0 exceptions) + 72/72 headless UI checks (55 desks)
+- Game total: 22 JS files (~8,200 lines), 55 More-tab desks, 4.3 MB APK
