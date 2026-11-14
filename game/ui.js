@@ -144,7 +144,8 @@ function vStart() {
       + '<div class="ds">' + o.perk + " Weekly overhead " + fm(o.overhead) + ".</div></button>";
   });
   html += "</div>"
-    + '<div class="field-label" style="margin-top:16px">Scenario</div><div class="origin">'
+  if (typeof slotPickerHTML === "function") html += slotPickerHTML();
+  html += '<div class="field-label" style="margin-top:16px">Scenario</div><div class="origin">'
     + SCENARIOS.map(function (sc) {
       return '<button data-action="pick-scenario" data-scenario="' + sc.id + '" class="' + (selScenario === sc.id ? "on" : "") + '">'
         + '<div class="nm">' + sc.n + "</div><div class='ds'>" + sc.d + "</div></button>";
@@ -396,11 +397,6 @@ function vLedger() {
     + '<button class="' + (PREFS.font === 126 ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="126">A++</button>'.replace('data-key="accent"', 'data-key="font"')
     + "</div>"
     + '<div class="statrow"><span class="k">Sound effects</span><button class="btn sm" data-action="sound-toggle">' + (typeof SOUND_ON !== "undefined" && SOUND_ON ? "On — tap to mute" : "Off — tap to enable") + "</button></div>"
-    + '<div class="field-label" style="margin-top:12px">Language / भाषा</div><div class="seg">'
-    + '<button class="' + (typeof LANG !== "undefined" && LANG === "en" ? "on" : "") + '" data-action="set-lang" data-lang="en">EN</button>'
-    + '<button class="' + (typeof LANG !== "undefined" && LANG === "hi" ? "on" : "") + '" data-action="set-lang" data-lang="hi">हिन्दी</button>'
-    + '<button class="' + (typeof LANG !== "undefined" && LANG === "mr" ? "on" : "") + '" data-action="set-lang" data-lang="mr">मराठी</button>'
-    + "</div>"
     + '<div class="empty" style="padding:8px 0 0">v1.0 rebuild · autosaves locally after every week</div>'
     + "</div>";
   return html;
@@ -439,13 +435,19 @@ function render() {
   }
   var v = el("view");
   v.scrollTop = 0;
-  if (VIEW === "start") v.innerHTML = vStart();
-  else if (VIEW === "gameover") v.innerHTML = vGameOver();
-  else if (VIEW === "studio") v.innerHTML = vStudio();
-  else if (VIEW === "develop") v.innerHTML = vDevelop();
-  else if (VIEW === "playing") v.innerHTML = vPlaying();
-  else if (VIEW === "ledger") v.innerHTML = vLedger();
-  else if (VIEW === "more") v.innerHTML = vMore();
+  var html = "";
+  if (VIEW === "start") html = vStart();
+  else if (VIEW === "gameover") html = vGameOver();
+  else if (VIEW === "studio") html = vStudio();
+  else if (VIEW === "develop") html = vDevelop();
+  else if (VIEW === "playing") html = vPlaying();
+  else if (VIEW === "ledger") html = vLedger();
+  else if (VIEW === "more") html = vMore();
+  if (typeof tutorialBanner === "function" && VIEW !== "start" && VIEW !== "gameover") {
+    var tb = tutorialBanner();
+    if (tb) html = tb + html;
+  }
+  v.innerHTML = html;
 }
 
 /* ── sheets: greenlight ───────────────────────────────────────── */
@@ -662,6 +664,26 @@ function sheetIncident(pd) {
   openSheet(h);
 }
 
+function openPendingSheet() {
+  var p = S.pending;
+  if (p.type === "poach") return sheetPoach(p);
+  if (p.type === "incident") return sheetIncident(p);
+  if (p.type === "scandal") return sheetScandal(p);
+  /* generic choice sheet: pending.title + pending.text + pending.options[{label, note}] */
+  if (p.options && p.options.length) {
+    var h = '<div class="sheet-head"><h3>' + esc(p.title || "Studio event") + "</h3></div><div class=\"sheet-body\">";
+    if (p.text) h += '<div class="card">' + esc(p.text) + "</div>";
+    h += "<div class='card'>";
+    p.options.forEach(function (o, i) {
+      h += '<div class="statrow"><span class="k">' + esc(o.label) + (o.note ? '<br><small style="color:var(--faint)">' + esc(o.note) + "</small>" : "") + "</span>";
+      h += '<button class="btn sm" data-action="pending-opt" data-idx="' + i + '" ' + (o.cost && S.studio.cash < o.cost ? "disabled" : "") + ">" + (o.cost ? fm(o.cost) : "Free") + "</button></div>";
+    });
+    h += "</div></div>";
+    return openSheet(h);
+  }
+  sheetScandal(p);
+}
+
 function sheetHeirs() {
   var HEIRS = [
     { id: "auteur", n: "The Auteur", d: "+2 quality on every film · directors cost 20% less" },
@@ -710,6 +732,7 @@ function onAction(a, elx) {
   if (typeof creativeAction === "function" && creativeAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof financeAction === "function" && financeAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof challengeAction === "function" && challengeAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof posterAction === "function" && posterAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof posterAction === "function" && posterAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof peopleAction === "function" && peopleAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof mediaAction === "function" && mediaAction(a, elx)) { refreshDeskSheet(); return; }
@@ -847,7 +870,6 @@ function onAction(a, elx) {
       break;
     }
     case "continue-dynasty": sheetHeirs(); break;
-    case "set-lang": setLang(elx.getAttribute("data-lang")); break;
     case "set-pref": setPref(elx.getAttribute("data-key"), elx.getAttribute("data-val")); render(); break;
     case "sound-toggle": setSound(!SOUND_ON); pushToast(SOUND_ON ? "Sound on." : "Sound off.", ""); render(); break;
     case "pwa-install": {
@@ -953,6 +975,27 @@ function onAction(a, elx) {
       render();
       break;
     }
+    case "pending-opt": {
+      var handled = false;
+      if (typeof tvAction === "function") handled = tvAction(a, elx);
+      if (!handled && typeof empireAction === "function") handled = empireAction(a, elx);
+      if (!handled && typeof prAction === "function") handled = prAction(a, elx);
+      if (!handled && typeof bizAction === "function") handled = bizAction(a, elx);
+      if (!handled && typeof ottAction === "function") handled = ottAction(a, elx);
+      if (!handled && typeof gamesAction === "function") handled = gamesAction(a, elx);
+      if (!handled && typeof exhibitionAction === "function") handled = exhibitionAction(a, elx);
+      if (!handled && typeof creativeAction === "function") handled = creativeAction(a, elx);
+      if (!handled && typeof strategyAction === "function") handled = strategyAction(a, elx);
+      if (!handled && typeof metaAction === "function") handled = metaAction(a, elx);
+      if (!handled && typeof peopleAction === "function") handled = peopleAction(a, elx);
+      if (!handled && typeof mediaAction === "function") handled = mediaAction(a, elx);
+      if (!handled && typeof techAction === "function") handled = techAction(a, elx);
+      if (!handled && typeof events2Action === "function") handled = events2Action(a, elx);
+      if (!handled && typeof bizdealAction === "function") handled = bizdealAction(a, elx);
+      if (!handled && typeof meta2Action === "function") handled = meta2Action(a, elx);
+      if (!handled) { S.pending = null; closeSheet(); render(); }
+      break;
+    }
     case "event-pay": {
       var pd = S.pending;
       if (pd && S.studio.cash >= pd.fee) {
@@ -1033,6 +1076,11 @@ function collectDesks() {
   if (typeof MEDIA_DESKS !== "undefined") all = all.concat(MEDIA_DESKS);
   if (typeof STRATEGY_DESKS !== "undefined") all = all.concat(STRATEGY_DESKS);
   if (typeof META_DESKS !== "undefined") all = all.concat(META_DESKS);
+  if (typeof TECH_DESKS !== "undefined") all = all.concat(TECH_DESKS);
+  if (typeof EVENTS2_DESKS !== "undefined") all = all.concat(EVENTS2_DESKS);
+  if (typeof BIZDEAL_DESKS !== "undefined") all = all.concat(BIZDEAL_DESKS);
+  if (typeof SLOTS_DESKS !== "undefined") all = all.concat(SLOTS_DESKS);
+  if (typeof META2_DESKS !== "undefined") all = all.concat(META2_DESKS);
   return all.concat(MORE_LOCAL);
 }
 function findDesk(id) {

@@ -131,3 +131,17 @@ New optional typeof-guarded hooks (engine calls them; define only what you need)
 - checkAchievements() → called weekly (achievements module)
 New files this wave: game/posters.js (posterSVG(film) → svg string; POSTER_DESKS), game/people.js (PEOPLE_DESKS + tickPeople + peopleAction), game/media.js (MEDIA_DESKS + tickMedia + mediaAction), game/strategy.js (STRATEGY_DESKS + tickStrategy + strategyAction), game/meta.js (META_DESKS + metaAction; achievements checkAchievements()).
 Rules unchanged: no self-wrapping, own files only, tests via vm harness calling your tick after advanceWeek.
+
+## Wave-5 addendum
+New optional typeof-guarded hooks (define only what you need):
+- techCraftBonus() → craft add on every film · techOpenMult() → opening mult (tech tree, tech.js)
+- premiereApply(p) → called at releaseFilm with the project (premiere plans, events2.js)
+- awardNightBegin(nominees) → called by yearAwards instead of auto-award when defined; nominees = [{id,title,quality}]; module resolves via S.pending and applies bonuses (events2.js)
+- rivalDealClash(rivalName) → mult on that rival's opening vs your films (negotiation pacts, bizdeal.js)
+- hasPactWith(rivalName) → true blocks that rival's poaching attempts (bizdeal.js)
+- screenCountMult(p) → opening mult from negotiated screen counts (bizdeal.js)
+- crisisYearRoll() → called at year boundary; module may set a crisis year (events2.js)
+- tutorialBanner() → returns HTML banner for current view (ui render calls it guarded; meta2.js)
+- slots.js: save-slot manager via snapshot copies in localStorage key 'bow2.slots'; expose slotPickerHTML() for the start screen.
+- PREFS.frame (poster frame style, slots/theme extras write it; posters.js posterSVG reads it).
+New files: game/tech.js, game/events2.js, game/bizdeal.js, game/slots.js, game/meta2.js.

@@ -77,7 +77,7 @@ for (const vp of VIEWPORTS) {
   const startVisible = await page.evaluate(() => !!document.querySelector(".start h1"));
   startVisible ? ok("start screen renders") : fail("start screen missing");
   const scripts = await page.evaluate(() => document.querySelectorAll("script[src]").length);
-  scripts === 21 ? ok("21 script files (data, engine, 18 modules, ui)") : fail("expected 21 script tags, got " + scripts);
+  scripts === 26 ? ok("26 script files (data, engine, 23 modules, ui)") : fail("expected 26 script tags, got " + scripts);
 
   await page.type("#studioName", "Test Pictures");
   await clickBy(page, '.origin button[data-origin="veteran"]');

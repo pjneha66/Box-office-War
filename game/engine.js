@@ -307,6 +307,7 @@ function computeQuality(p) {
   if (dir && dir.ability === "improv") craft += 4;
   if (act && act.ability === "improv") craft += 4;
   if (typeof chemCraftMod === "function") craft += chemCraftMod(p.dirId, p.actId) || 0;
+  if (typeof techCraftBonus === "function") craft += techCraftBonus() || 0;
   if (S.heirAuteur) craft += 2;
   craft -= Math.min(p.overlapWk || 0, 6) * 0.8;
   var lmQ = (typeof bizLocationMods === "function") ? bizLocationMods(p) : null;
@@ -409,6 +410,8 @@ function expectedOpening(p) {
   if (typeof chemOpenMult === "function") open *= chemOpenMult(p) || 1;
   if (typeof socialBuzzMult === "function") open *= socialBuzzMult(p) || 1;
   if (typeof ticketPricingMult === "function") open *= ticketPricingMult(p) || 1;
+  if (typeof screenCountMult === "function") open *= screenCountMult(p) || 1;
+  if (typeof techOpenMult === "function") open *= techOpenMult() || 1;
   if (typeof plfOpeningMult === "function") open *= plfOpeningMult(p) || 1;
   if (typeof franchiseOpeningMult === "function") open *= franchiseOpeningMult(p) || 1;
   if (typeof imprintOpeningMult === "function") open *= imprintOpeningMult(p) || 1;
@@ -452,6 +455,7 @@ function releaseFilm(p) {
   if (act && act.ability === "legs") legs += 0.10;
   if (cmR && cmR.legs) legs += cmR.legs;
   if (p.pricingLegs) legs += p.pricingLegs;
+  if (p.screenLegs) legs += p.screenLegs;
   legs = clamp(legs, 1.4, 4.4);
   var cost = Math.round((p.budgetNow + p.mkt + p.dirFee + p.actFee + p.scriptCost) * 10) / 10;
   var f = {
@@ -465,6 +469,7 @@ function releaseFilm(p) {
     releaseWeek: p.releaseWeek, season: season.name,
     franchiseOf: p.franchiseOf || null,
     presale: p.presale || 0, revShare: p.revShare || 0, insured: !!p.insured,
+    screenRental: p.screenRental || 0,
     window: p.window || 45,
     status: "run"
   };
@@ -477,6 +482,7 @@ function releaseFilm(p) {
   log("“" + f.title + "” opens to " + fm(f.opening) + " — critics " + rv.criticAvg + "%, audiences " + aud + "%.", f.opening >= 40 ? "gold" : "", "🎟️");
   toast("“" + f.title + "” opens at " + fm(f.opening) + "!", f.opening >= 30 ? "good" : "");
   if (typeof chainWindowBump === "function") chainWindowBump(p.window || 45);
+  if (typeof premiereApply === "function") premiereApply(p, f);
   return f;
 }
 
@@ -493,7 +499,7 @@ function tickTheatrical() {
     if (gross < Math.max(0.25, f.opening * 0.006) || f.weeksOut > 16) { endTheatrical(f); continue; }
     f.dom += gross;
     f.weekly.push(gross);
-    earn(gross * 0.52 * (typeof rentalSplitMult === "function" ? rentalSplitMult() : 1), "Box office · " + f.title);
+    earn(gross * 0.52 * (typeof rentalSplitMult === "function" ? rentalSplitMult() : 1) * (1 + (f.screenRental || 0)), "Box office · " + f.title);
   }
 }
 
@@ -511,7 +517,8 @@ function endTheatrical(f) {
   earn(intlRentals, "International · " + f.title);
   earn(pvod, "Streaming & PVOD · " + f.title);
   S.studio.catalog += ww * 0.35;
-  var profit = f.dom * 0.52 * (typeof rentalSplitMult === "function" ? rentalSplitMult() : 1) + intlRentals + pvod - f.cost;
+  var rentMult = (typeof rentalSplitMult === "function" ? rentalSplitMult() : 1) * (1 + (f.screenRental || 0));
+  var profit = f.dom * 0.52 * rentMult + intlRentals + pvod - f.cost;
   f.profit = Math.round(profit * 10) / 10;
   if (profit > 0) {
     S.stats.hits++;
@@ -608,6 +615,7 @@ function tickRivals() {
         open = slot.openEst * season.s * S.econ.box * rf(0.85, 1.2);
         var myW = myWeightAt(S.studio.week);
         if (myW > 0) open *= clamp(1 / (1 + Math.pow(myW / Math.max(open, 1), 0.8)), 0.45, 1);
+      if (typeof rivalDealClash === "function") open *= rivalDealClash(S.rivals[r].name) || 1;
         legs = clamp(1.8 + (slot.quality - 30) * 0.03 + g.legs, 1.4, 4.4);
         decay = 1 - 1 / legs;
         var rec = { id: "rf" + (S.seq++), title: slot.title, genre: slot.genre, rival: S.rivals[r].name, opening: Math.round(open * 10) / 10, legs: legs, decay: decay, weeksOut: 0, weekly: [], status: "run" };
@@ -834,6 +842,9 @@ function tickMine() {
   var st = S.studio, i, t;
   if (S.strike > 0) S.strike--;
   if (S.piracy > 0) S.piracy--;
+  /* crisis years: at a year boundary a hard year may begin */
+  if (st.woy === 1 && !S.crisisDone && typeof crisisYearRoll === "function") { S.crisisDone = true; crisisYearRoll(); }
+  if (st.woy === 2) S.crisisDone = false;
   /* genre trends drift every quarter */
   if ([1, 14, 27, 40].indexOf(st.woy) >= 0) {
     var moved = null, biggest = 0;
@@ -866,8 +877,10 @@ function tickMine() {
       if (!talentBusy(t) && t.power >= 4 && !isAgencyClient(t)) cands.push(t);
     }
     if (cands.length) {
+      var poacher = pick(S.rivals);
+      if (typeof hasPactWith === "function" && hasPactWith(poacher.name)) return;
       var v = pick(cands);
-      S.pending = { type: "poach", tid: v.id, rival: pick(S.rivals).name, fee: Math.round(feeFor(v, 60) * 0.5 * 10) / 10 };
+      S.pending = { type: "poach", tid: v.id, rival: poacher.name, fee: Math.round(feeFor(v, 60) * 0.5 * 10) / 10 };
       log("🕵️ " + v.n + " is being courted by " + S.pending.rival + " over lunch.", "bad", "🕵️");
     }
   }
@@ -890,14 +903,16 @@ function checkMilestones() {
   if (seq) milestone("sequel", "Your first franchise sequel is in production");
 }
 function yearAwards() {
-  var best = null, i, f, bestScore = -1;
+  var best = null, i, f, bestScore = -1, noms = [];
   for (i = 0; i < S.yearOfFilms.length; i++) {
     f = findFilm(S.yearOfFilms[i]);
+    if (f && f.quality >= 70) noms.push({ id: f.id, title: f.title, quality: f.quality });
     if (f && f.quality >= 75) {
       var sc = f.quality + (typeof awardPoints === "function" ? (awardPoints(f.id) || 0) * 3 : 0);
       if (sc > bestScore) { bestScore = sc; best = f; }
     }
   }
+  if (typeof awardNightBegin === "function" && noms.length) { awardNightBegin(noms, best); S.yearOfFilms = []; return; }
   if (best) {
     S.studio.rep = clamp(S.studio.rep + 8, 0, 100);
     S.studio.catalog += 25;
@@ -959,6 +974,10 @@ function advanceWeek() {
   if (typeof tickMedia === "function") tickMedia();
   if (typeof tickStrategy === "function") tickStrategy();
   if (typeof tickMeta === "function") tickMeta();
+  if (typeof tickTech === "function") tickTech();
+  if (typeof tickEvents2 === "function") tickEvents2();
+  if (typeof tickMeta2 === "function") tickMeta2();
+  if (typeof tickBizdeal === "function") tickBizdeal();
   tickMine();
 
   churnTalent();

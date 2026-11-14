@@ -33,15 +33,5 @@ var I18N = {
   }
 };
 
-var LANG = "en";
-try { LANG = localStorage.getItem("bow2.lang") || "en"; } catch (e) {}
-
-function t(s) {
-  if (LANG === "en" || !I18N[LANG]) return s;
-  return I18N[LANG][s] || s;
-}
-function setLang(l) {
-  LANG = l;
-  try { localStorage.setItem("bow2.lang", l); } catch (e) {}
-  render();
-}
+var LANG = "en"; /* English-only build — language selector removed */
+function t(s) { return s; }

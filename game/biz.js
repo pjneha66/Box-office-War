@@ -396,7 +396,11 @@ function bizPresaleCfg(pid) {
   if (!S.biz.presaleCfg[pid]) S.biz.presaleCfg[pid] = { term: 52, loc: false };
   return S.biz.presaleCfg[pid];
 }
-function bizProjectedWW(p) { return scaleOf(p.scale).openBase * genreOf(p.genre).mass * 2.5; }
+function bizProjectedWW(p) {
+  /* bizdeal.js: regional reputation (EU/APAC/CN) lifts presale offers ×0.8–1.2 (avg rep /250) */
+  var rm = (typeof dealRegionalMult === "function") ? dealRegionalMult() : 1;
+  return scaleOf(p.scale).openBase * genreOf(p.genre).mass * 2.5 * rm;
+}
 function bizSellPresale(pid, share, type, regionId) {
   ensure();
   var p = findProject(pid);
@@ -871,7 +875,7 @@ function deskPresales() {
     rev25 += "</div>";
     rows += '<div class="card">'
       + statrow(esc(p.title), bizPhase(p.phase) + " · " + sold)
-      + statrow("Projected worldwide", fm(ww))
+      + statrow("Projected worldwide", fm(ww / ((typeof dealRegionalMult === "function") ? dealRegionalMult() : 1)))
       + '<div class="field-label">Rights term (scales the upfront)</div>' + seg
       + '<div class="field-label">Localization (+$0.8M per deal · offer ×1.25)</div>' + seg2
       + '<div class="field-label">Minimum guarantee</div>'
