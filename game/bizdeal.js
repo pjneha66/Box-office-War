@@ -180,12 +180,15 @@ function dealWeekly() {
     f = S.films[i];
     if (f.status !== "done" || f.regionalCounted) continue;
     f.regionalCounted = true;
+    var orbAP = (typeof officeRegionalBonus === "function") ? officeRegionalBonus("APAC") : 0;
+    var orbCN = (typeof officeRegionalBonus === "function") ? officeRegionalBonus("CN") : 0;
+    var orbEU = (typeof officeRegionalBonus === "function") ? officeRegionalBonus("EU") : 0;
     if (intlHeavy.indexOf(f.genre) >= 0) {
-      S.deal.regional.APAC = clamp(S.deal.regional.APAC + 4, 0, 100);
-      S.deal.regional.CN = clamp(S.deal.regional.CN + 4, 0, 100);
+      S.deal.regional.APAC = clamp(S.deal.regional.APAC + 4 + orbAP, 0, 100);
+      S.deal.regional.CN = clamp(S.deal.regional.CN + 4 + orbCN, 0, 100);
       log("“" + f.title + "” played strong overseas — APAC and CN reputation +4.", "", "🌏");
     } else if (euHeavy.indexOf(f.genre) >= 0) {
-      S.deal.regional.EU = clamp(S.deal.regional.EU + 4, 0, 100);
+      S.deal.regional.EU = clamp(S.deal.regional.EU + 4 + orbEU, 0, 100);
       log("“" + f.title + "” charmed European buyers — EU reputation +4.", "", "🌏");
     }
   }

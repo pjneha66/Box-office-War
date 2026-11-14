@@ -721,6 +721,7 @@ function sheetScandal(pd) {
 
 /* ── actions ──────────────────────────────────────────────────── */
 function onAction(a, elx) {
+  if (S) {
   if (typeof tvAction === "function" && tvAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof empireAction === "function" && empireAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof prAction === "function" && prAction(a, elx)) { refreshDeskSheet(); return; }
@@ -733,11 +734,22 @@ function onAction(a, elx) {
   if (typeof financeAction === "function" && financeAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof challengeAction === "function" && challengeAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof posterAction === "function" && posterAction(a, elx)) { refreshDeskSheet(); return; }
-  if (typeof posterAction === "function" && posterAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof peopleAction === "function" && peopleAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof mediaAction === "function" && mediaAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof strategyAction === "function" && strategyAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof metaAction === "function" && metaAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof techAction === "function" && techAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof events2Action === "function" && events2Action(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof bizdealAction === "function" && bizdealAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof slotsAction === "function" && slotsAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof meta2Action === "function" && meta2Action(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof crewAction === "function" && crewAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof masteryAction === "function" && masteryAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof worldAction === "function" && worldAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof licensingAction === "function" && licensingAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof awardsAction === "function" && awardsAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof festivalAction === "function" && festivalAction(a, elx)) { refreshDeskSheet(); return; }
+  }
   var id = elx.getAttribute("data-id");
   switch (a) {
     case "nav": VIEW = elx.getAttribute("data-view"); render(); break;
@@ -993,6 +1005,12 @@ function onAction(a, elx) {
       if (!handled && typeof events2Action === "function") handled = events2Action(a, elx);
       if (!handled && typeof bizdealAction === "function") handled = bizdealAction(a, elx);
       if (!handled && typeof meta2Action === "function") handled = meta2Action(a, elx);
+      if (!handled && typeof crewAction === "function") handled = crewAction(a, elx);
+      if (!handled && typeof masteryAction === "function") handled = masteryAction(a, elx);
+      if (!handled && typeof worldAction === "function") handled = worldAction(a, elx);
+      if (!handled && typeof licensingAction === "function") handled = licensingAction(a, elx);
+      if (!handled && typeof awardsAction === "function") handled = awardsAction(a, elx);
+      if (!handled && typeof festivalAction === "function") handled = festivalAction(a, elx);
       if (!handled) { S.pending = null; closeSheet(); render(); }
       break;
     }

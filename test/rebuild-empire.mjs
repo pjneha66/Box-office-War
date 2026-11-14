@@ -360,9 +360,33 @@ check("empRecoupCount counts recouped stage shows",
   ctx.empRecoupCount() === recouped && recouped >= 1, `count=${ctx.empRecoupCount()}`);
 
 const uniHtml = ctx.EMPIRE_DESKS.find((d) => d.id === "emp-franchise").render();
-check("franchise desk renders the shared-universe card (lore, fatigue, revival rows) clean",
+check("franchise desk renders the shared-universe card (lore, fatigue, revival rows, expansion button) clean",
   typeof uniHtml === "string" && uniHtml.indexOf("Shared universe") >= 0 && uniHtml.indexOf("Revive") >= 0
-  && uniHtml.indexOf("NaN") < 0 && uniHtml.indexOf("undefined") < 0, "");
+  && uniHtml.indexOf("emp-uni-expand") >= 0 && uniHtml.indexOf("NaN") < 0 && uniHtml.indexOf("undefined") < 0, "");
+
+/* ── wave 6: universe expansion ($12M, lore +8 clamped 100, 8-week cooldown) ── */
+S().emp.universe.expandWk = null;
+S().emp.universe.lore = 80;
+S().studio.cash = 2;
+check("expansion: insufficient cash rejected — lore and cash untouched",
+  ctx.empireAction("emp-uni-expand", elx({})) === true && S().emp.universe.lore === 80 && S().studio.cash === 2, "");
+
+const wkE = S().studio.week;
+S().studio.cash = 900;
+ctx.empireAction("emp-uni-expand", elx({}));
+check("expansion: $12M spent, lore 80→88, exact news logged, week stamped",
+  S().studio.cash === 888 && S().emp.universe.lore === 88 && S().emp.universe.expandWk === wkE
+  && S().news.some((n) => n.txt === "The universe expands — new worlds, new characters."), `lore=${S().emp.universe.lore}`);
+
+const reCd = ctx.empireAction("emp-uni-expand", elx({}));
+const loreAfterRetry = S().emp.universe.lore, cashAfterRetry = S().studio.cash;
+S().emp.universe.lore = 95;
+S().emp.universe.expandWk = wkE - 8; /* cooldown elapsed */
+ctx.empireAction("emp-uni-expand", elx({}));
+check("cooldown: immediate retry rejected (lore/cash unchanged); after 8 wks allowed, lore clamped at 100",
+  reCd === true && loreAfterRetry === 88 && cashAfterRetry === 888
+  && S().emp.universe.lore === 100 && S().emp.universe.expandWk === wkE && S().studio.cash === 876,
+  `lore=${S().emp.universe.lore} cash=${S().studio.cash}`);
 
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures === 0 ? 0 : 1);

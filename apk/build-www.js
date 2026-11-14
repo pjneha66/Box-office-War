@@ -16,6 +16,7 @@ const GAME_FILES = [
   "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js", "sound.js",
   "posters.js", "people.js", "media.js", "strategy.js", "meta.js",
   "tech.js", "events2.js", "bizdeal.js", "slots.js", "meta2.js",
+  "crew.js", "mastery.js", "world.js", "licensing.js", "awards.js", "festivals.js",
   "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"
 ];
 

@@ -148,6 +148,7 @@ function feeFor(t, budget) {
   if (isAgencyClient(t)) f *= 0.9;
   if (t.picDeal) f *= t.picDeal.pics >= 5 ? 0.75 : 0.85;
   if (S.heirAuteur && t.k === "dir") f *= 0.8;
+  if (typeof agencyFeeMult === "function") f *= agencyFeeMult(t) || 1;
   return Math.round(f * 10) / 10;
 }
 function findTalent(id) { var i; for (i = 0; i < S.market.length; i++) if (S.market[i].id === id) return S.market[i]; return null; }
@@ -308,6 +309,11 @@ function computeQuality(p) {
   if (act && act.ability === "improv") craft += 4;
   if (typeof chemCraftMod === "function") craft += chemCraftMod(p.dirId, p.actId) || 0;
   if (typeof techCraftBonus === "function") craft += techCraftBonus() || 0;
+  if (typeof crewMods === "function") { var cmw = crewMods(p); if (cmw && cmw.craft) craft += cmw.craft; }
+  if (typeof masteryCraftMod === "function") craft += masteryCraftMod(p.genre) || 0;
+  if (p.extendCraft) craft += p.extendCraft;
+  if (p.reshootScene) craft += 2;
+  if (p.locationShoot) craft += 3;
   if (S.heirAuteur) craft += 2;
   craft -= Math.min(p.overlapWk || 0, 6) * 0.8;
   var lmQ = (typeof bizLocationMods === "function") ? bizLocationMods(p) : null;
@@ -410,6 +416,7 @@ function expectedOpening(p) {
   if (typeof chemOpenMult === "function") open *= chemOpenMult(p) || 1;
   if (typeof socialBuzzMult === "function") open *= socialBuzzMult(p) || 1;
   if (typeof ticketPricingMult === "function") open *= ticketPricingMult(p) || 1;
+  if (typeof masteryOpenMult === "function") open *= masteryOpenMult(p.genre) || 1;
   if (typeof screenCountMult === "function") open *= screenCountMult(p) || 1;
   if (typeof techOpenMult === "function") open *= techOpenMult() || 1;
   if (typeof plfOpeningMult === "function") open *= plfOpeningMult(p) || 1;
@@ -913,6 +920,7 @@ function yearAwards() {
     }
   }
   if (typeof awardNightBegin === "function" && noms.length) { awardNightBegin(noms, best); S.yearOfFilms = []; return; }
+  if (typeof extraAwardCategories === "function") extraAwardCategories(S.yearOfFilms.map(function (id) { return findFilm(id); }).filter(function (x) { return x; }));
   if (best) {
     S.studio.rep = clamp(S.studio.rep + 8, 0, 100);
     S.studio.catalog += 25;
@@ -1080,6 +1088,35 @@ function retire(heirId) {
   carry.films = franch.slice(0, 2);
   try { localStorage.setItem("bow2.legacy.v1", JSON.stringify({ score: Math.round(S.studio.lifetime + S.stats.hits * 80), name: S.studio.name, year: S.studio.year, carry: carry })); } catch (e) {}
   return { ok: true, carry: carry };
+}
+
+/* ── production choices: rush / extend / reshoot a scene ────── */
+function rushFilm(pid) {
+  var p = findProject(pid);
+  if (!p || p.phase !== "shoot" || p.rushed || S.studio.cash < p.budget * 0.12) return false;
+  spend(p.budget * 0.12, "Rush · " + p.title);
+  p.rushed = true;
+  p.phaseLen.shoot = Math.max(1, p.phaseLen.shoot - 1);
+  log("“" + p.title + "” goes into rush mode — one week faster, money burns.", "", "⚡");
+  return true;
+}
+function extendFilm(pid) {
+  var p = findProject(pid);
+  if (!p || p.phase !== "shoot" || p.extended || S.studio.cash < p.budget * 0.05) return false;
+  spend(p.budget * 0.05, "Extended takes · " + p.title);
+  p.extended = true;
+  p.extendCraft = 3;
+  p.phaseLen.shoot += 1;
+  log("“" + p.title + "” gets extended takes — one more week, better film.", "good", "🎬");
+  return true;
+}
+function reshootScene(pid) {
+  var p = findProject(pid);
+  if (!p || p.phase !== "shoot" || p.reshotScene || S.studio.cash < p.budget * 0.06) return false;
+  spend(p.budget * 0.06, "Reshoot a scene · " + p.title);
+  p.reshotScene = true;
+  log("One scene of “" + p.title + "” gets reshot with a new idea.", "good", "🎬");
+  return true;
 }
 
 /* ── scenario win check ───────────────────────────────────── */

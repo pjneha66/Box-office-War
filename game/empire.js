@@ -410,6 +410,20 @@ function empDoCharter() {
   log("🌐 Shared universe chartered — franchise openings now scale with lore and fatigue (lore starts at 85).", "gold", "🌐");
   empToast("Shared universe chartered.", "good");
 }
+/* wave 6: universe expansion ($12M, lore +8, 8-week cooldown) */
+function empDoUniExpand() {
+  if (!S.emp.universe) { empToast("Charter a shared universe first.", "bad"); return; }
+  if (S.emp.universe.expandWk && S.studio.week - S.emp.universe.expandWk < 8) {
+    empToast("The universe is still unfolding — next expansion in " + (8 - (S.studio.week - S.emp.universe.expandWk)) + " wks.", "bad");
+    return;
+  }
+  if (S.studio.cash < 12) { empToast("Need " + fm(12) + " to expand the universe.", "bad"); return; }
+  spend(12, "Universe expansion");
+  S.emp.universe.lore = clamp(S.emp.universe.lore + 8, 40, 100);
+  S.emp.universe.expandWk = S.studio.week;
+  log("The universe expands — new worlds, new characters.", "gold", "🌌");
+  empToast("Universe expanded.", "good");
+}
 /* wave 3: $8M revival per fatigued franchise — −14 fatigue pts + one-shot +18% next opening */
 function empDoRevival(name) {
   if (!S.emp.universe) { empToast("Charter a shared universe first.", "bad"); return; }
@@ -605,6 +619,7 @@ function empireAction(a, elx) {
     case "emp-desk": empOpenDesk(empAttr(elx, "data-id")); return true;
     case "emp-x-go": empDoCrossover(); empAfterAction(); return true;
     case "emp-universe-charter": empDoCharter(); empAfterAction(); return true;
+    case "emp-uni-expand": empDoUniExpand(); empAfterAction(); return true;
     case "emp-revival": empDoRevival(empAttr(elx, "data-id")); empAfterAction(); return true;
     case "emp-merch": empDoMerch(empAttr(elx, "data-id"), empAttr(elx, "data-key")); empAfterAction(); return true;
     case "emp-park-build": empDoParkBuild(); empAfterAction(); return true;
@@ -646,8 +661,13 @@ function empDeskUniverse() {
       + "Cash after: " + fm(S.studio.cash - 30) + " · chartering is permanent.</div>";
     return html + "</div>";
   }
-  var i, eff = empGlobalFatigue(), fatigued = false;
+  var i, eff = empGlobalFatigue(), fatigued = false,
+      uniCd = S.emp.universe.expandWk && S.studio.week - S.emp.universe.expandWk < 8;
   html += statrow("Lore", S.emp.universe.lore + " / 100", S.emp.universe.lore >= 85 ? "up" : "")
+    + '<div class="statrow"><span class="k">Universe expansion (' + fm(12) + " · lore +8 · "
+      + (uniCd ? Math.max(8 - (S.studio.week - S.emp.universe.expandWk), 0) + " wks left" : "ready") + ')</span>'
+      + '<button class="btn sm" data-action="emp-uni-expand" '
+      + (uniCd || S.studio.cash < 12 ? "disabled" : "") + ">Expand</button></div>"
     + statrow("Franchises linked", S.emp.franchises.length)
     + statrow("Franchise releases this year", empFrCount())
     + statrow("Franchise fatigue", eff > 0 ? eff + " pts · openings ×" + Math.round((1 - eff / 150) * 100) / 100 : "None", eff > 0 ? "" : "up");
@@ -660,7 +680,7 @@ function empDeskUniverse() {
       + (S.studio.cash < 8 ? "disabled" : "") + ">Revive · " + fm(8) + "</button></div>";
   }
   if (fatigued) html += '<div class="empty" style="padding:6px 0 0">A revival campaign eases that franchise by 14 pts and opens its next film +18%.</div>';
-  html += '<div class="empty" style="padding:6px 0 0">Quality franchise releases +3 lore · flops −8 · fatigue builds past 2 franchise releases a year.</div>';
+  html += '<div class="empty" style="padding:6px 0 0">Quality franchise releases +3 lore · flops −8 · expansions $12M (lore +8, 8-wk cooldown) · fatigue builds past 2 franchise releases a year.</div>';
   return html + "</div>";
 }
 

@@ -145,3 +145,13 @@ New optional typeof-guarded hooks (define only what you need):
 - slots.js: save-slot manager via snapshot copies in localStorage key 'bow2.slots'; expose slotPickerHTML() for the start screen.
 - PREFS.frame (poster frame style, slots/theme extras write it; posters.js posterSVG reads it).
 New files: game/tech.js, game/events2.js, game/bizdeal.js, game/slots.js, game/meta2.js.
+
+## Wave-6 addendum
+New optional typeof-guarded hooks:
+- crewMods(p) → {craft} add at computeQuality (crew.js: DP/editor/composer bonuses)
+- masteryCraftMod(genre) → craft add · masteryOpenMult(genre) → opening mult (mastery.js)
+- agencyFeeMult(talent) → mult on talent fee (mastery.js agency relationships)
+- filmEndBonuses(f) → [{label, amt}] earned at endTheatrical (composer soundtrack income, licensing? no — licensing is its own weekly)
+- extraAwardCategories(yearFilms) → called after Best Picture at yearAwards (awards expansion)
+- Production choices are ENGINE functions now (integrator added): rushFilm(pid) $=budget*0.12 → shoot −1 wk; extendFilm(pid) $=budget*0.05 → shoot +1 wk & +3 craft (p.extendCraft); reshootScene(pid) $=budget*0.06 → +2 craft once — crew.js desks call these.
+New files: game/crew.js (CREW_DESKS + tickCrew + crewAction), game/mastery.js (MASTERY_DESKS + masteryAction), game/world.js (WORLD_DESKS + tickWorld + worldAction), game/licensing.js (LICENSING_DESKS + tickLicensing + licensingAction), game/festivals.js (FESTIVAL_DESKS + festivalAction; may edit game/empire.js minimally for universe expansion).
