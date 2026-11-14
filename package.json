@@ -26,7 +26,7 @@
     "art:studio": "node scripts/build-studio-art.cjs",
     "apk:web": "node apk/build-www.js",
     "apk:web:rebuild": "node apk/build-www.js --rebuild",
-    "test:rebuild": "node test/rebuild-tv.mjs && node test/rebuild-empire.mjs && node test/rebuild-pr.mjs && node test/rebuild-biz.mjs && node test/rebuild-ott.mjs && node test/rebuild-games.mjs && node test/rebuild-library.mjs && node test/rebuild-exhibition.mjs && node test/rebuild-creative.mjs && node test/rebuild-finance.mjs && node test/rebuild-challenges.mjs && node test/rebuild-sim.mjs 300 6",
+    "test:rebuild": "node test/rebuild-tv.mjs && node test/rebuild-empire.mjs && node test/rebuild-pr.mjs && node test/rebuild-biz.mjs && node test/rebuild-ott.mjs && node test/rebuild-games.mjs && node test/rebuild-library.mjs && node test/rebuild-exhibition.mjs && node test/rebuild-creative.mjs && node test/rebuild-finance.mjs && node test/rebuild-challenges.mjs && node test/rebuild-posters.mjs && node test/rebuild-people.mjs && node test/rebuild-media.mjs && node test/rebuild-strategy.mjs && node test/rebuild-meta.mjs && node test/rebuild-sim.mjs 300 6",
     "test:rebuild:ui": "node test/rebuild-ui.mjs",
     "test:packaging": "node apk/build-www.js && node test/lot-packaging.cjs",
     "test:lot:departments": "node test/lot-departments-browser.cjs",

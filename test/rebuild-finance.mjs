@@ -60,7 +60,7 @@ for (const tok of ["?.", "??", ".flatMap(", ".flat(", "Object.fromEntries", "glo
 }
 check("exports finAction / fmc / forecastAdjust / finEnsure",
   typeof C.finAction === "function" && typeof C.fmc === "function" &&
-  typeof C.forecastAdjust === "function" && typeof C.finEnsure === "function");
+  typeof C.forecastAdjust_finance === "function" && typeof C.finEnsure === "function");
 check("FINANCE_DESKS is a shaped 1-desk array (fin-desk / Finance desk)",
   Array.isArray(C.FINANCE_DESKS) && C.FINANCE_DESKS.length === 1 &&
   C.FINANCE_DESKS[0].id === "fin-desk" && C.FINANCE_DESKS[0].group === "Finance desk" &&
@@ -69,7 +69,7 @@ check("FINANCE_DESKS is a shaped 1-desk array (fin-desk / Finance desk)",
 
 /* ── week 1: lazy ensure + desk shape ─────────────────────────── */
 C.newGame("Fin Test Studios", "veteran");
-check("forecastAdjust() → 0 (finance moves no cash)", C.forecastAdjust(50) === 0);
+check("forecastAdjust() → 0 (finance moves no cash)", C.forecastAdjust_finance(50) === 0);
 deskHtml();
 check("S.fin namespace created lazily by desk render", !!S().fin && S().fin.currency === "USD");
 let html = deskHtml();

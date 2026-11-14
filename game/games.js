@@ -122,7 +122,7 @@ function gamesFinishDev() {
 }
 
 /* ── forecast hook (engine's 12-week cashflow adds this) ──────── */
-function forecastAdjust(weekAbs) {
+function forecastAdjust_games(weekAbs) {
   if (!S || !S.games || !S.games.released) return 0;
   var t = 0, i, g, d;
   for (i = 0; i < S.games.released.length; i++) {

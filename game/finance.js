@@ -194,4 +194,4 @@ var FINANCE_DESKS = [
     render: finDesk }
 ];
 
-function forecastAdjust() { return 0; } /* finance moves no cash — uniform with library.js */
+function forecastAdjust_finance() { return 0; } /* finance moves no cash — uniform with library.js */

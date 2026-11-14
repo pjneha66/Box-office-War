@@ -306,6 +306,7 @@ function computeQuality(p) {
   if (act && act.ability === "method") craft += 2;
   if (dir && dir.ability === "improv") craft += 4;
   if (act && act.ability === "improv") craft += 4;
+  if (typeof chemCraftMod === "function") craft += chemCraftMod(p.dirId, p.actId) || 0;
   if (S.heirAuteur) craft += 2;
   craft -= Math.min(p.overlapWk || 0, 6) * 0.8;
   var lmQ = (typeof bizLocationMods === "function") ? bizLocationMods(p) : null;
@@ -405,6 +406,9 @@ function expectedOpening(p) {
   if (p.franchiseOf && act && act.ability === "franchise") abF *= 1.08;
   var open = sc.openBase * g.mass * g.open * starF * mktF * season.s * repF * frF * buzzF * abF * S.econ.box;
   open *= ((S.trends && S.trends[p.genre]) || 1);
+  if (typeof chemOpenMult === "function") open *= chemOpenMult(p) || 1;
+  if (typeof socialBuzzMult === "function") open *= socialBuzzMult(p) || 1;
+  if (typeof ticketPricingMult === "function") open *= ticketPricingMult(p) || 1;
   if (typeof plfOpeningMult === "function") open *= plfOpeningMult(p) || 1;
   if (typeof franchiseOpeningMult === "function") open *= franchiseOpeningMult(p) || 1;
   if (typeof imprintOpeningMult === "function") open *= imprintOpeningMult(p) || 1;
@@ -420,6 +424,7 @@ function reviewFilm(p, q) {
   for (i = 0; i < 5; i++) {
     c = pick(CRITICS);
     var adj = c.harsh + (c.loves.indexOf(p.genre) >= 0 ? 4 : 0) - (c.hates.indexOf(p.genre) >= 0 ? 4 : 0);
+    if (typeof criticRelAdj === "function") adj += criticRelAdj(c.n) || 0;
     score = clamp(Math.round(q + g.critic + adj + gauss() * 3), 5, 98);
     scores.push(score);
     var bank = score >= 75 ? QUOTE_GOOD : score >= 45 ? QUOTE_MID : QUOTE_BAD;
@@ -434,18 +439,19 @@ function releaseFilm(p) {
   var g = genreOf(p.genre);
   var opening = expectedOpening(p);
   var act0 = findTalent(p.actId), dir0 = findTalent(p.dirId);
-  var qEff = p.quality - (p.recut ? 2 : 0);
+  var qEff = p.quality - (p.recut ? 2 : 0) - (p.cut ? 2 : 0);
   var shield = (act0 && act0.ability === "shield") || (dir0 && dir0.ability === "shield") ? 3 : 0;
   var rv = reviewFilm(p, qEff + shield);
   var act = act0;
   var cmR = (typeof creativeProjectMods === "function") ? creativeProjectMods(p) : null;
-  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + (p.recut ? 5 : 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
+  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
   var season = seasonOf(woyOf(p.releaseWeek));
   var legs = 1.8 + (qEff - 30) * 0.03 + g.legs
     + (aud >= 80 ? 0.10 : aud <= 40 ? -0.15 : 0)
     + (season.hol ? 0.10 : 0);
   if (act && act.ability === "legs") legs += 0.10;
   if (cmR && cmR.legs) legs += cmR.legs;
+  if (p.pricingLegs) legs += p.pricingLegs;
   legs = clamp(legs, 1.4, 4.4);
   var cost = Math.round((p.budgetNow + p.mkt + p.dirFee + p.actFee + p.scriptCost) * 10) / 10;
   var f = {
@@ -949,13 +955,19 @@ function advanceWeek() {
   if (typeof tickLibrary === "function") tickLibrary();
   if (typeof tickExhibition === "function") tickExhibition();
   if (typeof tickCreative === "function") tickCreative();
+  if (typeof tickPeople === "function") tickPeople();
+  if (typeof tickMedia === "function") tickMedia();
+  if (typeof tickStrategy === "function") tickStrategy();
+  if (typeof tickMeta === "function") tickMeta();
   tickMine();
 
   churnTalent();
+  if (typeof seedFollowings === "function") seedFollowings();
   refreshIdeas();
   if (st.woy === WEEKS_PER_YEAR) yearAwards();
   checkMilestones();
   checkScenario();
+  if (typeof checkAchievements === "function") checkAchievements();
 
   if (S.weekTx) {
     S.txHistory.unshift(S.weekTx);

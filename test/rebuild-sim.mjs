@@ -36,7 +36,7 @@ function makeCtx() {
 
 function loadEngine(ctx) {
   const sandbox = vm.createContext(ctx);
-  const files = ["data.js", "engine.js", "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js", "exhibition.js", "creative.js", "finance.js", "challenges.js"]
+  const files = ["data.js", "engine.js", "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js", "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js", "sound.js", "posters.js", "people.js", "media.js", "strategy.js", "meta.js"]
     .filter((f) => existsSync(path.join(gameDir, f)));
   loaded = files;
   for (const f of files) {

@@ -58,6 +58,7 @@
 <script>
   /* PWA: offline cache — stripped from the APK bundle by apk/build-www.js */
   if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__deferredPrompt = e; });
 </script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
@@ -73,6 +74,12 @@
 <script src="finance.js"></script>
 <script src="challenges.js"></script>
 <script src="i18n.js"></script>
+<script src="sound.js"></script>
+<script src="posters.js"></script>
+<script src="people.js"></script>
+<script src="media.js"></script>
+<script src="strategy.js"></script>
+<script src="meta.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

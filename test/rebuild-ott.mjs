@@ -49,7 +49,7 @@ for (const tok of ["?.", "??", ".flatMap(", ".flat(", "Object.fromEntries", "glo
   check("ES2017-safe: no '" + tok + "'", !src.includes(tok));
 }
 check("exports tickOTT/ottAction/forecastAdjust",
-  typeof C.tickOTT === "function" && typeof C.ottAction === "function" && typeof C.forecastAdjust === "function");
+  typeof C.tickOTT === "function" && typeof C.ottAction === "function" && typeof C.forecastAdjust_ott === "function");
 check("OTT_DESKS is the ott-deals desk in TV & Streaming",
   Array.isArray(C.OTT_DESKS) && C.OTT_DESKS.length === 1 &&
   C.OTT_DESKS[0].id === "ott-deals" && C.OTT_DESKS[0].group === "TV & Streaming" &&
@@ -74,7 +74,7 @@ function advance(n) {
     if (st.cash < minCash) minCash = st.cash;
     if (S().over) { threw = "studio went bankrupt at week " + st.week; return; }
     if (S().ott.offers.length > 4) capHeld = false;
-    const fa = C.forecastAdjust(st.week);
+    const fa = C.forecastAdjust_ott(st.week);
     if (!(typeof fa === "number" && isFinite(fa) && fa >= 0)) forecastOk = false;
     if (S().weekTx) for (const r of S().weekTx.rows) if (r.k === "OTT tail · Prestige Fake") tailRows++;
   }
@@ -107,7 +107,7 @@ check("8 platforms seeded at rel 50",
   S().ott.platforms.length === 8 && S().ott.platforms.every((p) => p.rel === 50 && p.n && isFinite(p.generosity)),
   S().ott.platforms.map((p) => p.n + ":" + p.rel).join(","));
 check("offers/deals/declined start empty", S().ott.offers.length === 0 && S().ott.deals.length === 0 && Object.keys(S().ott.declined).length === 0);
-const fa0 = C.forecastAdjust(1);
+const fa0 = C.forecastAdjust_ott(1);
 check("forecastAdjust returns a number ≥ 0 pre-deals", typeof fa0 === "number" && fa0 >= 0 && fa0 === 0, String(fa0));
 
 /* seed released films directly into S.films (window 45 default / 90 long / 17 short) */
@@ -151,12 +151,12 @@ check("ledger row 'OTT deal · title' = pay1",
   S().weekTx.rows.some((r) => r.k === "OTT deal · Prestige Fake" && nearly(r.v, pay1)));
 
 /* forecastAdjust: tails scheduled for weeks since+1 .. until */
-check("forecastAdjust(accept week) = 0", C.forecastAdjust(wk8) === 0, String(C.forecastAdjust(wk8)));
-check("forecastAdjust(wk+1) = tail", nearly(C.forecastAdjust(wk8 + 1), tail), String(C.forecastAdjust(wk8 + 1)));
-check("forecastAdjust(until) = tail", nearly(C.forecastAdjust(wk8 + 8), tail), String(C.forecastAdjust(wk8 + 8)));
-check("forecastAdjust(until+1) = 0", C.forecastAdjust(wk8 + 9) === 0, String(C.forecastAdjust(wk8 + 9)));
+check("forecastAdjust(accept week) = 0", C.forecastAdjust_ott(wk8) === 0, String(C.forecastAdjust_ott(wk8)));
+check("forecastAdjust(wk+1) = tail", nearly(C.forecastAdjust_ott(wk8 + 1), tail), String(C.forecastAdjust_ott(wk8 + 1)));
+check("forecastAdjust(until) = tail", nearly(C.forecastAdjust_ott(wk8 + 8), tail), String(C.forecastAdjust_ott(wk8 + 8)));
+check("forecastAdjust(until+1) = 0", C.forecastAdjust_ott(wk8 + 9) === 0, String(C.forecastAdjust_ott(wk8 + 9)));
 S().ott.deals.push({ filmId: "fx", title: "Synth", platId: "maxx", tail: 0.5, weekly: 0.5, since: wk8 + 1, until: wk8 + 4 });
-check("forecastAdjust sums concurrent deals", nearly(C.forecastAdjust(wk8 + 2), tail + 0.5), String(C.forecastAdjust(wk8 + 2)));
+check("forecastAdjust sums concurrent deals", nearly(C.forecastAdjust_ott(wk8 + 2), tail + 0.5), String(C.forecastAdjust_ott(wk8 + 2)));
 S().ott.deals.splice(S().ott.deals.findIndex((d) => d.filmId === "fx"), 1);
 
 /* ── decline: rel −3, 12-week cooldown for that film+platform ─── */

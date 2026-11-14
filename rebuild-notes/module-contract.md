@@ -122,3 +122,12 @@ New optional hooks (define only what you need):
 - forecastAdjust(weekAbs) already exists; empRecoupCount() optional.
 engine.js now also: f.revShare (0..0.6) deducted from intl rentals at endTheatrical; cult_icon ability boosts PVOD ×1.35.
 New files this wave: game/exhibition.js, game/creative.js, game/finance.js, game/challenges.js, game/i18n.js.
+
+## Wave-4 addendum
+New optional typeof-guarded hooks (engine calls them; define only what you need):
+- chemCraftMod(dirId, actId) → craft add (casting chemistry) · chemOpenMult(p) → opening mult
+- socialBuzzMult(p) → opening mult from lead's social following · ticketPricingMult(p) → opening mult (pricing strategy)
+- criticRelAdj(criticName) → per-critic review score add (critics relationships)
+- checkAchievements() → called weekly (achievements module)
+New files this wave: game/posters.js (posterSVG(film) → svg string; POSTER_DESKS), game/people.js (PEOPLE_DESKS + tickPeople + peopleAction), game/media.js (MEDIA_DESKS + tickMedia + mediaAction), game/strategy.js (STRATEGY_DESKS + tickStrategy + strategyAction), game/meta.js (META_DESKS + metaAction; achievements checkAchievements()).
+Rules unchanged: no self-wrapping, own files only, tests via vm harness calling your tick after advanceWeek.

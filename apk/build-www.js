@@ -13,7 +13,8 @@ const REBUILD = process.argv.includes("--rebuild");
 const GAME_FILES = [
   "index.html", "style.css", "data.js", "engine.js", "ui.js",
   "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js",
-  "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js",
+  "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js", "sound.js",
+  "posters.js", "people.js", "media.js", "strategy.js", "meta.js",
   "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"
 ];
 

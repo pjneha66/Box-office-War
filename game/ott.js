@@ -192,7 +192,7 @@ function tickOTT() {
 
 /* Engine forecast hook: net $M this module adds to a given absolute week. Tails only —
    a pay-1 lands when the player accepts, which a forecast can't schedule. */
-function forecastAdjust(weekAbs) {
+function forecastAdjust_ott(weekAbs) {
   if (!S || !S.ott) return 0;
   var sum = 0, i, d;
   for (i = 0; i < S.ott.deals.length; i++) {

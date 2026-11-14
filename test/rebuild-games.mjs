@@ -49,7 +49,7 @@ for (const tok of ["?.", "??", ".flatMap(", ".flat(", "Object.fromEntries", "glo
 }
 check("exports tickGames/gamesAction/forecastAdjust",
   typeof C.tickGames === "function" && typeof C.gamesAction === "function" &&
-  typeof C.forecastAdjust === "function");
+  typeof C.forecastAdjust_games === "function");
 check("GAMES_DESKS is a shaped 1-desk array (games-hq / Game studio)",
   Array.isArray(C.GAMES_DESKS) && C.GAMES_DESKS.length === 1 &&
   C.GAMES_DESKS[0].id === "games-hq" && C.GAMES_DESKS[0].group === "Game studio" &&
@@ -96,7 +96,7 @@ function stub(key, idx) {
 C.newGame("Games Test Studios", "major");
 C.tickGames();
 check("S.games namespace created lazily by tickGames", !!S().games && S().games.studio === false);
-check("forecastAdjust is a number and 0 with no releases", typeof C.forecastAdjust(50) === "number" && C.forecastAdjust(50) === 0);
+check("forecastAdjust is a number and 0 with no releases", typeof C.forecastAdjust_games(50) === "number" && C.forecastAdjust_games(50) === 0);
 check("develop rejected before founding", !!C.gamesStartDev().err);
 check("engine R&D rejected before founding", !!C.gamesEngineUp().err);
 check("booth rejected outside GameCon window (woy " + woy() + ")", !!C.gamesBooth().err);
@@ -146,12 +146,12 @@ check("4 press reviews recorded", Array.isArray(g1.reviews) && g1.reviews.length
 const avg = Math.round(g1.reviews.reduce((a, r) => a + r.score, 0) / g1.reviews.length);
 check("pressAvg = mean of the 4 reviews", g1.pressAvg === avg && g1.pressAvg >= 5 && g1.pressAvg <= 99, String(g1.pressAvg));
 check("release week recorded, no boost without booth", g1.relWeek === 9 && g1.boost === 1 && g1.sold === 0 && g1.done === false);
-check("sales run not started at release week: forecast(9)=0", C.forecastAdjust(9) === 0);
-const f10 = C.forecastAdjust(10);
+check("sales run not started at release week: forecast(9)=0", C.forecastAdjust_games(9) === 0);
+const f10 = C.forecastAdjust_games(10);
 check("forecastAdjust(week+1) > 0", f10 > 0, String(f10));
 check("forecast matches earn formula (quality/100·budget·0.42·0.85^0)",
   nearly(f10, Math.round((g1.quality / 100) * 10 * 0.42 * 1 * 10) / 10));
-check("forecast is 0 past the 10-week run", C.forecastAdjust(20) === 0);
+check("forecast is 0 past the 10-week run", C.forecastAdjust_games(20) === 0);
 
 /* ── sales run weeks 10–19 ────────────────────────────────────── */
 advance(1); /* week 10: first sales week */
@@ -198,7 +198,7 @@ check("dev2 completed and released with GameCon boost",
 const g2 = S().games.released[0];
 check("GameCon flag consumed: boost ×1.2", g2.boost === 1.2 && S().games.conBooth === false);
 check("g1 boost untouched", g1.boost === 1);
-const f33 = C.forecastAdjust(33);
+const f33 = C.forecastAdjust_games(33);
 check("boosted forecast = formula ×1.2", nearly(f33, Math.round((g2.quality / 100) * 25 * 0.42 * Math.pow(0.85, 0) * 1.2 * 10) / 10) && f33 > 0, String(f33));
 
 advance(10); /* weeks 33–42: g2 sales run completes */
@@ -216,8 +216,8 @@ let fieldsFinite = typeof G.studio === "boolean" && isFinite(G.engineLvl) && isF
     && g.reviews.every((r) => isFinite(r.score)));
 check("all games state fields finite", fieldsFinite);
 check("both games done, totals positive", G.released.length === 2 && G.released.every((g) => g.done && g.sold > 0));
-check("forecastAdjust returns a number at end", typeof C.forecastAdjust(S().studio.week + 1) === "number");
-check("forecastAdjust far-future week is 0", C.forecastAdjust(9999) === 0);
+check("forecastAdjust returns a number at end", typeof C.forecastAdjust_games(S().studio.week + 1) === "number");
+check("forecastAdjust far-future week is 0", C.forecastAdjust_games(9999) === 0);
 desksRenderClean("(w61, 2 released games, picker state kept)");
 
 console.log("\n" + (failures ? "FAILED " + failures + "/" + checks : "ALL " + checks + " CHECKS PASSED") + " · " + weeksDriven + " weeks · min cash " + Math.round(minCash) + "M");

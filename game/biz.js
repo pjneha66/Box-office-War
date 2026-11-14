@@ -457,7 +457,8 @@ function bizPresaleCfgSet(pid, key, val) {
 /* ── espionage (passive ops + active missions) ────────────────── */
 var BIZ_OPS = {
   intel: { name: "Intel",          cost: 0.65, risk: 0.05 },
-  leak:  { name: "Counter-PR leak", cost: 1.25, risk: 0.10 }
+  leak:  { name: "Counter-PR leak", cost: 1.25, risk: 0.10 },
+  sabot: { name: "Script sabotage", cost: 2.50, risk: 0.15 }
 };
 function bizEspBuild() {
   ensure();
@@ -477,6 +478,7 @@ function bizEspOp(rivalName, op) {
   for (i = 0; i < S.rivals.length; i++) if (S.rivals[i].name === rivalName) r = S.rivals[i];
   if (!r) { toast("Unknown rival.", "bad"); return false; }
   if (op === "leak" && S.biz.esp.suppressed[rivalName]) { toast(rivalName + "'s next opening is already suppressed.", ""); return false; }
+  if (op === "sabot" && S.biz.esp.deepLeak === rivalName) { toast(rivalName + "'s script is already sabotaged.", ""); return false; }
   if (S.studio.cash < O.cost) { toast("Need " + fm(O.cost) + " for the " + O.name.toLowerCase() + " mission.", "bad"); return false; }
   spend(O.cost, "Espionage · " + O.name + " · " + rivalName);
   if (chance(O.risk)) {
@@ -495,6 +497,9 @@ function bizEspOp(rivalName, op) {
       txt.push("“" + top[i].title + "” (wk " + top[i].week + ", Q" + top[i].quality + ")");
     }
     log(txt.length ? "Espionage: intel on " + rivalName + " — " + txt.join(", ") + "." : "Espionage: " + rivalName + " has no future slots to scout.", "", "🕵️");
+  } else if (op === "sabot") {
+    S.biz.esp.deepLeak = rivalName;
+    log("Script sabotage planted — " + rivalName + "'s next opening will run 15% soft (one shot).", "good", "🕵️");
   } else {
     S.biz.esp.suppressed[rivalName] = true;
     log("Counter-PR leak seeded — " + rivalName + "'s next opening will run 22% soft (one shot).", "good", "🕵️");
@@ -505,6 +510,10 @@ function bizEspOp(rivalName, op) {
 function espionageSuppression(rivalName) {
   if (!S) return 1;
   ensure();
+  if (S.biz.esp.deepLeak === rivalName) {
+    delete S.biz.esp.deepLeak;
+    return 0.85;
+  }
   if (S.biz.esp.suppressed[rivalName]) {
     delete S.biz.esp.suppressed[rivalName];
     return 0.78;
@@ -906,6 +915,7 @@ function deskEspionage() {
       + '<div class="btnrow">'
       + '<button class="btn sm" data-action="biz-esp-op" data-rival="' + esc(rv.name) + '" data-op="intel"' + (S.studio.cash < BIZ_OPS.intel.cost ? " disabled" : "") + ">Intel " + fm(BIZ_OPS.intel.cost) + "</button>"
       + '<button class="btn sm" data-action="biz-esp-op" data-rival="' + esc(rv.name) + '" data-op="leak"' + (S.studio.cash < BIZ_OPS.leak.cost || S.biz.esp.suppressed[rv.name] ? " disabled" : "") + ">Leak " + fm(BIZ_OPS.leak.cost) + "</button>"
+      + '<button class="btn sm" data-action="biz-esp-op" data-rival="' + esc(rv.name) + '" data-op="sabot"' + (S.studio.cash < BIZ_OPS.sabot.cost || S.biz.esp.deepLeak === rv.name ? " disabled" : "") + ">Sabotage " + fm(BIZ_OPS.sabot.cost) + "</button>"
       + "</div></div>";
   }
   return html;

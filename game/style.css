@@ -348,3 +348,40 @@ b, strong { font-weight: 650; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ── Theme studio ─────────────────────────────────────────── */
+body[data-theme="light"] {
+  --bg: #eef0f5;
+  --bg-glow: radial-gradient(1200px 500px at 50% -10%, #ffffff 0%, transparent 60%);
+  --panel: #ffffff;
+  --panel-2: #f0f2f8;
+  --line: #cfd4e2;
+  --line-soft: #dde1ec;
+  --text: #171b26;
+  --muted: #5a6274;
+  --faint: #8b93a7;
+}
+body[data-theme="contrast"] {
+  --bg: #000;
+  --bg-glow: none;
+  --panel: #0a0a0a;
+  --panel-2: #161616;
+  --line: #4a4a4a;
+  --line-soft: #2c2c2c;
+  --text: #ffffff;
+  --muted: #cfcfcf;
+  --faint: #9a9a9a;
+  --gold: #ffd700;
+}
+body[data-accent="blue"] {
+  --gold: #6ea8ff;
+  --gold-soft: rgba(110, 168, 255, 0.14);
+}
+body[data-accent="rose"] {
+  --gold: #ff7ab8;
+  --gold-soft: rgba(255, 122, 184, 0.14);
+}
+body[data-accent="mint"] {
+  --gold: #3ddc9e;
+  --gold-soft: rgba(61, 220, 158, 0.14);
+}

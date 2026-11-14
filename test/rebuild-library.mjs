@@ -49,7 +49,7 @@ for (const tok of ["?.", "??", ".flatMap(", ".flat(", "Object.fromEntries", "glo
 }
 check("exports tickLibrary/libAction/filmTerritoryRows/forecastAdjust",
   typeof C.tickLibrary === "function" && typeof C.libAction === "function" &&
-  typeof C.filmTerritoryRows === "function" && typeof C.forecastAdjust === "function");
+  typeof C.filmTerritoryRows === "function" && typeof C.forecastAdjust_library === "function");
 check("LIB_DESKS is 3 shaped desks in the Library & fans group",
   Array.isArray(C.LIB_DESKS) && C.LIB_DESKS.length === 3 &&
   C.LIB_DESKS.map((d) => d.id).join(",") === "library-desk,fan-club,sandbox" &&
@@ -128,7 +128,7 @@ const keyStub = (k) => ({ getAttribute: (name) => (name === "data-key" ? k : nul
 C.newGame("Library Test Studios", "veteran");
 C.tickLibrary();
 check("S.lib namespace created lazily by tickLibrary", !!S().lib && !!S().lib.fan && S().lib.fan.tier === 0 && S().lib.custom === 0);
-check("forecastAdjust returns 0 (no cash flows)", C.forecastAdjust() === 0 && C.forecastAdjust(7) === 0);
+check("forecastAdjust returns 0 (no cash flows)", C.forecastAdjust_library() === 0 && C.forecastAdjust_library(7) === 0);
 S().studio.cash = 400;
 
 /* ── library desk: empty, then 3 done films ───────────────────── */

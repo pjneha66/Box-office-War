@@ -186,6 +186,17 @@ function tickEmpire() {
   if (S.emp.lastTick === S.studio.week) return; /* once per week, even if engine also calls us */
   S.emp.lastTick = S.studio.week;
   empYearSync();
+  /* fatigue event: fans review-bomb a running franchise film */
+  if (empGlobalFatigue() >= 20 && chance(0.1)) {
+    var fbf = [];
+    for (var fbi = 0; fbi < S.films.length; fbi++) if (S.films[fbi].status === "run" && S.films[fbi].franchiseOf) fbf.push(S.films[fbi]);
+    if (fbf.length) {
+      var fb = pick(fbf);
+      fb.legs = Math.max(1.4, fb.legs - 0.08);
+      fb.decay = 1 - 1 / fb.legs;
+      log("👎 Franchise fatigue — fans review-bomb “" + fb.title + "”. Legs weaken.", "bad", "👎");
+    }
+  }
   empTickFranchises();
   empTickLore();
   empTickMerch();

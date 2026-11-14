@@ -167,7 +167,7 @@ function filmTerritoryRows(f) {
 }
 
 /* This module adds no weekly cash flows — forecast stays clean. */
-function forecastAdjust() { return 0; }
+function forecastAdjust_library() { return 0; }
 
 /* ── weekly tick (engine.js advanceWeek calls tickLibrary() after its own systems) ── */
 function tickLibrary() {

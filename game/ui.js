@@ -22,6 +22,21 @@ function pushToast(txt, kind) {
   toastQ.push({ txt: txt, kind: kind || "" });
   if (!toastOn) nextToast();
 }
+/* ── preferences (theme / accent / font scale) ───────────────── */
+var PREFS = {};
+try { PREFS = JSON.parse(localStorage.getItem("bow2.prefs") || "{}") || {}; } catch (e) { PREFS = {}; }
+function setPref(k, v) {
+  PREFS[k] = v;
+  try { localStorage.setItem("bow2.prefs", JSON.stringify(PREFS)); } catch (e) {}
+  applyPrefs();
+}
+function applyPrefs() {
+  var b = document.body;
+  b.setAttribute("data-theme", PREFS.theme || "dark");
+  b.setAttribute("data-accent", PREFS.accent || "gold");
+  b.style.fontSize = (PREFS.font || 100) + "%";
+}
+
 function nextToast() {
   var n = toastQ.shift();
   if (!n) { toastOn = false; return; }
@@ -30,6 +45,7 @@ function nextToast() {
   t.textContent = n.txt;
   t.className = n.kind;
   t.hidden = false;
+  if (typeof sfx === "function") sfx(n.kind === "gold" ? "gold" : n.kind);
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function () { t.hidden = true; nextToast(); }, 2500);
 }
@@ -114,6 +130,9 @@ function vStart() {
   if (hasSave) {
     html += '<button class="btn primary block" data-action="resume">' + esc(S.studio.name) + " — Year " + S.studio.year + ", " + fm(S.studio.cash) + ' — tap to continue</button>'
       + '<div class="field-label" style="margin-top:14px">or start a new studio</div>';
+  }
+  if (typeof window !== "undefined" && window.__deferredPrompt) {
+    html += '<button class="btn block" data-action="pwa-install" style="margin-top:12px">📲 Install as an app</button>';
   }
   html += '<label class="field-label" for="studioName">Studio name</label>'
     + '<input id="studioName" class="text-input" maxlength="26" placeholder="e.g. Lighthouse Pictures">'
@@ -296,6 +315,23 @@ function vLedger() {
   } else html += '<div class="empty">No transactions yet.</div>';
   html += "</div>";
 
+  html += '<div class="sechead"><h2>Genre economics</h2></div><div class="card">';
+  var byG = {};
+  S.films.forEach(function (f) {
+    if (f.status !== "done" || !f.ww) return;
+    var k = f.genre;
+    byG[k] = byG[k] || { n: 0, ww: 0, profit: 0, cost: 0 };
+    byG[k].n++; byG[k].ww += f.ww; byG[k].cost += f.cost; byG[k].profit += (f.profit || 0);
+  });
+  var gKeys = Object.keys(byG);
+  if (!gKeys.length) html += '<div class="empty">No finished films yet.</div>';
+  gKeys.sort(function (a, b) { return byG[b].ww - byG[a].ww; }).slice(0, 8).forEach(function (k) {
+    var gg = byG[k], roi = gg.cost > 0 ? gg.profit / gg.cost : 0;
+    html += statrow(genreOf(k).em + " " + genreOf(k).name + " · " + gg.n + " film" + (gg.n > 1 ? "s" : ""),
+      fm(gg.ww) + ' · <span class="' + (roi >= 0 ? "up" : "down") + '">' + (roi >= 0 ? "+" : "") + Math.round(roi * 100) + "%</span>");
+  });
+  html += "</div>";
+
   var fc = forecast12();
   var netSum = 0, worst = 0, best = 0;
   fc.forEach(function (r) { var n = r.inn - r.out; netSum += n; if (n < worst) worst = n; if (n > best) best = n; });
@@ -343,6 +379,23 @@ function vLedger() {
     + '<button class="btn danger sm" data-action="new-game">New game</button>'
     + (canRetire() && !S.over ? '<button class="btn sm" data-action="retire-open">Retire & hand over</button>' : "")
     + "</div>"
+    + '<div class="field-label" style="margin-top:12px">Theme</div><div class="seg">'
+    + '<button class="' + ((PREFS.theme || "dark") === "dark" ? "on" : "") + '" data-action="set-pref" data-key="theme" data-val="dark">Dark</button>'
+    + '<button class="' + (PREFS.theme === "light" ? "on" : "") + '" data-action="set-pref" data-key="theme" data-val="light">Light</button>'
+    + '<button class="' + (PREFS.theme === "contrast" ? "on" : "") + '" data-action="set-pref" data-key="theme" data-val="contrast">Contrast</button>'
+    + "</div>"
+    + '<div class="field-label" style="margin-top:10px">Accent</div><div class="seg">'
+    + '<button class="' + ((PREFS.accent || "gold") === "gold" ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="gold">Gold</button>'
+    + '<button class="' + (PREFS.accent === "blue" ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="blue">Blue</button>'
+    + '<button class="' + (PREFS.accent === "rose" ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="rose">Rose</button>'
+    + '<button class="' + (PREFS.accent === "mint" ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="mint">Mint</button>'
+    + "</div>"
+    + '<div class="field-label" style="margin-top:10px">Text size</div><div class="seg">'
+    + '<button class="' + ((PREFS.font || 100) === 100 ? "on" : "") + '" data-action="set-pref" data-key="font" data-val="100">A</button>'
+    + '<button class="' + (PREFS.font === 112 ? "on" : "") + '" data-action="set-pref" data-key="font" data-val="112">A+</button>'
+    + '<button class="' + (PREFS.font === 126 ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="126">A++</button>'.replace('data-key="accent"', 'data-key="font"')
+    + "</div>"
+    + '<div class="statrow"><span class="k">Sound effects</span><button class="btn sm" data-action="sound-toggle">' + (typeof SOUND_ON !== "undefined" && SOUND_ON ? "On — tap to mute" : "Off — tap to enable") + "</button></div>"
     + '<div class="field-label" style="margin-top:12px">Language / भाषा</div><div class="seg">'
     + '<button class="' + (typeof LANG !== "undefined" && LANG === "en" ? "on" : "") + '" data-action="set-lang" data-lang="en">EN</button>'
     + '<button class="' + (typeof LANG !== "undefined" && LANG === "hi" ? "on" : "") + '" data-action="set-lang" data-lang="hi">हिन्दी</button>'
@@ -657,6 +710,11 @@ function onAction(a, elx) {
   if (typeof creativeAction === "function" && creativeAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof financeAction === "function" && financeAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof challengeAction === "function" && challengeAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof posterAction === "function" && posterAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof peopleAction === "function" && peopleAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof mediaAction === "function" && mediaAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof strategyAction === "function" && strategyAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof metaAction === "function" && metaAction(a, elx)) { refreshDeskSheet(); return; }
   var id = elx.getAttribute("data-id");
   switch (a) {
     case "nav": VIEW = elx.getAttribute("data-view"); render(); break;
@@ -790,6 +848,12 @@ function onAction(a, elx) {
     }
     case "continue-dynasty": sheetHeirs(); break;
     case "set-lang": setLang(elx.getAttribute("data-lang")); break;
+    case "set-pref": setPref(elx.getAttribute("data-key"), elx.getAttribute("data-val")); render(); break;
+    case "sound-toggle": setSound(!SOUND_ON); pushToast(SOUND_ON ? "Sound on." : "Sound off.", ""); render(); break;
+    case "pwa-install": {
+      if (window.__deferredPrompt) { window.__deferredPrompt.prompt(); window.__deferredPrompt = null; }
+      break;
+    }
     case "import-save": {
       var box2 = el("importBox");
       if (box2 && box2.value.trim()) {
@@ -964,6 +1028,11 @@ function collectDesks() {
   if (typeof CREATIVE_DESKS !== "undefined") all = all.concat(CREATIVE_DESKS);
   if (typeof FINANCE_DESKS !== "undefined") all = all.concat(FINANCE_DESKS);
   if (typeof CHALLENGE_DESKS !== "undefined") all = all.concat(CHALLENGE_DESKS);
+  if (typeof POSTER_DESKS !== "undefined") all = all.concat(POSTER_DESKS);
+  if (typeof PEOPLE_DESKS !== "undefined") all = all.concat(PEOPLE_DESKS);
+  if (typeof MEDIA_DESKS !== "undefined") all = all.concat(MEDIA_DESKS);
+  if (typeof STRATEGY_DESKS !== "undefined") all = all.concat(STRATEGY_DESKS);
+  if (typeof META_DESKS !== "undefined") all = all.concat(META_DESKS);
   return all.concat(MORE_LOCAL);
 }
 function findDesk(id) {
@@ -1044,8 +1113,24 @@ function vLotDesk() {
   return html;
 }
 
+/* ── combined cashflow adjustments from every module ─────────── */
+function forecastAdjust(weekAbs) {
+  var n = 0;
+  if (typeof forecastAdjust_tv === "function") n += forecastAdjust_tv(weekAbs) || 0;
+  if (typeof forecastAdjust_ott === "function") n += forecastAdjust_ott(weekAbs) || 0;
+  if (typeof forecastAdjust_games === "function") n += forecastAdjust_games(weekAbs) || 0;
+  if (typeof forecastAdjust_strategy === "function") n += forecastAdjust_strategy(weekAbs) || 0;
+  return n;
+}
+
 function boot() {
   wire();
+  if (typeof applyPrefs === "function") applyPrefs();
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    window.__deferredPrompt = e;
+    if (VIEW === "start") render();
+  });
   var has = loadGame();
   VIEW = has ? (S.over ? "gameover" : "studio") : "start";
   render();
