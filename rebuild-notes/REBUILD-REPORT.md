@@ -62,3 +62,20 @@ All items from the update menu plus the portrait APK:
 - Release: https://github.com/pjneha66/Box-office-War/releases/tag/v42.1
 - Verification: all 16 module suites + 300-week sims with 20 files loaded (0 exceptions) + 72/72 headless UI checks (55 desks)
 - Game total: 22 JS files (~8,200 lines), 55 More-tab desks, 4.3 MB APK
+
+---
+
+## 7. Wave 5 (2026-11-15) — the full update menu, built
+
+20 systems across 5 new modules + core upgrades; APK rebuilt via apktool with **versionCode 43 / versionName 42.2, portrait-locked**:
+
+- **tech.js** — 7-stage technology research tree (Sound → Color → Widescreen → Digital → IMAX → Virtual Production), permanent craft/opening compounds
+- **events2.js** — premiere night plans on every release, interactive award show night (attend/speech/skip), crisis years with recovery choices, rival subscription attacks
+- **bizdeal.js** — rival negotiations with memory (dinners, joint press, star swaps, non-aggression pacts that block poaching and soften clashes), screen count deals (min/standard/wide/saturation), regional reputation (EU/APAC/CN) feeding presale prices
+- **slots.js** — 6 named save slots (save/load/rename/delete), studio logo editor (shape + colors on the top bar), poster frame styles
+- **meta2.js** — season pass goals (10/year with rewards), hall of legends, trilogy planning board with completion bonuses, content packs (validated JSON import/export), tutorial campaign banner
+- **Core upgrades** — movie recap-ready film records, genre economics table, deep script-sabotage ops, franchise fatigue review-bombs, combined module cashflow forecast
+
+Release: https://github.com/pjneha66/Box-office-War/releases/tag/v42.2
+Verification: 21 suites (~1,350 checks) · 300-week sims with 25 files (0 exceptions) · 72/72 headless UI checks (66 desks) · portrait APK 4.4 MB, versionCode 43
+Game total: 27 JS files (~9,500 lines) · 66 desks · 26-file web bundle
