@@ -79,3 +79,22 @@ All items from the update menu plus the portrait APK:
 Release: https://github.com/pjneha66/Box-office-War/releases/tag/v42.2
 Verification: 21 suites (~1,350 checks) · 300-week sims with 25 files (0 exceptions) · 72/72 headless UI checks (66 desks) · portrait APK 4.4 MB, versionCode 43
 Game total: 27 JS files (~9,500 lines) · 66 desks · 26-file web bundle
+
+---
+
+## 8. Wave 6 (2026-11-15) — studio depth + story
+
+15 systems across 6 new modules; APK rebuilt via apktool, **versionCode 43 / versionName 42.3, portrait-locked**:
+
+- **crew.js** — crew pool (DP/editor/composer per film, craft + soundtrack income), production choices (rush/extend/reshoot via engine fns), location shoots with weather risk
+- **mastery.js** — genre mastery tiers (Apprentice/Adept/Master), agency relationships with signing + first-look, scouting trips revealing hidden-probability talent
+- **world.js** — rival storylines (feud/alliance/takeover arcs with choices), multi-week star scandal arcs, milestones museum
+- **licensing.js** — licensing marketplace (airlines/hotels/TV networks), international offices feeding regional reputation
+- **awards.js** — Best Actor / Best Director / Best Song categories with FYC synergy + awards history desk
+- **festivals.js** — festival circuit board (6 festivals year-round) with premiere planning
+- **empire.js edit** — franchise universe expansion ($12M, lore +8, cooldown)
+- **Core fixes** — module action dispatch gated on game state (start-screen crash found by UI battery), combined forecastAdjust, portrait versionName 42.3
+
+Release: https://github.com/pjneha66/Box-office-War/releases/tag/v42.3
+Verification: all 22 suites green (crew 53, mastery 58, world 38, licensing 53, awards/festivals green, empire 37, bizdeal 74) · sims with all 31 files (0 exceptions) · 72/72 UI checks (66 desks)
+Game total: 32 JS files (~10,600 lines) · 66 desks · 32-file web bundle · 4.4 MB portrait APK
