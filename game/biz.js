@@ -42,6 +42,7 @@ function ensure() {
   if (b.stock.last == null) b.stock.last = 10;
   if (!b.restored) b.restored = [];
   if (!b.esgQueue) b.esgQueue = [];
+  if (!b.offices) b.offices = {};
 }
 
 /* ── engine hooks ─────────────────────────────────────────────── */
@@ -59,7 +60,52 @@ function bizQualityBonus(p) {
   if (S.biz.programs.label && (g === "drama" || g === "crime" || g === "docs")) q += 3;
   return q + imprintCriticBonus(p);
 }
-function bizIntlBonus() { if (!S) return 0; ensure(); return S.biz.programs.loc ? 0.03 : 0; }
+function bizIntlBonus() {
+  if (!S) return 0;
+  ensure();
+  var n = 0, k;
+  for (k in S.biz.offices) if (S.biz.offices[k]) n++;
+  return (S.biz.programs.loc ? 0.03 : 0) + n * 0.015;
+}
+
+/* ── international offices (v42.5): London · Tokyo · Seoul ─────── */
+var BIZ_OFFICES = [
+  { id: "london", em: "🇬🇧", name: "London office", d: "UK & European press, casting and co-financing contacts" },
+  { id: "tokyo",  em: "🇯🇵", name: "Tokyo office",  d: "Japanese partnerships and anime-adjacent formats" },
+  { id: "seoul",  em: "🇰🇷", name: "Seoul office",  d: "K-drama formats and pan-Asian distribution" }
+];
+var BIZ_OFFICE_COST = 18, BIZ_OFFICE_UPKEEP = 0.4;
+function bizOfficeCount() {
+  ensure();
+  var n = 0, k;
+  for (k in S.biz.offices) if (S.biz.offices[k]) n++;
+  return n;
+}
+function bizBuyOffice(id) {
+  ensure();
+  var i, o = null;
+  for (i = 0; i < BIZ_OFFICES.length; i++) if (BIZ_OFFICES[i].id === id) o = BIZ_OFFICES[i];
+  if (!o) return false;
+  if (S.biz.offices[id]) { toast(o.name + " is already open.", ""); return false; }
+  if (S.studio.cash < BIZ_OFFICE_COST) { toast("Need " + fm(BIZ_OFFICE_COST) + " to open " + o.name + ".", "bad"); return false; }
+  spend(BIZ_OFFICE_COST, o.name);
+  S.biz.offices[id] = true;
+  log(o.em + " " + o.name + " opens — regional reputation and international share grow from here.", "good", "🌍");
+  return true;
+}
+function bizOfficesTick() {
+  ensure();
+  var n = bizOfficeCount();
+  if (!n) return;
+  spend(Math.round(BIZ_OFFICE_UPKEEP * n * 10) / 10, "International offices");
+  S.studio.rep = clamp(S.studio.rep + 0.15 * n, 0, 100);
+  if (chance(0.10 * n) && S.ideas.length < 8) {
+    var idea = genIdea();
+    idea.local = true;
+    S.ideas.push(idea);
+    log("📩 The " + pick(["London", "Tokyo", "Seoul"]) + " office sends over a local-language script: “" + idea.title + "”.", "", "📩");
+  }
+}
 function bizLocationMods(p) {
   if (!S || !p || !p.location) return null;
   ensure();
@@ -674,6 +720,7 @@ function tickBiz() {
   bizPressTick();
   bizEspTick();
   bizStockTick();
+  bizOfficesTick();
 }
 
 /* ── desk helpers ─────────────────────────────────────────────── */
@@ -927,6 +974,13 @@ function deskEspionage() {
 function deskPrograms() {
   ensure();
   var html = "", i;
+  html += '<div class="sechead"><h2>International offices</h2></div><div class="card">';
+  BIZ_OFFICES.forEach(function (o) {
+    var on = S.biz.offices[o.id];
+    html += statrow(o.em + " " + o.name + " (" + fm(BIZ_OFFICE_COST) + ")<br><small style='color:var(--faint)'>" + o.d + " · +1.5% international share each · rep +0.15/wk · $0.4M/wk upkeep</small>",
+      on ? tag("Open", "green") : '<button class="btn primary sm" data-action="biz-office" data-office="' + o.id + '"' + (S.studio.cash < BIZ_OFFICE_COST ? " disabled" : "") + ">Open</button>");
+  });
+  html += "</div>";
   html += '<div class="sechead"><h2>One-time industry programs</h2></div><div class="card">';
   for (i = 0; i < BIZ_PROGRAMS.length; i++) {
     var pr = BIZ_PROGRAMS[i], on = S.biz.programs[pr.key];
@@ -992,6 +1046,7 @@ function bizAction(a, elx) {
     case "biz-esg-file":   r = bizFileEsg(parseInt(attr(elx, "data-target"), 10)); break;
     case "biz-imprint":    r = bizBuyImprint(attr(elx, "data-key")); break;
     case "biz-prog":       r = bizBuyProgram(attr(elx, "data-key")); break;
+    case "biz-office":     r = bizBuyOffice(attr(elx, "data-office")); break;
     case "biz-restore":    r = bizRestore(attr(elx, "data-id")); break;
     default: return false;
   }
