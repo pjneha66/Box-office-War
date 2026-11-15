@@ -336,6 +336,7 @@ function computeQuality(p) {
   if (typeof masteryCraftMod === "function") craft += masteryCraftMod(p.genre) || 0;
   if (p.extendCraft) craft += p.extendCraft;
   if (p.reshootScene) craft += 2;
+  if (p.cameoBoost) craft += p.cameoBoost;
   if (p.locationShoot) craft += 3;
   if (S.heirAuteur) craft += 2;
   craft -= Math.min(p.overlapWk || 0, 6) * 0.8;
@@ -477,7 +478,7 @@ function releaseFilm(p) {
   var rv = reviewFilm(p, qEff + shield);
   var act = act0;
   var cmR = (typeof creativeProjectMods === "function") ? creativeProjectMods(p) : null;
-  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
+  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (p.cameoAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
   var season = seasonOf(woyOf(p.releaseWeek));
   var legs = 1.8 + (qEff - 30) * 0.03 + g.legs
     + (aud >= 80 ? 0.10 : aud <= 40 ? -0.15 : 0)
@@ -1102,6 +1103,9 @@ function advanceWeek() {
   if (typeof tickStad === "function") tickStad();
   if (typeof tickTalentAgency === "function") tickTalentAgency();
   if (typeof tickFestivals === "function") tickFestivals();
+  if (typeof tickSocial === "function") tickSocial();
+  if (typeof tickStad === "function") tickStad();
+  if (typeof tickCameo === "function") tickCameo();
   tickMine();
   tickSeries();
 

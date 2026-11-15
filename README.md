@@ -1,370 +1,119 @@
 # Box Office War
 
-> A deep Hollywood studio simulation and tycoon engine. Run a major film studio, navigate box office wars, build transmedia franchises, manage streaming platforms, and broadcast linear television networks.
+> A phone-first Hollywood studio tycoon. Greenlight films, pitch your own projects,
+> cast stars, book celebrity cameos, produce limited series for the streamers, pick
+> your release dates and win the weekend — with 75+ live feature desks running a
+> deterministic weekly simulation.
 
-[Play in Browser](https://box-office-war.vercel.app) | [Download Android APK v41.2](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+[Download Android APK (latest)](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
 
 ---
 
 ## Screenshots
 
-Captured from the v41.2 build (headless Chrome, a career simulated to year 3). Regenerate with `node scripts/capture-store-screenshots.cjs`.
+Captured from the v42.7 build (`node scripts/capture-readme-shots.mjs`).
 
-| | |
+| Start screen | Studio home | Cameos desk |
+|---|---|---|
+| ![Start screen](assets/screenshots/00-start.png) | ![Studio home](assets/screenshots/01-studio.png) | ![Cameos desk](assets/screenshots/05-cameo-desk.png) |
+
+| Box office | Limited series | Release sheet |
+|---|---|---|
+| ![Box office](assets/screenshots/03-box-office.png) | ![Series](assets/screenshots/02-series.png) | ![Film sheet](assets/screenshots/06-film-sheet.png) |
+
+| Feature desks (75+) | Pitch a project |
 |---|---|
-| ![2D studio lot](assets/store/screenshot-studiolot-desktop.png) | ![Executive command desk](assets/store/screenshot-dashboard-desktop.png) |
-| **2D studio lot** | **Executive command desk** |
-| ![Box office desk](assets/store/screenshot-boxoffice-desktop.png) | ![Development desk](assets/store/screenshot-develop-desktop.png) |
-| **Box office** | **Development** |
-| ![Empire desk](assets/store/screenshot-empire-desktop.png) | ![Library desk](assets/store/screenshot-library-desktop.png) |
-| **Empire — franchises and divisions** | **Library — the studio catalogue** |
+| ![Feature desks](assets/screenshots/04-desks.png) | ![Pitch sheet](assets/screenshots/95b-sheet-pitch.png) |
 
-<p>
-<img src="assets/store/screenshot-home-mobile.png" width="240" alt="Mobile home">
-<img src="assets/store/screenshot-studio-mobile.png" width="240" alt="Mobile studio">
-<img src="assets/store/screenshot-develop-mobile.png" width="240" alt="Mobile develop">
-</p>
+More screens — landscape layout, every feature desk, the greenlight sheet — can be
+regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
+`rebuild-notes/ss/`).
 
-*Phone layout at 844 × 390 — the Android build is landscape-locked.*
+---
+
+## What is new in v42.7
+
+- **Celebrity cameo system** — a rotating cameo market on the new 🌟 *Cameos* desk
+  (More → Talent). Book a big name (or a ★5 legend, at legend money) onto any project
+  in pre-production or shooting: instant buzz, a craft bonus when the film wraps, a
+  small audience lift on opening weekend, and free press while they are on your lot.
+  One cameo per film.
+- **Full wiring of the wave-6/7 systems** (landed in v42.5/42.6): crew hiring
+  (DP/editor/composer with craft bonuses, salary and soundtrack royalties), genre
+  mastery with a "Known for" line on the Studio page, talent agencies (reputation,
+  cheaper stars, first-look deals, hidden-gem scouting trips), production choices
+  (rush / extended takes / reshoots), international offices (London · Tokyo · Seoul —
+  international share, reputation growth and a local-language script pipeline), library
+  licensing, the expanded year-end awards (Best Actor / Best Director / Best Original
+  Song with FYC tie-ins), second-unit location shoots with weather risk, rival
+  storylines (feuds, alliances, hostile takeovers), multi-week star scandal sagas, the
+  festival circuit board, the studio museum, social virality and the sports megadome.
+
+## What is new in v42.6
+
+- **Series, end to end** — a *Series* tab in Develop: greenlight limited series,
+  watch them air episode by episode, then **sell the rights to a streamer** for a
+  lump sum or keep them exclusive on your own platform.
+- **Pitch a project** — skip the scouts: develop a bespoke concept ($2M) with your
+  own genre, theme and working title, straight onto the scripts desk.
+- **Box office upgrade** — budget, marketing, total cost, domestic, international
+  (with share estimate), **worldwide (estimated while running, final after)**, ROI %
+  and a week-labeled weekly-gross chart on every film.
+- **All casts from the previous build** — 958 first names / 1,238 surnames (was
+  30/30), 121 talent abilities including species traits, plus animal-star signings
+  in the Sandbox desk.
+- **Deeper studio systems wired in** — 8 modules that shipped dead code are now live
+  in the weekly tick and the More grid (78 desks).
 
 ---
 
 ## Overview
 
-Box Office War is an offline-capable Hollywood studio management simulation built entirely on client-side web standards. Players manage every dimension of an entertainment empire from a single production lot:
-- Greenlight original screenplays and acquire high-profile intellectual properties.
-- Package A-list actors, directors, writers, and producers through Hollywood talent agencies.
-- Manage physical soundstages, virtual LED volumes, and audio post-production facilities.
-- Navigate release calendar clashes, cannibalization risks, and seasonal holiday corridors.
-- Monetize catalog libraries via theatrical runs, international territory pre-sales, linear TV syndication, consumer merchandise, and proprietary streaming services.
-- Defend corporate standing against hostile board directives, corporate debt covenants, talent scandals, and rival studio espionage.
-
-All simulation mechanics execute client-side with zero dependencies, zero microtransactions, and instant local storage persistence.
-
----
-
-## What is New in v41.2 — UI System
-
-The interface had accumulated four palettes that disagreed (`--cd-t*`, `--ts-*`, `--bow-*`, plus ~960 raw hex) across 10,456 lines of CSS in 12 layers. `system/` is now the single source of truth: `tokens.css` (palette, type and spacing scales, density), `components.css` (normalisation plus the `ui-*` set), and a **generated** `legacy-map.css` that re-points all 333 legacy variables at semantic tokens — so the existing CSS adopts the new palette without being edited. `system/styleguide.html` is the living reference (developer only, not shipped in the APK).
-
-Landscape phones also stop scrolling: a phone held sideways leaves ~310px under the shell and the dashboard was using 627px. The shell is a fixed-height flex column and the deck takes exactly the remaining space, so the command desk fits one screen.
-
-## What is New in v41.1 — Compact Landscape Phone UI
-
-The Android build is landscape-locked, but the mobile layout switched at `max-width: 760px` — and a phone held sideways is 640–940px **wide** with only 360–430px of height. Landscape phones therefore got the desktop shell inside a viewport barely taller than the header: at 844×390 the chrome alone ate 219px of 390, the 12-tab bar was cut off mid-word, and the section nav stacked into two rows.
-
-`landscape-phone.css` now keys off viewport **height** (untouched on tablets and desktop) and compacts the shell:
-
-- header on one row — 75px of chrome instead of 87, content starts at 141px instead of 219
-- ledger keeps capital + calendar; liabilities and standing stay on their own desks
-- section nav collapses to a single 42px row with 30px buttons — it was hiding up to 324px of sections behind the Studio tools
-- tab strip stays one scrollable row with an edge fade; toasts move to the bottom so they stop covering the header
-- one navigation everywhere: the full tab strip, not tabs *plus* a bottom bar
-
-Verified at 667×375 through 932×430. The APK also stopped shipping the store screenshots (10 MB of art the game never loads), dropping from 21 MB to 19 MB.
-
-## What is New in v41.0 — Next Wave Studio Systems
-
-The Studio HQ **Next Wave** desk turns several existing foundations into connected, actionable workflows:
-
-- TV seasons now produce episode records with selectable arcs and focus, a scored finale, and a renewal readout comparing audience ratings with order value and production cost.
-- The production calendar reserves shared cast, below-the-line crew and locations, finds clear shoot windows, warns on conflicts, and extends reservations for weather delays and paid pickup reshoots.
-- Rival studios counter-program, react to hits, bid for talent (with player counteroffers) and can acquire a rival. Territory distributor offers retain minimum guarantees/revenue shares and now expire at explicit 13–104 week rights terms.
-- ESG pledges are audited after a year with incentives or reputation consequences. A scenario editor saves custom start conditions, milestones and deadlines; the First Film Lab is the default guided first-run campaign.
-- Seasonal challenge codes can be archived, imported and ranked locally. Cross-device/live leaderboards are not represented as online—the game has no leaderboard backend.
-- Studio content packs use validated, versioned JSON for film pitches, genres, talent, rivals, franchises and scenarios (no executable scripts). Completed careers award optional New Game+ credits; backup/restore, a balance/regression dashboard, Marathi core UI, keyboard states and labelled workflows round out the desk.
-
-See the Next Wave desk for detailed in-game instructions. Existing Industry Systems, Creative Lab, awards, festivals, territory licensing, legacy and accessibility controls remain available.
-
-## What is New in v40.0 — The Industry Systems Expansion
-
-A new **Studio → Industry** command desk links 24 studio systems in one place and adds
-playable production-side investments for sustainability, press relations, ratings, legal
-clearance, localization and production labels. Existing systems remain on their specialist
-desks: series and live TV, the production calendar, talent chemistry and rewrites, finance/IPO
-and M&A, guilds, franchises and parks, rival studios, executive hiring, story campaigns,
-seeded challenges and the career Hall of Fame.
-
-New decisions have real save-backed effects: ESG programs earn up to 10% shoot credits; press
-campaigns improve awareness, opening buzz and reviewer standing; specialist imprints can lift
-matching releases; chain-of-title audits reduce litigation exposure; ratings recuts trade a
-small critic penalty for a wider audience; and territory localization shifts the international
-gross mix. Browser, offline PWA and Android bundle all include the new desk.
-
-## What is New in v39.1 — The Stage Division
-
-The studio can now take a lease on a theatre and produce live musicals. It is a new
-Empire sub-tab (`stage-division.js`, ~900 lines) with its own economy, its own risk
-profile and its own trophy — and it touches nothing that already existed.
-
-### Broadway, the West End and the road
-- **Three houses, leased in order.** The Yard Workshop (340 seats, Off-Broadway), The Marquee
-  Theatre (1,000 seats, Broadway) and The Empire Palace (1,800 seats, Broadway & West End).
-  Each tier is gated on reputation and cash, each adds a **fixed weekly burn** — the room is
-  paid for whether or not anyone is in it.
-- **One house, one show.** A show in rehearsal waits for a suitable free house, opens into a
-  Queens-style preview period, then gets the critics. Closing a show frees its house for the
-  next one immediately.
-
-### Greenlighting a musical
-- **Adapt the library or write an original.** Any closed film with a $40M+ worldwide gross can
-  be turned into "— The Musical" with a built-in audience (a franchise entry carries a bigger
-  one). An original book is cheaper, wider in variance and entirely yours.
-- **Five decisions, live quote.** Scale (chamber / Broadway standard / spectacle), composer
-  (six, with classical / pop / rock / indie traits), director (six, spectacle / intimate /
-  commercial), and an optional star above the title. The form recomputes capitalisation and a
-  projected review range as you change any of it.
-- **Previews are your only second chance.** Three weeks of part-houses, and a **Retool** at
-  $2.5M buys +4 projected review points, twice per show.
-
-### The run
-- Occupancy is driven by the reviews, the source material, the franchise, the star and the
-  musical-genre trend, minus a slow decay after week 10. Gross = seats × yield × occupancy;
-  the house cost is mostly fixed.
-- **Recoupment** is tracked against capitalisation on every show card, and crossing it lifts
-  reputation.
-- **A show that plays to under 30% for six straight weeks closes itself.** So does one that
-  reaches week 156. A flop bleeds for a few months before the landlord ends it.
-- **Tony season, week 24.** The best-reviewed show in the building can take Best Musical —
-  occupancy, gross multiplier and studio reputation all move, once per year.
-
-### Parallel income
-- **National tours** (24 weeks, needs 65+ reviews and 8 weeks in), **cast albums** (26 weeks of
-  royalties, ×1.6 if your music label is live) and **staging licences** to regional and
-  international houses (needs 16 weeks in).
-
-### Under the hood
-- **Additive state.** Everything lives in `G.stage` and is created on first touch, so old saves
-  load without a migration step.
-- **Honest ledger.** Every dollar moves through `earn()`/`spend()` under a new `stage` category,
-  mapped in the Treasury desk (revenue → *Franchise, parks & merch*, costs → *Studio & empire builds*).
-- **Tested.** `test/stage-division.mjs` (11 regressions), the headless smoke harness and the
-  full balance/scenario suites.
-
----
-
-## What is New in v33.0
-
-The v33.0 release is a full-app visual overhaul. Every screen is rebuilt on one locked design system ("Arcade Hollywood"), the studio lot became a living 24-hour world, and a motion engine animates every tab, sub-tab and chart.
-
-### 1. Full-App Restyle (`bow-restyle.css`, 1,450 lines)
-- **One locked visual system** applied to all 14 tabs, the start screen, modals, toasts, forms and the broadcast UI: 3px slate borders with a lit top edge, heavy dark bottom edge, and hard offset shadows with zero blur — the 16-bit tell.
-- **Marquee chrome**: gold bulb strips on the topbar and section headers, gold corner studs on every panel, engraved card headers, filmstrip tab rail with a lit active frame.
-- **Arcade scoreboard tiles** for KPI readouts, gold-framed modals with an overshoot pop-in, recessed inset inputs, chunky 3D buttons that press 3px down.
-- **Safe-area insets** for notches and home bars, gold focus rings, pixel scrollbars, and full `prefers-reduced-motion` support.
-
-### 2. Living Studio Lot (`lot-life.js`)
-- **24-hour light cycle** — dawn, midday, golden hour, dusk and night, each with its own colour grade, plus per-room warm light pools (marquee bulbs, windows, street lamps, monitor glow) that switch on after dark.
-- **Per-week weather** derived from the game week and season: clear, rain, storm with lightning, snow, and autumn leaves.
-- **Ambient life**: drifting dust motes, birds crossing the sky, fireflies at night, camera flashes on the red carpet, volumetric light shafts, film grain and a cinematic vignette.
-- **Location card** and an iris wipe on every room change.
-
-### 3. Animated Cast (`studio-lot-2d.js`)
-- **Real walk cycles** — bob, lean and squash driven off a single phase, so bodies weight-shift instead of sliding.
-- **Pause-and-turn** at path ends with idle breathing, eased facing, and depth sorting so nearer walkers overlap correctly.
-- **Footstep dust**, role pips, and one speaker at a time for chatter.
-- **21 cast members** (up from 12) with distinct roles, speeds and routes.
-- **Golf carts** with visibly spinning wheels and spokes, a driver that bobs with the suspension, tyre dust, and a headlight cone that switches on at night.
-
-### 4. Motion Engine (`bow-motion.js`)
-- **Staggered entrance** on every panel in every tab and sub-tab, with ledger rows cascading in.
-- **Count-up** on every numeric readout, keyed off a stable label so a freshly re-rendered DOM still ticks from the previous value, with a **green pulse on rise and red on fall**.
-- **Charts animate**: box office bars grow from zero and cascade, weekly-gross and forecast bars rise, stock sparklines and donuts draw themselves in via stroke-dashoffset.
-- **Game-feel layer** (`lot-feel.js`): trauma-based screen shake (`trauma²` sampled from layered sines so it decays smoothly instead of buzzing), squash-and-stretch pops, and tiered feedback hooked into the game's own `toast` / `confetti` / `advanceWeek` events — by decoration, never by modification.
-
-### 5. Build & Repo Fixes
-- **`apk/build-www.js` was silently shipping a stale UI**: its hardcoded file list was missing `ui-v33.css` entirely, plus every new presentation layer. Any new root-level `.css`/`.js` must be added to that list or the APK will not change. All five layers now ship.
-- **Git repair**: 17,259 macOS AppleDouble `._*` sidecars had accumulated untracked, and two were being read as pack indexes, which corrupted the repository ("non-monotonic index"). They are now backed up, removed from `.git`, and ignored. `core.fileMode` was disabled to stop 602 permission-only diffs.
-
----
-
-## What is New in v32.13
-
-The v32.13 release delivers a major 2D visual and mechanical overhaul, synthesizing deep simulation features from benchmark reference titles (Kairosoft Game Dev Story, Social Dev Story, Idle Sports Stadium Tycoon, and Box Office Sim 2) alongside persistent 2D simulation staging and landscape orientation locking:
-
-### 1. 2D Kairosoft Studio Rooms & Simulation Lot (`studio-lot-2d.js`, `kairo-theme-suite.js`)
-- **6 Interactive Studio Departments**: Campus Grounds, Soundstage A, Writers' Bungalow, Post & VFX Suite, Cinema Marquee, and Executive Penthouse.
-- **Dynamic 16-Bit Scene Visuals**: High-contrast, handcrafted pixel art scenes with animated department headers, pixel marquee bulbs, and CRT scanlines.
-- **Micro-Animated Department Workers**: Desk writers, boom mic operators, video editors, preview screening audiences, and penthouse studio executives animated in real time.
-- **Seamless Stage Switcher**: Live navigation header with direct department shortcuts, room stats badges, and simulation HUD.
-
-### 2. Box Office Sim 2 Cast Integration (`box-office-sim-2-cast.js`)
-- **Extracted Reference Roster**: 72 unique character species, 121 specialized talent abilities, and over 4,000 real-world actor, director, writer, and producer names extracted directly from Box Office Sim 2 APK data.
-- **Dynamic Ability Tagging**: In-depth talent quirks including Box Office Anchor, Method Legend, Franchise Magnet, Festival Darling, and Critical Shield.
-- **Backward-Compatible Talent Mapping**: Integer ID translation layer ensuring seamless integration with existing save games and casting pipelines.
-
-### 3. GameStudio GDD Engine (`gamestudio-gdd-engine.js`)
-- **Game Dev Story & Tycoon Mechanics**: Complete Game Design Document (GDD) production cycle with Topic x Genre synergy matching (e.g., Cyberpunk RPG, Fantasy Strategy, Superhero Action).
-- **Target Audience Weighting**: Age-demographic balancing across Young, Teen, and Mature gaming markets.
-- **Proprietary Engine Builder**: Design custom 2D/3D game engines with custom technology and design allocations.
-- **Gaming Press Reviews & GameCon**: 4 simulated gaming review publications (PixelPolygon, HyperJoy, BitCollider, EdgeOfPlay) with dynamic quotes, GameCon booth marketing, and Research Points economy.
-
-### 4. Social Viral Network (`social-viral-network.js`)
-- **Social Dev Story Mechanics**: 4 active digital platforms (InstaBuzz, VidTok, ChirpNet, StreamTube) featuring algorithmic trend velocity, hashtag momentum, and organic audience reach.
-- **Viral Marketing Campaigns**: 6 campaign tiers from Grassroots Leak and Meme Blitz to Influencer Premiere Screenings and Global Trend Takeovers.
-- **Creator Ambassador Deals**: Contract digital creators for multi-week studio endorsement pacts that amplify film buzz and OTT subscriber acquisition.
-
-### 5. Sports Stadium Megadome Deals (`sports-stadium-deals.js`)
-- **Idle Sports Tycoon Mechanics**: Expand and operate a state-of-the-art sports arena (Seating Capacity, VIP Luxury Skyboxes, Concessions Court, and Broadcast Jumbotrons).
-- **Corporate Naming Rights**: High-value annual naming rights agreements with Fortune 500 corporate partners (Apex Energy, Horizon Tech, Zenith Capital).
-- **Exclusive Live Sports Broadcast Packages**: License tier-one live sporting events (Sunday Football, Championship Basketball, Grand Slam Tennis, Sunset Grand Prix, Apex Esports) for studio streaming services.
-
-### 6. Landscape Orientation Lock & Offline Android APK
-- **Android Manifest Lock**: Native Capacitor Android configuration locked to `sensorLandscape` mode.
-- **Complete Offline Bundle**: 55 modular engines, sound suites, and pixel art assets packed directly into the APK distribution without requiring internet connectivity or external servers.
-
----
-
-## Simulation Architecture: 36 Modular Systems
-
-Box Office War is structured into 36 decoupled simulation modules operating on an event-driven weekly tick loop:
-
-| Module File | Simulation System | Core Mechanics |
-|---|---|---|
-| `engine.js` | Core Simulation Loop | 52-week calendar, weekly financial clearing, talent availability, box office decay, rival studio AI turns. |
-| `data.js` | Industry Data & Balance | Talent pool (actors, directors, writers, producers), genres, archetypes, themes, awards, and historical milestones. |
-| `ui.js` | Executive Interface | Responsive dashboard, wizard modals, tabs navigation, glassmorphic HUD chips, keyboard shortcuts (Cmd+K). |
-| `studio-facilities.js` | Studio Lot & Soundstages | 4 facility tiers (Soundstage Complex, LED Volume, Atmos Mixing, Historic Lot), quality buffs, rival lot rental income. |
-| `syndication-tv.js` | Television Syndication | Linear broadcast monetization (Primetime 26w, Matinee 39w, Cable 52w), catalog rights, advance fees. |
-| `talent-contracts.js` | Multi-Picture Deals & Quirks | 3-picture and 5-picture talent retention pacts, 6 psychological quirks (`method_actor`, `crowd_puller`, `award_magnet`). |
-| `bond-market.js` | Corporate Debt & Bonds | AAA to CCC corporate credit rating engine, 52-week securitized debt issuance, weekly interest service. |
-| `clash-analytics.js` | Release Clash Radar | Opening weekend cannibalization analysis, audience overlap calculations, counter-programming bonuses. |
-| `cinematic-universe.js` | Shared Cinematic Universes | Multi-franchise IP bibles, crossover event multipliers (+65% buzz), lore consistency tracking, fatigue control. |
-| `location-scouting.js` | International Production Hubs | Global production locations (London, Atlanta, Iceland, Tokyo, New Zealand) providing tax rebates and quality bonuses. |
-| `production-insurance.js` | Completion Bonds | Risk mitigation policies (Overrun Shield, Key Cast Indemnity, Full Completion Bond) against budget spikes. |
-| `awards-campaign.js` | FYC Lobbying Campaign | For Your Consideration trade advertising, screener mailings, voter receptions, and guild momentum tracking. |
-| `board-targets.js` | Board of Directors Mandates | Quarterly board directives, studio confidence index (0-100%), executive bonuses, and austerity budget caps. |
-| `fan-conventions.js` | Convention Fan Showcases | Comic-Con Hall H and Worldwide D23 presentations, studio fan club membership tiers, opening buzz spikes. |
-| `test-screenings.js` | Test Screenings & Reshoots | Focus group audience cards, pacing ratings, tracking legs estimation, and post-production emergency reshoots. |
-| `studio-espionage.js` | Covert Intelligence Desk | Clandestine surveillance, rival slate infiltration, talent contract expiration theft, counter-PR media leaks. |
-| `merch-licensing.js` | Franchise Merchandising | Product lines (Toys, AAA Video Games, Apparel, Theme Parks), upfront licensee advances, weekly royalties. |
-| `territory-licensing.js` | Foreign Pre-Sales Desk | International territory distribution deals, minimum guarantees, regional box office royalty sharing. |
-| `custom-sandbox.js` | Sandbox & Holiday Engine | Custom studio, talent, and rival creator tools, 52-week holiday corridors, custom release calendars. |
-| `v31-features.js` | Crisis PR & Agency Packaging | Crisis PR containment desk (4 response protocols), elite agency packaging (CAA/WME/UTA) with packaged discounts. |
-| `finance-tools.js` | Corporate Finance Suite | Detailed weekly P&L ledgers, 12-week cashflow forecasting, mezzanine debt facilities, and CSV financial exports. |
-| `challenge-leaderboard.js` | Seeded Challenge Engine | Deterministic weekly scenario seeds, standardized challenge scoring, and shareable studio performance codes. |
-| `theater-chains.js` | Theatrical Exhibition Networks | Independent exhibitor relations, premium format splits (IMAX, Dolby Cinema), and concession revenue sharing. |
-| `dynamic-soundtrack.js` | Adaptive Audio Atmosphere | Synthesized Web Audio soundtrack that responds dynamically to studio cash solvency, box office hits, and crises. |
-| `dynasty-legacy.js` | Multi-Generational Legacy | Post-retirement dynasty bonuses, family trust fund generation, heirloom studios, and generational succession. |
-| `bow-shorts.js` | Short-Form Digital Media | Episodic streaming shorts, viral digital content, social platform monetization, and rising talent discovery. |
-| `talent-agency.js` | In-House Agency Operation | Establish a proprietary studio talent agency, manage client rosters, collect commission fees, and train stars. |
-| `studio-lot-2d.js` | 2D Kairosoft Studio Rooms | 6 interactive 16-bit studio departments with animated workers, live status synchronization, and responsive room switcher. |
-| `kairo-theme-suite.js` | 16-Bit Theme & Scene Art | Retro pixel art styling, department header micro-animations, CRT scanlines, and animated marquee bulb borders. |
-| `box-office-sim-2-cast.js` | BOS2 Talent & Ability Matrix | 72 species, 121 character abilities, and 4,000+ talent names extracted from Box Office Sim 2 reference data. |
-| `gamestudio-gdd-engine.js` | GameStudio GDD Engine | Topic x Genre synergy matrix, target audience weighting, custom engine builder, 4 gaming reviews, and GameCon booths. |
-| `social-viral-network.js` | Social Viral Network | 4 digital social platforms, algorithmic trend velocity, 6 viral campaigns, and creator ambassador endorsement deals. |
-| `stage-division.js` | Broadway Stage Division | Theatrical houses, musical greenlights, previews & retools, weekly runs, recoupment, national tours, cast albums, staging licences, Tony season. |
-| `sports-stadium-deals.js` | Sports Stadium Megadome | Stadium tier upgrades, corporate naming rights, and exclusive live sports streaming broadcast rights packages. |
-| `industry-expansion-suite.js` | Industry Systems Desk | 24-system directory, green production & ESG shoot credits, press office, chain-of-title clearance, ratings recuts, localization, studio labels, international gross map. |
-| `studio-nextwave-suite.js` | Next Wave Studio Systems | Episode-level series production, production calendar, rival strategy, territory rights terms, awards prestige, consequential incidents, franchise lifecycle, campaign editor, content packs, New Game+. |
-
----
-
-## Reference Parity Breakdown
-
-Box Office War synthesizes gameplay systems from classic business simulations into a coherent, modern framework:
-
-### Game Dev Story & Tycoon Parity
-- **GDD Formulation**: Topic x Genre synergy mechanics with target audience demographics (Everyone, Teens, Mature).
-- **Custom Game Engine R&D**: Allocate technology, design, and graphics resources to build proprietary game engines.
-- **Gaming Press Reviews & GameCon**: 4 simulated publications (PixelPolygon, HyperJoy, BitCollider, EdgeOfPlay) and annual GameCon booths.
-
-### Social Dev Story Parity
-- **Multi-Platform Social Ecosystem**: InstaBuzz, VidTok, ChirpNet, and StreamTube with real-time algorithm velocity and hashtag trends.
-- **Viral Marketing Campaigns**: 6 campaign tiers from Grassroots Leak and Meme Blitz to Global Trend Takeovers.
-- **Creator Ambassador Network**: Retain digital influencers to amplify theatrical opening buzz and streaming subscriber influx.
-
-### Idle Sports Stadium Tycoon Parity
-- **Megadome Facilities**: Upgrades to Seating Capacity, VIP Luxury Skyboxes, Concessions Court, and Broadcast Jumbotrons.
-- **Corporate Naming Rights**: Multi-year commercial sponsorship contracts with Fortune 500 conglomerates.
-- **Live Sports Streaming Packages**: License exclusive broadcasting rights for major sports leagues to drive OTT growth.
-
-### Box Office Inc Parity
-- **Hollywood Talent Agencies**: Tiered agency representation (CAA, WME, UTA) with packaged star bundles and volume commission structures.
-- **International Pre-Sales**: Regional minimum guarantees (MG) that offset production exposure before principal photography wraps.
-- **Crisis Media Spin**: Formal PR war room protocols to navigate talent scandals without scrapping multimillion-dollar productions.
-
-### Box Office Sim 2 Parity
-- **Extracted Cast Database**: Over 4,000 real-world actor, director, writer, and producer reference names with 72 species and 121 abilities.
-- **Box Office Clash Radar**: Direct computation of screen cannibalization between competing releases sharing identical demographic quadrants.
-- **Dynamic Decay Curves**: Realistic box office legs calculated from the spread between critical reviews and audience exit-poll word of mouth.
-- **Windowing Tradeoffs**: Explicit choice between 17-day, 45-day, and 90-day theatrical windows with exhibitor relation consequences.
-
-### Silver Screen Story Parity
-- **Lot Infrastructure Development**: Permanent physical upgrades to production lots including soundstages, digital mixing suites, and backlots.
-- **Theme and Genre Chemistry**: Hidden synergies between 266 genre and theme pairings discovered through production experience.
-- **Talent Progression**: Directors and actors earn XP on every shoot, leveling up technical execution, charisma, and speed attributes.
-
-### TV Studio Story Parity
-- **24/7 Linear EPG Grid**: 24-hour programming grid scheduling across 8 television networks with format blocks and prime-time ad rates.
-- **Broadcast Syndication**: Secondary broadcast rights monetization for catalog films past their primary theatrical and streaming cycles.
-
----
-
-## Installation & Deployment
-
-### Web Application (PWA)
-Box Office War runs directly in any modern web browser without dependencies or build steps:
-```bash
-# Serve locally using any static web server
-python3 -m http.server 8080
-# Open http://localhost:8080 in Chrome, Safari, Firefox, or Edge
-```
-
-### Android APK (v41.2)
-1. Download the latest signed release APK from [GitHub Releases](https://github.com/pjneha66/Box-office-War/releases/latest) — `BoxOfficeWar-41.2.apk`, 19 MB.
-2. Install the APK on your Android device (Android 7.0 Nougat or higher — `minSdk 24`).
-3. The application operates 100% offline, caching all scripts, audio synthesis engines, and SVG assets locally.
-4. Updates install over the previous version without losing saves: every release is signed with the same key.
-
-### Building the Android APK from Source
-Prerequisites: Node.js 18+, JDK 21, and Android SDK command-line tools.
-```bash
-# 1. Prepare web bundle into apk/www
-node apk/build-www.js
-
-# 2. Synchronize web assets with Capacitor Android
-cd apk
-npx cap sync android
-
-# 3. Compile release APK with Gradle
-cd android
-./gradlew assembleRelease --no-daemon
-
-# The signed release APK will be generated at:
-# apk/android/app/build/outputs/apk/release/app-release.apk
-```
-
----
-
-## Test Suite & Verification
-
-The project enforces automated test coverage across headless economic simulations, full UI state verification, and long-range scenario balance:
+Box Office War runs an entire studio on a deterministic weekly tick — one global
+state object, autosaved to local storage after every week, zero dependencies:
+
+- **Development desk** — buy or pitch scripts, package director + lead (agency
+  discounts, multi-picture deals), pick scale and budget, marketing tiers.
+- **Production** — phases with overruns, location shoots and rebates, crew hiring,
+  production choices, test screenings, recuts and clearance.
+- **Release calendar** — 8 weeks of clash forecasting against announced rival
+  slates, seasonal corridors (summer, holiday, horror), theatrical windows that
+  exhibitors and streamers actually react to.
+- **Box office war** — geometric weekend decay driven by quality, legs, word of
+  mouth, marketing and clash severity; rivals counter-program your tentpoles.
+- **Aftermarket** — international pre-sales, streaming & PVOD, library royalties,
+  syndication, licensing, merchandise, theme parks, sports megadome.
+- **The world** — rival AI with counter-programming, rival storylines, scandal
+  sagas, festivals, award seasons with FYC campaigns, crisis years, guild strikes,
+  piracy waves, espionage.
+- **Empire** — in-house talent agency, studio lots and facilities, imprints,
+  boards and credit ratings, bonds, mezzanine debt, stock price, dynasty
+  succession (retire and inherit as your heir).
+
+## Build & packaging
 
 ```bash
-# Execute entire test suite
-npm test
+# rebuild the mobile web bundle (game/ → apk/www/)
+node apk/build-www.js --rebuild
 
-# Run individual test harnesses:
-npm run test:engine     # Headless 5-year economy simulation (smoke.js)
-npm run test:ui         # Full UI click-through & modal interactions (ui-test.mjs)
-npm run test:balance    # Economy invariants across 6 seeds x 120 weeks (balance.js)
-npm run test:scenarios  # Automated 200-week playthroughs for all 5 scenarios (scenario-playthrough.mjs)
-npm run test:library    # Catalog and M&A bulk action validations (verify-library.mjs)
-npm run validate:slots  # Save slot structural validation (validate-slots.js)
+# package a signed APK: swaps assets/www/ into the APK shell, patches the binary
+# AndroidManifest (versionCode / versionName) AXML-aware, then jarsigner signs it
+python3 apk/tools/patch_axml.py apk/dist/<base>.apk apk/dist/out-unsigned.apk apk/www 47 42.7
+jarsigner -keystore apk/signing/boxofficewar.keystore -storepass B0xOfficeWar2026 \
+  -keypass B0xOfficeWar2026 -signedjar apk/dist/out.apk apk/dist/out-unsigned.apk bow
 ```
 
----
+The game itself is plain ES5-style JavaScript with string-template UI and event
+delegation — it runs from any static file server, installs as a PWA, and the APK
+ships the same bundle (service worker stripped).
 
-## Architecture & Design Principles
+## Screenshots & development tooling
 
-- **Zero Framework Overhead**: Written in standard, high-performance vanilla JavaScript (ES6+), semantic HTML5, and pure CSS custom properties (`design-tokens.css`).
-- **Deterministic State Serialization**: All game state is encapsulated in a single global object `G`, validated via schema migrations (`migrateSave`), and serialized to browser `localStorage` and `IndexedDB`.
-- **Keyboard Power Tools**: Built-in Command Palette (`Cmd+K` / `Ctrl+K`), arrow-key grid navigation, and comprehensive keyboard shortcuts for high-speed management.
-- **Accessibility & Internationalization**: Screen-reader live regions (`role="status"`, `role="alert"`), system motion preference detection (`prefers-reduced-motion`), and English / Hindi / Marathi localization dictionaries.
-
----
+- `node scripts/capture-readme-shots.mjs` — README screenshots (this file)
+- `node scripts/capture-rebuild-screens.mjs` — full gallery: every view and all
+  78 feature desks, portrait + landscape (`rebuild-notes/ss/`)
+- `node scripts/capture-store-screenshots.cjs` — legacy v41 store art
 
 ## License
 
-MIT License. Open source for modification, study, and distribution.
+[MIT](LICENSE)

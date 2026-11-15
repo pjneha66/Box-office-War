@@ -93,6 +93,7 @@ for (let g = 0; g < 3; g++) {
 // hire staff + found agency so desks have content
 await page.evaluate(() => { for (let i = 0; i < 3; i++) hireLotStaff("writers"); for (let i = 0; i < 2; i++) hireLotStaff("crew"); });
 await page.evaluate(() => foundAgency());
+await page.evaluate(() => { greenlightSeries("drama", 1); });
 await advance(14);
 // schedule every ready film at +2 weeks, standard marketing
 await page.evaluate(() => {
@@ -106,6 +107,7 @@ await advance(2);
 // main views
 await clickBy('[data-view="studio"]'); await shoot("01-studio");
 await clickBy('[data-view="develop"]'); await shoot("02-develop-scripts");
+await clickBy('[data-action="dev-tab"][data-tab="series"]'); await shoot("02b-develop-series");
 await clickBy('[data-action="dev-tab"][data-tab="slate"]'); await shoot("03-develop-slate");
 await clickBy('[data-view="playing"]'); await shoot("04-playing");
 await clickBy('[data-view="ledger"]'); await shoot("05-ledger");
@@ -143,6 +145,10 @@ await clickBy('[data-action="dev-tab"][data-tab="scripts"]');
 await clickBy('[data-action="gl-open"]');
 await sleep(150);
 await shoot("95-sheet-greenlight");
+await clickBy('[data-action="sheet-close"]');
+await clickBy('[data-action="pitch-open"]');
+await sleep(150);
+await shoot("95b-sheet-pitch");
 await clickBy('[data-action="sheet-close"]');
 await clickBy('[data-view="playing"]');
 const runFilm = await page.evaluate(() => { const f = S.films.find((f) => f.status === "run"); return f ? f.id : null; });

@@ -177,7 +177,8 @@ function projCard(p, compact) {
     + tag(fm(p.budgetNow) + " budget")
     + (p.overrun ? tag(p.overrun + "× overrun", "red") : "")
     + (p.scandal ? tag("Scandal", "red") : "")
-    + (p.buzz ? tag("Buzz +" + p.buzz, "blue") : "");
+    + (p.buzz ? tag("Buzz +" + p.buzz, "blue") : "")
+    + (p.cameoName ? tag("Cameo · " + esc(p.cameoName), "gold") : "");
   if (compact) {
     html += "</div></div>";
     return html;
@@ -836,6 +837,7 @@ function onAction(a, elx) {
   if (typeof festivalAction === "function" && festivalAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof socialAction === "function" && socialAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof stadAction === "function" && stadAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof cameoAction === "function" && cameoAction(a, elx)) { refreshDeskSheet(); return; }
   }
   var id = elx.getAttribute("data-id");
   switch (a) {
@@ -1221,6 +1223,7 @@ function collectDesks() {
   if (typeof FESTIVAL_DESKS !== "undefined") all = all.concat(FESTIVAL_DESKS);
   if (typeof SOCIAL_DESKS !== "undefined") all = all.concat(SOCIAL_DESKS);
   if (typeof STAD_DESKS !== "undefined") all = all.concat(STAD_DESKS);
+  if (typeof CAMEO_DESKS !== "undefined") all = all.concat(CAMEO_DESKS);
   return all.concat(MORE_LOCAL);
 }
 function findDesk(id) {
