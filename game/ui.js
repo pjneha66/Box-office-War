@@ -216,6 +216,11 @@ function vStudio() {
   html += '<div class="card hero"><div class="val num">' + fm(st.cash) + '</div><div class="lbl">' + t("cash on hand") + "</div>"
     + '<div class="sub">This week <b class="' + (net >= 0 ? "up" : "down") + '">' + (net >= 0 ? "+" : "") + fm(net) + "</b>"
     + " · Catalog " + fm(st.catalog) + " · Lifetime gross " + fm(st.lifetime) + "</div></div>";
+  if (typeof mastGenreTier === "function") {
+    var known = [];
+    GENRES.forEach(function (g) { var lv = mastGenreTier(g.id); if (lv) known.push(g.em + " " + g.name + " · " + lv.n); });
+    if (known.length) html += '<div class="card">' + statrow("Known for (genre mastery)", known.join(" · ")) + "</div>";
+  }
 
   if (S.projects.length) {
     html += '<div class="sechead"><h2>' + t("In production") + "</h2></div>";
@@ -243,19 +248,25 @@ function ideaCard(idea) {
   var g = genreOf(idea.genre);
   return '<div class="card film">'
     + '<div class="head"><div class="title">' + g.em + " " + esc(idea.title) + "</div>" + tag(fm(idea.price), "gold") + "</div>"
-    + '<div class="meta">' + tag(g.name) + tag("Script ✦ " + idea.script, idea.script >= 75 ? "green" : "") + (idea.theme ? tag("✦ " + esc(themeName(idea.theme))) : "") + (idea.franchiseOf ? tag("Sequel pitch", "blue") : "") + "</div>"
+    + '<div class="meta">' + tag(g.name) + tag("Script ✦ " + idea.script, idea.script >= 75 ? "green" : "") + (idea.theme ? tag("✦ " + esc(themeName(idea.theme))) : "") + (idea.local ? tag("Local-language", "blue") : "") + (idea.franchiseOf ? tag("Sequel pitch", "blue") : "") + "</div>"
     + '<div class="foot"><button class="btn primary sm grow" data-action="gl-open" data-id="' + idea.id + '">' + t("Greenlight") + "</button></div>"
     + "</div>";
 }
 
 function vDevelop() {
-  var html = '<div class="seg">'
+  var html = '<div class="seg" style="flex-wrap:wrap">'
     + '<button class="' + (DEV_TAB === "scripts" ? "on" : "") + '" data-action="dev-tab" data-tab="scripts">' + t("Scripts") + " (" + S.ideas.length + ')</button>'
     + '<button class="' + (DEV_TAB === "slate" ? "on" : "") + '" data-action="dev-tab" data-tab="slate">' + t("Slate") + " (" + S.projects.length + ')</button>'
+    + '<button class="' + (DEV_TAB === "series" ? "on" : "") + '" data-action="dev-tab" data-tab="series">' + t("Series") + " (" + S.series.length + ')</button>'
     + "</div>";
   if (DEV_TAB === "scripts") {
     S.ideas.forEach(function (i) { html += ideaCard(i); });
-    html += '<button class="btn block" data-action="scout">Scout new scripts · $1M</button>';
+    html += '<div class="btnrow">'
+      + '<button class="btn block" data-action="scout">Scout new scripts · $1M</button>'
+      + '<button class="btn block" data-action="pitch-open">💡 Pitch a project · $2M</button>'
+      + "</div>";
+  } else if (DEV_TAB === "series") {
+    html += vSeriesDesk();
   } else {
     if (!S.projects.length) html += '<div class="card empty"><span class="em">🎬</span>Nothing in production. Buy a script and greenlight it.</div>';
     S.projects.forEach(function (p) { html += projCard(p, false); });
@@ -263,13 +274,73 @@ function vDevelop() {
   return html;
 }
 
+/* ── series desk: greenlight → shoot → air → sell to a streamer or keep exclusive ── */
+var SE_UI = { genre: "drama", bIdx: 1 };
+var SE_BUYERS = ["StreamFlix", "PrimeWave+", "HuluTown", "MaxMotion", "AppleGrove+"];
+function seBuyerFor(p) { var n = parseInt(String(p.id).replace(/\D/g, ""), 10) || 0; return SE_BUYERS[n % SE_BUYERS.length]; }
+function vSeriesDesk() {
+  var html = '<div class="card"><div class="field-label">Greenlight a limited series</div><div class="seg" style="flex-wrap:wrap">';
+  GENRES.forEach(function (g) {
+    html += '<button class="' + (SE_UI.genre === g.id ? "on" : "") + '" data-action="se-genre" data-genre="' + g.id + '">' + g.em + " " + g.name + "</button>";
+  });
+  html += '</div><div class="field-label" style="margin-top:10px">Budget</div><div class="seg">';
+  SERIES_BUDGETS.forEach(function (b, i) {
+    html += '<button class="' + (SE_UI.bIdx === i ? "on" : "") + '" data-action="se-budget" data-idx="' + i + '">' + fm(b) + "</button>";
+  });
+  html += '</div><div class="btnrow" style="margin-top:12px">'
+    + '<button class="btn primary grow" data-action="se-go" ' + (S.series.length >= 3 || S.studio.cash < SERIES_BUDGETS[SE_UI.bIdx] ? "disabled" : "") + '">📺 Greenlight series</button></div>'
+    + '<div class="empty" style="padding:8px 0 0">A series shoots for a few weeks, then airs weekly episode by episode. When the finale lands: sell the rights to a streamer for a lump sum, or keep it exclusive on your own platform (More → Streaming desk).</div></div>';
+  if (!S.series.length) html += '<div class="card empty"><span class="em">📺</span>No series yet. Greenlight one above — up to three at once.</div>';
+  S.series.forEach(function (p) {
+    var g = genreOf(p.genre);
+    var badge = p.done ? (p.outlet === "sold" ? tag("Sold · " + seBuyerFor(p), "blue") : p.outlet === "streamer" ? tag("Streamer exclusive", "gold") : tag("Finale aired — pick a deal", "gold")) : p.phase === "shooting" ? tag("Shooting · " + Math.max(0, p.shootLen - p.phaseWk) + " wk left") : tag("Airing · ep " + Math.min(p.weeksOut, p.eps) + "/" + p.eps, "blue");
+    html += '<div class="card film"><div class="head"><div class="title">' + g.em + " " + esc(p.title) + "</div>" + badge + "</div>"
+      + '<div class="meta">' + tag(g.name) + tag(fm(p.budget) + " budget") + (p.rating != null ? tag("Rating " + p.rating, p.rating >= 70 ? "green" : "") : "") + "</div>";
+    if (p.done && !p.outlet) {
+      var offer = Math.round((p.grossSum * 0.9 + p.rating * 0.35 + g.mass * 4) * 10) / 10;
+      html += '<div class="statrow"><span class="k">Run total · rating ' + p.rating + '</span><span class="v num">' + fm(p.grossSum) + "</span></div>"
+        + '<div class="foot btnrow">'
+        + '<button class="btn primary sm grow" data-action="se-sell" data-id="' + p.id + '">💸 Sell to ' + seBuyerFor(p) + " · " + fm(offer) + "</button>"
+        + '<button class="btn sm" data-action="se-stream" data-id="' + p.id + '">📺 Own platform</button></div>';
+    } else if (p.done) {
+      html += '<div class="statrow"><span class="k">Run total · rating ' + p.rating + '</span><span class="v num">' + fm(p.grossSum) + "</span></div>";
+    }
+    html += "</div>";
+  });
+  return html;
+}
+
+/* ── pitch sheet: develop your own concept ─────────────────── */
+var PITCH = { genre: "action", theme: null };
+function sheetPitch() {
+  var html = '<div class="sheet-head"><h3>💡 Pitch a project</h3>'
+    + '<button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">';
+  html += '<div class="card">Skip the scouts — develop your own concept for $2M. It lands on the scripts desk like any other buy, then greenlights as usual.</div>';
+  html += '<div class="field-label">Genre</div><div class="seg" style="flex-wrap:wrap">';
+  GENRES.forEach(function (g) {
+    html += '<button class="' + (PITCH.genre === g.id ? "on" : "") + '" data-action="pitch-genre" data-genre="' + g.id + '">' + g.em + " " + g.name + "</button>";
+  });
+  html += '</div><div class="field-label" style="margin-top:10px">Theme (optional — +5 quality when it loves the genre)</div><div class="seg" style="flex-wrap:wrap">';
+  html += '<button class="' + (PITCH.theme == null ? "on" : "") + '" data-action="pitch-theme" data-theme="">No theme</button>';
+  THEMES.forEach(function (th) {
+    html += '<button class="' + (PITCH.theme === th.id ? "on" : "") + '" data-action="pitch-theme" data-theme="' + th.id + '">' + esc(th.n) + "</button>";
+  });
+  html += '</div><div class="field-label" style="margin-top:10px">Working title (optional)</div>'
+    + '<input id="pitchTitle" class="text-input" maxlength="40" placeholder="Leave blank for a studio title">';
+  html += '</div><div class="sheet-foot"><div class="proj">Cost <b>$2M</b> · cash after <b>' + fm(S.studio.cash - 2) + "</b></div>"
+    + '<button class="btn primary" data-action="pitch-go" ' + (S.studio.cash >= 2 && S.ideas.length < 8 ? "" : "disabled") + ">Develop pitch</button></div>";
+  openSheet(html);
+}
+
 /* ── playing (box office) ─────────────────────────────────────── */
 function filmCard(f) {
   var g = genreOf(f.genre);
   var wk = f.weekly.length ? f.weekly[f.weekly.length - 1] : f.opening;
+  var share = clamp(g.intl + (typeof bizIntlBonus === "function" ? bizIntlBonus() : 0), 0.1, 0.8);
+  var wwEst = f.ww != null ? f.ww : Math.round(f.dom * (1 + share) / (1 - share) * 10) / 10;
   var html = '<div class="card film" data-action="film-open" data-id="' + f.id + '">'
     + '<div class="head"><div class="title">' + g.em + " " + esc(f.title) + "</div>" + tag(f.weeksOut === 0 ? "Opening weekend" : "Week " + (f.weeksOut + 1), "blue") + "</div>"
-    + '<div class="meta">' + tag(fm(wk) + " this wk", "gold") + tag(fm(f.dom) + " domestic") + (f.franchiseOf ? tag("Sequel", "blue") : "") + "</div>";
+    + '<div class="meta">' + tag(fm(wk) + " this wk", "gold") + tag(fm(f.dom) + " domestic") + tag(fm(wwEst) + (f.ww != null ? " worldwide" : " worldwide est")) + tag(fm(f.cost) + " budget", f.dom >= f.cost ? "green" : "") + (f.franchiseOf ? tag("Sequel", "blue") : "") + "</div>";
   if (f.criticAvg != null) html += '<div class="meta">' + tag("Critics " + f.criticAvg + "%", f.criticAvg >= 60 ? "green" : "red") + tag("Audience " + f.aud + "%", f.aud >= 60 ? "green" : "red") + "</div>";
   html += '<div class="bar"><i style="width:' + clamp(Math.round(wk / Math.max(f.opening, 1) * 100), 3, 100) + '%"></i></div></div>';
   return html;
@@ -397,7 +468,7 @@ function vLedger() {
     + '<button class="' + (PREFS.font === 126 ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="126">A++</button>'.replace('data-key="accent"', 'data-key="font"')
     + "</div>"
     + '<div class="statrow"><span class="k">Sound effects</span><button class="btn sm" data-action="sound-toggle">' + (typeof SOUND_ON !== "undefined" && SOUND_ON ? "On — tap to mute" : "Off — tap to enable") + "</button></div>"
-    + '<div class="empty" style="padding:8px 0 0">v1.0 rebuild · autosaves locally after every week</div>'
+    + '<div class="empty" style="padding:8px 0 0">v42.5 · autosaves locally after every week</div>'
     + "</div>";
   return html;
 }
@@ -485,7 +556,7 @@ function personRow(kind, selectedId) {
     var busy = talentBusy(t);
     out += '<button class="person' + (t.id === selectedId ? " on" : "") + '" data-action="' + (kind === "dir" ? "gl-dir" : "gl-act") + '" data-id="' + t.id + '" ' + (busy ? "disabled" : "") + '>'
       + '<div class="nm">' + esc(t.n) + (busy ? " (booked)" : "") + "</div>"
-      + '<div class="st">' + "★".repeat(t.power) + " · skill " + t.skill + (t.fit.indexOf(GL && GL._genre ? GL._genre : "action") >= 0 ? ' <span class="fit">genre fit</span>' : "") + "</div>"
+      + '<div class="st">' + "★".repeat(t.power) + " · skill " + t.skill + (t.scouted ? ' <span class="fit">scouted</span>' : "") + (t.fit.indexOf(GL && GL._genre ? GL._genre : "action") >= 0 ? ' <span class="fit">genre fit</span>' : "") + "</div>"
       + '<div class="fee">' + fm(feeFor(t, scaleOf(GL.scale).budgets[GL.bIdx])) + "</div></button>";
   });
   return out + "</div>";
@@ -588,11 +659,18 @@ function sheetFilm(fId) {
   var html = '<div class="sheet-head"><h3>' + g.em + " " + esc(f.title) + "</h3>"
     + '<button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">';
   html += "<div>" + tag(g.name) + tag(f.status === "run" ? "In theaters" : "Run ended", f.status === "run" ? "blue" : "") + (f.franchiseOf ? tag("Sequel", "blue") : "") + "</div>";
+  var share2 = clamp(g.intl + (typeof bizIntlBonus === "function" ? bizIntlBonus() : 0), 0.1, 0.8);
+  var wwEst = f.ww != null ? f.ww : Math.round(f.dom * (1 + share2) / (1 - share2) * 10) / 10;
+  var roi = f.cost > 0 ? (f.profit != null ? f.profit / f.cost : (f.dom * 0.52 - f.cost) / f.cost) : 0;
   html += '<div class="card">'
+    + statrow("Production budget", fm(f.budget))
+    + statrow("Marketing spend", fm(f.mkt))
+    + statrow("Total cost", fm(f.cost))
     + statrow("Opening weekend", fm(f.opening))
-    + statrow("Domestic so far", fm(f.dom))
-    + (f.ww != null ? statrow("Worldwide final", fm(f.ww)) : "")
-    + (f.profit != null ? statrow("Net result", (f.profit >= 0 ? "+" : "") + fm(f.profit), f.profit >= 0 ? "up" : "down") : "")
+    + statrow("Domestic " + (f.ww != null ? "final" : "so far"), fm(f.dom))
+    + statrow("International " + (f.ww != null ? "final" : "est · " + Math.round(share2 * 100) + "% share"), f.intl != null ? fm(f.intl) : fm(Math.max(0, wwEst - f.dom)))
+    + statrow("Worldwide " + (f.ww != null ? "final" : "est"), fm(wwEst), f.ww != null && f.ww >= f.cost ? "up" : "")
+    + (f.profit != null ? statrow("Net result · " + Math.round(roi * 100) + "% ROI", (f.profit >= 0 ? "+" : "") + fm(f.profit), f.profit >= 0 ? "up" : "down") : statrow("Theatrical rentals so far", fm(f.dom * 0.52)))
     + statrow("Quality / legs", f.quality + " · " + f.legs.toFixed(2))
     + statrow("Released", "Y" + S.studio.year + " · " + f.season)
     + "</div>";
@@ -608,8 +686,15 @@ function sheetFilm(fId) {
     html += '<div class="sechead"><h2>Where it earned</h2></div><div class="card">' + filmTerritoryRows(f) + "</div>";
   }
   if (f.weekly.length) {
-    var rows = f.weekly.slice(-12).map(function (wk) { return { title: "", gross: wk, mine: true }; });
-    html += '<div class="sechead"><h2>Weekly grosses</h2></div><div class="card">' + chartHTML(rows) + "</div>";
+    var wks = f.weekly.slice(-12);
+    var maxW = 1;
+    wks.forEach(function (wv) { maxW = Math.max(maxW, wv); });
+    html += '<div class="sechead"><h2>Weekly grosses</h2></div><div class="card"><div class="chart">';
+    wks.forEach(function (wv, wi) {
+      var pct = Math.max(4, Math.round(wv / maxW * 100));
+      html += '<div class="c me"><i style="height:' + pct + '%"></i><span>W' + (f.weekly.length - wks.length + wi + 1) + "</span></div>";
+    });
+    html += '</div><div class="empty" style="padding:4px 0 0">Week by week · latest weekend ' + fm(wks[wks.length - 1]) + "</div></div>";
   }
   openSheet(html);
 }
@@ -749,6 +834,8 @@ function onAction(a, elx) {
   if (typeof licensingAction === "function" && licensingAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof awardsAction === "function" && awardsAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof festivalAction === "function" && festivalAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof socialAction === "function" && socialAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof stadAction === "function" && stadAction(a, elx)) { refreshDeskSheet(); return; }
   }
   var id = elx.getAttribute("data-id");
   switch (a) {
@@ -1011,6 +1098,8 @@ function onAction(a, elx) {
       if (!handled && typeof licensingAction === "function") handled = licensingAction(a, elx);
       if (!handled && typeof awardsAction === "function") handled = awardsAction(a, elx);
       if (!handled && typeof festivalAction === "function") handled = festivalAction(a, elx);
+      if (!handled && typeof socialAction === "function") handled = socialAction(a, elx);
+      if (!handled && typeof stadAction === "function") handled = stadAction(a, elx);
       if (!handled) { S.pending = null; closeSheet(); render(); }
       break;
     }
@@ -1036,6 +1125,35 @@ function onAction(a, elx) {
       pushToast("The story runs. Opening will take a hit.", "bad");
       break;
     }
+    case "se-genre": SE_UI.genre = elx.getAttribute("data-genre"); render(); break;
+    case "se-budget": SE_UI.bIdx = +elx.getAttribute("data-idx"); render(); break;
+    case "se-go": {
+      var sr = greenlightSeries(SE_UI.genre, SE_UI.bIdx);
+      if (sr.err) pushToast(sr.err, "bad");
+      saveGame(); render(); drainFlash();
+      break;
+    }
+    case "se-sell": {
+      var ss = sellSeriesOtt(id);
+      if (ss.err) pushToast(ss.err, "bad");
+      saveGame(); render(); drainFlash();
+      break;
+    }
+    case "se-stream": {
+      var stx = releaseSeriesStreamer(id);
+      if (stx.err) pushToast(stx.err, "bad");
+      saveGame(); render(); drainFlash();
+      break;
+    }
+    case "pitch-open": sheetPitch(); break;
+    case "pitch-genre": PITCH.genre = elx.getAttribute("data-genre"); sheetPitch(); break;
+    case "pitch-theme": PITCH.theme = elx.getAttribute("data-theme") || null; sheetPitch(); break;
+    case "pitch-go": {
+      var prp = pitchIdea(PITCH.genre, PITCH.theme, el("pitchTitle") ? el("pitchTitle").value.trim() : "");
+      if (prp.err) { pushToast(prp.err, "bad"); break; }
+      closeSheet(); render(); drainFlash();
+      break;
+    }
     case "sheet-close": closeSheet(); break;
   }
 }
@@ -1048,11 +1166,6 @@ function onAdvance() {
   if (S.over) { VIEW = "gameover"; render(); return; }
   render();
   if (S.pending) openPendingSheet();
-}
-
-function openPendingSheet() {
-  if (S.pending.type === "poach") sheetPoach(S.pending);
-  else sheetScandal(S.pending);
 }
 
 function wire() {
@@ -1099,6 +1212,15 @@ function collectDesks() {
   if (typeof BIZDEAL_DESKS !== "undefined") all = all.concat(BIZDEAL_DESKS);
   if (typeof SLOTS_DESKS !== "undefined") all = all.concat(SLOTS_DESKS);
   if (typeof META2_DESKS !== "undefined") all = all.concat(META2_DESKS);
+  /* wave-6/7 desks — wired in v42.5 */
+  if (typeof CREW_DESKS !== "undefined") all = all.concat(CREW_DESKS);
+  if (typeof MASTERY_DESKS !== "undefined") all = all.concat(MASTERY_DESKS);
+  if (typeof WORLD_DESKS !== "undefined") all = all.concat(WORLD_DESKS);
+  if (typeof LICENSING_DESKS !== "undefined") all = all.concat(LICENSING_DESKS);
+  if (typeof AWARDS_DESKS !== "undefined") all = all.concat(AWARDS_DESKS);
+  if (typeof FESTIVAL_DESKS !== "undefined") all = all.concat(FESTIVAL_DESKS);
+  if (typeof SOCIAL_DESKS !== "undefined") all = all.concat(SOCIAL_DESKS);
+  if (typeof STAD_DESKS !== "undefined") all = all.concat(STAD_DESKS);
   return all.concat(MORE_LOCAL);
 }
 function findDesk(id) {
@@ -1189,7 +1311,36 @@ function forecastAdjust(weekAbs) {
   return n;
 }
 
+/* ── restored cast banks: merge v41 name banks + BOS2 cast DB into the engine pools ── */
+function mergeCastBanks() {
+  var i, j, n, seen = {};
+  var F = FIRST_NAMES.slice(), L = LAST_NAMES.slice();
+  for (i = 0; i < F.length; i++) seen[F[i]] = 1;
+  for (i = 0; i < L.length; i++) seen[L[i]] = 1;
+  function addAll(src, out) {
+    if (!src) return;
+    for (j = 0; j < src.length; j++) { n = src[j]; if (n && !seen[n]) { seen[n] = 1; out.push(n); } }
+  }
+  var D = (typeof window !== "undefined" && window.DATA) || null;
+  if (D) { addAll(D.FIRST_M, F); addAll(D.FIRST_F, F); addAll(D.LAST, L); }
+  var B = (typeof window !== "undefined" && window.BOS2_CAST) || null;
+  if (B) { addAll(B.peopleMale, F); addAll(B.peopleFemale, F); addAll(B.peopleLast, L); }
+  FIRST_NAMES.length = 0;
+  for (i = 0; i < F.length; i++) FIRST_NAMES.push(F[i]);
+  LAST_NAMES.length = 0;
+  for (i = 0; i < L.length; i++) LAST_NAMES.push(L[i]);
+  if (B && Array.isArray(B.abilities)) {
+    var have = {};
+    for (i = 0; i < ABILITIES.length; i++) have[ABILITIES[i].id] = 1;
+    for (i = 0; i < B.abilities.length; i++) {
+      var ab = B.abilities[i], id2 = "bos2_" + ab.id;
+      if (!have[id2]) { have[id2] = 1; ABILITIES.push({ id: id2, n: ab.n, d: ab.d }); }
+    }
+  }
+}
+
 function boot() {
+  mergeCastBanks();
   wire();
   if (typeof applyPrefs === "function") applyPrefs();
   window.addEventListener("beforeinstallprompt", function (e) {

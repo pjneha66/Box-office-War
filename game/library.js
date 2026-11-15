@@ -81,11 +81,23 @@ function libWeakestRival() {
 
 function libSignTalent(kind) {
   libEnsure();
-  var cost = kind === "prodigy" ? 8 : kind === "specialist" ? 15 : 30;
+  var cost = kind === "prodigy" ? 8 : kind === "specialist" ? 15 : kind === "animal" ? 12 : 30;
   if (S.studio.cash < cost) return { err: "Need " + fm(cost) + " for the " + kind + " signing." };
   var t = genTalent(pick(["actor", "dir"]));
   var g = null;
-  if (kind === "prodigy") {
+  if (kind === "animal") {
+    /* Box Office Sim 2 cast database (restored from the previous build): species + animal name banks */
+    var B = (typeof window !== "undefined" && window.BOS2_CAST) || null;
+    if (!B || !B.animals || !B.animals.length) return { err: "The animal cast database is not loaded." };
+    t.k = "actor";
+    t.power = Math.max(t.power, 3);
+    t.skill = ri(60, 85);
+    var sp = pick(B.animals);
+    t.n = (chance(0.5) ? pick(B.animalMale) : pick(B.animalFemale)) + " the " + sp.n;
+    t.animal = true;
+    t.ability = "bos2_" + sp.id;
+    t.fit = [pick(GENRES).id, pick(GENRES).id];
+  } else if (kind === "prodigy") {
     t.power = ri(2, 3); t.skill = ri(60, 80); t.age = ri(18, 22);
   } else if (kind === "specialist") {
     t.power = 3; t.skill = ri(70, 85);
@@ -200,6 +212,7 @@ function libAction(a, elx) {
     case "lib-prodigy": libHandle(libSignTalent("prodigy")); return true;
     case "lib-specialist": libHandle(libSignTalent("specialist")); return true;
     case "lib-legend": libHandle(libSignTalent("legend")); return true;
+    case "lib-animal": libHandle(libSignTalent("animal")); return true;
     case "lib-undercut": libHandle(libUndercut()); return true;
     case "lib-boost": libHandle(libBoost()); return true;
     default: return false;
@@ -290,6 +303,8 @@ function libSandboxDesk() {
     + '<button class="btn sm" data-action="lib-specialist" ' + (S.studio.cash < 15 ? "disabled" : "") + ">Sign</button></div>"
     + '<div class="statrow"><span class="k">Sign a legend · ' + fm(30) + "<br><small style='color:var(--faint)'>★★★★★ · skill 80–95 · cash after " + fm(S.studio.cash - 30) + "</small></span>"
     + '<button class="btn sm" data-action="lib-legend" ' + (S.studio.cash < 30 ? "disabled" : "") + ">Sign</button></div>"
+    + '<div class="statrow"><span class="k">Sign an animal star · ' + fm(12) + "<br><small style='color:var(--faint)'>a trained animal actor from the cast database, species ability included · cash after " + fm(S.studio.cash - 12) + "</small></span>"
+    + '<button class="btn sm" data-action="lib-animal" ' + (S.studio.cash < 12 ? "disabled" : "") + ">Sign</button></div>"
     + "</div>";
   if (strong && weak) {
     html += '<div class="sechead"><h2>Nudge the field</h2></div>'

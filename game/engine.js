@@ -198,6 +198,28 @@ function scoutScripts() {
   return true;
 }
 
+/* Pitch your own concept: pay a development fee to put a bespoke idea on the desk. */
+function pitchIdea(genreId, themeId, title) {
+  if (S.studio.cash < 2) return { err: "Need $2M to develop a pitch." };
+  if (S.ideas.length >= 8) return { err: "The desk is full — greenlight a script first." };
+  spend(2, "Pitch development");
+  var g = genreOf(genreId || pick(GENRES).id);
+  var script = clamp(ri(52, 82) + Math.min(S.lot ? S.lot.writers : 0, 10) * 0.5, 42, 95);
+  var idea = {
+    id: "i" + (S.seq++),
+    title: String(title || genTitle()).slice(0, 42),
+    genre: g.id, script: script,
+    price: Math.round((0.4 + script * 0.028) * 10) / 10,
+    born: S.studio.week,
+    theme: themeId || null,
+    franchiseOf: null,
+    pitched: true
+  };
+  S.ideas.push(idea);
+  log("💡 Your pitch “" + idea.title + "” (" + g.name + ") clears development and lands on the desk.", "", "💡");
+  return { ok: true, id: idea.id };
+}
+
 /* ── projects ─────────────────────────────────────────────────── */
 function scaleAllowed(sc) { return S.studio.rep >= sc.rep; }
 
@@ -1071,6 +1093,15 @@ function advanceWeek() {
   if (typeof tickEvents2 === "function") tickEvents2();
   if (typeof tickMeta2 === "function") tickMeta2();
   if (typeof tickBizdeal === "function") tickBizdeal();
+  /* wave-6/7 module ticks — wired in v42.5 (previously defined but never called) */
+  if (typeof tickCrew === "function") tickCrew();
+  if (typeof tickMastery === "function") tickMastery();
+  if (typeof tickWorld === "function") tickWorld();
+  if (typeof tickLicensing === "function") tickLicensing();
+  if (typeof tickSocial === "function") tickSocial();
+  if (typeof tickStad === "function") tickStad();
+  if (typeof tickTalentAgency === "function") tickTalentAgency();
+  if (typeof tickFestivals === "function") tickFestivals();
   tickMine();
   tickSeries();
 
