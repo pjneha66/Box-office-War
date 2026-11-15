@@ -48,6 +48,7 @@ function newState(name, originId, diff) {
     ideas: [],            // 6 scripts on the development desk
     projects: [],         // films being made: pre → shoot → post → ready
     films: [],            // my released films
+    series: [],           // series in production or airing
     rFilms: [],           // rival films (recent, capped)
     rivals: [],           // studios with release slots
     news: [],             // newest first, capped
@@ -893,6 +894,90 @@ function tickMine() {
   }
 }
 
+
+/* ── series: greenlight → shoot → air → OTT sale or own-streamer release ── */
+var SERIES_BUDGETS = [10, 16, 24];
+function genSeriesTitle() { return pick(TITLE_A) + " " + pick(TITLE_B).trim(); }
+function greenlightSeries(genreId, bIdx) {
+  var g = genreOf(genreId);
+  var budget = SERIES_BUDGETS[bIdx] || SERIES_BUDGETS[1];
+  if (S.studio.cash < budget) return { err: "Need " + fm(budget) + " to greenlight a series." };
+  if (S.series.length >= 3) return { err: "Three series already in production." };
+  var quality = clamp(ri(48, 86) + Math.min(S.lot.writers, 10) * 0.4 + (g.id === "drama" || g.id === "crime" ? 3 : 0), 40, 96);
+  var p = {
+    id: "fs" + (S.seq++), title: genSeriesTitle(), genre: genreId, scale: "series",
+    budget: budget, quality: quality, eps: ri(6, 10),
+    phase: "shooting", phaseWk: 0, shootLen: ri(6, 9),
+    weeksOut: 0, grossSum: 0, rating: null, outlet: null, done: false
+  };
+  spend(budget, "Series · " + p.title);
+  S.series.push(p);
+  log("Greenlit series “" + p.title + "” — " + g.em + " " + g.name + ", " + p.eps + " episodes for " + fm(budget) + ".", "", "📺");
+  toast("“" + p.title + "” is in production.", "good");
+  return { ok: true, id: p.id };
+}
+function findSeries(id) { var i; for (i = 0; i < S.series.length; i++) if (S.series[i].id === id) return S.series[i]; return null; }
+function tickSeries() {
+  var i, p, g, season, weekly, rating;
+  for (i = S.series.length - 1; i >= 0; i--) {
+    p = S.series[i];
+    if (p.done) continue;
+    g = genreOf(p.genre);
+    season = seasonOf(woyOf(S.studio.week));
+    if (p.phase === "shooting") {
+      p.phaseWk++;
+      spend(Math.round(p.budget * 0.7 / p.shootLen * 10) / 10, "Series shoot · " + p.title);
+      if (p.phaseWk >= p.shootLen) {
+        p.phase = "aired"; p.phaseWk = 0;
+        log("“" + p.title + "” wraps and heads to its premiere week.", "good", "📺");
+      }
+      continue;
+    }
+    if (p.phase === "aired") {
+      p.weeksOut++;
+      rating = clamp(Math.round(p.quality + gauss() * 5 + (season.hol ? 3 : 0)), 5, 99);
+      p.rating = p.rating == null ? rating : Math.round((p.rating * (p.weeksOut - 1) + rating) / p.weeksOut);
+      weekly = Math.round(p.budget * 0.06 * (p.rating / 60) * season.s * 10) / 10;
+      if (p.outlet === "streamer") {
+        weekly = Math.round(weekly * 1.35 * 10) / 10;
+        if (S.tv && S.tv.streamer) S.tv.streamer.subs = Math.round((S.tv.streamer.subs + 0.05 + p.rating / 1400) * 100) / 100;
+      }
+      earn(weekly, "Series · " + p.title);
+      p.grossSum = Math.round((p.grossSum + weekly) * 10) / 10;
+      if (p.weeksOut >= p.eps) {
+        p.done = true;
+        S.studio.catalog += p.grossSum * 0.3;
+        if (p.outlet !== "streamer") log("“" + p.title + "” finale scored " + p.rating + "/100 — " + fm(p.grossSum) + " over its run.", p.rating >= 70 ? "good" : "", "📺");
+        else log("“" + p.title + "” finale drove subscribers on your streamer — " + fm(p.grossSum) + " total.", "good", "📺");
+      }
+    }
+  }
+}
+/* Sell the finished series to an external platform (one-time rights fee). */
+function sellSeriesOtt(id) {
+  var p = findSeries(id);
+  if (!p || !p.done || p.outlet) return { err: "That series cannot be sold yet." };
+  var g = genreOf(p.genre);
+  var offer = Math.round((p.grossSum * 0.9 + p.rating * 0.35 + g.mass * 4) * 10) / 10;
+  earn(offer, "OTT sale · " + p.title);
+  p.outlet = "sold";
+  log("Sold “" + p.title + "” streaming rights for " + fm(offer) + " — a platform wanted the finale audience.", "gold", "💸");
+  toast("Rights sold for " + fm(offer) + ".", "good");
+  return { ok: true, offer: offer };
+}
+/* Release the finished series on your OWN streamer (needs tv.js streamer). */
+function releaseSeriesStreamer(id) {
+  var p = findSeries(id);
+  if (!p || !p.done || p.outlet) return { err: "That series is not ready." };
+  if (typeof S === "undefined" || !S.tv || !S.tv.streamer) return { err: "Launch your own streaming platform first (More → Streaming platform)." };
+  p.outlet = "streamer";
+  S.tv.streamer.subs = Math.round((S.tv.streamer.subs + 0.3 + p.rating / 250) * 100) / 100;
+  S.tv.streamer.exclusives = (S.tv.streamer.exclusives || 0) + 1;
+  log("“" + p.title + "” lands exclusive on your streamer — subscriber bump and a new exclusive badge.", "gold", "📺");
+  toast("Exclusive release on your streamer.", "good");
+  return { ok: true };
+}
+
 /* ── milestones & awards ──────────────────────────────────────── */
 function milestone(id, txt) {
   if (S.stats.milestones[id]) return;
@@ -987,6 +1072,7 @@ function advanceWeek() {
   if (typeof tickMeta2 === "function") tickMeta2();
   if (typeof tickBizdeal === "function") tickBizdeal();
   tickMine();
+  tickSeries();
 
   churnTalent();
   if (typeof seedFollowings === "function") seedFollowings();
