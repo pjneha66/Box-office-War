@@ -98,7 +98,7 @@ node apk/build-www.js --rebuild
 
 # package a signed APK: swaps assets/www/ into the APK shell, patches the binary
 # AndroidManifest (versionCode / versionName) AXML-aware, then jarsigner signs it
-python3 apk/tools/patch_axml.py apk/dist/<base>.apk apk/dist/out-unsigned.apk apk/www 47 42.7
+python3 apk/tools/patch_axml.py apk/dist/<base>.apk apk/dist/out-unsigned.apk apk/www 53 42.7
 jarsigner -keystore apk/signing/boxofficewar.keystore -storepass B0xOfficeWar2026 \
   -keypass B0xOfficeWar2026 -signedjar apk/dist/out.apk apk/dist/out-unsigned.apk bow
 ```
