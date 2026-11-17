@@ -1,0 +1,28 @@
+/* Dashboard migration to UI system components */
+.command-desk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.command-desk-grid button {
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r);
+  padding: var(--space-4);
+  min-height: var(--ctl-h-lg);
+  text-align: left;
+  transition: background var(--fast);
+}
+
+.command-desk-grid button:hover {
+  background: var(--surface-3);
+  border-color: var(--line-2);
+}
+
+.command-metric {
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r);
+  padding: var(--space-4);
+}

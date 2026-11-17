@@ -5629,11 +5629,21 @@ function boxOfficeTelemetry(){
   const weekDom=chart.reduce((a,c)=>a+(c.gross||0),0);
   let live=[]; try{ live=activeFilms()||[]; }catch(e){ live=[]; }
   const yourWw=live.reduce(function(a,f){ let sp={dom:f.dom||0,intl:0}; try{ sp=boSplit(f); }catch(e){} return a+(sp.dom||0)+(sp.intl||0); },0);
-  return `<div class="command-telemetry">${commandMetric("DOMESTIC / WEEK",fmtG(weekDom),"Every picture")}${commandMetric("YOUR RUNS",String(live.length),"In theaters")}${commandMetric("YOUR WW",fmtG(yourWw),"Domestic + intl")}${commandMetric("ON THE BOARD",String(chart.length),"Films this week")}</div>`;
+  /* v43: the fourth reading is the collection coffer once levers have printed
+     money, and the board count before that — same four metrics either way. */
+  let colUplift=0, colRuns=chart.length;
+  if(typeof BoxOfficeCollection!=="undefined" && typeof BoxOfficeCollection.state==="function"){
+    const cs=BoxOfficeCollection.state(G);
+    if(cs && cs.weekly) colUplift=cs.weekly.uplift||0;
+  }
+  const fourth = colUplift>0
+    ? commandMetric("COLLECTION / WEEK",fmtG(colUplift),"Lever uplift")
+    : commandMetric("ON THE BOARD",String(colRuns),"Films this week");
+  return `<div class="command-telemetry">${commandMetric("DOMESTIC / WEEK",fmtG(weekDom),"Every picture")}${commandMetric("YOUR RUNS",String(live.length),"In theaters")}${commandMetric("YOUR WW",fmtG(yourWw),"Domestic + intl")}${fourth}</div>`;
 }
 function boxOfficeNav(){
   const active=BOXOFFICE_SECTIONS.some(s=>s[0]===BOXOFFICE_SUB)?BOXOFFICE_SUB:"chart";
-  return `<nav class="command-section-nav command-boxoffice-nav" aria-label="Box office sections"><div class="command-nav-brand"><span>BOX OFFICE DESK</span><small>CHART / SCREENS / TERRITORIES</small></div><div class="command-nav-items">${BOXOFFICE_SECTIONS.map(([key,label],i)=>`<button data-bosub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div><div class="command-nav-tools"><button id="btnBoScreenings" aria-label="Audience screenings — festival and press screenings"><small>TOOL / AUDIENCE</small><span>Screenings</span></button><button id="btnBoTheaters" aria-label="Theater chains desk"><small>TOOL / CIRCUITS</small><span>Theater chains</span></button><button id="btnBoGrosses" aria-label="Weekend grosses analytics"><small>TOOL / ANALYTICS</small><span>Weekend grosses</span></button><button id="btnBoLibrary" aria-label="Film library — open the catalogue"><small>TOOL / CATALOGUE</small><span>Film library</span></button></div></nav>`;
+  return `<nav class="command-section-nav command-boxoffice-nav" aria-label="Box office sections"><div class="command-nav-brand"><span>BOX OFFICE DESK</span><small>CHART / SCREENS / TERRITORIES</small></div><div class="command-nav-items">${BOXOFFICE_SECTIONS.map(([key,label],i)=>`<button data-bosub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div><div class="command-nav-tools"><button id="btnBoCollection" aria-label="Collection Command — raise what a picture actually collects"><small>TOOL / COLLECTION</small><span>Collection</span></button><button id="btnBoScreenings" aria-label="Audience screenings — festival and press screenings"><small>TOOL / AUDIENCE</small><span>Screenings</span></button><button id="btnBoTheaters" aria-label="Theater chains desk"><small>TOOL / CIRCUITS</small><span>Theater chains</span></button><button id="btnBoGrosses" aria-label="Weekend grosses analytics"><small>TOOL / ANALYTICS</small><span>Weekend grosses</span></button><button id="btnBoLibrary" aria-label="Film library — open the catalogue"><small>TOOL / CATALOGUE</small><span>Film library</span></button></div></nav>`;
 }
 function boxOfficePanel(eyebrow,title,description,content,stamp){
   return `<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${stamp?`<span class="produce-stamp">${stamp}</span>`:""}</div>${content}</section>`;
@@ -7500,6 +7510,9 @@ function bindView(){
   const devLocDesk=$("#btnDevelopLocationDesk");
   if(devLocDesk) devLocDesk.onclick=()=>{ beep("click"); LOC_DESK.focus=null; openLocationDesk(); };
   $$("[data-bosub]").forEach(b=>b.onclick=()=>{ BOXOFFICE_SUB=b.dataset.bosub; beep("click"); render(); });
+  /* v43: the collection layer owns its own desk; ui.js only opens it. */
+  const boCollect=$("#btnBoCollection");
+  if(boCollect) boCollect.onclick=()=>{ beep("click"); if(typeof BoxOfficeCollection!=="undefined" && typeof BoxOfficeCollection.openDesk==="function") BoxOfficeCollection.openDesk(); else toast("The collection desk is unavailable in this build.","bad"); };
   const boLib=$("#btnBoLibrary");
   if(boLib) boLib.onclick=()=>{ beep("click"); switchTab("library"); };
   const boGross=$("#btnBoGrosses");

@@ -52,6 +52,7 @@ const gddEngineJs = fs.readFileSync(path.join(ROOT, "gamestudio-gdd-engine.js"),
 const socialViralJs = fs.readFileSync(path.join(ROOT, "social-viral-network.js"), "utf8").replace(/"use strict";/g, "");
 const sportsStadiumJs = fs.readFileSync(path.join(ROOT, "sports-stadium-deals.js"), "utf8").replace(/"use strict";/g, "");
 const stageDivisionJs = fs.readFileSync(path.join(ROOT, "stage-division.js"), "utf8").replace(/"use strict";/g, "");
+const collectionJs = fs.readFileSync(path.join(ROOT, "box-office-collection-engine.js"), "utf8").replace(/"use strict";/g, "");
 const nextWaveJs = fs.readFileSync(path.join(ROOT, "studio-nextwave-suite.js"), "utf8").replace(/"use strict";/g, "");
 const smokeBodyJs = fs.readFileSync(path.join(__dirname, "smoke-body.js"), "utf8").replace(/"use strict";/g, "");
 
@@ -97,6 +98,7 @@ const bundle = SHIM +
   socialViralJs + "\n" +
   sportsStadiumJs + "\n" +
   stageDivisionJs + "\n" +
+  collectionJs + "\n" +
   nextWaveJs + "\n" +
   smokeBodyJs + "\n";
 

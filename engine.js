@@ -2340,6 +2340,9 @@ function expectedOpening(p, weekAbs){
   (p.mktBoosts||[]).forEach(b=>{ const m=DATA.mktBoost? DATA.mktBoost(b):null; if(m&&m.open) hype*=m.open; }); // v5 boosts
   hype *= timelineFactor(p, weekAbs);                 // v5: shared-universe timeline management
   if(typeof IndustryExpansion!=="undefined" && IndustryExpansion.openingMultiplier){ hype *= IndustryExpansion.openingMultiplier(p,G); }
+  /* v43: Collection Command — circuit screens, booking corridor and the
+     circuit price program move the opening. Levers are capped at +32%. */
+  if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.openingMultiplier){ hype *= BoxOfficeCollection.openingMultiplier(p,G); }
   const exhib = G.exhibRel || G.exhibitor || 50;
   hype *= 1 + (exhib-50)/50*0.05;
   hype *= (0.95 + (G.exhibitor||50)/1000);
@@ -2407,6 +2410,7 @@ function legsOf(film){
   // v5: review embargo — anticipation helps when critics would have been kind; cover-ups get punished
   if(film.embargoActive) legs += (film.quality.critic>=55? 0.05 : -0.10);
   legs += projectAbilities(film).legs;   // v28: Legs Engine & friends stretch the tail
+  if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.legsBonus) legs += BoxOfficeCollection.legsBonus(film);  // v43: collection levers extend the tail
   return clamp(legs, 1.45, 4.4);
 }
 
@@ -3021,6 +3025,10 @@ function tickTheatrical(){
     let gross = f.opening * Math.pow(f.decay, f.weeksOut);
     if(G.theaterCap>0) gross*=0.55;
     if(G.piracy && DATA.PIRACY) gross *= 1 - clamp(G.piracy/100,0,1)*DATA.PIRACY.maxGrossDamage;  // v5: piracy meter bleeds live runs
+    /* v43: Collection Command — player levers (screen expansion, event pricing,
+       international blitz, corridor, discount Tuesday) scale this week's gross.
+       They lift f.dom/f.intl/f.ww together, so territory splits stay honest. */
+    if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.grossMultiplier) gross *= BoxOfficeCollection.grossMultiplier(f,G);
     const isHoliday = seasonOfW(G.week).holiday;
     if(isHoliday) gross*=1.18;
     // v17: Economic cycle box office multiplier
@@ -6134,6 +6142,9 @@ function advanceWeek(){
   // Prototype RPG systems
   if(typeof tickPrototypeSystems==="function") tickPrototypeSystems();
   if(typeof tickTheatrical==="function") tickTheatrical();
+  /* v43: Collection Command — pays the lever increment, merch windows and the
+     finished-run collection program into the normal ledger. */
+  if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.tick) BoxOfficeCollection.tick(G);
   if(typeof tickSeries==="function") tickSeries();
   if(typeof tickRivals==="function") tickRivals();
   if(typeof NextWaveSuite!=="undefined" && NextWaveSuite.tickRivalStrategies) NextWaveSuite.tickRivalStrategies(G);
