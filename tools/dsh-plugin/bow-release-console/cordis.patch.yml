@@ -1,0 +1,3 @@
+- insert:
+    - id: bow-release-console
+      name: '@local/bow-release-console'

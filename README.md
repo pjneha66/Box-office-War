@@ -31,6 +31,26 @@ regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
 
 ---
 
+## What is new in v43.0 — Box Office Collection Command
+
+**Box Office Collection Command** — a new desk on the Box Office tab with player-driven levers that raise what each picture actually collects:
+
+- **Screen Expansion Push** — buy more prints/shows on a live run (+12–26% weekly gross per level)
+- **Event Pricing** — premium surcharge on PLF/IMAX/holiday weeks (+8–20% weekly gross per level)
+- **International Blitz** — day-and-date dubs and press in cold territories (+10–22% weekly gross per level)
+- **Merch & Tie-In Window** — character licensing while the picture is hot (converts heat to merch revenue)
+- **Re-Release / Restoration Run** — anniversary prints for a closed title (+55–70% on the re-open)
+- **Circuit Screens** — career asset that lifts every wide release (+2.2% per owned tranche)
+- **Booking Corridor** — lock a clear weekend for your slate (+5% to every live run)
+- **Discount Tuesday** — circuit-wide price program (+8% admissions)
+
+All levers cost cash, run on week timers, and pay back through the normal ledger. A **global valve ceiling** keeps late-run income sane — growth is earned, not free.
+
+Measured result: a fully pushed tentpole lifts its worldwide run **2–3× over baseline**, with every dollar traced to a lever in the coffer ledger. Existing saves load unchanged — all new state is optional and lazy-initialised.
+
+Ships as signed Android APK v43.0 (versionCode 53), installs over previous builds without losing saves.
+[Download v43.0 APK](https://github.com/pjneha66/Box-office-War/releases/download/v43.0/BoxOfficeWar-43.0.apk) | [v43.0 release](https://github.com/pjneha66/Box-office-War/releases/tag/v43.0)
+
 ## What is new in v42.7
 
 - **Celebrity cameo system** — a rotating cameo market on the new 🌟 *Cameos* desk
