@@ -31,6 +31,20 @@ regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
 
 ---
 
+## What is new in v43.1 — New UI (Rebuild)
+
+Ships the modern rebuilt UI from `game/`:
+• Portrait-first design with CSS variables and inline SVG icon sprite
+• Studio / Develop / Now playing / Ledger / More tabs
+• Bottom week advance button
+• Modal sheets and toast notifications
+• Offline-capable, fully bundled in the APK
+
+Version 43.1 (versionCode 54), signed with the same keystore — installs over v43.0 without losing saves.
+[Download v43.1 APK](https://github.com/pjneha66/Box-office-War/releases/download/v43.1/BoxOfficeWar-43.1.apk) | [v43.1 release](https://github.com/pjneha66/Box-office-War/releases/tag/v43.1)
+
+---
+
 ## What is new in v43.0 — Box Office Collection Command
 
 **Box Office Collection Command** — a new desk on the Box Office tab with player-driven levers that raise what each picture actually collects:

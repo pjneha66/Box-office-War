@@ -1,5 +1,5 @@
 /* Box Office War — rebuilt. Cache-first service worker for offline play (PWA only; stripped in the APK). */
-var CACHE = "bow2-rebuild-v1";
+var CACHE = "bow2-rebuild-v2";
 var ASSETS = [
   "./",
   "index.html",
