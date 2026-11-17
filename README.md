@@ -31,21 +31,35 @@ regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
 
 ---
 
-## What is new in v43.1 — New UI (Rebuild)
+## What is new in v43.2 — New UI (Rebuild) + Collection Command
 
-Ships the modern rebuilt UI from `game/`:
+Ships the modern rebuilt UI from `game/` with the **Box Office Collection Command** desk:
+
 • Portrait-first design with CSS variables and inline SVG icon sprite
-• Studio / Develop / Now playing / Ledger / More tabs
-• Bottom week advance button
-• Modal sheets and toast notifications
+• Studio / Develop / Now playing / **Collection** / Ledger / More tabs
+• Bottom week advance button, modal sheets, toast notifications
 • Offline-capable, fully bundled in the APK
 
-Version 43.1 (versionCode 54), signed with the same keystore — installs over v43.0 without losing saves.
-[Download v43.1 APK](https://github.com/pjneha66/Box-office-War/releases/download/v43.1/BoxOfficeWar-43.1.apk) | [v43.1 release](https://github.com/pjneha66/Box-office-War/releases/tag/v43.1)
+**Collection Command** (Box Office → Collection tab):
+• **Screen Expansion Push** — buy more prints/shows on a live run (+12–26% weekly gross per level)
+• **Event Pricing** — premium surcharge on PLF/IMAX/holiday weeks (+8–20% weekly gross per level)
+• **International Blitz** — day-and-date dubs and press in cold territories (+10–22% weekly gross per level)
+• **Merch & Tie-In Window** — character licensing while the picture is hot (converts heat to merch revenue)
+• **Re-Release / Restoration Run** — anniversary prints for a closed title (+55–70% on the re-open)
+• **Circuit Screens** — career asset that lifts every wide release (+2.2% per owned tranche)
+• **Booking Corridor** — lock a clear weekend for your slate (+5% to every live run)
+• **Discount Tuesday** — circuit-wide price program (+8% admissions)
+
+All levers cost cash, run on week timers, and pay back through the normal ledger. A **global valve ceiling** keeps late-run income sane — growth is earned, not free.
+
+Measured result: a fully pushed tentpole lifts its worldwide run **2–3× over baseline**, with every dollar traced to a lever in the coffer ledger. Existing saves load unchanged — all new state is optional and lazy-initialised.
+
+Ships as signed Android APK v43.2 (versionCode 55), installs over v43.1 without losing saves.
+[Download v43.2 APK](https://github.com/pjneha66/Box-office-War/releases/download/v43.2/BoxOfficeWar-43.2.apk) | [v43.2 release](https://github.com/pjneha66/Box-office-War/releases/tag/v43.2)
 
 ---
 
-## What is new in v43.0 — Box Office Collection Command
+## What is new in v43.1 — New UI (Rebuild)
 
 **Box Office Collection Command** — a new desk on the Box Office tab with player-driven levers that raise what each picture actually collects:
 

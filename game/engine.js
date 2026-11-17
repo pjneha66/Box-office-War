@@ -437,6 +437,8 @@ function expectedOpening(p) {
   if (p.franchiseOf && act && act.ability === "franchise") abF *= 1.08;
   var open = sc.openBase * g.mass * g.open * starF * mktF * season.s * repF * frF * buzzF * abF * S.econ.box;
   open *= ((S.trends && S.trends[p.genre]) || 1);
+  /* v43.2: Collection Command — circuit screens, booking corridor, discount Tuesday lift the opening */
+  if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.openingMultiplier) open *= BoxOfficeCollection.openingMultiplier(p);
   if (typeof chemOpenMult === "function") open *= chemOpenMult(p) || 1;
   if (typeof socialBuzzMult === "function") open *= socialBuzzMult(p) || 1;
   if (typeof ticketPricingMult === "function") open *= ticketPricingMult(p) || 1;
@@ -487,6 +489,8 @@ function releaseFilm(p) {
   if (cmR && cmR.legs) legs += cmR.legs;
   if (p.pricingLegs) legs += p.pricingLegs;
   if (p.screenLegs) legs += p.screenLegs;
+  /* v43.2: Collection Command — levers extend the tail */
+  if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.legsBonus) legs += BoxOfficeCollection.legsBonus(f);
   legs = clamp(legs, 1.4, 4.4);
   var cost = Math.round((p.budgetNow + p.mkt + p.dirFee + p.actFee + p.scriptCost) * 10) / 10;
   var f = {
@@ -525,6 +529,7 @@ function tickTheatrical() {
     g = genreOf(f.genre);
     f.weeksOut++;
     gross = f.opening * Math.pow(f.decay, f.weeksOut) * (seasonOf(woyOf(S.studio.week)).hol ? 1.18 : 1) * S.econ.box * (S.piracy > 0 ? 0.94 : 1);
+    if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.grossMultiplier) gross *= BoxOfficeCollection.grossMultiplier(f);
     if (typeof exhibitionGrossMult === "function") gross *= exhibitionGrossMult(f) || 1;
     gross = Math.round(gross * 10) / 10;
     if (gross < Math.max(0.25, f.opening * 0.006) || f.weeksOut > 16) { endTheatrical(f); continue; }
@@ -1074,6 +1079,8 @@ function advanceWeek() {
   }
 
   tickTheatrical();
+  /* v43.2: Collection Command — pays lever uplift, merch windows, library levy */
+  if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.tick) BoxOfficeCollection.tick(S);
   tickRivals();
   tickEvents();
 

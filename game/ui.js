@@ -495,7 +495,7 @@ function render() {
   el("tabbar").hidden = !inGame;
   if (inGame) {
     paintHud();
-    var tabLabels = { studio: t("Studio"), develop: t("Develop"), playing: t("Playing"), ledger: t("Ledger"), more: t("More") };
+    var tabLabels = { studio: t("Studio"), develop: t("Develop"), playing: t("Playing"), ledger: t("Ledger"), collection: t("Collection"), more: t("More") };
     document.querySelectorAll("#tabbar .tab").forEach(function (b) {
       b.classList.toggle("on", b.getAttribute("data-view") === VIEW);
       var sp = b.querySelector("span");
@@ -514,6 +514,7 @@ function render() {
   else if (VIEW === "develop") html = vDevelop();
   else if (VIEW === "playing") html = vPlaying();
   else if (VIEW === "ledger") html = vLedger();
+  else if (VIEW === "collection") html = vCollection();
   else if (VIEW === "more") html = vMore();
   if (typeof tutorialBanner === "function" && VIEW !== "start" && VIEW !== "gameover") {
     var tb = tutorialBanner();
@@ -1178,6 +1179,21 @@ function wire() {
     e.preventDefault();
     onAction(t.getAttribute("data-action"), t);
   });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-boc-bump]") : null;
+    if (!b) return;
+    if (b.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var key = b.getAttribute("data-boc-bump");
+    var filmId = b.getAttribute("data-boc-film") || null;
+    if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.applyLever) {
+      var res = BoxOfficeCollection.applyLever(S(), key, filmId);
+      if (!res || !res.ok) pushToast(res && res.reason ? res.reason : "Not available.", "bad");
+      else pushToast("Collection lever applied.", "good");
+      if (VIEW === "collection") render();
+    }
+  });
   el("btnWeek").addEventListener("click", onAdvance);
 }
 
@@ -1238,6 +1254,11 @@ function refreshDeskSheet() {
   b.innerHTML = '<div class="sheet-head"><h3>' + LAST_DESK.icon + " " + esc(LAST_DESK.name) + '</h3><button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">' + LAST_DESK.render() + "</div>";
   b.scrollTop = st;
 }
+function vCollection() {
+  if (typeof BoxOfficeCollection === "undefined") return '<div class="produce-panel"><div class="bo-empty">Collection desk not available.</div></div>';
+  return BoxOfficeCollection.html();
+}
+
 function vMore() {
   var all = collectDesks();
   var groups = [];
