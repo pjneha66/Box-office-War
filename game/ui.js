@@ -582,6 +582,9 @@ function glTotals() {
   var dir = findTalent(GL.dirId), act = findTalent(GL.actorId);
   var scriptCost = Math.round(idea.price * (S.origin === "indie" ? 0.75 : 1) * 10) / 10;
   var dirFee = dir ? feeFor(dir, budget) : 0, actFee = act ? feeFor(act, budget) : 0;
+  var supTotal = 0;
+  (GL.supIds || []).forEach(function (id) { var st = findTalent(id); if (st) supTotal += supportFee(st, budget); });
+  supTotal = Math.round(supTotal * 10) / 10;
   var pkgCost = 0;
   if (GL.packaged && S.agency.founded) {
     dirFee = Math.round(dirFee * 0.75 * 10) / 10;
@@ -589,7 +592,7 @@ function glTotals() {
     pkgCost = Math.round(budget * 0.1 * 10) / 10;
   }
   var mkt = Math.round(budget * sc.mktRate * MKT_TIERS[GL.mktIdx].mult * 10) / 10;
-  return { budget: budget, scriptCost: scriptCost, dirFee: dirFee, actFee: actFee, pkgCost: pkgCost, total: scriptCost + dirFee + actFee + budget + pkgCost, mkt: mkt };
+  return { budget: budget, scriptCost: scriptCost, dirFee: dirFee, actFee: actFee, supTotal: supTotal, pkgCost: pkgCost, total: scriptCost + dirFee + actFee + supTotal + budget + pkgCost, mkt: mkt };
 }
 function glProjection() {
   var idea = findIdea(GL.ideaId), sc = scaleOf(GL.scale), g = genreOf(idea.genre);
@@ -615,10 +618,23 @@ function personRow(kind, selectedId) {
   });
   return out + "</div>";
 }
+function supportRow() {
+  var out = '<div class="talent-row">';
+  var list = S.market.filter(function (t) { return t.k === "actor" && t.id !== GL.actorId; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; });
+  list.forEach(function (t) {
+    var on = GL.supIds.indexOf(t.id) >= 0, busy = talentBusy(t) && !on;
+    out += '<button class="person' + (on ? " on" : "") + '" data-action="gl-sup" data-id="' + t.id + '" ' + (busy ? "disabled" : "") + '>'
+      + '<div class="nm">' + esc(t.n) + (busy ? " (booked)" : "") + "</div>"
+      + '<div class="st">' + "★".repeat(t.power) + " · skill " + t.skill + "</div>"
+      + '<div class="fee">' + fm(supportFee(t, scaleOf(GL.scale).budgets[GL.bIdx])) + "</div></button>";
+  });
+  return out + "</div>";
+}
 function sheetGreenlight(ideaId) {
   var idea = findIdea(ideaId);
   if (!idea) return;
-  if (!GL || GL.ideaId !== ideaId) GL = { ideaId: ideaId, scale: "indie", bIdx: 1, dirId: null, actorId: null, mktIdx: 1, packaged: false, _genre: idea.genre };
+  if (!GL || GL.ideaId !== ideaId) GL = { ideaId: ideaId, scale: "indie", bIdx: 1, dirId: null, actorId: null, mktIdx: 1, packaged: false, supIds: [], _genre: idea.genre };
+  if (!GL.supIds) GL.supIds = [];
   var g = genreOf(idea.genre);
   var html = '<div class="sheet-head"><h3>' + g.em + " " + esc(idea.title) + "</h3>"
     + '<button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">';
@@ -639,6 +655,7 @@ function sheetGreenlight(ideaId) {
 
   html += '<div class="field-label">Director</div>' + personRow("dir", GL.dirId);
   html += '<div class="field-label">Lead actor</div>' + personRow("actor", GL.actorId);
+  html += '<div class="field-label">Supporting cast · up to ' + MAX_SUPPORT + ' · ' + GL.supIds.length + ' picked</div>' + supportRow();
 
   html += '<div class="field-label">Marketing plan (paid when you schedule the release)</div><div class="seg" style="flex-wrap:wrap">';
   MKT_TIERS.forEach(function (m, i) {
@@ -915,11 +932,18 @@ function onAction(a, elx) {
     case "gl-scale": GL.scale = elx.getAttribute("data-scale"); sheetGreenlight(GL.ideaId); break;
     case "gl-budget": GL.bIdx = +elx.getAttribute("data-idx"); sheetGreenlight(GL.ideaId); break;
     case "gl-dir": GL.dirId = id; sheetGreenlight(GL.ideaId); break;
-    case "gl-act": GL.actorId = id; sheetGreenlight(GL.ideaId); break;
+    case "gl-act": GL.actorId = id; GL.supIds = GL.supIds.filter(function (x) { return x !== id; }); sheetGreenlight(GL.ideaId); break;
+    case "gl-sup": {
+      var at = GL.supIds.indexOf(id);
+      if (at >= 0) GL.supIds.splice(at, 1);
+      else if (GL.supIds.length >= MAX_SUPPORT) { pushToast("Up to " + MAX_SUPPORT + " supporting actors per film.", "bad"); break; }
+      else GL.supIds.push(id);
+      sheetGreenlight(GL.ideaId); break;
+    }
     case "gl-mkt": GL.mktIdx = +elx.getAttribute("data-idx"); sheetGreenlight(GL.ideaId); break;
     case "gl-package": GL.packaged = !GL.packaged; sheetGreenlight(GL.ideaId); break;
     case "gl-confirm": {
-      var r = greenlight(GL.ideaId, { scale: GL.scale, bIdx: GL.bIdx, dirId: GL.dirId, actorId: GL.actorId, mktIdx: GL.mktIdx, packaged: GL.packaged && !!S.agency.founded });
+      var r = greenlight(GL.ideaId, { scale: GL.scale, bIdx: GL.bIdx, dirId: GL.dirId, actorId: GL.actorId, supportIds: GL.supIds.slice(), mktIdx: GL.mktIdx, packaged: GL.packaged && !!S.agency.founded });
       if (r.err) { pushToast(r.err, "bad"); break; }
       closeSheet(); DEV_TAB = "slate"; render(); drainFlash();
       break;

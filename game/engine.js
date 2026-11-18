@@ -152,19 +152,30 @@ function feeFor(t, budget) {
   if (typeof agencyFeeMult === "function") f *= agencyFeeMult(t) || 1;
   return Math.round(f * 10) / 10;
 }
+/* Supporting actors: each costs half a normal fee at the film's budget, and up to three may join a lead. */
+var MAX_SUPPORT = 3;
+function supportFee(t, budget) { return Math.round(feeFor(t, budget) * 0.5 * 10) / 10; }
+/* Audience pull from supporting actors: each star above power 2 adds 0.5, capped at +3. Old saves have no supIds, so they get 0. */
+function supportBonus(p) {
+  var ids = (p && p.supIds) || [], sum = 0, i, t;
+  for (i = 0; i < ids.length; i++) { t = findTalent(ids[i]); if (t) sum += Math.max(0, t.power - 2) * 0.5; }
+  return Math.min(3, sum);
+}
 function findTalent(id) { var i; for (i = 0; i < S.market.length; i++) if (S.market[i].id === id) return S.market[i]; return null; }
 function findProject(id) { var i; for (i = 0; i < S.projects.length; i++) if (S.projects[i].id === id) return S.projects[i]; return null; }
 function findFilm(id) { var i; for (i = 0; i < S.films.length; i++) if (S.films[i].id === id) return S.films[i]; return null; }
 function findIdea(id) { var i; for (i = 0; i < S.ideas.length; i++) if (S.ideas[i].id === id) return S.ideas[i]; return null; }
 function talentBusy(t) { return t.bookedUntil > S.studio.week; }
 
+/* Talent market size. Raised from 34 so a lead can be paired with supporting actors. */
+var MARKET_CAP = 60;
 function churnTalent() {
   var n = 0, i;
   for (i = S.market.length - 1; i >= 0; i--) {
     if (!talentBusy(S.market[i]) && S.market[i].power <= 2 && chance(0.02)) S.market.splice(i, 1); /* quiet attrition */
   }
-  if (chance(0.15) && S.market.length < 34) { S.market.push(genTalent("actor")); n++; }
-  if (chance(0.10) && S.market.length < 34) { S.market.push(genTalent("dir")); n++; }
+  if (chance(0.15) && S.market.length < MARKET_CAP) { S.market.push(genTalent("actor")); n++; }
+  if (chance(0.10) && S.market.length < MARKET_CAP) { S.market.push(genTalent("dir")); n++; }
   return n;
 }
 
@@ -229,18 +240,30 @@ function greenlight(ideaId, cfg) {
   if (!idea || !dir || !act) return { err: "Pick a director and a lead actor." };
   if (!scaleAllowed(sc)) return { err: "Reputation " + sc.rep + " required for " + sc.name + "." };
   if (talentBusy(dir) || talentBusy(act)) return { err: "That talent is booked on another film." };
+  var sup = [], si, st;
+  var supIds = (cfg.supportIds || []).slice(0, MAX_SUPPORT);
+  for (si = 0; si < supIds.length; si++) {
+    st = findTalent(supIds[si]);
+    if (!st || st.k !== "actor" || st === act || st === dir || sup.indexOf(st) >= 0) return { err: "Pick supporting actors from the list." };
+    if (talentBusy(st)) return { err: st.n + " is booked on another film." };
+    sup.push(st);
+  }
   var budget = sc.budgets[cfg.bIdx];
   var scriptCost = Math.round(idea.price * (S.origin === "indie" ? 0.75 : 1) * 10) / 10;
   var dirFee = feeFor(dir, budget), actFee = feeFor(act, budget);
   if (cfg.packaged) { dirFee = Math.round(dirFee * 0.75 * 10) / 10; actFee = Math.round(actFee * 0.75 * 10) / 10; }
-  var upfront = scriptCost + dirFee + actFee;
+  var supFees = sup.map(function (t) { return supportFee(t, budget); });
+  var supTotal = Math.round(supFees.reduce(function (a, b) { return a + b; }, 0) * 10) / 10;
+  var upfront = scriptCost + dirFee + actFee + supTotal;
   if (S.studio.cash < upfront) return { err: "Need " + fm(upfront) + " upfront for script and talent." };
 
   spend(scriptCost, "Script · " + idea.title);
   spend(dirFee, "Director · " + dir.n);
   spend(actFee, "Lead · " + act.n);
+  sup.forEach(function (t, i) { spend(supFees[i], "Supporting · " + t.n); });
   dir.bookedUntil = S.studio.week + 40; /* cleared when the film wraps its run */
   act.bookedUntil = S.studio.week + 40;
+  sup.forEach(function (t) { t.bookedUntil = S.studio.week + 40; });
 
   var p = {
     id: "p" + (S.seq++),
@@ -248,6 +271,7 @@ function greenlight(ideaId, cfg) {
     budget: budget, budgetNow: budget,
     script: idea.script + (idea.franchiseOf ? 5 : 0) + (cfg.packaged ? 4 : 0),
     dirId: dir.id, actId: act.id, dirFee: dirFee, actFee: actFee,
+    supIds: sup.map(function (t) { return t.id; }),
     scriptCost: scriptCost,
     mktIdx: cfg.mktIdx != null ? cfg.mktIdx : 1,
     mkt: null, releaseWeek: null,
@@ -480,7 +504,7 @@ function releaseFilm(p) {
   var rv = reviewFilm(p, qEff + shield);
   var act = act0;
   var cmR = (typeof creativeProjectMods === "function") ? creativeProjectMods(p) : null;
-  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (p.cameoAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
+  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + supportBonus(p) + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (p.cameoAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
   var season = seasonOf(woyOf(p.releaseWeek));
   var legs = 1.8 + (qEff - 30) * 0.03 + g.legs
     + (aud >= 80 ? 0.10 : aud <= 40 ? -0.15 : 0)
@@ -496,7 +520,7 @@ function releaseFilm(p) {
   var f = {
     id: "f" + (S.seq++), title: p.title, genre: p.genre, scale: p.scale,
     budget: p.budgetNow, mkt: p.mkt, cost: cost,
-    dirId: p.dirId, actId: p.actId,
+    dirId: p.dirId, actId: p.actId, supIds: p.supIds || [],
     quality: qEff, criticAvg: rv.criticAvg, freshPct: rv.freshPct, aud: aud, quotes: rv.quotes,
     opening: Math.round(opening * 10) / 10,
     legs: legs, decay: 1 - 1 / legs,
@@ -572,6 +596,7 @@ function endTheatrical(f) {
   var dir = findTalent(f.dirId);
   if (dir) { dir.bookedUntil = 0; if (profit > 0) { dir.heat = Math.min(dir.heat + 1, 3); dir.skill = Math.min(97, dir.skill + 2); } }
   if (act) { act.bookedUntil = 0; if (profit > 0) { act.heat = Math.min(act.heat + 1, 3); act.skill = Math.min(97, act.skill + 1); } }
+  (f.supIds || []).forEach(function (id) { var st = findTalent(id); if (st) { st.bookedUntil = 0; if (profit > 0) st.heat = Math.min(st.heat + 1, 3); } });
   if (act && act.picDeal) {
     act.picDeal.pics--;
     if (act.picDeal.pics <= 0) { act.picDeal = null; log(act.n + "'s multi-picture deal is fulfilled.", "", "🤝"); }

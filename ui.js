@@ -686,7 +686,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
       d.innerHTML="<div style='display:flex;gap:12px;align-items:center'>"+
         "<img src='"+avatarSrc+"' alt='"+esc(cleanName)+"' class='arch-avatar' style='width:52px;height:52px;border-radius:8px;border:2px solid var(--gold);background:#131b26;image-rendering:pixelated;object-fit:cover;flex-shrink:0'>"+
         "<div style='flex:1'>"+
-          "<div class='arch-header'><h4>"+cleanName+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
+          "<div class='arch-header'><h4>"+esc(cleanName)+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
           "<div class='a-sub'>"+a.sub+"</div>"+
         "</div>"+
       "</div>"+
@@ -2116,7 +2116,7 @@ function renderSubTabs(){
   bar.innerHTML = meta.map(([key, label]) => {
     const ico = getSubTabPixelIcon(TAB, key);
     const icoHtml = ico ? "<img class='subtab-pixel-icon' src='"+ico+"' alt='' />" : "";
-    return "<button class='btn btn-sm subtab-btn "+(key===activeKey ? "btn-primary active" : ghost)+"' "+attr+"='"+key+"'>"+icoHtml+"<span>"+label+"</span></button>";
+    return "<button class='btn btn-sm subtab-btn "+(key===activeKey ? "btn-primary active" : ghost)+"' "+attr+"='"+key+"'>"+icoHtml+"<span>"+esc(label)+"</span></button>";
   }).join("");
   bar.style.display = "flex";
 }

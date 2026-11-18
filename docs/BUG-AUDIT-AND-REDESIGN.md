@@ -135,3 +135,27 @@ Today the game loads **13 stylesheets** in `index.html`, including `command-deck
 ## 5. Out of scope here
 - No balance changes, no new mechanics, no save-format changes.
 - Decision on §2.1 (streamer threshold) is a design call, left to the owner.
+
+---
+
+## 6. Status after the fix batch (v43.3)
+
+Logic was not changed by the audit. The fixes below were made after the "Fix it" instruction, and each one is recorded here.
+
+| Item | Status | What was done |
+|---|---|---|
+| §2.1 streamer threshold | **Fixed** | The dead definition (rep ≥ 35, cash ≥ $140M) was removed. The active gate (rep ≥ 40, cash ≥ $250M) stays, and matches the UI copy. |
+| §2.2 `resolveDeepfake` twice | **Fixed** | The shadowed copy was removed. Runtime behavior is unchanged. |
+| §2.3 `deepfakeModal` twice | **Fixed** | The copy that dropped difficulty tiers was removed. |
+| §2.4 `flashes` twice | **Fixed** | The shadowed copy was removed. |
+| §2.5 number formatters twice | **Fixed** | Earlier `fmtM`, `fmtG`, `fmtSubs` copies were removed. |
+| §2.6 version mismatch | **Fixed** | Root `index.html` is at 43.2, with no `?v=43.1` left. Matches `package.json`, `version.json`, and `build.gradle`. |
+| §2.7 stale APK in git | **Open** | `apk/dist/BoxOfficeWar-32.13.apk` is still tracked. Needs a decision: stop tracking APKs, or add the current one with the release. |
+| §2.8 stale packaging docs | **Open** | `apk/RELEASE-PIPELINE.md` still refers to `/tmp/bow-main`, v42.x, and versionCode 54. `apk/README.md` still has the old examples. |
+| §2.9 innerHTML review | **Reviewed** | All 23 root `ui.js` sites were checked. Player-entered and data-driven strings go through `esc()`. Fixed: archetype `alt` and `<h4>` name, recovery-screen error, sub-tab labels. Caller-built HTML (modal bodies, view wrappers) is trusted and must be escaped where it is built. |
+| New: custom genre has no title or blurb pool | **Fixed** | Found by `test/smoke.js` (intermittent crash, "reading 'a'" in `makeTitle`). A sandbox custom genre was added to `DATA.GENRES` but not `DATA.TITLES` or `DATA.BLURBS`, so any IP or film draw that picked it crashed. Custom genres now borrow their base genre's pools, and clearing removes them. Regression: `test/custom-genre-titles.mjs` (fails on the old code, passes now). |
+| §2.9 `index.html` script globals | **Open** | Module scoping is the long-term fix, in Phase 2 (§4). |
+
+### Notes on the review
+- `openModal(html)` and the view wrapper take ready-made HTML by design. Each caller is responsible for escaping user-entered text.
+- The Settings "Unlock All Cast" card is static copy. It does not interpolate player text.

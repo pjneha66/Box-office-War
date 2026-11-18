@@ -29,3 +29,14 @@
 - `npm test` passes (exit 0).
 - `rebuild-*.mjs` matches the pre-change baseline: crew 1/53, licensing 51/1 (the same failing check, "at least one offer expired untouched"), talent_agency 1 fail, world 1 check fail, awards and most others pass. `rebuild-ui` still needs `CHROME_PATH` (not set in this sandbox).
 - `test/rehome-tabs.mjs` passes.
+
+## Supporting cast (game/ build)
+- A film can take a lead plus up to three supporting actors. The greenlight sheet has a "Supporting cast" picker under the lead. Picking the lead removes that actor from the supporting list.
+- Each supporting actor costs half their fee at the film's budget. This is charged at greenlight, booked for the same 40 weeks as the lead, and released when the theatrical run ends. The sheet total includes them.
+- Audience pull: each supporting star above power 2 adds 0.5 to the audience score, capped at +3. Films saved before this change have no supporting cast and get 0.
+- `S.market` cap raised from 34 to 60 (`MARKET_CAP` in `game/engine.js`). The market grows by churn, so the larger cap is reached over time, not at once.
+- Tests: `test/rebuild-supporting-cast.mjs` (22 checks, engine) and `test/supporting-cast-browser.mjs` (sheet, in a browser).
+
+## Fixes found during the test run
+- **Custom genre crash (root build):** sandbox custom genres had no title or blurb pool, so an IP or film draw that picked one threw in `makeTitle`. Custom genres now borrow their base genre's pools, and clearing removes them. Regression: `test/custom-genre-titles.mjs`.
+- **Stale test expectations:** Develop has eight sections now, the series wizard has a Season step, and the board vote is seats, not a tally. `test/develop-deck.mjs`, `test/ui-test.mjs` updated. The service-worker check in `ott-desk` and `library-desk` no longer pins one cache version.
