@@ -1,0 +1,144 @@
+name: Release APK
+
+# Builds the signed Capacitor APK from main and publishes it as a GitHub
+# release (tag v<version>, asset BoxOfficeWar-<version>.apk).
+#
+# Two ways to run:
+#   1. Manually: Actions -> Release APK -> Run workflow (version defaults to
+#      the version currently checked into main).
+#   2. Push a v* tag (e.g. git tag v44.0 && git push origin v44.0).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. 44.0 (must match the version checked into main)"
+        required: false
+        default: "44.0"
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags, for release notes
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install APK build dependencies
+        working-directory: apk
+        run: npm ci
+
+      - name: Resolve release version
+        id: ver
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid version: '$VERSION'"; exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing v$VERSION"
+
+      - name: Verify checked-in version matches
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_VER=$(grep -o 'versionName "[0-9.]*"' apk/android/app/build.gradle | grep -o '[0-9.]*')
+          JSON_VER=$(grep -o '"v": "[0-9.]*"' version.json | grep -o '[0-9.]*')
+          META_VER=$(grep -o 'name="app-version" content="[0-9.]*"' index.html | grep -o '[0-9.]*')
+          echo "build.gradle=$GRADLE_VER version.json=$JSON_VER index.html=$META_VER requested=$VERSION"
+          for v in "$GRADLE_VER" "$JSON_VER" "$META_VER"; do
+            if [ "$v" != "$VERSION" ]; then
+              echo "::error::Version mismatch: expected $VERSION, found $v. Bump the version files first."; exit 1
+            fi
+          done
+
+      - name: Build web bundle
+        run: node apk/build-www.js
+
+      - name: Sync Capacitor web assets
+        working-directory: apk
+        run: node node_modules/@capacitor/cli/bin/capacitor sync android
+
+      - name: Build signed release APK
+        working-directory: apk/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Verify and stage APK
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC=apk/android/app/build/outputs/apk/release/app-release.apk
+          [ -f "$SRC" ] || { echo "::error::APK not found at $SRC"; exit 1; }
+          APK_META=$(unzip -p "$SRC" assets/public/index.html | grep -o 'name="app-version" content="[0-9.]*"' || true)
+          echo "Bundled meta: $APK_META"
+          if [ "$APK_META" != "name=\"app-version\" content=\"$VERSION\"" ]; then
+            echo "::error::APK content check failed: stale web assets (expected $VERSION)"; exit 1
+          fi
+          mkdir -p apk/dist
+          cp "$SRC" "apk/dist/BoxOfficeWar-$VERSION.apk"
+          ls -lh "apk/dist/BoxOfficeWar-$VERSION.apk"
+
+      - name: Publish GitHub release
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES=$(mktemp)
+          PREV=$(git tag --list 'v*' --sort=-v:refname | grep -v "^v$VERSION$" | head -n1 || true)
+          {
+            echo "Box Office War v$VERSION"
+            echo
+            echo "Android: download the APK below — fully offline, installs over previous versions without losing saves."
+            echo
+            if [ -n "$PREV" ]; then
+              echo "Changes since $PREV:"
+              git log --oneline "$PREV..HEAD" --no-decorate | sed 's/^/- /'
+            else
+              echo "Initial APK release."
+            fi
+          } > "$NOTES"
+          gh release create "v$VERSION" "apk/dist/BoxOfficeWar-$VERSION.apk" \
+            --title "v$VERSION — Android APK (fully offline)" \
+            --notes-file "$NOTES"
+          echo "Released: https://github.com/pjneha66/Box-office-War/releases/tag/v$VERSION"
