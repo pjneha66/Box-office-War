@@ -49,11 +49,21 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # ubuntu-latest ships the Android SDK already. setup-android@v3 is not
+      # used here: it tries to install the removed legacy `tools` package and
+      # fails on current cmdline-tools releases.
       - name: Install Android SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -perm -u+x 2>/dev/null | head -n1)
+          SDKMANAGER="${SDKMANAGER:-$(command -v sdkmanager || true)}"
+          [ -n "$SDKMANAGER" ] || { echo "::error::sdkmanager not found under $ANDROID_HOME"; exit 1; }
+          echo "Using sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Install APK build dependencies
         working-directory: apk
