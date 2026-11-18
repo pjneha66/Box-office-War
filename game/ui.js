@@ -1,9 +1,12 @@
 /* Box Office War — rebuilt. UI layer: plain string templates + event delegation.
-   Views: start · studio · develop · playing · ledger · gameover. One bottom sheet, one toast queue. */
+   Views: start · studio · develop · playing · ledger ("Business") · gameover. Settings & save slots live in the gear sheet.
+   One bottom sheet, one toast queue. */
 "use strict";
 
 var VIEW = "studio";
 var DEV_TAB = "scripts";
+var PLAY_TAB = "now";          // Playing sub-tab: now | collection | release | audience | awards | broadcast
+var DESK_SUB = { studio: "people", develop: "creative", business: "finance" };
 var selOrigin = "veteran";
 var selDiff = "std";
 var selScenario = "free";
@@ -99,6 +102,29 @@ function projProgress(p) {
   var total = p.phaseLen.pre + p.phaseLen.shoot + p.phaseLen.post;
   var done = p.phase === "pre" ? p.phaseWk : p.phase === "shoot" ? p.phaseLen.pre + p.phaseWk : p.phaseLen.pre + p.phaseLen.shoot + p.phaseWk;
   return clamp(Math.round(done / total * 100), 0, 100);
+}
+/* Ranked box-office chart (presentation of weeklyChart rows). */
+function chartTableHTML(rows) {
+  if (!rows.length) return '<div class="card empty"><span class="em">🎞️</span>No films in theaters this week.</div>';
+  var films = filmsInRelease(), max = 1;
+  rows.forEach(function (r) { max = Math.max(max, r.gross); });
+  var out = '<div class="bo-chart">';
+  rows.forEach(function (r, i) {
+    var f = null, j;
+    for (j = 0; j < films.length; j++) if (films[j].title === r.title) { f = films[j]; break; }
+    var prev = f && f.weekly && f.weekly.length > 1 ? f.weekly[f.weekly.length - 2] : null;
+    var chg = (f && f.weeksOut === 0) || prev == null || !prev ? null : Math.round((r.gross - prev) / prev * 100);
+    var pct = Math.max(4, Math.round(r.gross / max * 100));
+    var change = chg == null
+      ? "<small>opening</small>"
+      : "<small class=\"" + (chg >= 0 ? "up" : "down") + "\">" + (chg >= 0 ? "▲ +" : "▼ ") + chg + "%</small>";
+    out += '<div class="bo-row' + (i === 0 ? " top" : "") + (r.mine ? " mine" : "") + '">'
+      + '<span class="bo-rank">' + (i + 1) + "</span>"
+      + '<div class="bo-main"><div class="bo-line"><b>' + esc(r.title) + "</b>" + (r.rival ? "<small>rival</small>" : "") + "</div>"
+      + '<div class="bo-bar"><i style="width:' + pct + '%"></i></div></div>'
+      + '<div class="bo-val"><b>' + fm(r.gross) + "</b>" + change + "</div></div>";
+  });
+  return out + "</div>";
 }
 function chartHTML(rows) {
   if (!rows.length) return '<div class="empty"><span class="em">🎞️</span>No films in theaters this week.</div>';
@@ -347,10 +373,10 @@ function filmCard(f) {
   return html;
 }
 
-function vPlaying() {
+function vNowPlaying() {
   var st = S.studio, season = seasonOf(st.woy);
   var html = '<div class="sechead"><h2>' + t("Weekend chart") + " · " + season.name + "</h2></div>"
-    + '<div class="card">' + chartHTML(weeklyChart()) + "</div>";
+    + chartTableHTML(weeklyChart());
   var mine = S.films.filter(function (f) { return f.status === "run"; });
   html += '<div class="sechead"><h2>' + t("Your films in theaters") + "</h2></div>";
   if (!mine.length) html += '<div class="card empty"><span class="em">🎟️</span>Nothing playing. Schedule a release from the Develop slate.</div>';
@@ -368,6 +394,26 @@ function vPlaying() {
   html += rows || '<div class="empty">No announced releases in the next 8 weeks. A clear field.</div>';
   html += "</div>";
   return html;
+}
+
+/* ── playing: sub-tabs = now playing · collection · desk groups ─ */
+var PLAY_SUBS = [
+  { key: "now", label: "Now playing" },
+  { key: "collection", label: "Collection" },
+  { key: "release", label: "Release" },
+  { key: "audience", label: "Audience" },
+  { key: "awards", label: "Awards" },
+  { key: "broadcast", label: "Broadcast" }
+];
+function vPlaying() {
+  var nav = '<div class="seg play-seg">';
+  PLAY_SUBS.forEach(function (s) {
+    nav += '<button class="' + (PLAY_TAB === s.key ? "on" : "") + '" data-action="play-tab" data-tab="' + s.key + '">' + esc(s.label) + "</button>";
+  });
+  nav += "</div>";
+  if (PLAY_TAB === "collection") return nav + vCollection();
+  if (PLAY_TAB === "now") return nav + vNowPlaying();
+  return nav + deskGridFor("playing", PLAY_TAB);
 }
 
 /* ── ledger ───────────────────────────────────────────────────── */
@@ -446,7 +492,12 @@ function vLedger() {
   });
   html += "</div>";
 
-  html += '<div class="sechead"><h2>Settings</h2></div><div class="card">'
+  return html;
+}
+
+/* ── settings (lives in the gear sheet, not in Business) ───────── */
+function settingsBody() {
+  var html = '<div class="sechead"><h2>Settings</h2></div><div class="card">'
     + '<div class="btnrow">'
     + '<button class="btn sm" data-action="export-save">Save & load</button>'
     + '<button class="btn danger sm" data-action="new-game">New game</button>'
@@ -495,7 +546,7 @@ function render() {
   el("tabbar").hidden = !inGame;
   if (inGame) {
     paintHud();
-    var tabLabels = { studio: t("Studio"), develop: t("Develop"), playing: t("Playing"), ledger: t("Ledger"), collection: t("Collection"), more: t("More") };
+    var tabLabels = { studio: t("Studio"), develop: t("Develop"), playing: t("Playing"), ledger: t("Business") };
     document.querySelectorAll("#tabbar .tab").forEach(function (b) {
       b.classList.toggle("on", b.getAttribute("data-view") === VIEW);
       var sp = b.querySelector("span");
@@ -508,14 +559,15 @@ function render() {
   var v = el("view");
   v.scrollTop = 0;
   var html = "";
+  /* old saved links / deep links: Collection now lives in Playing, More is gone */
+  if (VIEW === "collection") { VIEW = "playing"; PLAY_TAB = "collection"; }
+  if (VIEW === "more") VIEW = "studio";
   if (VIEW === "start") html = vStart();
   else if (VIEW === "gameover") html = vGameOver();
-  else if (VIEW === "studio") html = vStudio();
-  else if (VIEW === "develop") html = vDevelop();
+  else if (VIEW === "studio") html = vStudio() + deskPanel("studio");
+  else if (VIEW === "develop") html = vDevelop() + deskPanel("develop");
   else if (VIEW === "playing") html = vPlaying();
-  else if (VIEW === "ledger") html = vLedger();
-  else if (VIEW === "collection") html = vCollection();
-  else if (VIEW === "more") html = vMore();
+  else if (VIEW === "ledger") html = vLedger() + deskPanel("business");
   if (typeof tutorialBanner === "function" && VIEW !== "start" && VIEW !== "gameover") {
     var tb = tutorialBanner();
     if (tb) html = tb + html;
@@ -530,6 +582,9 @@ function glTotals() {
   var dir = findTalent(GL.dirId), act = findTalent(GL.actorId);
   var scriptCost = Math.round(idea.price * (S.origin === "indie" ? 0.75 : 1) * 10) / 10;
   var dirFee = dir ? feeFor(dir, budget) : 0, actFee = act ? feeFor(act, budget) : 0;
+  var supTotal = 0;
+  (GL.supIds || []).forEach(function (id) { var st = findTalent(id); if (st) supTotal += supportFee(st, budget); });
+  supTotal = Math.round(supTotal * 10) / 10;
   var pkgCost = 0;
   if (GL.packaged && S.agency.founded) {
     dirFee = Math.round(dirFee * 0.75 * 10) / 10;
@@ -537,7 +592,7 @@ function glTotals() {
     pkgCost = Math.round(budget * 0.1 * 10) / 10;
   }
   var mkt = Math.round(budget * sc.mktRate * MKT_TIERS[GL.mktIdx].mult * 10) / 10;
-  return { budget: budget, scriptCost: scriptCost, dirFee: dirFee, actFee: actFee, pkgCost: pkgCost, total: scriptCost + dirFee + actFee + budget + pkgCost, mkt: mkt };
+  return { budget: budget, scriptCost: scriptCost, dirFee: dirFee, actFee: actFee, supTotal: supTotal, pkgCost: pkgCost, total: scriptCost + dirFee + actFee + supTotal + budget + pkgCost, mkt: mkt };
 }
 function glProjection() {
   var idea = findIdea(GL.ideaId), sc = scaleOf(GL.scale), g = genreOf(idea.genre);
@@ -563,10 +618,23 @@ function personRow(kind, selectedId) {
   });
   return out + "</div>";
 }
+function supportRow() {
+  var out = '<div class="talent-row">';
+  var list = S.market.filter(function (t) { return t.k === "actor" && t.id !== GL.actorId; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; });
+  list.forEach(function (t) {
+    var on = GL.supIds.indexOf(t.id) >= 0, busy = talentBusy(t) && !on;
+    out += '<button class="person' + (on ? " on" : "") + '" data-action="gl-sup" data-id="' + t.id + '" ' + (busy ? "disabled" : "") + '>'
+      + '<div class="nm">' + esc(t.n) + (busy ? " (booked)" : "") + "</div>"
+      + '<div class="st">' + "★".repeat(t.power) + " · skill " + t.skill + "</div>"
+      + '<div class="fee">' + fm(supportFee(t, scaleOf(GL.scale).budgets[GL.bIdx])) + "</div></button>";
+  });
+  return out + "</div>";
+}
 function sheetGreenlight(ideaId) {
   var idea = findIdea(ideaId);
   if (!idea) return;
-  if (!GL || GL.ideaId !== ideaId) GL = { ideaId: ideaId, scale: "indie", bIdx: 1, dirId: null, actorId: null, mktIdx: 1, packaged: false, _genre: idea.genre };
+  if (!GL || GL.ideaId !== ideaId) GL = { ideaId: ideaId, scale: "indie", bIdx: 1, dirId: null, actorId: null, mktIdx: 1, packaged: false, supIds: [], _genre: idea.genre };
+  if (!GL.supIds) GL.supIds = [];
   var g = genreOf(idea.genre);
   var html = '<div class="sheet-head"><h3>' + g.em + " " + esc(idea.title) + "</h3>"
     + '<button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">';
@@ -587,6 +655,7 @@ function sheetGreenlight(ideaId) {
 
   html += '<div class="field-label">Director</div>' + personRow("dir", GL.dirId);
   html += '<div class="field-label">Lead actor</div>' + personRow("actor", GL.actorId);
+  html += '<div class="field-label">Supporting cast · up to ' + MAX_SUPPORT + ' · ' + GL.supIds.length + ' picked</div>' + supportRow();
 
   html += '<div class="field-label">Marketing plan (paid when you schedule the release)</div><div class="seg" style="flex-wrap:wrap">';
   MKT_TIERS.forEach(function (m, i) {
@@ -843,6 +912,9 @@ function onAction(a, elx) {
   var id = elx.getAttribute("data-id");
   switch (a) {
     case "nav": VIEW = elx.getAttribute("data-view"); render(); break;
+    case "gear": openGear(); break;
+    case "play-tab": PLAY_TAB = elx.getAttribute("data-tab"); render(); break;
+    case "desk-sub": DESK_SUB[elx.getAttribute("data-tab")] = elx.getAttribute("data-sub"); render(); break;
     case "resume": VIEW = "studio"; render(); break;
     case "pick-origin": selOrigin = elx.getAttribute("data-origin"); render(); break;
     case "pick-diff": selDiff = elx.getAttribute("data-diff"); render(); break;
@@ -860,11 +932,18 @@ function onAction(a, elx) {
     case "gl-scale": GL.scale = elx.getAttribute("data-scale"); sheetGreenlight(GL.ideaId); break;
     case "gl-budget": GL.bIdx = +elx.getAttribute("data-idx"); sheetGreenlight(GL.ideaId); break;
     case "gl-dir": GL.dirId = id; sheetGreenlight(GL.ideaId); break;
-    case "gl-act": GL.actorId = id; sheetGreenlight(GL.ideaId); break;
+    case "gl-act": GL.actorId = id; GL.supIds = GL.supIds.filter(function (x) { return x !== id; }); sheetGreenlight(GL.ideaId); break;
+    case "gl-sup": {
+      var at = GL.supIds.indexOf(id);
+      if (at >= 0) GL.supIds.splice(at, 1);
+      else if (GL.supIds.length >= MAX_SUPPORT) { pushToast("Up to " + MAX_SUPPORT + " supporting actors per film.", "bad"); break; }
+      else GL.supIds.push(id);
+      sheetGreenlight(GL.ideaId); break;
+    }
     case "gl-mkt": GL.mktIdx = +elx.getAttribute("data-idx"); sheetGreenlight(GL.ideaId); break;
     case "gl-package": GL.packaged = !GL.packaged; sheetGreenlight(GL.ideaId); break;
     case "gl-confirm": {
-      var r = greenlight(GL.ideaId, { scale: GL.scale, bIdx: GL.bIdx, dirId: GL.dirId, actorId: GL.actorId, mktIdx: GL.mktIdx, packaged: GL.packaged && !!S.agency.founded });
+      var r = greenlight(GL.ideaId, { scale: GL.scale, bIdx: GL.bIdx, dirId: GL.dirId, actorId: GL.actorId, supportIds: GL.supIds.slice(), mktIdx: GL.mktIdx, packaged: GL.packaged && !!S.agency.founded });
       if (r.err) { pushToast(r.err, "bad"); break; }
       closeSheet(); DEV_TAB = "slate"; render(); drainFlash();
       break;
@@ -972,8 +1051,8 @@ function onAction(a, elx) {
       break;
     }
     case "continue-dynasty": sheetHeirs(); break;
-    case "set-pref": setPref(elx.getAttribute("data-key"), elx.getAttribute("data-val")); render(); break;
-    case "sound-toggle": setSound(!SOUND_ON); pushToast(SOUND_ON ? "Sound on." : "Sound off.", ""); render(); break;
+    case "set-pref": setPref(elx.getAttribute("data-key"), elx.getAttribute("data-val")); render(); refreshDeskSheet(); break;
+    case "sound-toggle": setSound(!SOUND_ON); pushToast(SOUND_ON ? "Sound on." : "Sound off.", ""); render(); refreshDeskSheet(); break;
     case "pwa-install": {
       if (window.__deferredPrompt) { window.__deferredPrompt.prompt(); window.__deferredPrompt = null; }
       break;
@@ -1191,7 +1270,7 @@ function wire() {
       var res = BoxOfficeCollection.applyLever(S(), key, filmId);
       if (!res || !res.ok) pushToast(res && res.reason ? res.reason : "Not available.", "bad");
       else pushToast("Collection lever applied.", "good");
-      if (VIEW === "collection") render();
+      if (VIEW === "playing" && PLAY_TAB === "collection") render();
     }
   });
   el("btnWeek").addEventListener("click", onAdvance);
@@ -1230,6 +1309,7 @@ function collectDesks() {
   if (typeof BIZDEAL_DESKS !== "undefined") all = all.concat(BIZDEAL_DESKS);
   if (typeof SLOTS_DESKS !== "undefined") all = all.concat(SLOTS_DESKS);
   if (typeof META2_DESKS !== "undefined") all = all.concat(META2_DESKS);
+  if (typeof HELP_DESKS !== "undefined") all = all.concat(HELP_DESKS);
   /* wave-6/7 desks — wired in v42.5 */
   if (typeof CREW_DESKS !== "undefined") all = all.concat(CREW_DESKS);
   if (typeof MASTERY_DESKS !== "undefined") all = all.concat(MASTERY_DESKS);
@@ -1247,6 +1327,85 @@ function findDesk(id) {
   for (i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
   return null;
 }
+/* ── desk homes: which main tab / sub-tab each desk lives in ──────
+   Keyed by the desk's existing `group` string, so no desk file needs editing.
+   Unmapped groups fall back to Business · Finance; "Slots" goes to the gear menu. */
+var DESK_GROUPS = {
+  studio: [
+    { key: "people", label: "People", groups: ["Talent", "The lot", "Crew"] },
+    { key: "production", label: "Production", groups: ["Production", "Mastery", "Technology", "Challenges"] },
+    { key: "career", label: "Career", groups: ["Career", "Career 2"] }
+  ],
+  develop: [
+    { key: "creative", label: "Creative", groups: ["Creative", "Strategy", "The lobby", "World"] },
+    { key: "ip", label: "IP & games", groups: ["Library & fans", "Game studio"] }
+  ],
+  playing: [
+    { key: "release", label: "Release", groups: ["Distribution", "Exhibition", "Deals", "Events"] },
+    { key: "audience", label: "Audience", groups: ["Press", "Audience", "Social"] },
+    { key: "awards", label: "Awards", groups: ["PR & Awards", "Awards"] },
+    { key: "broadcast", label: "Broadcast", groups: ["TV & Streaming", "Intrigue"] }
+  ],
+  business: [
+    { key: "finance", label: "Finance", groups: ["Finance", "Finance desk", "Industry"] },
+    { key: "licensing", label: "Licensing", groups: ["Licensing"] },
+    { key: "empire", label: "Empire", groups: ["Empire & Franchises"] }
+  ]
+};
+var GEAR_GROUPS = ["Slots", "Help"];
+function deskHome(d) {
+  var tabs = Object.keys(DESK_GROUPS), i, j, k;
+  for (i = 0; i < tabs.length; i++) {
+    var subs = DESK_GROUPS[tabs[i]];
+    for (j = 0; j < subs.length; j++) {
+      for (k = 0; k < subs[j].groups.length; k++) {
+        if (subs[j].groups[k] === d.group) return { tab: tabs[i], sub: subs[j].key };
+      }
+    }
+  }
+  if (GEAR_GROUPS.indexOf(d.group) >= 0) return { tab: "gear", sub: "" };
+  return { tab: "business", sub: "finance" };
+}
+function desksIn(tab, sub) {
+  return collectDesks().filter(function (d) {
+    var h = deskHome(d);
+    return h.tab === tab && h.sub === sub;
+  });
+}
+function deskGridFor(tab, subKey) {
+  var list = desksIn(tab, subKey);
+  if (!list.length) return '<div class="card empty"><span class="em">🗂️</span>No desks in this section yet.</div>';
+  var html = "<div class='deskgrid'>";
+  list.forEach(function (d) {
+    html += '<button class="desk" data-action="desk-open" data-id="' + d.id + '"><div class="em">' + d.icon + '</div><div class="nm">' + esc(d.name) + '</div><div class="ds">' + esc(d.desc) + "</div></button>";
+  });
+  return html + "</div>";
+}
+/* desk panel shown at the bottom of Studio and Business, and inside Develop */
+function deskPanel(tab) {
+  var subs = DESK_GROUPS[tab], cur = DESK_SUB[tab], html = '<div class="sechead sub-head"><h2>Desks</h2></div>';
+  html += '<div class="seg desk-subnav" style="flex-wrap:wrap">';
+  subs.forEach(function (s) {
+    html += '<button class="' + (s.key === cur ? "on" : "") + '" data-action="desk-sub" data-tab="' + tab + '" data-sub="' + s.key + '">' + esc(s.label) + "</button>";
+  });
+  return html + "</div>" + deskGridFor(tab, cur);
+}
+
+/* ── gear sheet: save slots + settings ───────────────────────── */
+var GEAR_DESK = { id: "gear", icon: "⚙️", name: "Settings & save slots", render: gearBody };
+function gearBody() {
+  var html = "";
+  collectDesks().filter(function (d) { return deskHome(d).tab === "gear"; }).forEach(function (d) {
+    html += '<div class="sechead"><h2>' + esc(d.name) + "</h2></div>" + d.render();
+  });
+  return html + settingsBody();
+}
+function openGear() {
+  LAST_DESK = GEAR_DESK;
+  openSheet('<div class="sheet-head"><h3>⚙️ ' + esc(GEAR_DESK.name) + '</h3><button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div>'
+    + '<div class="sheet-body">' + gearBody() + "</div>");
+}
+
 var LAST_DESK = null;
 function refreshDeskSheet() {
   if (!LAST_DESK || el("sheetWrap").hidden) return;
@@ -1256,28 +1415,9 @@ function refreshDeskSheet() {
 }
 function vCollection() {
   if (typeof BoxOfficeCollection === "undefined") return '<div class="produce-panel"><div class="bo-empty">Collection desk not available.</div></div>';
-  return BoxOfficeCollection.html();
+  return '<div class="boc-root">' + BoxOfficeCollection.html() + "</div>";
 }
 
-function vMore() {
-  var all = collectDesks();
-  var groups = [];
-  all.forEach(function (d) {
-    var g = null, i;
-    for (i = 0; i < groups.length; i++) if (groups[i].name === d.group) g = groups[i];
-    if (!g) { g = { name: d.group, desks: [] }; groups.push(g); }
-    g.desks.push(d);
-  });
-  var html = '<div class="sechead"><h2>Feature desks · ' + all.length + "</h2></div>";
-  groups.forEach(function (g) {
-    html += '<div class="sechead"><h2>' + esc(g.name) + "</h2></div><div class='deskgrid'>";
-    g.desks.forEach(function (d) {
-      html += '<button class="desk" data-action="desk-open" data-id="' + d.id + '"><div class="em">' + d.icon + '</div><div class="nm">' + esc(d.name) + '</div><div class="ds">' + esc(d.desc) + "</div></button>";
-    });
-    html += "</div>";
-  });
-  return html;
-}
 function vAgencyDesk() {
   var html = '<div class="card">';
   if (!S.agency.founded) {

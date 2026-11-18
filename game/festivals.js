@@ -153,6 +153,6 @@ function festDeskBoard() {
 }
 
 var FESTIVAL_DESKS = [
-  { id: "fest-board", group: "Awards", icon: "🎪", name: "Festival circuit",
+  { id: "fest-board", group: "Awards", icon: "🎪", name: "Festival circuit · Awards board",
     desc: "Year calendar of six festivals — plan $2M premieres for post/ready projects that match the taste.", render: festDeskBoard }
 ];

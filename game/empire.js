@@ -901,7 +901,7 @@ var EMPIRE_DESKS = [
   { id: "emp-franchise", group: "Empire & Franchises", icon: "🚀", name: "Franchises & crossover", desc: "Track franchise heat and launch crossover events.", render: empDeskFranchises },
   { id: "emp-merch", group: "Empire & Franchises", icon: "🧸", name: "Merchandising", desc: "Toys, apparel and game lines on hot properties.", render: empDeskMerch },
   { id: "emp-park", group: "Empire & Franchises", icon: "🎢", name: "Theme park", desc: "Gate income scaled by total franchise heat.", render: empDeskPark },
-  { id: "emp-dome", group: "Empire & Franchises", icon: "🏟️", name: "Sports megadome", desc: "Naming rights, skyboxes and a sports package.", render: empDeskDome },
+  { id: "emp-dome", group: "Empire & Franchises", icon: "🏟️", name: "Sports megadome · Empire", desc: "Naming rights, skyboxes and a sports package.", render: empDeskDome },
   { id: "emp-stage", group: "Empire & Franchises", icon: "🎭", name: "Stage division", desc: "Three playhouses — greenlight and run musicals.", render: empDeskStage },
   { id: "emp-shorts", group: "Empire & Franchises", icon: "📱", name: "Shorts studio", desc: "Weekly short seasons; a talent scout on the side.", render: empDeskShorts }
 ];

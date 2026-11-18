@@ -1,0 +1,45 @@
+/* Box Office War — pitch hub, season step and board vote animation (presentation only). */
+
+/* Pitch hub (Develop › Pitch) */
+.pitch-hub { display: grid; gap: 14px; }
+.pitch-hub-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 620px) { .pitch-hub-grid { grid-template-columns: 1fr 1fr; } }
+.pitch-hub-card {
+  display: grid; gap: 6px; text-align: left; padding: 18px; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(245,197,24,.10), rgba(255,255,255,.02));
+  border: 1px solid rgba(245,197,24,.35); color: inherit; font: inherit;
+  transition: transform .12s ease, border-color .15s ease;
+}
+.pitch-hub-card:hover { transform: translateY(-2px); border-color: rgba(245,197,24,.7); }
+.pitch-hub-card:focus-visible { outline: 2px solid var(--gold, #f5c518); outline-offset: 2px; }
+.pitch-hub-icon { font-size: 28px; line-height: 1; }
+.pitch-hub-card b { font-size: 18px; font-weight: 750; }
+.pitch-hub-card small { font-size: 12.5px; color: var(--muted, #9aa3b2); line-height: 1.45; }
+.pitch-hub-card em { font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--gold, #f5c518); margin-top: 4px; }
+
+/* Season step: budget rows reuse the donut's slices */
+.pitch-money-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dotted rgba(255,255,255,.08); font-size: 13px; }
+.pitch-money-row b { font-variant-numeric: tabular-nums; }
+
+/* Board vote: five seats reveal one at a time, then the tally */
+.vb { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 14px 0 4px; position: relative; z-index: 1; }
+.vb-seat { display: grid; justify-items: center; gap: 6px; padding: 8px 4px; border-radius: 10px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); opacity: 0; transform: translateY(8px); }
+.vb-seat small { font: 700 8px/1.3 ui-monospace, monospace; letter-spacing: .8px; text-transform: uppercase; color: #9fb59f; text-align: center; }
+.vb-vote { font: 800 8.5px/1 ui-monospace, monospace; letter-spacing: .9px; padding: 4px 5px; border-radius: 99px; opacity: 0; transform: scale(.6); }
+.vb-vote.ok { color: #7bd389; border: 1px solid rgba(123,211,137,.5); background: rgba(123,211,137,.12); }
+.vb-vote.no { color: #ff8a80; border: 1px solid rgba(255,138,128,.5); background: rgba(255,138,128,.12); }
+.vb-count { text-align: center; font: 700 10px/1.4 ui-monospace, monospace; letter-spacing: .6px; color: #c9d6c9; margin-top: 8px; opacity: 0; position: relative; z-index: 1; }
+
+.verdict.play .vb-seat { animation: vbSeat .38s ease calc(.45s + var(--i) * .24s) forwards; }
+.verdict.play .vb-vote { animation: vbVote .3s cubic-bezier(.2,1.5,.4,1) calc(.72s + var(--i) * .24s) forwards; }
+.verdict.play .vb-count { animation: vbFade .3s ease calc(.72s + 5 * .24s) forwards; }
+.verdict.nofx .vb-seat, .verdict.nofx .vb-vote, .verdict.nofx .vb-count { opacity: 1; transform: none; animation: none; }
+
+@keyframes vbSeat { to { opacity: 1; transform: none; } }
+@keyframes vbVote { to { opacity: 1; transform: scale(1); } }
+@keyframes vbFade { to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-seat, .vb-vote, .vb-count { opacity: 1 !important; transform: none !important; animation: none !important; }
+}

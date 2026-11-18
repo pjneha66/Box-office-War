@@ -14,7 +14,7 @@ bash release.sh 28.16 --dry-run   # everything except commit/push/release
 ```
 
 The pipeline: syntax checks + full test suite → version bump (APK +
-`sw.js` CACHE) → signed APK rebuild → commit + push (redeploys Vercel) →
+`sw.js` CACHE) → signed APK rebuild → commit + push →
 GitHub release `v<version>` with the APK attached → verifies the live site.
 `npm run release` is an alias; `npm run apk` only rebuilds the APK.
 

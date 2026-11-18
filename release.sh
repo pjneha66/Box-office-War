@@ -12,7 +12,7 @@
 #   2. bump versions: sw.js CACHE + APK versionName/versionCode
 #                     + index.html app-version meta + version.json (live update check)
 #   3. rebuild the Android APK (signed, from apk/)
-#   4. commit + push  (push also redeploys box-office-war.vercel.app)
+#   4. commit + push  (main branch carries version.json for the in-app update check)
 #   5. GitHub release tagged <version> with the APK attached
 #   6. post-flight: verifies the live site serves the new build
 # ════════════════════════════════════════════════════════════════════
@@ -113,7 +113,7 @@ echo "✓ apk/dist/BoxOfficeWar-$OUT_VER.apk + ~/Downloads/BoxOfficeWar.apk"
 
 if [ "$DRY_RUN" = true ]; then
   echo "── dry-run complete — next steps skipped ──────────────────"
-  echo "  would: commit version bump → push (Vercel redeploys) →"
+  echo "  would: commit version bump → push →"
   echo "  gh release create v$VERSION with the APK attached → verify live"
   exit 0
 fi
@@ -122,23 +122,21 @@ echo "── 4/6 commit + push ────────────────�
 git add sw.js apk/android/app/build.gradle index.html version.json package.json
 git commit -m "v$VERSION: release — SW cache v$((CUR_SW+1)), APK $VERSION"
 git push origin main
-echo "✓ pushed — Vercel is redeploying"
+echo "✓ pushed to main"
 
 echo "── 5/6 GitHub release ─────────────────────────────────────"
 NOTES=$(mktemp)
 { echo "Box Office War v$VERSION"; echo;
-  echo "Web: https://box-office-war.vercel.app (updated automatically)";
+  echo "Web: https://github.com/pjneha66/Box-office-War (source on main)";
   echo "Android: download the APK below — fully offline, installs over previous versions without losing saves."; echo;
   echo "Changes since v$CUR_VER:"; git log --oneline "v$CUR_VER..HEAD" --no-decorate 2>/dev/null | sed 's/^/- /' || echo "- (tag v$CUR_VER not found — add notes manually)"; } > "$NOTES"
 gh release create "v$VERSION" "apk/dist/BoxOfficeWar-$VERSION.apk" \
   --title "v$VERSION — Android APK (fully offline)" --notes-file "$NOTES"
 echo "✓ https://github.com/pjneha66/Box-office-War/releases/tag/v$VERSION"
 
-echo "── 6/6 verify live deploy ─────────────────────────────────"
-sleep 45
-LIVE=$(curl -s https://box-office-war.vercel.app/sw.js | grep -o 'bow-v[0-9]*-cache' | head -1)
-echo "  live SW: $LIVE (expect bow-v$((CUR_SW+1))-cache)"
-LIVEV=$(curl -s https://box-office-war.vercel.app/version.json | grep -o '"v": *"[0-9.]*"')
-echo "  live version.json: $LIVEV (expect \"v\": \"$VERSION\")"
-[ "$LIVE" = "bow-v$((CUR_SW+1))-cache" ] && echo "[SUCCESS] RELEASE COMPLETE -- web + Android both live" \
-  || echo "[WAIT] Vercel still building -- check https://vercel.com/dashboard in a minute"
+echo "── 6/6 verify published version ───────────────────────────"
+sleep 20
+LIVEV=$(curl -s https://raw.githubusercontent.com/pjneha66/Box-office-War/main/version.json | grep -o '"v": *"[0-9.]*"')
+echo "  published version.json: $LIVEV (expect \"v\": \"$VERSION\")"
+[ "$LIVEV" = "\"v\": \"$VERSION\"" ] && echo "[SUCCESS] RELEASE COMPLETE -- main + GitHub release + Android APK" \
+  || echo "[WAIT] raw.githubusercontent.com still caching -- re-check in a minute"

@@ -97,7 +97,7 @@
   function safeText(s,max){return String(s||"").replace(/[<>]/g,"").trim().slice(0,max||80);}
   function clearCustomGenres(){
     const ids=Array.isArray(root._bowCustomGenreIds)?root._bowCustomGenreIds:[];
-    ids.forEach(id=>{delete root.DATA?.GENRES?.[id];delete root.DATA?.GENRE_COLORS?.[id];});
+    ids.forEach(id=>{delete root.DATA?.GENRES?.[id];delete root.DATA?.GENRE_COLORS?.[id];delete root.DATA?.TITLES?.[id];delete root.DATA?.BLURBS?.[id];});
     root._bowCustomGenreIds=[];
   }
   function applyCustomGenres(G){
@@ -108,6 +108,9 @@
       const base=root.DATA.GENRES[x.base];if(!base||base.custom)return;
       const color=/^#[0-9a-f]{6}$/i.test(x.color||"")?x.color:(root.DATA.GENRE_COLORS?.[x.base]||"#7b88a8");
       root.DATA.GENRES[x.id]={...base,name:safeText(x.name,32)||base.name,emoji:safeText(x.emoji,8)||base.emoji||"🎬",mass:packNumber(x.mass,0.5,1.5,base.mass),legsAdj:packNumber(x.legsAdj,-0.5,0.5,base.legsAdj),intlShare:packNumber(x.intlShare,0.1,0.7,base.intlShare),critic:packNumber(x.critic,-10,10,base.critic),aud:packNumber(x.aud,-10,10,base.aud),otta:packNumber(x.otta,0.5,2,base.otta),awards:packNumber(x.awards,0,2,base.awards),budgetBias:packNumber(x.budgetBias,0.35,1.4,base.budgetBias),merch:packNumber(x.merch,0.2,1.5,base.merch),custom:true};
+      /* Title and blurb pools are read by genre id; a custom genre has no pool of its own, so it borrows its base genre's. */
+      if(root.DATA.TITLES)root.DATA.TITLES[x.id]=root.DATA.TITLES[x.base]||root.DATA.TITLES.action;
+      if(root.DATA.BLURBS)root.DATA.BLURBS[x.id]=root.DATA.BLURBS[x.base]||root.DATA.BLURBS.action;
       if(root.DATA.GENRE_COLORS)root.DATA.GENRE_COLORS[x.id]=color;added.push(x.id);
       if(G.trends&&!Number.isFinite(G.trends[x.id]))G.trends[x.id]=1;
     });

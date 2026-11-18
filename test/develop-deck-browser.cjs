@@ -134,7 +134,7 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
   const animalRows=await page.evaluate(()=>document.querySelectorAll('.cast-row').length);
   assert.equal(animalRows,60,'animal filter must be a full 72-strong roster (paged to 60)');
   await page.evaluate(()=>document.querySelector('[data-cast-pin^="film:"]').click());
-  assert(await page.evaluate(()=>!!G.castPins.film),'pinning must persist on the save state');
+  assert(await page.evaluate(()=>G.castPins.film.length>0),'pinning must persist on the save state');
   await page.evaluate(()=>{document.querySelector('#castDirDone').click();startFilmPitchWizard();});
   assert(await page.evaluate(()=>WZ.cast.some(c=>c.isAnimal)),'a pinned animal star must board the film pitch');
   await page.evaluate(()=>{closeModal();WZ=null;});

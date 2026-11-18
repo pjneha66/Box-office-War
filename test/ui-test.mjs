@@ -486,8 +486,10 @@ step("series pitch wizard", ()=>{
   const toCast=$("#szToCast"); if(!toCast) throw new Error("cast step button missing");
   click(toCast);
   if(!$$("[data-szcast]").length) throw new Error("series cast list missing");
-  const toPlat=$("#szToPlat"); if(!toPlat) throw new Error("platform step button missing");
+  const toPlat=$("#szToPlat"); if(!toPlat) throw new Error("season step button missing");
   click(toPlat);
+  const toPlatform=$("#szToPlatform"); if(!toPlatform) throw new Error("platform step button missing");
+  click(toPlatform);
   const toReview=$("#szToReview"); if(!toReview) throw new Error("review step button missing");
   click(toReview);
   if(!$("#szPitch")) throw new Error("pitch button missing");

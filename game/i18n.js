@@ -4,7 +4,7 @@
 
 var I18N = {
   hi: {
-    "Studio": "स्टूडियो", "Develop": "विकास", "Playing": "प्रदर्शन", "Ledger": "खाता", "More": "और", "Week": "सप्ताह",
+    "Studio": "स्टूडियो", "Develop": "विकास", "Playing": "प्रदर्शन", "Ledger": "खाता", "Business": "व्यापार", "More": "और", "Week": "सप्ताह",
     "Open the studio": "स्टूडियो खोलें", "Start over": "नई शुरुआत", "New game": "नया खेल",
     "Greenlight": "मंज़ूरी", "Set release date": "रिलीज़ तिथि", "Schedule": "शेड्यूल",
     "Difficulty": "कठिनाई", "Scenario": "परिदृश्य", "Origin": "उत्पत्ति", "Studio name": "स्टूडियो का नाम",
@@ -18,7 +18,7 @@ var I18N = {
     "Are you sure?": "क्या आप निश्चित हैं?", "Cancel": "रद्द करें", "Copy to clipboard": "कॉपी करें"
   },
   mr: {
-    "Studio": "स्टुडिओ", "Develop": "विकास", "Playing": "प्रदर्शन", "Ledger": "खाते", "More": "अधिक", "Week": "आठवडा",
+    "Studio": "स्टुडिओ", "Develop": "विकास", "Playing": "प्रदर्शन", "Ledger": "खाते", "Business": "व्यवसाय", "More": "अधिक", "Week": "आठवडा",
     "Open the studio": "स्टुडिओ उघडा", "Start over": "नवीन सुरुवात", "New game": "नवी गेम",
     "Greenlight": "मंजुरी", "Set release date": "प्रदर्शन तारीख", "Schedule": "वेळापत्रक",
     "Difficulty": "कठीण", "Scenario": "परिस्थिती", "Origin": "मूळ", "Studio name": "स्टुडिओचे नाव",

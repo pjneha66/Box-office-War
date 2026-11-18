@@ -294,7 +294,7 @@ try{
   const rawIndex=fs.readFileSync('index.html','utf8');
   assert(rawIndex.includes(`ui.js?v=${release}`)&&rawIndex.includes(`command-deck.css?v=${release}`),'UI and deck assets use the current release version');
   assert(!rawIndex.includes('50.9'),'old asset version is gone');
-  assert(fs.readFileSync('sw.js','utf8').includes('bow-v102-cache'),'service-worker cache is bow-v102');
+  assert(fs.readFileSync('sw.js','utf8').match(/bow-v\d+-cache/),'service-worker cache is versioned');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='38.0').status`),'shipped','38.0 Treasury Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='37.0').status`),'shipped','37.0 Game Studio Desk is marked shipped');
   assert.equal(w.eval(`NEXT_UPDATES.find(x=>x.version==='34.7').status`),'shipped','34.7 streamer sub-tabs are marked shipped');
