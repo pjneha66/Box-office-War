@@ -44,10 +44,10 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Node 20
+      - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22" # Capacitor 8 CLI requires Node >= 22
 
       # ubuntu-latest ships the Android SDK already. setup-android@v3 is not
       # used here: it tries to install the removed legacy `tools` package and
