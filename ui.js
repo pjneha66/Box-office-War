@@ -2125,6 +2125,7 @@ function renderSubTabs(){
    read from the live career; nothing is invented for the interface. */
 const DEVELOP_SECTIONS = [
   ["scripts", "Scripts"],
+  ["pitch", "Pitch"],
   ["demographics", "Audience lab"],
   ["creativity", "Craft & vault"],
   ["ip", "Rights market"],
@@ -2167,6 +2168,7 @@ function commandDevelopNav(){
 
 function viewDevelop(){
   if(!DEVELOP_SECTIONS.some(s=>s[0]===DEVELOP_SUB)) DEVELOP_SUB="scripts";
+  if(DEVELOP_SUB==="pitch") return commandDevelopPitch();
   if(DEVELOP_SUB==="demographics") return commandDevelopAudience();
   if(DEVELOP_SUB==="creativity") return commandDevelopCraft();
   if(DEVELOP_SUB==="ip") return commandDevelopRights();
@@ -2174,6 +2176,15 @@ function viewDevelop(){
   if(DEVELOP_SUB==="combos") return commandDevelopCombos();
   if(DEVELOP_SUB==="tax") return commandDevelopLocations();
   return commandDevelopScripts();
+}
+
+/* ── Pitch hub: pick film or series ────────────────────────────────── */
+function commandDevelopPitch(){
+  return `<section class="pitch-hub"><header class="command-heading"><div><span class="command-eyebrow">STORY DEPARTMENT / PITCH</span><h2>Pitch to the room</h2><p>Choose what you are selling. Every pitch goes to a vote, and the vote is shown on screen.</p></div></header>
+    <div class="pitch-hub-grid">
+      <button class="pitch-hub-card" id="btnHubFilm"><span class="pitch-hub-icon" aria-hidden="true">🎬</span><b>Film</b><small>Concept, team, cast, and release. The studio board votes on the picture.</small><em>Start a film pitch →</em></button>
+      <button class="pitch-hub-card" id="btnHubSeries"><span class="pitch-hub-icon" aria-hidden="true">📺</span><b>Series</b><small>Format, leads, season arc, and pilot. A buyer committee decides.</small><em>Start a series pitch →</em></button>
+    </div></section>`;
 }
 
 /* ── 01 / Scripts ─────────────────────────────────────────────────────── */
@@ -3452,9 +3463,13 @@ function sequelTitle0(wz){ return wz.idea.sequelOf? sequelTitle(wz.idea.sequelOf
 function pick0(a){ return a[Math.floor(Math.random()*a.length)]; }
 
 /* ── series pitch wizard ── */
+const SERIES_ARCS=[["procedural","Procedural","Self-contained episodes. Easy to schedule.",0],["serialized","Serialized","One season arc. Loyal viewers, harder to start.",0.03],["anthology","Anthology","A new story each season. Strong awards pull.",0.02]];
+function seriesArc(){ return SERIES_ARCS.find(a=>a[0]===(WZ&&WZ.arc))||SERIES_ARCS[0]; }
+function seriesPilotCost(){ return (WZ&&WZ.pilotPct)? Math.round(WZ.eps*WZ.perEp*WZ.pilotPct/100*10)/10 : 0; }
+function seriesOddsExtra(){ return seriesArc()[3] + ((WZ&&WZ.pilotPct)||0)/500; }
 function startSeriesWizard(){
   WZ={mode:"series", genre:pick(["drama","thriller","scifi","comedy","horror","romance","fantasy","action"]),
-      formatId:"standard", eps:8, perEp:6, platform:"streamflix", showrunner:null, cast:[], szStep:0};
+      formatId:"standard", eps:8, perEp:6, platform:"streamflix", showrunner:null, cast:[], szStep:0, arc:"procedural", pilotPct:0};
   seedPinnedCast("series",WZ);
   seriesModal();
 }
@@ -3473,7 +3488,7 @@ function seriesPitchRead(){
   const eps=WZ.eps||8, perEp=WZ.perEp||6, budget=eps*perEp;
   const cast=WZ.cast||[];
   const taste=(plat.taste&&plat.taste[WZ.genre])||1;
-  const odds=(WZ.platform==="own"||plat.id==="own")?100:Math.round(clamp(0.22+65/160+(taste-1)*0.6+G.studio.rep/400+(perEp>=8?0.06:0)+(G.upgrades.ottrel?0.05:0),0.12,0.9)*100);
+  const odds=(WZ.platform==="own"||plat.id==="own")?100:Math.round(clamp(0.22+65/160+(taste-1)*0.6+G.studio.rep/400+(perEp>=8?0.06:0)+(G.upgrades.ottrel?0.05:0)+seriesOddsExtra(),0.12,0.9)*100);
   const fees=(WZ.showrunner?actorFee(WZ.showrunner):0)+cast.reduce((a,c)=>a+actorFee(c),0);
   const concept=clamp(65+G.studio.devBonus*2,40,95);
   const q=clamp(Math.round(0.3*concept+0.25*(WZ.showrunner?WZ.showrunner.skill:56)+0.2*(cast.length?cast.reduce((a,c)=>a+(c.skill||0),0)/cast.length:55)+0.25*(45+55*clamp(perEp/12,0.4,1.1))),10,97);
@@ -3550,15 +3565,28 @@ function seriesModal(){
   }
 
   if(step===2){
+    const arc=seriesArc(), pilot=WZ.pilotPct||0, pilotCost=seriesPilotCost(), cash=G.studio.cash;
+    const slices=[{label:"Episodes",val:Math.max(0,r.budget-pilotCost),color:"#6c5ce7"},{label:"Pilot",val:pilotCost,color:"#e17055"},{label:"Talent",val:r.fees,color:"#00b894"}];
+    main=pitchGroup("SEASON ARC",`Sets how the season hangs together. The buyer reads the arc before the pilot.`,
+        `<div class="pitch-chips">${SERIES_ARCS.map(a=>`<button type="button" class="pitch-chip${arc[0]===a[0]?" on":""}" data-szarc="${a[0]}" aria-pressed="${arc[0]===a[0]}"><span>${esc(a[1])}</span><small>${esc(a[2])}</small></button>`).join("")}</div>`)
+      +pitchGroup("PILOT",`Spend more on the pilot to sell the room. The pilot is shot when you pitch, so its cost is spent even if the buyer passes.`,
+        `<div class="pitch-filter-row" role="group" aria-label="Pilot premium">${[0,10,20,30].map(p=>`<button class="pitch-filter${pilot===p?" on":""}" data-szpilot="${p}" aria-pressed="${pilot===p}">${p}%</button>`).join("")}</div>
+         <div class="pitch-note">Pilot premium <b>${fmtM(pilotCost)}</b>${pilotCost>cash?` <span class="neg">· more than your ${fmtM(cash)}</span>`:""} · odds +${Math.round(seriesOddsExtra()*100)}%</div>`)
+      +pitchGroup("SEASON BUDGET",`Where the season money goes.`,
+        `<div class="pitch-alloc"><div class="pitch-alloc-donut">${renderDonutSVG(slices,78)}</div><div class="pitch-alloc-sliders">${slices.map(x=>`<div class="pitch-money-row"><span>${x.label}</span><b>${fmtM(x.val)}</b></div>`).join("")}</div></div>`);
+    actions=`<button class="develop-ghost" id="szBackCast">← Cast</button><button class="develop-action" id="szToPlatform" ${pilotCost>cash?"disabled":""}>${pilotCost>cash?"Pilot costs too much":"Choose a platform →"}</button>`;
+  }
+
+  if(step===3){
     const plats=(G.streamer?[{id:"own",name:G.streamer.name+" (yours)",logo:"▶",blurb:"Your own service — no gatekeeper, paid in subscribers."}]:[]).concat(DATA.PLATFORMS.map(p=>({id:p.id,name:p.name,logo:p.logo,blurb:p.blurb})));
     main=pitchGroup("PLATFORM",`Who buys the season. Each service over-indexes on a different genre.`,
         `<div class="pitch-buyers">${plats.map(p=>`<button class="pitch-buyer-card${WZ.platform===p.id?" on":""}" data-p="${p.id}" aria-pressed="${WZ.platform===p.id}"><span class="pitch-buyer-logo">${p.logo||"▶"}</span><span><b>${esc(p.name)}</b><small>${esc(p.blurb||"")}</small></span>${WZ.platform===p.id?`<em>${r.odds}% odds</em>`:""}</button>`).join("")}</div>`)
       +pitchGroup("THE SERVICE'S TASTE",`How this buyer feels about your genre right now.`,
         `<div class="pitch-grid4">${pitchStat("TASTE",Math.round(r.taste*100)+"%",DATA.GENRES[WZ.genre].name,r.taste>=1.05?"good":r.taste<0.95?"bad":"")}${pitchStat("GREENLIGHT ODDS","~"+r.odds+"%",r.plat.id==="own"?"your own service":"estimate")}${pitchStat("SEASON BUDGET",fmtM(r.budget),r.eps+" eps")}${pitchStat("LICENSE IF ORDERED",r.plat.id==="own"?"ARPU":fmtM(r.license),"≈115% of budget")}</div>`);
-    actions=`<button class="develop-ghost" id="szBackCast">← Cast</button><button class="develop-action" id="szToReview">Review the pitch →</button>`;
+    actions=`<button class="develop-ghost" id="szBackSeason">← Season</button><button class="develop-action" id="szToReview">Review the pitch →</button>`;
   }
 
-  if(step===3){
+  if(step===4){
     const warnings=[];
     if(!WZ.showrunner) warnings.push("No showrunner attached — the room has no captain.");
     if(G.studio.cash<r.fees) warnings.push("Cash on hand is short of the talent fees due at greenlight.");
@@ -3612,6 +3640,10 @@ function seriesModal(){
     title:"Cast directory", eyebrow:"TELEVISION / PITCH STUDIO · LEADS",
     note:"Every performer on the books — leads, animal stars and studio partners. Four leads maximum; your pitch keeps its place.",
     onPick:list=>{ WZ.cast=list.slice(0,4); }, after:()=>seriesModal() }));
+  v.querySelectorAll("[data-szarc]").forEach(b=>b.onclick=()=>{ WZ.arc=b.dataset.szarc; beep("click"); seriesModal(); });
+  v.querySelectorAll("[data-szpilot]").forEach(b=>b.onclick=()=>{ WZ.pilotPct=+b.dataset.szpilot; beep("click"); seriesModal(); });
+  const backSeason=v.querySelector("#szBackSeason"); if(backSeason) backSeason.onclick=()=>{ WZ.szStep=2; beep("click"); seriesModal(); };
+  const toPlatform=v.querySelector("#szToPlatform"); if(toPlatform) toPlatform.onclick=()=>{ WZ.szStep=3; beep("click"); seriesModal(); };
   v.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{ WZ.platform=b.dataset.p; beep("click"); seriesModal(); });
   const szT=v.querySelector("#szTitle"); if(szT) szT.oninput=()=>{ WZ.title=szT.value; };
   const cancel=v.querySelector("#szCancel"); if(cancel) cancel.onclick=()=>{ beep("click"); WZ=null; closeModal(); };
@@ -3619,15 +3651,18 @@ function seriesModal(){
   const backFmt=v.querySelector("#szBackFmt"); if(backFmt) backFmt.onclick=()=>{ WZ.szStep=0; beep("click"); seriesModal(); };
   const toPlat=v.querySelector("#szToPlat"); if(toPlat) toPlat.onclick=()=>{ WZ.szStep=2; beep("click"); seriesModal(); };
   const backCast=v.querySelector("#szBackCast"); if(backCast) backCast.onclick=()=>{ WZ.szStep=1; beep("click"); seriesModal(); };
-  const toRev=v.querySelector("#szToReview"); if(toRev) toRev.onclick=()=>{ WZ.szStep=3; beep("click"); seriesModal(); };
-  const backPlat=v.querySelector("#szBackPlat"); if(backPlat) backPlat.onclick=()=>{ WZ.szStep=2; beep("click"); seriesModal(); };
+  const toRev=v.querySelector("#szToReview"); if(toRev) toRev.onclick=()=>{ WZ.szStep=4; beep("click"); seriesModal(); };
+  const backPlat=v.querySelector("#szBackPlat"); if(backPlat) backPlat.onclick=()=>{ WZ.szStep=3; beep("click"); seriesModal(); };
   const pit=v.querySelector("#szPitch");
   if(pit) pit.onclick=()=>{
     const tIn=v.querySelector("#szTitle");
     const titleOverride=tIn?(tIn.value.trim()||null):(WZ.title||null);
     const mode={genre:WZ.genre, formatId:WZ.formatId, eps:WZ.eps, perEp:WZ.perEp, platformId:WZ.platform};
     const label=titleOverride||((DATA.GENRES[mode.genre]||{}).name||"Untitled")+" · "+(r.fmt?r.fmt.name:"Series");
-    const res=pitchSeries({genre:WZ.genre, formatId:WZ.formatId, eps:WZ.eps, perEp:WZ.perEp, platformId:WZ.platform,
+    const pilotCost=seriesPilotCost();
+    if(pilotCost>G.studio.cash){ toast("Need "+fmtM(pilotCost)+" for the pilot.","bad"); return; }
+    if(pilotCost>0) spend("studio",pilotCost);
+    const res=pitchSeries({genre:WZ.genre, formatId:WZ.formatId, eps:WZ.eps, perEp:WZ.perEp, platformId:WZ.platform, oddsBonus:seriesOddsExtra(), arc:WZ.arc, pilotPct:WZ.pilotPct||0,
       titleOverride, showrunner:WZ.showrunner, cast:WZ.cast});
     if(res.ok) clearUsedCastPin("series",WZ.cast);
     beep(res.ok?"gold":"bad"); flashes(G.flash);
@@ -3757,7 +3792,7 @@ function openTalentPicker(cfg){
 
 /* ═══════════ pitch studio — one shell for film & series pitches ═══════════ */
 const PITCH_FILM_STEPS=[["concept","Concept"],["team","Team"],["cast","Cast"],["release","Release"],["review","Review"]];
-const PITCH_SERIES_STEPS=[["format","Format"],["cast","Cast"],["platform","Platform"],["review","Review"]];
+const PITCH_SERIES_STEPS=[["format","Format"],["cast","Cast"],["season","Season"],["platform","Platform"],["review","Review"]];
 function pitchShell(opts){
   const steps=opts.steps||[], active=opts.active||0;
   const rail=steps.map((st,i)=>`<button class="pitch-step${i===active?" on":""}${i<active?" done":""}" ${opts.stepAttr?`data-${opts.stepAttr}="${i}"`:"disabled"} aria-current="${i===active?"step":"false"}"><small>${String(i+1).padStart(2,"0")}</small><span>${st[1]}</span></button>`).join("");
@@ -3857,6 +3892,21 @@ function pitchVerdictCopy(o){
   if(o.ok) return {state:"accepted", stamp:"ACCEPTED", head:"The board greenlit the picture.", sub:"Development starts now. The call sheet goes out this week.", tone:"good"};
   return {state:"rejected", stamp:"REJECTED", head:"The board passed.", sub:"The pitch did not clear. Nothing was spent beyond the pitch.", tone:"bad"};
 }
+/* Board votes always agree with the outcome: a pass gets a majority of approvals, a fail gets at most two. */
+const BOARD_SEATS={film:["Chair","Finance","Marketing","Acquisitions","Talent"],series:["Programming","Finance","Originals","Analytics","Business affairs"]};
+function pitchBoardVotes(o,score){
+  const seats=BOARD_SEATS[o.mode==="series"?"series":"film"];
+  let yes;
+  if(o.ok) yes=score>=92?5:score>=80?4:3;
+  else if(o.board) yes=2;
+  else yes=score>=45?2:1;
+  const start=Math.abs(Math.round(score||0))%seats.length;
+  return seats.map((name,i)=>{ const idx=(i-start+seats.length)%seats.length; return {name:name, yes:idx<yes}; });
+}
+function pitchBoardHTML(votes){
+  const yes=votes.filter(v=>v.yes).length, no=votes.length-yes;
+  return `<div class="vb" role="img" aria-label="Board vote: ${yes} approve, ${no} reject">${votes.map((v,i)=>`<div class="vb-seat" style="--i:${i}"><small>${esc(v.name)}</small><b class="vb-vote ${v.yes?"ok":"no"}" style="--i:${i}">${v.yes?"APPROVE":"REJECT"}</b></div>`).join("")}</div><div class="vb-count" style="--i:${votes.length}">${yes} approve · ${no} reject · ${yes>=3?"majority carries":"no majority"}</div>`;
+}
 function pitchResultModal(o){
   const c=pitchVerdictCopy(o);
   const ev=o.ev||{};
@@ -3878,7 +3928,7 @@ function pitchResultModal(o){
     rows.push(["Season read",(r.q||0)+"/100"]);
     rows.push([o.ok?"License":"Odds","~"+ (r.odds||0) +"% pitch odds"]);
   }
-  const tally=o.board?"❌ ❌ ❌ ✅ ❌":null;
+  const votes=pitchBoardVotes(o,score||(o.read?o.read.q:0));
   const html=`<div class="verdict" data-verdict="${c.state}">
     <div class="verdict-glow" aria-hidden="true"></div>
     <header class="verdict-head">
@@ -3887,7 +3937,7 @@ function pitchResultModal(o){
       <p>${esc(c.sub)}</p>
     </header>
     <div class="verdict-stamp-wrap"><div class="verdict-stamp ${c.tone}"><b>${c.stamp}</b><small>${o.mode==="series"?"NOTICE OF DECISION":"BOARD RESOLUTION"}</small></div></div>
-    ${tally?`<div class="verdict-tally">${tally.split(" ").map((v,i)=>`<span style="--i:${i}">${v}</span>`).join("")}</div>`:""}
+    ${pitchBoardHTML(votes)}
     <div class="verdict-rows">${rows.map((r,i)=>`<div class="verdict-row" style="--i:${i}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join("")}</div>
     <div class="verdict-meter" aria-hidden="true"><span style="--pct:${Math.max(4,Math.min(100,score||(o.read?o.read.q:0)))}%"></span></div>
     <footer class="verdict-actions">
@@ -7510,6 +7560,8 @@ function bindView(){
     $$("[data-localize]").forEach(b=>b.onclick=()=>{ const row=b.closest(".industry-project-actions"), sel=row&&row.querySelector("[data-loc-package='"+b.dataset.localize+"']"); const [pid,territory]=b.dataset.localize.split(":"); finishIndustryAction(IndustryExpansion.localizeProject(pid,territory,sel&&sel.value,G),"Territory localization booked."); });
   }
   $$("[data-devsub]").forEach(b=>b.onclick=()=>{ DEVELOP_SUB=b.dataset.devsub; beep("click"); render(); });
+  { const hf=document.querySelector("#btnHubFilm"); if(hf) hf.onclick=()=>{ beep("click"); startFilmPitchWizard(); };
+    const hs=document.querySelector("#btnHubSeries"); if(hs) hs.onclick=()=>{ beep("click"); startSeriesWizard(); }; }
   $$("[data-filter-genre]").forEach(b=>b.onclick=()=>{ SCRIPT_GENRE_FILTER=b.dataset.filterGenre; beep("click"); render(); });
   $$("[data-cast-unpin]").forEach(b=>b.onclick=()=>{ beep("click"); unpinCast(b.dataset.castUnpin); });
   $$("[data-combo-filter]").forEach(b=>b.onclick=()=>{ DEVELOP_COMBO_FILTER=b.dataset.comboFilter; beep("click"); render(); });

@@ -24,7 +24,7 @@ assert($('.command-deck.command-develop'),'Develop must render the command deck'
 assert.equal($('.kairo-dept-banner'),null,'the legacy Kairo banner (invented metrics) must not render on Develop');
 assert.equal($('#subTabs').style.display,'none','the duplicate mobile sub-tab strip must stay hidden');
 assert.equal($$('#view .subnav-pills').length,0,'the pixel-icon pill strip must be gone');
-assert.equal($$('.command-develop-nav [data-devsub]').length,7,'seven numbered sections');
+assert.equal($$('.command-develop-nav [data-devsub]').length,8,'eight numbered sections (Pitch added)');
 assert.equal($$('.command-develop-nav .command-nav-tools button').length,3,'three tool destinations');
 assert($('.command-develop-nav [data-devsub="scripts"]').classList.contains('active'));
 const developHtml=view().innerHTML;
@@ -202,7 +202,7 @@ assert.equal($$('.cast-pick.sel').length,1,'the pinned lead must already be sele
 const pick=$$('[data-szcast]').find(b=>!b.classList.contains('sel'));
 click(pick);
 assert.equal($$('.cast-pick.sel').length,2,'a second lead can be added to a season');
-w.eval("const t=document.querySelector('#szToPlat');t.click();G.streamer=G.streamer||{name:'Own',color:'#333',logo:'O'};WZ.platform='own';seriesModal();document.querySelector('#szToReview').click();document.querySelector('#szPitch').click();");
+w.eval("const t=document.querySelector('#szToPlat');t.click();document.querySelector('#szToPlatform').click();G.streamer=G.streamer||{name:'Own',color:'#333',logo:'O'};WZ.platform='own';seriesModal();document.querySelector('#szToReview').click();document.querySelector('#szPitch').click();");
 const series=w.eval('(G.series||[]).slice(-1)[0]');
 assert(series&&series.cast&&series.cast.length===2,'the series must be greenlit with both leads (got '+(series&&series.cast&&series.cast.length)+')');
 assert.equal(w.eval('G.castPins.series.length'),0,'a used pin is consumed so it does not repeat');
@@ -246,7 +246,7 @@ assert($('.verdict[data-verdict="accepted"]'),'a greenlit pitch renders the acce
 assert(/ACCEPTED/.test($('.verdict-stamp').textContent));
 w.eval("closeModal();pitchResultModal({mode:'film',ok:false,board:true,label:'Tentpole',genre:'action',ev:{score:60,verdict:'Viable'}});");
 assert($('.verdict[data-verdict="board"]'),'a failed board vote is its own state');
-assert($('.verdict-tally'),'a board vote shows the tally');
+assert($$('.vb .vb-seat').length===5,'a board vote shows five seats');
 
 /* location desk — reachable with no shoot, contractable with one */
 w.eval("closeModal();G.projects=[];LOC_DESK={projectId:null,focus:null};openLocationDesk();");
@@ -305,4 +305,4 @@ w.eval("closeModal();G.notifications=[];INBOX_PAGE.filter='all';switchTab('devel
 
 /* ── 11. Console cleanliness ───────────────────────────────────────── */
 assert.deepEqual(errors.filter(e=>!/Not implemented: navigation/.test(e)),[],'unexpected console errors');
-console.log('PASS develop deck: seven sections, live metrics, filters, rights, crew, lens, combos, partner desks and command dialogs');
+console.log('PASS develop deck: eight sections, live metrics, filters, rights, crew, lens, combos, partner desks and command dialogs');
