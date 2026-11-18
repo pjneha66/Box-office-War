@@ -103,6 +103,29 @@ function projProgress(p) {
   var done = p.phase === "pre" ? p.phaseWk : p.phase === "shoot" ? p.phaseLen.pre + p.phaseWk : p.phaseLen.pre + p.phaseLen.shoot + p.phaseWk;
   return clamp(Math.round(done / total * 100), 0, 100);
 }
+/* Ranked box-office chart (presentation of weeklyChart rows). */
+function chartTableHTML(rows) {
+  if (!rows.length) return '<div class="card empty"><span class="em">🎞️</span>No films in theaters this week.</div>';
+  var films = filmsInRelease(), max = 1;
+  rows.forEach(function (r) { max = Math.max(max, r.gross); });
+  var out = '<div class="bo-chart">';
+  rows.forEach(function (r, i) {
+    var f = null, j;
+    for (j = 0; j < films.length; j++) if (films[j].title === r.title) { f = films[j]; break; }
+    var prev = f && f.weekly && f.weekly.length > 1 ? f.weekly[f.weekly.length - 2] : null;
+    var chg = (f && f.weeksOut === 0) || prev == null || !prev ? null : Math.round((r.gross - prev) / prev * 100);
+    var pct = Math.max(4, Math.round(r.gross / max * 100));
+    var change = chg == null
+      ? "<small>opening</small>"
+      : "<small class=\"" + (chg >= 0 ? "up" : "down") + "\">" + (chg >= 0 ? "▲ +" : "▼ ") + chg + "%</small>";
+    out += '<div class="bo-row' + (i === 0 ? " top" : "") + (r.mine ? " mine" : "") + '">'
+      + '<span class="bo-rank">' + (i + 1) + "</span>"
+      + '<div class="bo-main"><div class="bo-line"><b>' + esc(r.title) + "</b>" + (r.rival ? "<small>rival</small>" : "") + "</div>"
+      + '<div class="bo-bar"><i style="width:' + pct + '%"></i></div></div>'
+      + '<div class="bo-val"><b>' + fm(r.gross) + "</b>" + change + "</div></div>";
+  });
+  return out + "</div>";
+}
 function chartHTML(rows) {
   if (!rows.length) return '<div class="empty"><span class="em">🎞️</span>No films in theaters this week.</div>';
   var max = 1;
@@ -353,7 +376,7 @@ function filmCard(f) {
 function vNowPlaying() {
   var st = S.studio, season = seasonOf(st.woy);
   var html = '<div class="sechead"><h2>' + t("Weekend chart") + " · " + season.name + "</h2></div>"
-    + '<div class="card">' + chartHTML(weeklyChart()) + "</div>";
+    + chartTableHTML(weeklyChart());
   var mine = S.films.filter(function (f) { return f.status === "run"; });
   html += '<div class="sechead"><h2>' + t("Your films in theaters") + "</h2></div>";
   if (!mine.length) html += '<div class="card empty"><span class="em">🎟️</span>Nothing playing. Schedule a release from the Develop slate.</div>';
@@ -383,7 +406,7 @@ var PLAY_SUBS = [
   { key: "broadcast", label: "Broadcast" }
 ];
 function vPlaying() {
-  var nav = '<div class="seg desk-subnav" style="flex-wrap:wrap">';
+  var nav = '<div class="seg play-seg">';
   PLAY_SUBS.forEach(function (s) {
     nav += '<button class="' + (PLAY_TAB === s.key ? "on" : "") + '" data-action="play-tab" data-tab="' + s.key + '">' + esc(s.label) + "</button>";
   });
@@ -1262,6 +1285,7 @@ function collectDesks() {
   if (typeof BIZDEAL_DESKS !== "undefined") all = all.concat(BIZDEAL_DESKS);
   if (typeof SLOTS_DESKS !== "undefined") all = all.concat(SLOTS_DESKS);
   if (typeof META2_DESKS !== "undefined") all = all.concat(META2_DESKS);
+  if (typeof HELP_DESKS !== "undefined") all = all.concat(HELP_DESKS);
   /* wave-6/7 desks — wired in v42.5 */
   if (typeof CREW_DESKS !== "undefined") all = all.concat(CREW_DESKS);
   if (typeof MASTERY_DESKS !== "undefined") all = all.concat(MASTERY_DESKS);
@@ -1304,7 +1328,7 @@ var DESK_GROUPS = {
     { key: "empire", label: "Empire", groups: ["Empire & Franchises"] }
   ]
 };
-var GEAR_GROUPS = ["Slots"];
+var GEAR_GROUPS = ["Slots", "Help"];
 function deskHome(d) {
   var tabs = Object.keys(DESK_GROUPS), i, j, k;
   for (i = 0; i < tabs.length; i++) {
@@ -1367,7 +1391,7 @@ function refreshDeskSheet() {
 }
 function vCollection() {
   if (typeof BoxOfficeCollection === "undefined") return '<div class="produce-panel"><div class="bo-empty">Collection desk not available.</div></div>';
-  return BoxOfficeCollection.html();
+  return '<div class="boc-root">' + BoxOfficeCollection.html() + "</div>";
 }
 
 function vAgencyDesk() {

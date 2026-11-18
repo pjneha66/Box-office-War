@@ -33,7 +33,7 @@ Current submission: https://github.com/RookieEnough/Orion-Data/issues/2583
     "platform": "Android",
     "size": "19 MB",
     "author": "pjneha66",
-    "officialSite": "https://box-office-war.vercel.app",
+    "officialSite": "https://github.com/pjneha66/Box-office-War",
     "screenshots": [
       "https://raw.githubusercontent.com/pjneha66/Box-office-War/main/assets/store/screenshot-dashboard-desktop.png",
       "https://raw.githubusercontent.com/pjneha66/Box-office-War/main/assets/store/screenshot-studiolot-desktop.png",

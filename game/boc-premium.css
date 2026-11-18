@@ -1,0 +1,199 @@
+/* ═══════════════════════════════════════════════════════════════
+   Box Office War — premium box-office skin (Playing + Collection).
+   Presentation only: every class here styles markup that already exists
+   (bo-chart rows are built in ui.js chartTableHTML; the Collection markup
+   comes from box-office-collection-engine.js html()). No logic lives here.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Playing: sub-tab row scrolls on a phone instead of wrapping ── */
+.seg.play-seg {
+  flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+}
+.seg.play-seg::-webkit-scrollbar { display: none; }
+.seg.play-seg button {
+  flex: none; white-space: nowrap; min-height: 38px; padding: 0 14px;
+  font-size: 12.5px; letter-spacing: 0.2px; scroll-snap-align: start;
+}
+
+/* ── Weekend chart → ranked box-office chart ─────────────────── */
+.bo-chart {
+  display: flex; flex-direction: column; gap: 2px;
+  background:
+    linear-gradient(180deg, rgba(245,197,24,0.06), transparent 40%),
+    var(--panel);
+  border: 1px solid var(--line-soft); border-radius: var(--r);
+  padding: 6px 0; overflow: hidden;
+}
+.bo-row {
+  display: grid; grid-template-columns: 34px 1fr auto; align-items: center;
+  gap: 10px; padding: 10px 14px; position: relative;
+  border-bottom: 1px solid var(--line-soft);
+}
+.bo-row:last-child { border-bottom: 0; }
+.bo-row.top { background: linear-gradient(90deg, var(--gold-soft), transparent 70%); }
+.bo-row.top::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--gold); box-shadow: 0 0 10px rgba(245,197,24,0.6);
+}
+.bo-rank {
+  font: 800 15px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--faint); text-align: center; font-variant-numeric: tabular-nums;
+}
+.bo-row.top .bo-rank { color: var(--gold); }
+.bo-main { min-width: 0; }
+.bo-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.bo-line b {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bo-line small {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+  color: var(--red); border: 1px solid rgba(255,107,107,0.35); border-radius: 99px; padding: 1px 6px;
+}
+.bo-bar { height: 6px; border-radius: 99px; background: var(--panel-2); margin-top: 7px; overflow: hidden; }
+.bo-bar i {
+  display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #8a6d0c, var(--gold));
+}
+.bo-row.mine .bo-bar i { background: linear-gradient(90deg, #1d9d58, var(--green)); }
+.bo-row:not(.top) .bo-bar i { opacity: 0.8; }
+.bo-val { text-align: right; min-width: 74px; }
+.bo-val b {
+  display: block; font: 800 14px/1.1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.bo-row.top .bo-val b { color: var(--gold); }
+.bo-val small { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.bo-val small.up { color: var(--green); }
+.bo-val small.down { color: var(--red); }
+
+/* ── Collection Command ──────────────────────────────────────── */
+.boc-root { display: flex; flex-direction: column; gap: 14px; }
+.boc-root > h2 {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.15;
+  background: linear-gradient(90deg, #fff3b0, var(--gold) 60%, #c89b0e);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin-top: 2px;
+}
+.boc-root > h2::after {
+  content: "COLLECTION · BOX OFFICE"; display: block; margin-top: 6px;
+  font: 700 10px/1 var(--font); letter-spacing: 2px; color: var(--faint);
+  -webkit-text-fill-color: var(--faint);
+}
+.boc-root .produce-lead { font-size: 13.5px; color: var(--muted); margin: 0; }
+.boc-root .produce-note {
+  font-size: 12.5px; color: var(--muted); margin: 0; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel-2);
+}
+
+/* KPI strip */
+.boc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.boc-stats .stat {
+  position: relative; overflow: hidden; border-radius: var(--r-sm);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line); padding: 12px 12px 11px;
+}
+.boc-stats .stat::before {
+  content: ""; position: absolute; left: 12px; right: 12px; top: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+}
+.boc-stats .stat:first-child { border-color: rgba(245,197,24,0.35); }
+.boc-stats .stat:first-child::before { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.boc-stats .stat b {
+  display: block; font: 800 21px/1.1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -0.3px;
+}
+.boc-stats .stat:first-child b { color: var(--gold); }
+.boc-stats .stat span {
+  display: block; margin-top: 4px; font-size: 10.5px; font-weight: 650;
+  letter-spacing: 0.6px; text-transform: uppercase; color: var(--faint); line-height: 1.3;
+}
+
+/* Panels */
+.boc-root .produce-panel {
+  background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--r);
+  padding: 14px; display: flex; flex-direction: column; gap: 12px;
+}
+.boc-root .produce-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.boc-root .command-eyebrow {
+  display: block; font-size: 10px; font-weight: 800; letter-spacing: 1.8px; color: var(--gold);
+}
+.boc-root .produce-panel-head h3 { font-size: 17px; font-weight: 750; margin-top: 3px; letter-spacing: -0.2px; }
+.boc-root .produce-panel-head p { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.boc-root .produce-stamp {
+  flex: none; font: 800 10px/1 var(--font); letter-spacing: 1.2px; color: var(--red);
+  border: 1px solid rgba(255,107,107,0.4); background: var(--red-soft);
+  border-radius: 99px; padding: 6px 9px; white-space: nowrap;
+}
+.boc-root .produce-stamp::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--red); margin-right: 6px; vertical-align: 1px; animation: bocPulse 1.4s ease infinite;
+}
+@keyframes bocPulse { 50% { opacity: 0.25; } }
+
+/* Lever cards */
+.boc-cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.boc-tactic {
+  display: flex; flex-direction: column; gap: 8px; border-radius: var(--r-sm);
+  background: linear-gradient(160deg, var(--panel-2), #121727);
+  border: 1px solid var(--line); padding: 12px;
+}
+.boc-tactic header { display: flex; align-items: center; gap: 10px; }
+.boc-tactic header > span {
+  flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
+  font-size: 18px; background: var(--gold-soft); border: 1px solid rgba(245,197,24,0.3);
+}
+.boc-tactic h4 { font-size: 14.5px; font-weight: 750; line-height: 1.2; }
+.boc-tactic small {
+  display: block; font-size: 11.5px; font-weight: 700; color: var(--green);
+  font-variant-numeric: tabular-nums; margin-top: 2px;
+}
+.boc-tactic > p { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.boc-tactic footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+.boc-tactic footer > b { font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; }
+.boc-tactic footer b.gold { color: var(--gold); }
+.boc-tactic footer b.bad { color: var(--red); font-weight: 650; }
+.boc-tactic .produce-ghost {
+  min-height: 36px; padding: 0 14px; border-radius: 99px; cursor: pointer;
+  background: transparent; color: var(--gold); border: 1px solid rgba(245,197,24,0.55);
+  font: 750 12.5px var(--font); letter-spacing: 0.2px; transition: background 0.15s, transform 0.08s;
+}
+.boc-tactic .produce-ghost:hover { background: var(--gold-soft); }
+.boc-tactic .produce-ghost:active { transform: scale(0.97); }
+.boc-tactic .produce-ghost:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--line); color: var(--faint); }
+
+/* Live runs: each picture is a chart row with its levers under it */
+.boc-film {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  border-radius: var(--r-sm); border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--gold); background: var(--panel-2);
+}
+.boc-film > header h4 { font-size: 15px; font-weight: 750; }
+.boc-film > header small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.boc-film .produce-cards { display: grid; grid-template-columns: 1fr; gap: 8px; }
+
+/* Empty states */
+.boc-root .bo-empty {
+  text-align: center; padding: 22px 12px; color: var(--muted); font-size: 13px;
+  border: 1px dashed var(--line); border-radius: var(--r-sm);
+}
+.boc-root .bo-empty b { display: block; color: var(--text); font-size: 14px; margin-bottom: 4px; }
+
+/* Coffer ledger: ticker tape */
+.boc-ledger { list-style: none; display: flex; flex-direction: column; }
+.boc-ledger li {
+  display: grid; grid-template-columns: 74px 1fr; gap: 10px; align-items: baseline;
+  padding: 9px 2px; border-bottom: 1px dashed var(--line-soft); font-size: 12.5px; color: var(--muted);
+}
+.boc-ledger li:last-child { border-bottom: 0; }
+.boc-ledger li > b {
+  font: 800 11px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: 0.4px;
+  color: var(--gold); background: var(--gold-soft); border-radius: 6px; padding: 5px 6px; text-align: center;
+}
+
+/* Wide screens: lever cards in two columns */
+@media (min-width: 560px) {
+  .boc-cards, .boc-film .produce-cards { grid-template-columns: 1fr 1fr; }
+  .boc-stats { grid-template-columns: repeat(4, 1fr); }
+}

@@ -300,7 +300,6 @@ function toast(t,k){
   const d=document.createElement("div"); d.className="toast "+(k||""); d.textContent=t;
   host.appendChild(d); setTimeout(()=>d.remove(), 5200);
 }
-function flashes(list){ (list||[]).forEach(f=>toast(f.t, f.k)); }
 
 /* ═══ v28.16: notification bell — everything lands in the 🔔 inbox; only main
    events (gold/bad) pop as toasts, capped so a busy week can never flood the
@@ -685,7 +684,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
       const avatarSrc = archAvatars[a.id] || "assets/itch-avatars/Avatars_01.png";
       const d=document.createElement("div"); d.className="arch"+(a.id===archSel?" sel":"");
       d.innerHTML="<div style='display:flex;gap:12px;align-items:center'>"+
-        "<img src='"+avatarSrc+"' alt='"+cleanName+"' class='arch-avatar' style='width:52px;height:52px;border-radius:8px;border:2px solid var(--gold);background:#131b26;image-rendering:pixelated;object-fit:cover;flex-shrink:0'>"+
+        "<img src='"+avatarSrc+"' alt='"+esc(cleanName)+"' class='arch-avatar' style='width:52px;height:52px;border-radius:8px;border:2px solid var(--gold);background:#131b26;image-rendering:pixelated;object-fit:cover;flex-shrink:0'>"+
         "<div style='flex:1'>"+
           "<div class='arch-header'><h4>"+cleanName+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
           "<div class='a-sub'>"+a.sub+"</div>"+
@@ -1286,7 +1285,7 @@ function _renderImpl(){
         "<div style='font-size:18px;font-weight:bold;color:var(--gold);letter-spacing:1px;margin-bottom:8px'>[STUDIO RECOVERY INTERFACE]</div>"+
         "<h3 style='margin:12px 0 6px'>Something interrupted the studio</h3>"+
         "<p class='small muted' style='margin-bottom:12px'>A temporary display glitch occurred. Your save data is safe.</p>"+
-        "<div class='tiny muted' style='background:rgba(255,255,255,0.04);padding:8px;border-radius:4px;margin-bottom:16px;font-family:monospace;word-break:break-word'>" + errMsg + "</div>"+
+        "<div class='tiny muted' style='background:rgba(255,255,255,0.04);padding:8px;border-radius:4px;margin-bottom:16px;font-family:monospace;word-break:break-word'>" + esc(errMsg) + "</div>"+
         "<div class='row' style='justify-content:center;gap:10px'>"+
         "<button class='btn btn-primary' onclick='location.reload()'>Reload Studio</button>"+
         "<button class='btn btn-alt' onclick='try{loadGame();}catch(e){}location.reload()'>Reload Last Save</button>"+
@@ -10649,36 +10648,6 @@ function tutTrack(){
 }
 
 /* ── Deepfake detection mini-game: spot the ONE synthetic frame among 4 ── */
-function deepfakeModal(){
-  const d=G.pendingDeepfake; if(!d) return;
-  const t=G.talent.find(x=>x.id===d.talentId);
-  const name=t? t.name : "One of your stars";
-  const real=[
-    {shot:"🎤", desc:name+" at a chat-show desk — blinks twice mid-answer, mic rustle desyncs half a frame."},
-    {shot:"🌆", desc:name+" leaving Nobu — paparazzi flash catches an awkward eye squint and natural motion blur."},
-    {shot:"🎭", desc:"Behind-the-scenes clip — "+name+" laughs off-script, breath fog visible in the cold."},
-  ];
-  const fake={shot:"🧬", desc:"“Leaked” clip of "+name+" trashing fans — skin too smooth at the jawline, earrings swap sides between cuts, lips lag the audio."};
-  const frames=()=>{ const f=real.slice(); f.splice(rint(0,3),0,fake); return f; };
-  // keep the deck stable while the modal is open (re-renders redraw it)
-  d.deck = d.deck || frames();
-  d.fakeIdx = d.deck.indexOf(fake);
-  let h="<h3>🧬 Deepfake alert</h3>"+
-    "<div class='card' style='border-left:3px solid var(--red)'>A clip said to be <b>"+esc(name)+"</b> torching their own fanbase is going viral. Your forensic team pulled four frames from the footage. <b>Exactly one is synthetic.</b> Flag the fake in time and the debunk goes viral (+1 rep); flag a real one and the scandal lands for real.</div>"+
-    "<div class='tiny muted'>Pick the frame that isn't real:</div>";
-  d.deck.forEach((f,i)=>{
-    h+="<button class='card btn-ghost' style='display:block;width:100%;text-align:left;margin-top:8px' data-frame='"+i+"'><span style='font-size:22px'>"+f.shot+"</span> <span class='small'>"+f.desc+"</span></button>";
-  });
-  h+="<div class='modal-actions'><button class='btn btn-ghost' id='dfDefer'>Stall the press (decide later)</button></div>";
-  const v=openModal(h,{noX:true});
-  v.querySelectorAll("[data-frame]").forEach(b=>b.onclick=()=>{
-    const hit = (+b.dataset.frame)===d.fakeIdx;
-    resolveDeepfake(hit);
-    beep(hit?"gold":"bad");
-    closeModal(); flashes(G.flash); render();
-  });
-  const df=v.querySelector("#dfDefer"); if(df) df.onclick=()=>{ closeModal(); toast("⏳ The internet convenes in 2 weeks if you don't.","bad"); render(); };
-}
 
 /* ── FYC campaign budget slider (item 5) ── */
 function fycModal(fid){

@@ -58,7 +58,7 @@ const placed = ev(`(function(){
 })()`);
 const expectHomes = { "studio/people": 6, "studio/production": 6, "studio/career": 9, "develop/creative": 10, "develop/ip": 4,
   "playing/release": 9, "playing/audience": 7, "playing/awards": 5, "playing/broadcast": 6,
-  "business/finance": 5, "business/licensing": 2, "business/empire": 7, "gear/": 2 };
+  "business/finance": 5, "business/licensing": 2, "business/empire": 7, "gear/": 3 };
 const mismatches = Object.keys(expectHomes).filter(k => (placed[k] || 0) !== expectHomes[k]).map(k => k + "=" + (placed[k] || 0) + "/" + expectHomes[k]);
 check("every desk has a home with the expected counts", mismatches.length === 0,
   mismatches.length ? mismatches.join(", ") : Object.keys(expectHomes).map(k => k + " " + expectHomes[k]).join(", "));

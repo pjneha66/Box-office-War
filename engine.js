@@ -832,27 +832,6 @@ function dateLabel(w){ return "Y"+yearOf(w)+" · W"+woyOf(w); }
 function seasonOfW(w){ return DATA.seasonOf(woyOf(w)); }
 
 /* ═══════════ money format ═══════════ */
-function fmtM(v){
-  if(typeof getActiveCurrencyCode === "function" && getActiveCurrencyCode() !== "USD" && typeof fmtIntlCurrency === "function"){
-    return fmtIntlCurrency(v);
-  }
-  const s = v<0?"-":"";
-  v = Math.abs(v);
-  if(v===0) return "$0";
-  if(v>=1000) return s+"$"+(v/1000).toFixed(2)+"B";
-  if(v>=100)  return s+"$"+Math.round(v)+"M";
-  if(v>=10)   return s+"$"+v.toFixed(1).replace(/\.0$/,"")+"M";
-  if(v>=1)    return s+"$"+v.toFixed(1)+"M";
-  return s+"$"+Math.round(v*1000)+"K";
-}
-function fmtG(v){ // gross, always M with sensible decimals
-  if(typeof getActiveCurrencyCode === "function" && getActiveCurrencyCode() !== "USD" && typeof fmtIntlCurrency === "function"){
-    return fmtIntlCurrency(v);
-  }
-  if(v>=1000) return "$"+(v/1000).toFixed(2)+"B";
-  if(v>=100)  return "$"+Math.round(v)+"M";
-  return "$"+v.toFixed(1)+"M";
-}
 
 /* ═══════════ talent ═══════════ */
 function talentName(kind){
@@ -5132,7 +5111,6 @@ function achTotal(){ return (DATA.ACH||[]).length; }
 function checkAchievements(){ /* kept for call-order compatibility; DATA.ACH handles these now */ }
 
 /* ═══════════ your own streamer (v3) ═══════════ */
-function canLaunchStreamer(){ return !G.streamer && G.studio.rep>=35 && G.studio.cash>=140; }
 function launchStreamer(name){
   if(G.streamer){ if(name){ G.streamer.name=name.slice(0,24); log("📱 Platform rebranded as \""+G.streamer.name+"\".",""); saveGame(); return true; } return false; }
   if(G.studio.rep < 35) return false;
@@ -6514,10 +6492,6 @@ function festivalFilms(){
     .concat(G.projects.filter(p=>p.phase==="ready" && p.quality && p.quality.critic>=58 && !p.submittedFest));
 }
 
-function fmtSubs(v){ // subscribers in millions
-  if(v>=1) return v.toFixed(1)+"M";
-  return Math.round(v*1000)+"K";
-}
 
 function frHeatPct(fr){
   if(!fr) return 100;
@@ -7270,22 +7244,6 @@ function signAgencyDeal(id){
 function agencyRoster(id){ return (G.talent||[]).filter(t=>t.agency===id && !t.retired); }
 
 /* ── AI & synthetic media (v5): deepfake mini-game resolution ── */
-function resolveDeepfake(correct){
-  const d=G.pendingDeepfake; if(!d) return;
-  const t=G.talent.find(x=>x.id===d.talentId);
-  G.pendingDeepfake=null;
-  if(correct){
-    G.studio.rep=clamp(G.studio.rep+1,5,99);
-    log("🧬 Deepfake exposed before deadline — your debunk goes viral. "+(t? t.name+" is cleared.":"")+" +1 rep.","gold");
-    sfx("chime");
-  }else{
-    if(t && typeof scandalHit==="function") scandalHit(t);
-    G.studio.rep=clamp(G.studio.rep-1,5,99);
-    log("🧬 You flagged the wrong frame — the fake metastasized. "+(t? t.name+" goes radioactive.":"The press feasts."),"bad");
-    sfx("buzz");
-  }
-  saveGame();
-}
 
 /* ── piracy & windowing (v5) ── */
 function piracyAdjust(x, why){
@@ -9808,13 +9766,6 @@ function fmtG(v){ // gross: scaled to B / M with sensible decimals
   if(a>=1000) return s+"$"+fmtNum(a/1000,2)+"B";
   if(a>=100)  return s+"$"+fmtNum(a,0)+"M";
   return s+"$"+fmtNum(a,1)+"M";
-}
-function fmtSubs(v){
-  const n=num(v);
-  if(n>=1e9) return fmtNum(n/1e9,1)+"B";
-  if(n>=1e6) return fmtNum(n/1e6,1)+"M";
-  if(n>=1e3) return fmtNum(n/1e3,1)+"K";
-  return fmtNum(n,0);
 }
 
 /* ── merchandise store ── */
