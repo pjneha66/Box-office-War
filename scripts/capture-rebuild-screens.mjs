@@ -111,7 +111,9 @@ await clickBy('[data-action="dev-tab"][data-tab="series"]'); await shoot("02b-de
 await clickBy('[data-action="dev-tab"][data-tab="slate"]'); await shoot("03-develop-slate");
 await clickBy('[data-view="playing"]'); await shoot("04-playing");
 await clickBy('[data-view="ledger"]'); await shoot("05-ledger");
-await clickBy('[data-view="more"]'); await shoot("06-more");
+await clickBy('[data-view="studio"]'); await shoot("06-studio-desks");
+await clickBy('[data-view="playing"]'); await clickBy('[data-action="play-tab"][data-tab="collection"]'); await shoot("07-collection");
+await clickBy('[data-action="gear"]'); await shoot("08-gear");
 
 // every desk
 const deskIds = await page.evaluate(() => [...document.querySelectorAll("#view .desk")].map((d) => ({ id: d.getAttribute("data-id"), name: d.querySelector(".nm")?.textContent || d.getAttribute("data-id") })));

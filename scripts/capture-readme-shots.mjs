@@ -83,7 +83,7 @@ const view = async (v, tab) => {
 await view("studio"); await shoot("01-studio");
 await view("develop", "series"); await shoot("02-series");
 await view("playing"); await shoot("03-box-office");
-await view("more"); await shoot("04-desks");
+await view("studio"); await shoot("04-desks");
 
 // cameo desk sheet
 await page.evaluate(() => { LAST_DESK = findDesk("cam-main"); openSheet('<div class="sheet-head"><h3>' + LAST_DESK.icon + " " + esc(LAST_DESK.name) + '</h3><button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">' + LAST_DESK.render() + "</div>"); });

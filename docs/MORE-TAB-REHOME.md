@@ -111,3 +111,27 @@ Note: **Empire & Franchises** has two "Sports megadome" entries (`empire.js` `em
 - Confirm that **Collection** should live inside **Playing**, not stay as its own tab.
 - Confirm that **Settings / Save / Help / Hall of Fame** go to a header gear menu.
 - Decide what to do with the two duplicate-looking desks (Festival circuit, Sports megadome) — merge or keep both.
+
+---
+
+## 6. Status — implemented (approved decisions applied)
+
+| Decision | Applied as |
+|---|---|
+| Ledger → **Business** | Bottom-bar label, header title and tab label. The internal view id stays `ledger` (smaller change). Hindi/Marathi strings added in `game/i18n.js`, though `t()` is currently an identity function, so they are not shown yet. |
+| Collection goes inside **Playing** | Playing has a sub-tab row: Now playing · Collection · Release · Audience · Awards · Broadcast. Collection's content and levers are unchanged; only its placement changed. |
+| Settings and save slots → **header gear menu** | ⚙️ button in the header opens one sheet with Save slots, Studio logo and Settings (theme, accent, text size, sound, save & load, new game). Settings no longer appears on Business. |
+| Duplicate pairs stay separate, names made unique | Festival circuit → "· PR tour" (`pr.js`) and "· Awards board" (`festivals.js`). Sports megadome → "· Empire" (`empire.js`) and "· Arena deals" (`stadium.js`). Ids were already unique. |
+| Four main tabs | Studio · Develop · Playing · Business, plus the centre Week button. More is removed. |
+
+**How desks are placed.** Each desk's existing `group` string decides its home (`DESK_GROUPS` in `game/ui.js`), so no desk file needed structural edits. Counts: Studio 21 · Develop 14 · Playing 27 · Business 14 · gear 2 = 78. Any unknown group falls back to Business · Finance.
+
+**Verification.**
+- `test/rehome-tabs.mjs` (new, `npm run test:rehome`) boots `game/index.html` in jsdom: 23/23 checks pass. It covers the bar, desk placement, unique names, every tab and sub-tab, every desk opening, and the gear sheet.
+- `test/rebuild-*.mjs`: the set of failures matches the original commit exactly (crew, licensing, talent_agency, world, and rebuild-ui, which needs Chrome). `rebuild-biz` and `rebuild-people` fail intermittently on both the original and the new tree (about 5% and 2–5% of runs), so they are pre-existing flakiness.
+- `test/rebuild-ui.mjs` and the two capture scripts were updated for the new layout, but the Chrome test can't run in this sandbox.
+
+**Open items**
+- The **root** `index.html` (the Vercel web build) is a separate older UI with its own six-tab bar and More sheet. It was not changed. Say if it should get the same layout.
+- "Redesign Collection": I only moved it. A visual redesign of its layout is a separate pass if you want it.
+- Help and Hall of Fame from the old More sheet do not exist in the `game/` UI, so nothing was added for them.

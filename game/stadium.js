@@ -123,7 +123,7 @@ function stadDesk() {
   html += "</div>";
   return html;
 }
-var STAD_DESKS = [{ id: "stad-main", group: "Empire & Franchises", icon: "🏟️", name: "Sports megadome", desc: "Arena tiers, naming rights and live-sports broadcast packages.", render: stadDesk }];
+var STAD_DESKS = [{ id: "stad-main", group: "Empire & Franchises", icon: "🏟️", name: "Sports megadome · Arena deals", desc: "Arena tiers, naming rights and live-sports broadcast packages.", render: stadDesk }];
 
 function stadAction(a, elx) {
   if (!S || a.indexOf("stad-") !== 0) return false;

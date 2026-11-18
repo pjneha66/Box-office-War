@@ -25,6 +25,7 @@
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.5 9.7l5.9-.8z" fill="currentColor"/></symbol>
   <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4m8-4v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 4v16m8-16v16M3.5 9h4.5m8 0h4.5M3.5 15h4.5m8 0h4.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.8v2.6M12 18.6v2.6M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2.8 12h2.6M18.6 12h2.6M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h13m-5-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
@@ -36,6 +37,7 @@
       <span class="chip" id="hudRep" title="Reputation">★ 0</span>
       <span class="chip" id="hudWeek">Y1·W1</span>
     </div>
+    <button class="gear" id="btnGear" data-action="gear" aria-label="Settings and save slots" title="Settings &amp; save slots"><svg><use href="#i-gear"/></svg></button>
   </header>
 
   <main id="view" tabindex="-1"></main>
@@ -44,10 +46,8 @@
     <button class="tab" data-action="nav" data-view="studio" aria-label="Studio"><svg><use href="#i-home"/></svg><span>Studio</span></button>
     <button class="tab" data-action="nav" data-view="develop" aria-label="Develop"><svg><use href="#i-clap"/></svg><span>Develop</span></button>
     <button class="weekBtn" id="btnWeek" aria-label="Advance one week"><svg><use href="#i-play"/></svg><span>Week</span></button>
-    <button class="tab" data-action="nav" data-view="playing" aria-label="Now playing"><svg><use href="#i-ticket"/></svg><span>Playing</span></button>
-    <button class="tab" data-action="nav" data-view="ledger" aria-label="Ledger"><svg><use href="#i-coin"/></svg><span>Ledger</span></button>
-    <button class="tab" data-action="nav" data-view="more" aria-label="More features"><svg><use href="#i-film"/></svg><span>More</span></button>
-    <button class="tab" data-action="nav" data-view="collection" aria-label="Collection"><svg><use href="#i-coin"/></svg><span>Collection</span></button>
+    <button class="tab" data-action="nav" data-view="playing" aria-label="Playing"><svg><use href="#i-ticket"/></svg><span>Playing</span></button>
+    <button class="tab" data-action="nav" data-view="ledger" aria-label="Business"><svg><use href="#i-coin"/></svg><span>Business</span></button>
   </nav>
 
   <div id="sheetWrap" hidden>

@@ -437,7 +437,7 @@ function prDeskCrisis() {
 var PR_DESKS = [
   { id: "pr-awards", group: "PR & Awards", icon: "🏆", name: "Awards & FYC",
     desc: "Fund For Your Consideration campaigns for quality-75+ releases, weeks 40–52.", render: prDeskAwards },
-  { id: "pr-fest", group: "PR & Awards", icon: "🎞️", name: "Festival circuit",
+  { id: "pr-fest", group: "PR & Awards", icon: "🎞️", name: "Festival circuit · PR tour",
     desc: "Submit one prestige project to the fall festival, weeks 34–38.", render: prDeskFest },
   { id: "pr-test", group: "Audience", icon: "🎥", name: "Test screenings",
     desc: "Screen a cut in post; book reshoots if it lands under 55.", render: prDeskTest },

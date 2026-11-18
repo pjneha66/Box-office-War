@@ -173,14 +173,15 @@ for (const vp of VIEWPORTS) {
   statsOk ? ok("ledger renders") : fail("ledger broken");
   await page.screenshot({ path: path.join(shotDir, `ui-${vp.name}-ledger.png`) });
 
-  // More tab: every desk opens cleanly, agency action works
-  await clickBy(page, '[data-view="more"]');
+  // Desks now live under Studio / Develop / Playing / Business (the More tab is gone).
+  // Studio · People holds the talent agency; open a sample and run the agency action.
+  await clickBy(page, '[data-view=\"studio\"]');
   await sleep(150);
-  const deskCount = await page.evaluate(() => document.querySelectorAll("#view .desk").length);
-  deskCount >= 10 ? ok(`More tab renders ${deskCount} desks`) : fail("too few desks: " + deskCount);
-  await page.screenshot({ path: path.join(shotDir, `ui-${vp.name}-more.png`) });
+  const studioDesks = await page.evaluate(() => document.querySelectorAll("#view .desk").length);
+  studioDesks >= 3 ? ok(`Studio renders ${studioDesks} desks`) : fail("too few desks on Studio: " + studioDesks);
+  await page.screenshot({ path: path.join(shotDir, `ui-${vp.name}-studio-desks.png`) });
   const deskIds = await page.evaluate(() => [...document.querySelectorAll("#view .desk")].map((d) => d.getAttribute("data-id")));
-  for (const id of deskIds.slice(0, 6)) {
+  for (const id of deskIds.slice(0, 4)) {
     await clickBy(page, `[data-action="desk-open"][data-id="${id}"]`);
     await sleep(120);
     const open = await page.evaluate(() => !document.getElementById("sheetWrap").hidden && document.getElementById("sheetBody").innerHTML.length > 100);
@@ -196,6 +197,22 @@ for (const vp of VIEWPORTS) {
   await sleep(120);
   const founded = await page.evaluate(() => window.S && S.agency.founded);
   founded ? ok("agency founded via desk") : fail("agency found failed (may be cash-timed)");
+  await clickBy(page, '[data-action="sheet-close"]');
+
+  // Playing · Release: distribution / exhibition desks sit under the Release sub-tab
+  await clickBy(page, '[data-view="playing"]');
+  await sleep(150);
+  await clickBy(page, '[data-action="play-tab"][data-tab="release"]');
+  await sleep(150);
+  const releaseDesks = await page.evaluate(() => document.querySelectorAll("#view .desk").length);
+  releaseDesks >= 5 ? ok(`Playing · Release renders ${releaseDesks} desks`) : fail("too few Release desks: " + releaseDesks);
+  await page.screenshot({ path: path.join(shotDir, `ui-${vp.name}-playing-release.png`) });
+
+  // Gear menu: save slots + settings
+  await clickBy(page, '[data-action="gear"]');
+  await sleep(150);
+  const gearOk = await page.evaluate(() => !document.getElementById("sheetWrap").hidden && document.getElementById("sheetBody").innerHTML.indexOf("Sound effects") >= 0);
+  gearOk ? ok("gear menu opens with settings") : fail("gear menu broken");
   await clickBy(page, '[data-action="sheet-close"]');
 
   // tap-target audit on interactive controls
