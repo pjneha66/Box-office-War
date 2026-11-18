@@ -2422,16 +2422,26 @@ function commandDevelopTalent(){
 }
 
 /* ═══════════ cast directory — every performer, 1,000+ safe ═══════════ */
-const CAST_DIR={q:"",filter:"all",limit:60};
+const CAST_DIR={q:"",filter:"all",limit:60,source:"roster"};
+const CAST_PIN_MAX=4;
 function castPins(){
-  if(typeof G==="undefined"||!G) return {film:null,series:null};
-  G.castPins=G.castPins||{film:null,series:null};
+  if(typeof G==="undefined"||!G) return {film:[],series:[]};
+  G.castPins=G.castPins||{film:[],series:[]};
+  ["film","series"].forEach(function(m){
+    const v=G.castPins[m];
+    if(v==null) G.castPins[m]=[]; else if(!Array.isArray(v)) G.castPins[m]=[v];
+  });
   return G.castPins;
 }
-function castPinTalent(mode){
-  const pin=castPins()[mode];
-  if(pin==null) return null;
-  return (G.talent||[]).find(t=>String(t.id)===String(pin))||null;
+function castPinIds(mode){ return castPins()[mode].map(String); }
+function castPinned(mode,t){ return !!t && castPinIds(mode).indexOf(String(t.id))>=0; }
+function castPinTalents(mode){
+  return castPinIds(mode).map(function(id){ return (G.talent||[]).find(function(t){ return String(t.id)===id; }); }).filter(Boolean);
+}
+function castPinTalent(mode){ return castPinTalents(mode)[0]||null; }
+function castPinChips(){
+  const chip=(t,mode,label)=>`<span class="cast-pin"><small>${label}</small><b>${esc(t.name)}</b><button data-cast-unpin="${mode}:${t.id}" aria-label="Unpin ${esc(t.name)}">✕</button></span>`;
+  return castPinTalents("film").map(t=>chip(t,"film","NEXT FILM")).join("")+castPinTalents("series").map(t=>chip(t,"series","NEXT SERIES")).join("");
 }
 function castRoleLabel(t){
   if(!t) return "Talent";
@@ -2447,7 +2457,8 @@ const CAST_DIR_FILTERS=[["all","Everyone"],["free","Free now"],["animal","Animal
 function castDirRows(){
   const q=(CAST_DIR.q||"").trim().toLowerCase(), f=CAST_DIR.filter;
   const pins=castPins();
-  const rows=(G.talent||[]).filter(t=>{
+  const pool=(CAST_DIR.source==="catalog")?castCatalog():(G.talent||[]);
+  const rows=pool.filter(t=>{
     if(!t) return false;
     if(f==="animal"&&!t.isAnimal) return false;
     if(f==="actor"&&(t.isAnimal||t.kind!=="actor")) return false;
@@ -2455,7 +2466,7 @@ function castDirRows(){
     if(f==="writer"&&(t.isAnimal||t.kind!=="writer")) return false;
     if(f==="producer"&&(t.isAnimal||t.kind!=="producer")) return false;
     if(f==="free"&&!castIsFree(t)) return false;
-    if(f==="pinned"&&String(pins.film)!==String(t.id)&&String(pins.series)!==String(t.id)) return false;
+    if(f==="pinned"&&!castPinned("film",t)&&!castPinned("series",t)) return false;
     if(q){
       const hay=(String(t.name||"")+" "+String(t.species||"")+" "+String(t.kind||"")+" "+(t.abilityName||"")).toLowerCase();
       if(!hay.includes(q)) return false;
@@ -2466,15 +2477,17 @@ function castDirRows(){
   return rows;
 }
 function castDirRow(t){
-  const pins=castPins(), free=castIsFree(t), fee=(typeof actorFee==="function")?actorFee(t):(t.fee||0);
-  const pf=String(pins.film)===String(t.id), ps=String(pins.series)===String(t.id);
+  if(t.catalog){
+    const signed=castSigned(t.id), cost=castSignCost(t);
+    return `<article class="cast-row" data-cast-id="${t.id}"><div class="cast-row-id"><b>${esc(t.name)}</b><small>${esc(castRoleLabel(t))} · catalog</small></div><div class="cast-row-stats"><b>${stars(t.power||0)}</b><small>Skill ${t.skill||0} · ${fmtM(t.fee||0)}</small></div><div class="cast-row-state"><span class="develop-badge${signed?" on":""}">${signed?"ON YOUR ROSTER":"SIGN · "+fmtM(cost)}</span></div><div class="cast-row-actions">${signed?"":`<button class="develop-ghost" data-cast-sign="${t.id}">Sign</button>`}</div></article>`;
+  }
+  const free=castIsFree(t), fee=(typeof actorFee==="function")?actorFee(t):(t.fee||0);
+  const pf=castPinned("film",t), ps=castPinned("series",t);
   return `<article class="cast-row${free?"":" busy"}" data-cast-id="${t.id}"><div class="cast-row-id"><b>${esc(t.name)}</b><small>${esc(castRoleLabel(t))}${t.isAnimal?" 🐾":""}${t.abilityKnown&&t.abilityName?" · "+esc(t.abilityName):""}</small></div><div class="cast-row-stats"><b>${stars(t.power||0)}</b><small>Skill ${t.skill||0} · ${fmtM(fee)}</small></div><div class="cast-row-state"><span class="develop-badge${free?" on":""}">${free?"FREE NOW":"BOOKED · FROM W"+(t.bookedUntil||G.week)}</span></div><div class="cast-row-actions"><button class="develop-ghost" data-cast-profile="${t.id}">Profile</button><button class="develop-ghost${pf?" on":""}" data-cast-pin="film:${t.id}" aria-pressed="${pf}">${pf?"Pinned · film ✓":"Pin · film"}</button><button class="develop-ghost${ps?" on":""}" data-cast-pin="series:${t.id}" aria-pressed="${ps}">${ps?"Pinned · series ✓":"Pin · series"}</button></div></article>`;
 }
 function castDirPinsMarkup(){
-  const f=castPinTalent("film"), se=castPinTalent("series");
-  const chip=(t,mode,label)=>t?`<span class="cast-pin"><small>${label}</small><b>${esc(t.name)}</b><button data-cast-unpin="${mode}" aria-label="Unpin ${esc(t.name)}">✕</button></span>`:"";
-  const a=chip(f,"film","NEXT FILM"), b=chip(se,"series","NEXT SERIES");
-  return `<div class="cast-dir-pins-row${(a||b)?"":" is-empty"}">${a||b? (a+b) : "Pin a performer and they are attached the moment you open a film or series pitch."}</div>`;
+  const chips=castPinChips();
+  return `<div class="cast-dir-pins-row${chips?"":" is-empty"}">${chips||"Pin up to 4 performers per film and per series — the pins wait on the call sheet."}</div>`;
 }
 function castDirSync(v){
   if(!v) return;
@@ -2490,18 +2503,24 @@ function castDirSync(v){
 function pinCast(id,mode,rerender){
   const t=(G.talent||[]).find(x=>String(x.id)===String(id));
   if(!t) return;
-  const pins=castPins();
-  if(String(pins[mode])===String(t.id)){ pins[mode]=null; toast(t.name+" unpinned."); }
+  const pins=castPins(), list=pins[mode];
+  if(castPinned(mode,t)){ pins[mode]=list.filter(x=>String(x)!==String(t.id)); toast(t.name+" unpinned."); }
   else if(!castIsFree(t)){ toast(t.name+" is booked until week "+(t.bookedUntil||"?"),"bad"); return; }
-  else { pins[mode]=t.id; toast(t.name+" pinned for your next "+mode+(t.isAnimal?" — animal stars read on any call sheet.":"")+".","gold"); }
+  else if(list.length>=CAST_PIN_MAX){ toast("Up to "+CAST_PIN_MAX+" pins per "+mode+" — unpin someone first.","bad"); return; }
+  else { list.push(t.id); toast(t.name+" pinned for your next "+mode+(t.isAnimal?" — animal stars read on any call sheet.":".")+"","gold"); }
   if(typeof saveGame==="function") saveGame();
   if(typeof render==="function") render();
   if(rerender) rerender();
 }
-function unpinCast(mode,rerender){
-  const pins=castPins(); const t=castPinTalent(mode);
-  pins[mode]=null;
-  if(t) toast(t.name+" unpinned.");
+/* spec is "mode" (clear every pin in that slot) or "mode:id" (remove one pin) */
+function unpinCast(spec,rerender){
+  const parts=String(spec).split(":"), mode=parts[0], id=parts[1];
+  const pins=castPins();
+  if(id!==undefined){
+    const t=(G.talent||[]).find(x=>String(x.id)===String(id));
+    pins[mode]=pins[mode].filter(x=>String(x)!==String(id));
+    if(t) toast(t.name+" unpinned.");
+  } else { pins[mode]=[]; }
   if(typeof saveGame==="function") saveGame();
   if(typeof render==="function") render();
   if(rerender) rerender();
@@ -2510,16 +2529,19 @@ function unpinCast(mode,rerender){
    performer found in the directory is one click from the call sheet. */
 function seedPinnedCast(mode,wz){
   if(!wz) return wz;
-  const t=castPinTalent(mode);
-  if(!t||!castIsFree(t)) return wz;
   if(!Array.isArray(wz.cast)) wz.cast=[];
-  if(!wz.cast.some(c=>c&&c.id===t.id)) wz.cast.push(t);
+  castPinTalents(mode).forEach(function(t){
+    if(!castIsFree(t)) return;
+    if(wz.cast.some(c=>c&&c.id===t.id)) return;
+    if(mode==="film" && wz.cast.length>=4) return;
+    wz.cast.push(t);
+  });
   return wz;
 }
 function clearUsedCastPin(mode,cast){
-  const pin=castPinTalent(mode);
-  if(!pin||!Array.isArray(cast)||!cast.some(c=>c&&c.id===pin.id)) return;
-  castPins()[mode]=null;
+  if(!Array.isArray(cast)) return;
+  const pins=castPins();
+  pins[mode]=pins[mode].filter(id=>!cast.some(c=>c&&String(c.id)===String(id)));
 }
 let CAST_SCOUT=null;
 function castScoutRoster(force){
@@ -2563,6 +2585,7 @@ function openCastDirectory(){
   if(!CAST_DIR.limit||CAST_DIR.limit<60) CAST_DIR.limit=60;
   CAST_DIR.q="";
   let h="<h3>Cast directory</h3>"+
+    "<div class='develop-filters' role='group' aria-label='Choose the pool'><button data-castsource='roster' class='"+(CAST_DIR.source!=="catalog"?"active":"")+"'>On your roster</button><button data-castsource='catalog' class='"+(CAST_DIR.source==="catalog"?"active":"")+"'>Full catalog · "+castCatalog().length.toLocaleString()+"</button></div>"+
     "<p class='tiny muted'>Every performer on the books, animal stars included. Search the whole roster, read a profile, then pin someone for your next film or series — the pin is waiting on the call sheet.</p>"+
     "<div class='cast-dir'><div class='cast-dir-tools'><input id='castDirSearch' class='cast-dir-search' type='search' placeholder='Search a name, species, or ability…' aria-label='Search the cast directory' autocomplete='off'>"+
     "<button class='develop-ghost' id='castDirUnlock'>Reveal every cast member</button></div>"+
@@ -2577,6 +2600,7 @@ function openCastDirectory(){
   const search=v.querySelector("#castDirSearch");
   if(search) search.oninput=()=>{ CAST_DIR.q=search.value; CAST_DIR.limit=60; refresh(); };
   v.querySelectorAll("[data-castfilter]").forEach(b=>b.onclick=()=>{ CAST_DIR.filter=b.dataset.castfilter; CAST_DIR.limit=60; refresh(); });
+  v.querySelectorAll("[data-castsource]").forEach(b=>b.onclick=()=>{ CAST_DIR.source=b.dataset.castsource; CAST_DIR.limit=60; v.querySelectorAll("[data-castsource]").forEach(x=>{ x.classList.toggle("active",x===b); }); refresh(); });
   v.querySelector("#castDirMore").onclick=()=>{ CAST_DIR.limit=(CAST_DIR.limit||60)+60; refresh(); };
   v.querySelector("#castDirDone").onclick=()=>closeModal();
   const unlock=v.querySelector("#castDirUnlock");
@@ -2598,6 +2622,8 @@ function openCastDirectory(){
     if(pin){ const [mode,id]=pin.dataset.castPin.split(":"); pinCast(id,mode,refresh); return; }
     const unpin=ev.target.closest("[data-cast-unpin]");
     if(unpin){ unpinCast(unpin.dataset.castUnpin,refresh); return; }
+    const signBtn=ev.target.closest("[data-cast-sign]");
+    if(signBtn){ if(castSign(signBtn.dataset.castSign)) refresh(); return; }
   });
   refresh();
 }
@@ -2617,7 +2643,7 @@ function castPinsPanel(){
   const freeN=(G.talent||[]).filter(castIsFree).length;
   const pins=castPins(), pf=castPinTalent("film"), ps=castPinTalent("series");
   const pinChip=(t,mode,label)=>t?`<span class="cast-pin"><small>${label}</small><b>${esc(t.name)}</b><button data-cast-unpin="${mode}" aria-label="Unpin ${esc(t.name)}">✕</button></span>`:"";
-  const body=`<div class="cast-desk"><div class="cast-desk-stats"><div><small>ON THE BOOKS</small><b>${total.toLocaleString()}</b></div><div><small>FREE NOW</small><b>${freeN.toLocaleString()}</b></div><div><small>ANIMAL ACTORS</small><b>${animals.toLocaleString()}</b></div><div><small>PICTURE DEALS</small><b>${(G.talent||[]).filter(t=>t.multiDeal).length.toLocaleString()}</b></div></div><div class="cast-desk-pins">${pinChip(pf,"film","NEXT FILM")}${pinChip(ps,"series","NEXT SERIES")}${(!pf&&!ps)?`<span class="develop-muted">Pin a performer here and they board your next film or series automatically.</span>`:""}</div><div class="cast-desk-actions"><button class="develop-action" id="btnOpenCastDirectory" onclick="openCastDirectory()">Open the cast directory</button><button class="develop-ghost" onclick="if(typeof unlockAllCast==='function'){unlockAllCast();render();}">Reveal every cast member</button></div></div>`;
+  const body=`<div class="cast-desk"><div class="cast-desk-stats"><div><small>ON THE BOOKS</small><b>${total.toLocaleString()}</b></div><div><small>FREE NOW</small><b>${freeN.toLocaleString()}</b></div><div><small>ANIMAL ACTORS</small><b>${animals.toLocaleString()}</b></div><div><small>PICTURE DEALS</small><b>${(G.talent||[]).filter(t=>t.multiDeal).length.toLocaleString()}</b></div></div><div class="cast-desk-pins">${castPinChips()}${(!castPinTalents("film").length&&!castPinTalents("series").length)?`<span class="develop-muted">Pin a performer here and they board your next film or series automatically.</span>`:""}</div><div class="cast-desk-actions"><button class="develop-action" id="btnOpenCastDirectory" onclick="openCastDirectory()">Open the cast directory</button><button class="develop-ghost" onclick="if(typeof unlockAllCast==='function'){unlockAllCast();render();}">Reveal every cast member</button></div></div>`;
   return developPanel("CAST DIRECTORY",`Search all ${total.toLocaleString()} performers`,`Animal stars, leads, directors, writers and producers — one roster, filterable by availability, role, or species.`,`${body}`);
 }
 /* ── 06 / Combos codex ────────────────────────────────────────────────── */
@@ -2898,8 +2924,8 @@ function talentModal(id){
       "<div class='tiny muted'>Reunited co-stars (×3+ together) open +2% buzz — logged at greenlight.</div></div>";
   }
   const pinA=castPinTalent("film"), pinB=castPinTalent("series");
-  h+="<div class='modal-actions'><button class='btn "+(pinA&&pinA.id===t.id?"btn-primary":"btn-alt")+"' data-tmodal-pin='film:"+t.id+"'>"+(pinA&&pinA.id===t.id?"🎬 Pinned for next film ✓":"🎬 Pin for next film")+"</button>"+
-    "<button class='btn "+(pinB&&pinB.id===t.id?"btn-primary":"btn-alt")+"' data-tmodal-pin='series:"+t.id+"'>"+(pinB&&pinB.id===t.id?"📺 Pinned for next series ✓":"📺 Pin for next series")+"</button>"+
+  h+="<div class='modal-actions'><button class='btn "+(castPinned("film",t)?"btn-primary":"btn-alt")+"' data-tmodal-pin='film:"+t.id+"'>"+(castPinned("film",t)?"🎬 Pinned for next film ✓":"🎬 Pin for next film")+"</button>"+
+    "<button class='btn "+(castPinned("series",t)?"btn-primary":"btn-alt")+"' data-tmodal-pin='series:"+t.id+"'>"+(castPinned("series",t)?"📺 Pinned for next series ✓":"📺 Pin for next series")+"</button>"+
     "<button class='btn btn-alt' onclick='watchClick(event,"+t.id+")'>"+((G.watchlist||[]).includes(t.id)?"⭐ Remove from watchlist":"☆ Add to watchlist")+"</button>"+
     "<button class='btn btn-primary' onclick='closeModal()'>Done</button></div>";
   const vm=openModal(h);
@@ -3510,7 +3536,7 @@ function seriesModal(){
     const head=filt.slice(0,80);
     const shown=cast.filter(c=>c&&!head.some(t=>t.id===c.id)).concat(filt).slice(0,80);
     main=pitchGroup("LEADS",`Four leads maximum. Animal stars sit on the same call sheet and lift the same season.`,
-        (pinned?`<div class="pitch-note">Pinned from the directory: <b>${esc(pinned.name)}</b></div>`:"")
+        (pinned?`<div class="pitch-note">Pinned from the directory: <b>${castPinTalents("series").map(t=>esc(t.name)).join(", ")}</b></div>`:"")
         +(cast.length?`<div class="pitch-grid4">${pitchStat("LEADS",cast.length+"/4",cast.map(c=>esc(c.name.split(" (")[0])).join(", "))}${pitchStat("STAR POWER",cast.reduce((a,c)=>a+(c.power||0),0)+"★","opening ×"+starOpenMult(cast.reduce((a,c)=>a+(c.power||0),0)))}${pitchStat("FEES",fmtM(cast.reduce((a,c)=>a+actorFee(c),0)),"due at greenlight")}${pitchStat("SKILL AVG",Math.round(cast.reduce((a,c)=>a+(c.skill||0),0)/cast.length)+"/100","quality read")}</div>`:"")
         +`<div class="pitch-filter-row">
             <button class="pitch-filter${!WZ.szCastFilter||WZ.szCastFilter==="all"?" on":""}" data-szf="all">All <b>${acts.length}</b></button>

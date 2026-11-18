@@ -189,7 +189,7 @@ w.eval("CAST_DIR.q='';CAST_DIR.filter='animal';castDirSync(document.querySelecto
 assert.equal(w.eval('CAST_DIR.limit=200;castDirSync(document.querySelector(\'#modalRoot .modal\'));document.querySelectorAll(\'.cast-row\').length'),72,'the animal filter must list all 72 species once paged out');
 /* pin + auto-attach */
 w.eval("CASTA=G.talent.find(t=>t.isAnimal);pinCast(CASTA.id,'film');");
-assert.equal(w.eval('G.castPins.film'),w.eval('G.talent.find(t=>t.isAnimal).id'),'pinning must persist on the save state');
+assert(w.eval('G.castPins.film.includes(G.talent.find(t=>t.isAnimal).id)'),'pinning must persist on the save state');
 w.eval("closeModal();startFilmPitchWizard();");
 assert(w.eval('WZ.cast.some(c=>c.isAnimal)'),'a pinned animal star must board the next film pitch');
 w.eval("closeModal();WZ=null;");
@@ -205,7 +205,7 @@ assert.equal($$('.cast-pick.sel').length,2,'a second lead can be added to a seas
 w.eval("const t=document.querySelector('#szToPlat');t.click();G.streamer=G.streamer||{name:'Own',color:'#333',logo:'O'};WZ.platform='own';seriesModal();document.querySelector('#szToReview').click();document.querySelector('#szPitch').click();");
 const series=w.eval('(G.series||[]).slice(-1)[0]');
 assert(series&&series.cast&&series.cast.length===2,'the series must be greenlit with both leads (got '+(series&&series.cast&&series.cast.length)+')');
-assert.equal(w.eval('G.castPins.series'),null,'a used pin is consumed so it does not repeat');
+assert.equal(w.eval('G.castPins.series.length'),0,'a used pin is consumed so it does not repeat');
 /* the legacy market modal is retired in favour of the directory */
 w.eval("closeModal();openBOS2TalentModal();");
 assert($('#castDirList'),'the legacy animal market must forward to the cast directory');
