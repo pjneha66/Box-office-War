@@ -539,3 +539,33 @@ var LIVEOPS_DESKS = [
     desc: "A rotating four-week festival lifts one genre's box office and pays a bonus when your releases clear the target gross.",
     render: liveopsEventDesk }
 ];
+
+/* ── achievements published to meta.js (merged by allAchievements()) ── */
+var LIVEOPS_ACHIEVEMENTS = [
+  { id: "live-first-pull", tier: 1, name: "Blind box",
+    desc: "Open your first talent scout pack.",
+    test: function (S) { return !!S.liveops && S.liveops.pulls >= 1; } },
+  { id: "live-legendary", tier: 3, name: "Industry icon",
+    desc: "Pull a legendary-tier name from a scout pack.",
+    test: function (S) {
+      if (!S.liveops || !S.liveops.rarityCounts) return false;
+      return (S.liveops.rarityCounts.legendary || 0) >= 1;
+    } },
+  { id: "live-amenity-all", tier: 2, name: "Studio as destination",
+    desc: "Install every studio-floor amenity.",
+    test: function (S) {
+      if (!S.liveops || !S.liveops.amenities) return false;
+      var i;
+      for (i = 0; i < LIVEOPS_AMENITIES.length; i++) if (S.liveops.amenities.indexOf(LIVEOPS_AMENITIES[i].id) < 0) return false;
+      return LIVEOPS_AMENITIES.length > 0;
+    } },
+  { id: "live-coprod-3", tier: 2, name: "Partners in print",
+    desc: "Sign three co-production pacts.",
+    test: function (S) { return !!S.liveops && S.liveops.pacts && S.liveops.pacts.length >= 3; } },
+  { id: "live-event-hit", tier: 2, name: "Festival season",
+    desc: "Collect a seasonal event bonus.",
+    test: function (S) { return !!S.liveops && S.liveops.eventRewarded === true; } },
+  { id: "live-pity-epic", tier: 3, name: "Pity pays",
+    desc: "Trigger an epic pity guarantee at 20 dry pulls.",
+    test: function (S) { return !!S.liveops && S.liveops.pityHits >= 1; } }
+];

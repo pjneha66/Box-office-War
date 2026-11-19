@@ -352,3 +352,29 @@ var OPS_DESKS = [
     desc: "Hire a CFO, CMO, Head of Casting and COO — weekly salaries buy real cost, overhead, advance and sell-through perks.",
     render: opsCsuiteDesk }
 ];
+
+/* ── achievements published to meta.js (merged by allAchievements()) ──
+   Each test is defensive: S.ops may be absent on an old save, and the
+   achievement check runs every week from the engine's live hook. */
+var OPS_ACHIEVEMENTS = [
+  { id: "ops-first-placement", tier: 1, name: "Product on screen",
+    desc: "Sell your first brand placement on a film in production.",
+    test: function (S) { return !!S.ops && S.ops.placements && S.ops.placements.length >= 1; } },
+  { id: "ops-sponsor-25", tier: 2, name: "Brand stable",
+    desc: "Bank $25M of sponsor advances across your career.",
+    test: function (S) { return !!S.ops && S.ops.sponsorCash >= 25; } },
+  { id: "ops-media-10", tier: 2, name: "Steelbook house",
+    desc: "Profit $10M from physical media runs.",
+    test: function (S) { return !!S.ops && S.ops.mediaProfit >= 10; } },
+  { id: "ops-full-suite", tier: 3, name: "Executive floor",
+    desc: "Fill all four C-suite chairs at once.",
+    test: function (S) {
+      if (!S.ops || !S.ops.officers) return false;
+      var n = 0, i;
+      for (i = 0; i < OPS_OFFICERS.length; i++) if (S.ops.officers[OPS_OFFICERS[i].id]) n++;
+      return n >= OPS_OFFICERS.length;
+    } },
+  { id: "ops-payroll-50", tier: 3, name: "Payroll of consequence",
+    desc: "Pay $50M in executive salaries.",
+    test: function (S) { return !!S.ops && S.ops.payrollPaid >= 50; } }
+];

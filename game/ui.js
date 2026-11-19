@@ -920,6 +920,14 @@ function onAction(a, elx) {
   if (typeof liveopsAction === "function" && liveopsAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof mktBlitzAction === "function" && mktBlitzAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof consolehwAction === "function" && consolehwAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof rivalwarAction === "function" && rivalwarAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof sequelAction === "function" && sequelAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof craftAction === "function" && craftAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof mentorAction === "function" && mentorAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof legacyAction === "function" && legacyAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof windowAction === "function" && windowAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof laborAction === "function" && laborAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof awardsplusAction === "function" && awardsplusAction(a, elx)) { refreshDeskSheet(); return; }
   }
   var id = elx.getAttribute("data-id");
   switch (a) {
@@ -1345,6 +1353,16 @@ function collectDesks() {
   if (typeof LIVEOPS_DESKS !== "undefined") all = all.concat(LIVEOPS_DESKS);
   if (typeof BLITZ_DESKS !== "undefined") all = all.concat(BLITZ_DESKS);
   if (typeof CONSOLE_DESKS !== "undefined") all = all.concat(CONSOLE_DESKS);
+  /* v46 wave — rival war room, sequel planning, craft departments, mentoring,
+     studio legacy tiers, distribution windows, guild relations, deep awards */
+  if (typeof RIVAL_DESKS !== "undefined") all = all.concat(RIVAL_DESKS);
+  if (typeof SEQUEL_DESKS !== "undefined") all = all.concat(SEQUEL_DESKS);
+  if (typeof CRAFT_DESKS !== "undefined") all = all.concat(CRAFT_DESKS);
+  if (typeof MENTOR_DESKS !== "undefined") all = all.concat(MENTOR_DESKS);
+  if (typeof LEGACY_DESKS !== "undefined") all = all.concat(LEGACY_DESKS);
+  if (typeof WINDOW_DESKS !== "undefined") all = all.concat(WINDOW_DESKS);
+  if (typeof LABOR_DESKS !== "undefined") all = all.concat(LABOR_DESKS);
+  if (typeof AWARDSPLUS_DESKS !== "undefined") all = all.concat(AWARDSPLUS_DESKS);
   return all.concat(MORE_LOCAL);
 }
 function findDesk(id) {

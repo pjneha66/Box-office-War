@@ -81,6 +81,19 @@ jobs:
       - name: Release path builds the right game
         run: node test/release-mode.mjs
 
+      # Cross-cutting guards. Every feature module has its own harness, but those
+      # load ONE module at a time, so they cannot tell whether the engine actually
+      # calls the hooks. These three do, and they catch the failure mode that
+      # shipped v44.0: a module that exists, passes its own test, and is invisible.
+      - name: Every hook is reachable from the engine
+        run: node test/wiring-integration.mjs
+
+      - name: Module achievements reach the trophy gallery
+        run: node test/achievements-merge.mjs
+
+      - name: A season pays its craft awards exactly once
+        run: node test/awards-payout-guard.mjs
+
       - name: Module harnesses (rebuild-*)
         shell: bash
         run: |

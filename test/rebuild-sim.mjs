@@ -36,7 +36,12 @@ function makeCtx() {
 
 function loadEngine(ctx) {
   const sandbox = vm.createContext(ctx);
-  const files = ["data.js", "engine.js", "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js", "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js", "sound.js", "posters.js", "people.js", "media.js", "strategy.js", "meta.js", "tech.js", "events2.js", "bizdeal.js", "slots.js", "meta2.js", "crew.js", "mastery.js", "world.js", "licensing.js", "awards.js", "festivals.js"]
+  const files = ["data.js", "engine.js", "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js", "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js", "sound.js", "posters.js", "people.js", "media.js", "strategy.js", "meta.js", "tech.js", "events2.js", "bizdeal.js", "slots.js", "meta2.js", "crew.js", "mastery.js", "world.js", "licensing.js", "awards.js", "festivals.js",
+  /* v45 wave */
+  "social_viral.js", "stadium.js", "talent_agency.js", "cameo.js", "box-office-collection-engine.js",
+  "opsuite.js", "liveops.js", "mktblitz.js", "consolehw.js",
+  /* v46 wave — every new system runs in the balance sim, not just its own harness */
+  "rivals.js", "sequel.js", "craft.js", "mentor.js", "legacy.js", "window.js", "labor.js", "awardsplus.js"]
     .filter((f) => existsSync(path.join(gameDir, f)));
   loaded = files;
   for (const f of files) {

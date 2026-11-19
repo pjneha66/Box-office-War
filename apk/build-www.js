@@ -20,6 +20,7 @@ const GAME_FILES = [
   "crew.js", "mastery.js", "world.js", "licensing.js", "awards.js", "festivals.js",
   "social_viral.js", "stadium.js", "talent_agency.js", "cameo.js",
   "box-office-collection-engine.js", "opsuite.js", "liveops.js", "mktblitz.js", "consolehw.js",
+  "rivals.js", "sequel.js", "craft.js", "mentor.js", "legacy.js", "window.js", "labor.js", "awardsplus.js",
   "help.js",
   "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"
 ];

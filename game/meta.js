@@ -98,11 +98,38 @@ var ACHIEVEMENTS = [
 ];
 var TIER_NAMES = { 1: "Bronze", 2: "Silver", 3: "Gold" };
 
+/* Modules may publish their own achievements as `FOO_ACHIEVEMENTS` arrays of
+   { id, tier, name, desc, test }. Merged here so a new module can add its own
+   trophies without editing this file's table. */
+function allAchievements() {
+  var list = ACHIEVEMENTS.slice(), i;
+  var mods = [
+    typeof OPS_ACHIEVEMENTS !== "undefined" ? OPS_ACHIEVEMENTS : null,
+    typeof LIVEOPS_ACHIEVEMENTS !== "undefined" ? LIVEOPS_ACHIEVEMENTS : null,
+    typeof BLITZ_ACHIEVEMENTS !== "undefined" ? BLITZ_ACHIEVEMENTS : null,
+    typeof CONSOLE_ACHIEVEMENTS !== "undefined" ? CONSOLE_ACHIEVEMENTS : null,
+    typeof RIVAL_ACHIEVEMENTS !== "undefined" ? RIVAL_ACHIEVEMENTS : null,
+    typeof LEGACY_ACHIEVEMENTS !== "undefined" ? LEGACY_ACHIEVEMENTS : null,
+    typeof SEQUEL_ACHIEVEMENTS !== "undefined" ? SEQUEL_ACHIEVEMENTS : null,
+    typeof WINDOW_ACHIEVEMENTS !== "undefined" ? WINDOW_ACHIEVEMENTS : null,
+    typeof LABOR_ACHIEVEMENTS !== "undefined" ? LABOR_ACHIEVEMENTS : null,
+    typeof CRAFT_ACHIEVEMENTS !== "undefined" ? CRAFT_ACHIEVEMENTS : null,
+    typeof MENTOR_ACHIEVEMENTS !== "undefined" ? MENTOR_ACHIEVEMENTS : null
+  ];
+  for (i = 0; i < mods.length; i++) {
+    if (!mods[i] || !mods[i].length) continue;
+    var j;
+    for (j = 0; j < mods[i].length; j++) list.push(mods[i][j]);
+  }
+  return list;
+}
+
 function checkAchievements() {
   if (!S || S.over) return;
   metaEnsure();
-  for (var i = 0; i < ACHIEVEMENTS.length; i++) {
-    var a = ACHIEVEMENTS[i];
+  var list = allAchievements();
+  for (var i = 0; i < list.length; i++) {
+    var a = list[i];
     if (S.meta.ach[a.id]) continue;
     var ok = false;
     try { ok = a.test(S) === true; } catch (e) { ok = false; }
@@ -304,18 +331,20 @@ function metaAction(a, elx) {
 /* ── desk: trophy gallery ─────────────────────────────────────── */
 function metaTrophyDesk() {
   metaEnsure();
+  /* the merged list, so trophies contributed by the feature modules appear here */
+  var ALL = allAchievements();
   var unlocked = 0, i, a;
-  for (i = 0; i < ACHIEVEMENTS.length; i++) if (S.meta.ach[ACHIEVEMENTS[i].id]) unlocked++;
+  for (i = 0; i < ALL.length; i++) if (S.meta.ach[ALL[i].id]) unlocked++;
   var html = '<div data-metadesk="trophies">'
     + '<div class="card">'
-    + statrow("Trophies unlocked", unlocked + " / " + ACHIEVEMENTS.length, unlocked >= ACHIEVEMENTS.length ? "up" : "")
-    + '<div class="bar green"><i style="width:' + clamp(Math.round(unlocked / ACHIEVEMENTS.length * 100), 2, 100) + '%"></i></div>'
+    + statrow("Trophies unlocked", unlocked + " / " + ALL.length, unlocked >= ALL.length ? "up" : "")
+    + '<div class="bar green"><i style="width:' + clamp(Math.round(unlocked / Math.max(ALL.length, 1) * 100), 2, 100) + '%"></i></div>'
     + "</div>";
   var tiers = [1, 2, 3];
   for (var t = 0; t < tiers.length; t++) {
     html += '<div class="sechead"><h2>' + TIER_NAMES[tiers[t]] + " tier</h2></div><div class=\"card\">";
-    for (i = 0; i < ACHIEVEMENTS.length; i++) {
-      a = ACHIEVEMENTS[i];
+    for (i = 0; i < ALL.length; i++) {
+      a = ALL[i];
       if (a.tier !== tiers[t]) continue;
       var got = !!S.meta.ach[a.id];
       html += '<div class="statrow"><span class="k">' + (got ? "🏆" : "🔒") + " " + esc(a.name) + " — " + esc(a.desc) + "</span>"
@@ -376,7 +405,7 @@ function metaDemoDesk() {
   for (r = 0; r < rows.length; r++) {
     var f = rows[r].f, shares = demoShares(f.genre);
     html += '<div class="card film"><div class="head"><div class="title">' + esc(f.title) + "</div>"
-      + tag(genreOf(f.genre) ? genreOf(f.genre).n : f.genre, "")
+      + tag(genreOf(f.genre) ? genreOf(f.genre).name : f.genre, "")
       + tag(typeof f.ww === "number" ? fm(f.ww) : fm(rows[r].gross) + " so far", "blue") + "</div>";
     for (i = 0; i < DEMO_QUADS.length; i++) {
       q = DEMO_QUADS[i];

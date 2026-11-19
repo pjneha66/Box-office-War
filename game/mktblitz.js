@@ -383,3 +383,32 @@ var BLITZ_DESKS = [
     desc: "What the blitz has cost, what is still running, and the fee you recover when you pull a campaign early.",
     render: blitzLedgerDesk }
 ];
+
+/* ── achievements published to meta.js (merged by allAchievements()) ── */
+var BLITZ_ACHIEVEMENTS = [
+  { id: "blitz-first-rung", tier: 1, name: "Awareness bought",
+    desc: "Buy your first blitz campaign rung.",
+    test: function (S) { return !!S.blitz && S.blitz.campaigns && S.blitz.spend > 0; } },
+  { id: "blitz-spend-50", tier: 2, name: "Marketing machine",
+    desc: "Spend $50M on blitz campaigns.",
+    test: function (S) { return !!S.blitz && S.blitz.spend >= 50; } },
+  { id: "blitz-saturation", tier: 3, name: "Four continents",
+    desc: "Run a global saturation campaign.",
+    test: function (S) {
+      if (!S.blitz || !S.blitz.campaigns) return false;
+      var i;
+      for (i = 0; i < S.blitz.campaigns.length; i++) if (S.blitz.campaigns[i].key === "saturation") return true;
+      return false;
+    } },
+  { id: "blitz-big-game", tier: 3, name: "Super Bowl Sunday",
+    desc: "Run a Super Bowl spot.",
+    test: function (S) {
+      if (!S.blitz || !S.blitz.campaigns) return false;
+      var i;
+      for (i = 0; i < S.blitz.campaigns.length; i++) if (S.blitz.campaigns[i].key === "superbowl") return true;
+      return false;
+    } },
+  { id: "blitz-5-released", tier: 2, name: "Five campaigns home",
+    desc: "Land five campaigns on released films.",
+    test: function (S) { return !!S.blitz && S.blitz.released >= 5; } }
+];

@@ -478,3 +478,32 @@ var CONSOLE_DESKS = [
     desc: "Distribute devkits to internal game teams so your own titles ship royalty-free, and track the weekly hardware royalty stream.",
     render: chwDevkitDesk }
 ];
+
+/* ── achievements published to meta.js (merged by allAchievements()) ── */
+var CONSOLE_ACHIEVEMENTS = [
+  { id: "chw-first-licence", tier: 1, name: "Devkit in hand",
+    desc: "License your first third-party platform.",
+    test: function (S) {
+      if (!S.chw || !S.chw.lic) return false;
+      var k;
+      for (k in S.chw.lic) if (Object.prototype.hasOwnProperty.call(S.chw.lic, k) && S.chw.lic[k]) return true;
+      return false;
+    } },
+  { id: "chw-all-licences", tier: 2, name: "Platform agnostic",
+    desc: "License every third-party platform and storefront.",
+    test: function (S) {
+      if (!S.chw || !S.chw.lic) return false;
+      var i;
+      for (i = 0; i < CHW_PLATFORMS.length; i++) if (!S.chw.lic[CHW_PLATFORMS[i].id]) return false;
+      return CHW_PLATFORMS.length > 0;
+    } },
+  { id: "chw-launch", tier: 3, name: "Hardware house",
+    desc: "Launch your own first-party console.",
+    test: function (S) { return !!S.chw && !!S.chw.hw && S.chw.hw.launched === true; } },
+  { id: "chw-royalty-100", tier: 3, name: "Platform economics",
+    desc: "Earn $100M in hardware royalties.",
+    test: function (S) { return !!S.chw && S.chw.royalties >= 100; } },
+  { id: "chw-teams-10", tier: 2, name: "Internal studios",
+    desc: "Stand up ten internal dev teams.",
+    test: function (S) { return !!S.chw && S.chw.teams >= 10; } }
+];

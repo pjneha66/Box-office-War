@@ -151,6 +151,10 @@ function feeFor(t, budget) {
   if (S.heirAuteur && t.k === "dir") f *= 0.8;
   if (typeof agencyFeeMult === "function") f *= agencyFeeMult(t) || 1;
   if (typeof opsCastingFeeMult === "function") f *= opsCastingFeeMult() || 1;
+  /* mentored talent signs cheaper — loyalty from the programme (mentor.js) */
+  if (typeof mentorFeeMult === "function") f *= mentorFeeMult(t) || 1;
+  /* v46: legacy studio tier improves talent terms (legacy.js) */
+  if (typeof legacyFeeMult === "function") f *= legacyFeeMult(t) || 1;
   return Math.round(f * 10) / 10;
 }
 /* Supporting actors: each costs half a normal fee at the film's budget, and up to three may join a lead. */
@@ -321,6 +325,8 @@ function tickProjects() {
     wk = p.phaseLen[p.phase];
     var lm = (typeof bizLocationMods === "function") ? bizLocationMods(p) : null;
     burn = (p.budgetNow * frac) / wk * (lm && lm.costMult ? lm.costMult : 1) * (S.strike > 0 ? 1.2 : 1);
+    /* v46: guild relations drive the real labour multiplier (labor.js) */
+    if (typeof laborCostMult === "function") burn *= laborCostMult() || 1;
     /* CFO lever: production cost discipline (opsuite.js) */
     if (typeof opsCostMult === "function") burn *= opsCostMult() || 1;
     spend(burn, "Production · " + p.title);
@@ -370,6 +376,15 @@ function computeQuality(p) {
   if (typeof techCraftBonus === "function") craft += techCraftBonus() || 0;
   if (typeof crewMods === "function") { var cmw = crewMods(p); if (cmw && cmw.craft) craft += cmw.craft; }
   if (typeof masteryCraftMod === "function") craft += masteryCraftMod(p.genre) || 0;
+  /* talent mentoring: a graduate in the lead/director chair lifts the room (mentor.js) */
+  if (typeof mentorCraftMod === "function") craft += mentorCraftMod(p.dirId, p.actId) || 0;
+  /* v46: pre-planned sequels are better written (sequel.js) */
+  if (typeof sequelCraftMod === "function") craft += sequelCraftMod(p) || 0;
+  /* v46: assigned craft departments — DP, production design, sound, pre-viz (craft.js) */
+  if (typeof craftDeptMods === "function") {
+    var _cdm = craftDeptMods(p);
+    if (_cdm && _cdm.craft) craft += _cdm.craft;
+  }
   if (p.extendCraft) craft += p.extendCraft;
   if (p.reshootScene) craft += 2;
   if (p.cameoBoost) craft += p.cameoBoost;
@@ -490,6 +505,14 @@ function expectedOpening(p) {
   if (typeof liveopsEventMult === "function") open *= liveopsEventMult(p.genre) || 1;
   /* marketing blitz campaigns bought for this release (mktblitz.js) */
   if (typeof blitzOpenMult === "function") open *= blitzOpenMult(p) || 1;
+  /* v46: planned sequel anticipation, decaying per shipped entry (sequel.js) */
+  if (typeof sequelOpenMult === "function") open *= sequelOpenMult(p) || 1;
+  /* v46: studio legacy tier reach and brand weight (legacy.js) */
+  if (typeof legacyOpenMult === "function") open *= legacyOpenMult(p) || 1;
+  /* v46: legacy tier lifts the reputation factor that feeds the opening */
+  if (typeof legacyRepBonus === "function") open *= (1 + (legacyRepBonus() || 0) / 100);
+  /* v46: a bought counter-programming slot shields the opening (rivals.js) */
+  if (typeof rivalCounterMult === "function") open *= rivalCounterMult(p) || 1;
   open *= rf(0.8, 1.25);
   open *= clashFactor(p.releaseWeek, open, p.genre);
   return clamp(open, 0.5, 320);
@@ -523,10 +546,14 @@ function releaseFilm(p) {
   var _bCritic = (typeof blitzCriticAdj === "function") ? (blitzCriticAdj(p) || 0) : 0;
   /* live ops amenity: screening lounge lifts critics (liveops.js) */
   if (typeof liveopsAmenityMods === "function") _bCritic += liveopsAmenityMods().critic || 0;
+  /* v46: colour grade and final mix move the review score (craft.js) */
+  if (typeof craftCriticAdj === "function") _bCritic += craftCriticAdj(p) || 0;
   var rv = reviewFilm(p, qEff + shield + _bCritic + ((typeof opsCreditMod === "function") ? (opsCreditMod(p) || 0) : 0));
   var act = act0;
   var cmR = (typeof creativeProjectMods === "function") ? creativeProjectMods(p) : null;
-  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + supportBonus(p) + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (p.cameoAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
+  /* v46: assigned craft departments also lift the audience score (craft.js) */
+  var _cdmA = (typeof craftDeptMods === "function") ? craftDeptMods(p) : null;
+  var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + supportBonus(p) + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (p.cameoAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + (_cdmA && _cdmA.aud ? _cdmA.aud : 0) + gauss() * 3), 5, 99);
   var season = seasonOf(woyOf(p.releaseWeek));
   var legs = 1.8 + (qEff - 30) * 0.03 + g.legs
     + (aud >= 80 ? 0.10 : aud <= 40 ? -0.15 : 0)
@@ -535,6 +562,11 @@ function releaseFilm(p) {
   if (cmR && cmR.legs) legs += cmR.legs;
   if (p.pricingLegs) legs += p.pricingLegs;
   if (p.screenLegs) legs += p.screenLegs;
+  /* v46: a long theatrical-exclusive hold keeps screens and lengthens the tail (window.js).
+     Passed a stub carrying the release window, since the film record is built below. */
+  if (typeof windowLegsMult === "function") legs *= windowLegsMult({ window: p.window || 45, genre: p.genre }) || 1;
+  /* v46: sound mix and pre-viz add real legs (craft.js) */
+  if (_cdmA && _cdmA.legs) legs += _cdmA.legs;
   /* v43.2: Collection Command — levers extend the tail */
   if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.legsBonus) legs += BoxOfficeCollection.legsBonus(f);
   legs = clamp(legs, 1.4, 4.4);
@@ -572,6 +604,10 @@ function releaseFilm(p) {
     if (_cpShare > 0) spend(f.opening * _cpShare, "Co-production share · " + f.title);
   }
   if (typeof liveopsOnRelease === "function") liveopsOnRelease(f);
+  /* v46: a planned sequel consumes its plan entry on release (sequel.js) */
+  if (typeof sequelOnRelease === "function") sequelOnRelease(f);
+  /* v46: distribution window registers the film's outing period (window.js) */
+  if (typeof windowOnRelease === "function") windowOnRelease(f);
   return f;
 }
 
@@ -600,6 +636,8 @@ function endTheatrical(f) {
   var intl = f.dom * share / (1 - share);
   var intlRentals = intl * 0.42 * (1 - (f.presale || 0) - (f.revShare || 0) * 0.55);
   var pvod = (f.dom + intl) * 0.055 * (act && act.ability === "cult_icon" ? 1.35 : 1);
+  /* v46: the chosen distribution window sets what the streaming cheque is worth (window.js) */
+  if (typeof windowRevenueMult === "function") pvod *= windowRevenueMult(f) || 1;
   var ww = f.dom + intl;
   f.intl = Math.round(intl * 10) / 10;
   f.ww = Math.round(ww * 10) / 10;
@@ -707,6 +745,8 @@ function tickRivals() {
         var myW = myWeightAt(S.studio.week);
         if (myW > 0) open *= clamp(1 / (1 + Math.pow(myW / Math.max(open, 1), 0.8)), 0.45, 1);
       if (typeof rivalDealClash === "function") open *= rivalDealClash(S.rivals[r].name) || 1;
+        /* v46: rivals react to your dominance — aggressive when behind, cowed when crushed (rivals.js) */
+        if (typeof rivalReactionMult === "function") open *= rivalReactionMult(S.rivals[r].name) || 1;
         legs = clamp(1.8 + (slot.quality - 30) * 0.03 + g.legs, 1.4, 4.4);
         decay = 1 - 1 / legs;
         var rec = { id: "rf" + (S.seq++), title: slot.title, genre: slot.genre, rival: S.rivals[r].name, opening: Math.round(open * 10) / 10, legs: legs, decay: decay, weeksOut: 0, weekly: [], status: "run" };
@@ -723,11 +763,30 @@ function tickRivals() {
     if (f.status !== "run") continue;
     f.weeksOut++;
     gross = f.opening * Math.pow(f.decay, f.weeksOut) * (seasonOf(woyOf(S.studio.week)).hol ? 1.18 : 1) * S.econ.box;
+    /* Attribute the gross to the studio that released it. Without this the whole
+       rival economy was dead data: S.rivals[].ytd stayed 0 forever, so the rival
+       leaderboard showed 0M for every studio, the finance desk's comparable-company
+       valuation never priced a rival (it guards on ytd > 0), and
+       libStrongestRival()/libWeakestRival() both always returned rivals[0]. */
+    if (f.rival) {
+      var rr = rivalByName(f.rival);
+      if (rr) {
+        rr.ytd = Math.round((rr.ytd + gross) * 10) / 10;
+        rr.lifetime = Math.round(((rr.lifetime || 0) + gross) * 10) / 10;
+      }
+    }
     if (gross < Math.max(0.25, f.opening * 0.006) || f.weeksOut > 16) { f.status = "done"; continue; }
     f.weekly.push(gross);
   }
   if (S.rFilms.length > 40) S.rFilms.length = 40;
   seedRivalSlots();
+}
+
+/* Rival lookup by display name — rival films carry only the name string. */
+function rivalByName(name) {
+  var i;
+  for (i = 0; i < S.rivals.length; i++) if (S.rivals[i].name === name) return S.rivals[i];
+  return null;
 }
 function filmsInRelease() {
   var out = [], i;
@@ -796,7 +855,7 @@ function tickEvents() {
       spend(p.budget * 0.05, "Legal settlement · " + p.title);
       log("⚖️ A chain-of-title dispute stalls “" + p.title + "” — two weeks and " + fm(p.budget * 0.05) + " gone. Clear titles from the Develop slate.", "bad", "⚖️");
     } else log("The lawyers bill quietly this week. Nothing explodes.", "", "⚖️");
-  } else if (roll < 0.77) { /* guild strike */
+  } else if (roll < 0.77 + ((typeof laborStrikeMod === "function") ? (laborStrikeMod() || 0) : 0)) { /* guild strike */
     if (S.strike > 0) log("The strike holds. Picket lines and cold coffee.", "bad", "🪧");
     else { S.strike = 6; log("🪧 A guild strike is called — production costs +20% for six weeks.", "bad", "🪧"); }
   } else if (roll < 0.80) { /* piracy */
@@ -961,6 +1020,8 @@ function tickMine() {
   }
   /* rivals poach your stars */
   var poachP = S.agency.founded ? 0.008 : 0.025;
+  /* v46: the more you dominate, the bigger a scalp your stars become (rivals.js) */
+  if (typeof rivalWarPoachBoost === "function") poachP += rivalWarPoachBoost() || 0;
   if (chance(poachP)) {
     var cands = [];
     for (i = 0; i < S.market.length; i++) {
@@ -1087,8 +1148,14 @@ function yearAwards() {
       if (sc > bestScore) { bestScore = sc; best = f; }
     }
   }
+  /* The year's films are consumed here, BEFORE any early return: the awards-night
+     pending flow used to return early and silently skip every below-the-line
+     category, so the deeper awards desk stayed empty for a whole career. */
+  var _yearFilms = S.yearOfFilms.map(function (id) { return findFilm(id); }).filter(function (x) { return x; });
+  if (typeof extraAwardCategories === "function") extraAwardCategories(_yearFilms);
+  /* v46: below-the-line categories — cinematography, design, sound, editing, score, ensemble */
+  if (typeof awardsPlusCategories === "function") awardsPlusCategories(_yearFilms);
   if (typeof awardNightBegin === "function" && noms.length) { awardNightBegin(noms, best); S.yearOfFilms = []; return; }
-  if (typeof extraAwardCategories === "function") extraAwardCategories(S.yearOfFilms.map(function (id) { return findFilm(id); }).filter(function (x) { return x; }));
   if (best) {
     S.studio.rep = clamp(S.studio.rep + 8, 0, 100);
     S.studio.catalog += 25;
@@ -1106,7 +1173,13 @@ function advanceWeek() {
   var st = S.studio;
   st.week++;
   st.woy = woyOf(st.week);
-  if (st.woy === 1) st.year++;
+  if (st.woy === 1) {
+    st.year++;
+    /* rival year-to-date gross resets with the studio's year, so the leaderboard
+       measures the current season rather than an ever-growing lifetime total */
+    var _ri;
+    for (_ri = 0; _ri < S.rivals.length; _ri++) S.rivals[_ri].ytd = 0;
+  }
   S.weekTx = { w: st.week, in: 0, out: 0, rows: [] };
   S.flash = [];
 
@@ -1123,6 +1196,8 @@ function advanceWeek() {
     var interest = 0;
     var cmod = (typeof challengeMod === "function") ? challengeMod() : null;
     for (var li = 0; li < S.loans.length; li++) interest += S.loans[li].amt * S.loans[li].rate;
+    /* v46: a legacy-tier studio borrows cheaper (legacy.js) */
+    if (typeof legacyFinancingMult === "function") interest *= legacyFinancingMult() || 1;
     spend(interest * (cmod && cmod.interestMult ? cmod.interestMult : 1), "Loan interest");
   }
   if (S.mezz > 0) spend(S.mezz * 0.012, "Mezzanine interest");
@@ -1179,11 +1254,20 @@ function advanceWeek() {
   if (typeof tickMktBlitz === "function") tickMktBlitz();
   /* console platform + first-party hardware: stages, royalties (consolehw.js) */
   if (typeof tickConsoleHW === "function") tickConsoleHW();
+  /* v46 wave: rival war room, sequel plans, craft departments, mentoring,
+     studio legacy, distribution windows, guild relations, deep awards (each own file) */
+  if (typeof tickRivalWar === "function") tickRivalWar();
+  if (typeof tickSequel === "function") tickSequel();
+  if (typeof tickCraft === "function") tickCraft();
+  if (typeof tickMentor === "function") tickMentor();
+  if (typeof tickLegacy === "function") tickLegacy();
+  if (typeof tickWindow === "function") tickWindow();
+  if (typeof tickLabor === "function") tickLabor();
+  if (typeof tickAwardsPlus === "function") tickAwardsPlus();
   tickMine();
   tickSeries();
 
-  churnTalent();
-  if (typeof seedFollowings === "function") seedFollowings();
+  churnTalent();  if (typeof seedFollowings === "function") seedFollowings();
   refreshIdeas();
   if (st.woy === WEEKS_PER_YEAR) yearAwards();
   checkMilestones();
