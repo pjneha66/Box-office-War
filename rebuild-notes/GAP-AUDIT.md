@@ -32,6 +32,33 @@ Every hook is `typeof`-guarded, so the game still boots if a module is absent.
 
 ---
 
+### 0.1 Release regression (found and fixed in v45.0)
+
+The v44.0 APK contained the **legacy** game, not this rebuild. `.github/workflows/release-apk.yml`
+and `release.sh` both called `node apk/build-www.js` without `--rebuild`, and that flag is what
+selects `game/` over the root legacy files. The result was a valid APK of the wrong product:
+20.8 MB, 62 scripts, no phone shell, no safe-area handling, none of the rebuilt modules. v43.2
+had shipped correctly (its build path used `--rebuild`), which is why the regression was invisible
+in the release notes.
+
+Confirmed by unpacking both published APKs and diffing the script lists:
+
+| APK | scripts | legacy markers | rebuild markers |
+|---|---|---|---|
+| v43.2 | 39 | none | collection engine |
+| v44.0 | 62 | industry-expansion, studio-nextwave, theater-chains, demographics, lot-life | collection engine only |
+
+Fixed at every path that produces a shipped APK (workflow, `release.sh`, `package.json`
+`apk`/`apk:web`), with an in-workflow verification step that fails the release if the bundle
+lacks the phone shell or contains a legacy suite marker. `test/release-mode.mjs` (8 checks, in CI)
+guards the build *mode* rather than the built output, so a future edit cannot silently revert it.
+
+v45.0 verified: 47 scripts, 1.04 MB of JS, `mobile-shell`/`phone-ux`/all four new modules
+present, service worker stripped, no legacy markers — and the same signing certificate as v44.0,
+so saves carry over.
+
+---
+
 ## 1. Whole systems still missing (18)
 
 > Kept as the original audit record. See §0 for what actually shipped.

@@ -31,7 +31,45 @@ regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
 
 ---
 
-## What is new in v43.2 — New UI (Rebuild) + Collection Command
+## What is new in v45.0 — release fix + four new systems
+
+**The v44.0 APK shipped the wrong game.** The release pipeline built the legacy
+60-script game instead of the rebuilt one; v45.0 fixes the pipeline and ships
+the rebuild, with a CI guard so it cannot happen again. If you installed v44.0
+you were playing the old UI — v45.0 is the real rebuild.
+
+**Four new systems, each a self-contained module:**
+
+• **Studio operations** — product placement (4 sponsor tiers, paid up front
+  against a critic penalty at release) and physical media pressing; C-suite
+  officers whose perks are real multipliers (CFO −12% production cost, COO −15%
+  overhead, CMO +20% brand advances, casting −10% fees +25% sell-through), with
+  payroll actually deducted every week.
+• **Live ops** — blind-box talent scouting with published odds (70/22/7/1) and
+  dual pity rails, four studio amenities with real numeric effects, co-production
+  pacts that advance cash for a gross share, and seasonal events whose challenge
+  progress is credited from real releases (the legacy version never incremented
+  progress, so it could never complete — fixed).
+• **Marketing blitz** — a five-rung ladder from a $1.5M press junket to $36M
+  global saturation, with campaign windows that decay if a release slips and a
+  saturating diminishing-returns curve so stacking is not free money.
+• **Console & hardware** — licence your games onto three platforms (Kinetix,
+  PocketLynx, OpenDeck) and run a three-stage first-party console programme with
+  live failure and overrun rolls, then collect hardware royalties weekly.
+
+Also in this release: the **bundle-integrity guard** that caught `help.js` and
+`boc-premium.css` being referenced but never packaged (the APK would have booted
+with 404s), and flaky-test fixes that assert the mechanism rather than an RNG
+outcome.
+
+Ships as signed Android APK v45.0 (versionCode 58), installs over v43.2 and
+v44.0 without losing saves — verified: both builds carry the same signing
+certificate (SHA-256 `E0:9E:7C:E9:…:AC:2D`).
+[Download v45.0 APK](https://github.com/pjneha66/Box-office-War/releases/download/v45.0/BoxOfficeWar-45.0.apk) | [v45.0 release](https://github.com/pjneha66/Box-office-War/releases/tag/v45.0)
+
+---
+
+## What was new in v43.2 — New UI (Rebuild) + Collection Command
 
 Ships the modern rebuilt UI from `game/` with the **Box Office Collection Command** desk:
 
@@ -54,8 +92,7 @@ All levers cost cash, run on week timers, and pay back through the normal ledger
 
 Measured result: a fully pushed tentpole lifts its worldwide run **2–3× over baseline**, with every dollar traced to a lever in the coffer ledger. Existing saves load unchanged — all new state is optional and lazy-initialised.
 
-Ships as signed Android APK v43.2 (versionCode 55), installs over v43.1 without losing saves.
-[Download v43.2 APK](https://github.com/pjneha66/Box-office-War/releases/download/v43.2/BoxOfficeWar-43.2.apk) | [v43.2 release](https://github.com/pjneha66/Box-office-War/releases/tag/v43.2)
+Shipped as signed Android APK v43.2 (versionCode 55) — superseded by v45.0.
 
 ---
 
