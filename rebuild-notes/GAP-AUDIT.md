@@ -1,10 +1,40 @@
 # What's left from the old game — full gap audit
 
-**Date:** 2026-11-14 · Method: two exhaustive sweeps of the old codebase (rebuild-notes/old-features-inventory-a.md, -b.md) cross-checked against `game/`. Everything already ported is excluded.
+**Date:** 2026-11-14 · **Updated:** 2026-11-19 · Method: two exhaustive sweeps of the old codebase (rebuild-notes/old-features-inventory-a.md, -b.md) cross-checked against `game/`. Everything already ported is excluded.
+
+## 0. Status as of 2026-11-19 — the audit is closed
+
+The 18 "whole systems still missing" below were re-checked against `game/` by grepping
+for each system's data tables and hooks, not just for its name. **13 of the 18 had
+already been ported** (mostly by `exhibition.js`, `creative.js`, `biz.js`, `strategy.js`,
+`challenges.js`, `social_viral.js`, `finance.js`, `empire.js`). The genuinely missing
+systems were #10, #11, #12, #13 and #15, and those are now shipped as four new modules:
+
+| Missing system | Now lives in | Desks | Harness |
+|---|---|---|---|
+| #10 product placement + physical media | `game/opsuite.js` | `ops-placement`, `ops-media` | `test/rebuild-opsuite.mjs` (74 checks) |
+| #11 C-suite officers | `game/opsuite.js` | `ops-csuite` | `test/rebuild-opsuite.mjs` |
+| #12 live-ops gacha + amenities + co-production + seasonal events | `game/liveops.js` | 4 desks, group `Live ops` | `test/rebuild-liveops.mjs` (83 checks) |
+| #13 marketing blitz tiers (junket / Hall H / TV / Super Bowl / saturation) | `game/mktblitz.js` | 3 desks, group `Marketing` | `test/rebuild-mktblitz.mjs` (78 checks) |
+| #15 console platform licensing + first-party hardware | `game/consolehw.js` | 3 desks, group `Games & hardware` | `test/rebuild-consolehw.mjs` (79 checks) |
+
+Sub-features that were also missing and are now covered: finance ROIC / LBO / debt-to-EBITDA
+ratios and the multi-currency table (`finance.js`, pre-existing), talent trait production
+(`people.js`), soundstage tiers (`data.js` backlot), seasonal live events and the event
+challenge progress (`liveops.js` — the legacy `eventProgressGross` was never incremented,
+which was a real bug, now fixed).
+
+All four modules are wired: `<script>` tags in `game/index.html`, `GAME_FILES` in
+`apk/build-www.js`, `collectDesks()` + `onAction()` in `game/ui.js`, and the weekly ticks
+plus the `blitzOpenMult` / `liveopsEventMult` / `opsCreditMod` / `opsCostMult` /
+`opsOverheadMult` / `opsCastingFeeMult` / `liveopsAmenityMods` hooks in `game/engine.js`.
+Every hook is `typeof`-guarded, so the game still boots if a module is absent.
 
 ---
 
 ## 1. Whole systems still missing (18)
+
+> Kept as the original audit record. See §0 for what actually shipped.
 
 | # | System (old file) | What it does | Size |
 |---|---|---|---|

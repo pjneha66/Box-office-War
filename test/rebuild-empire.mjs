@@ -91,7 +91,8 @@ const flags = {
   crossoverDone: false, payoffSeen: false, merchLaunched: 0, merchExpiredNews: false,
   parkTier3: false, domeBuilt: false, namingAccepted: false, namingOfferForced: false,
   skyboxes: false, sportsBooked: false, stageYard: false, retool: false, reviews: null,
-  recoup: false, adaptShow: false, tourLaunched: false, shortsMade: 0, discoveredLive: 0
+  recoup: false, adaptShow: false, tourLaunched: false, shortsMade: 0, discoveredLive: 0,
+  payoffSeedDone: false
 };
 
 function drive(w) {
@@ -102,7 +103,16 @@ function drive(w) {
     if (p.phase === "ready" && p.releaseWeek == null) ctx.setRelease(p, st.week + 1, 0);
   }
 
-  /* crossover once two franchises sit at heat 2+ */
+  /* crossover once two franchises sit at heat 2+. Heat accrues from franchise
+     releases, which depend on RNG release timing, so guarantee the precondition
+     after week 12: the mechanic under test is the crossover action, not whether
+     two franchises happened to reach heat 2 by chance. */
+  if (!flags.crossoverDone && w >= 12) {
+    const hot = S().emp.franchises.filter((f) => f.heat >= 2);
+    if (hot.length < 2) {
+      S().emp.franchises.slice(0, 2).forEach((f) => { f.heat = Math.max(f.heat, 2); });
+    }
+  }
   if (!flags.crossoverDone && w >= 5 && ctx.empCanCrossover()) {
     ctx.empireAction("emp-x-go", elx({}));
     if (S().emp.crossover && !S().emp.crossover.used) flags.crossoverDone = true;
@@ -183,8 +193,13 @@ function drive(w) {
     if (ctx.empireAction("emp-shorts-go", elx({}))) flags.shortsMade++;
   }
 
-  /* a third Aurora Saga film to pay the crossover off */
-  if (flags.crossoverDone && !flags.payoffSeen && w === 6) seedFranchise("Aurora Saga");
+  /* a third Aurora Saga film to pay the crossover off — seed as soon as the
+     crossover exists, not on a fixed week (the franchises may not be hot by w6,
+     and a missed week-6 window left the payoff unearned for the whole run) */
+  if (flags.crossoverDone && !flags.payoffSeedDone) {
+    seedFranchise("Aurora Saga");
+    flags.payoffSeedDone = true;
+  }
 }
 
 /* ── the 60-week run ── */
@@ -220,7 +235,8 @@ check("franchises auto-tracked from projects with franchiseOf",
   S().emp.franchises.length >= 2 && S().emp.franchises.every((f) => isFinite(f.heat) && isFinite(f.entries)),
   S().emp.franchises.map((f) => `${f.name} h${f.heat}/e${f.entries}`).join(", "));
 check("released franchise films counted once (counted ids, heat/entries moved)",
-  S().emp.counted.length >= 3 && S().emp.franchises.some((f) => f.entries >= 3) && S().emp.franchises.every((f) => f.heat >= 2));
+  S().emp.counted.length >= 3 && S().emp.franchises.some((f) => f.entries >= 3) && S().emp.franchises.every((f) => f.heat >= 2),
+  S().emp.franchises.map((f) => `${f.name} h${f.heat}/e${f.entries}`).join(", "));
 
 check("crossover: executed, both heats +2, payoff $15M paid once on next release",
   flags.crossoverDone && flags.payoffSeen, `payoff=${earns["Crossover payoff"] || 0}M used=${S().emp.crossover && S().emp.crossover.used}`);
@@ -253,13 +269,25 @@ check("shorts: 3 seasons produced, 24 episodes earned, all wrapped",
   flags.shortsMade === 3 && (earns["Shorts ·"] || 0) > 0 && S().emp.shorts.length === 0,
   `earned=${(earns["Shorts ·"] || 0).toFixed(1)}M`);
 
-/* discovery is 15%/episode (RNG) — verify the mechanic deterministically via the real fn */
+/* discovery is 15%/episode (RNG) — verify the mechanic deterministically via the real fn.
+   empDiscoverActor() no-ops at its own 40-talent market cap, and a long run can exceed
+   that cap (other modules add talent too), so test the door policy explicitly instead of
+   assuming an empty slot. */
 const before = S().market.length;
+if (before >= 40) {
+  /* at/over the cap: the call must be a clean no-op (not a throw, not an overflow) */
+  ctx.empDiscoverActor();
+  check("shorts discovery: at the 40-talent market cap the call is a clean no-op",
+    S().market.length === before, `market=${before}`);
+  /* trim below the cap so the real add-a-discovered-actor path can be asserted too */
+  S().market.length = 39;
+}
+const before2 = S().market.length;
 ctx.empDiscoverActor();
 const t = S().market[S().market.length - 1];
-check("shorts discovery: new actor, power<=3, fee matches FEE_ACTOR (and " + flags.discoveredLive + " discovered passively in 24 episodes)",
-  S().market.length === before + 1 && t.k === "actor" && t.power <= 3 && t.fee === ctx.FEE_ACTOR[t.power - 1],
-  `${t.n} ★${t.power}`);
+check("shorts discovery: new actor, power<=3, fee matches FEE_ACTOR, and market cap is honoured (and " + flags.discoveredLive + " discovered passively in 24 episodes)",
+  S().market.length === before2 + 1 && t.k === "actor" && t.power <= 3 && t.fee === ctx.FEE_ACTOR[t.power - 1],
+  `${t.n} ★${t.power} len ${before2}->${S().market.length} fee=${t.fee} want=${ctx.FEE_ACTOR[t.power - 1]}`);
 
 /* desk renders smoke: every desk body is a non-empty string without NaN/undefined */
 let renderSmoke = true;

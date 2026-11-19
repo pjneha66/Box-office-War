@@ -916,6 +916,10 @@ function onAction(a, elx) {
   if (typeof socialAction === "function" && socialAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof stadAction === "function" && stadAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof cameoAction === "function" && cameoAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof opsuiteAction === "function" && opsuiteAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof liveopsAction === "function" && liveopsAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof mktBlitzAction === "function" && mktBlitzAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof consolehwAction === "function" && consolehwAction(a, elx)) { refreshDeskSheet(); return; }
   }
   var id = elx.getAttribute("data-id");
   switch (a) {
@@ -1337,6 +1341,10 @@ function collectDesks() {
   if (typeof SOCIAL_DESKS !== "undefined") all = all.concat(SOCIAL_DESKS);
   if (typeof STAD_DESKS !== "undefined") all = all.concat(STAD_DESKS);
   if (typeof CAMEO_DESKS !== "undefined") all = all.concat(CAMEO_DESKS);
+  if (typeof OPS_DESKS !== "undefined") all = all.concat(OPS_DESKS);
+  if (typeof LIVEOPS_DESKS !== "undefined") all = all.concat(LIVEOPS_DESKS);
+  if (typeof BLITZ_DESKS !== "undefined") all = all.concat(BLITZ_DESKS);
+  if (typeof CONSOLE_DESKS !== "undefined") all = all.concat(CONSOLE_DESKS);
   return all.concat(MORE_LOCAL);
 }
 function findDesk(id) {
@@ -1355,16 +1363,17 @@ var DESK_GROUPS = {
   ],
   develop: [
     { key: "creative", label: "Creative", groups: ["Creative", "Strategy", "The lobby", "World"] },
-    { key: "ip", label: "IP & games", groups: ["Library & fans", "Game studio"] }
+    { key: "ip", label: "IP & games", groups: ["Library & fans", "Game studio", "Games & hardware"] }
   ],
   playing: [
-    { key: "release", label: "Release", groups: ["Distribution", "Exhibition", "Deals", "Events"] },
+    { key: "release", label: "Release", groups: ["Distribution", "Exhibition", "Deals", "Events", "Marketing"] },
     { key: "audience", label: "Audience", groups: ["Press", "Audience", "Social"] },
     { key: "awards", label: "Awards", groups: ["PR & Awards", "Awards"] },
     { key: "broadcast", label: "Broadcast", groups: ["TV & Streaming", "Intrigue"] }
   ],
   business: [
     { key: "finance", label: "Finance", groups: ["Finance", "Finance desk", "Industry"] },
+    { key: "ops", label: "Operations", groups: ["Studio ops", "Live ops"] },
     { key: "licensing", label: "Licensing", groups: ["Licensing"] },
     { key: "empire", label: "Empire", groups: ["Empire & Franchises"] }
   ]

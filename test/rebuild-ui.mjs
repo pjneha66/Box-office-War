@@ -128,13 +128,29 @@ for (const vp of VIEWPORTS) {
   // advance until ready (≤ 22 weeks), answering any PR crisis modal
   const resolvePending = async () => {
     for (let i = 0; i < 4; i++) {
-      const st = await page.evaluate(() => window.S && S.pending ? { pending: true, type: S.pending.type, cash: S.studio.cash } : { pending: false, cash: 0 });
+      const st = await page.evaluate(() => window.S && S.pending ? { pending: true, type: S.pending.type, cash: S.studio.cash, opts: (S.pending.options || []).length } : { pending: false, cash: 0 });
       if (!st.pending) return;
-      const sel = st.type === "poach"
-        ? (st.cash >= 10 ? '[data-action="poach-keep"]' : '[data-action="poach-lose"]')
-        : st.type === "incident"
-        ? '[data-action="incident-opt"][data-idx="' + (st.cash >= 7 ? "0" : "2") + '"]'
-        : (st.cash >= 3 ? '[data-action="event-pay"]' : '[data-action="event-ignore"]');
+      /* Every pending sheet the engine and modules can raise. Generic choice
+         sheets (world storylines, event2 arcs, media appeals) use `pending-opt`
+         with an option index, which this harness previously did not know about —
+         a storyline in weeks 1-26 then blocked the loop until the 5s click timeout. */
+      let sel;
+      if (st.type === "poach") sel = st.cash >= 10 ? '[data-action="poach-keep"]' : '[data-action="poach-lose"]';
+      else if (st.type === "incident") sel = '[data-action="incident-opt"][data-idx="' + (st.cash >= 7 ? "0" : "2") + '"]';
+      else if (st.type === "scandal") sel = st.cash >= 3 ? '[data-action="event-pay"]' : '[data-action="event-ignore"]';
+      else if (st.opts > 0) sel = '[data-action="pending-opt"][data-idx="0"]';
+      else sel = st.cash >= 3 ? '[data-action="event-pay"]' : '[data-action="event-ignore"]';
+      /* Prefer a free option when the paid one is unaffordable/disabled. */
+      const usable = await page.evaluate((s) => {
+        const n = document.querySelector(s);
+        return !!(n && !n.disabled);
+      }, sel);
+      if (!usable && st.opts > 0) {
+        sel = '[data-action="pending-opt"][data-idx="' + (st.opts - 1) + '"]';
+      } else if (!usable) {
+        /* scandal/finance sheets disable the paid button when cash < fee */
+        sel = '[data-action="event-ignore"]';
+      }
       await clickBy(page, sel);
       await sleep(150);
     }

@@ -150,6 +150,7 @@ function feeFor(t, budget) {
   if (t.picDeal) f *= t.picDeal.pics >= 5 ? 0.75 : 0.85;
   if (S.heirAuteur && t.k === "dir") f *= 0.8;
   if (typeof agencyFeeMult === "function") f *= agencyFeeMult(t) || 1;
+  if (typeof opsCastingFeeMult === "function") f *= opsCastingFeeMult() || 1;
   return Math.round(f * 10) / 10;
 }
 /* Supporting actors: each costs half a normal fee at the film's budget, and up to three may join a lead. */
@@ -320,6 +321,8 @@ function tickProjects() {
     wk = p.phaseLen[p.phase];
     var lm = (typeof bizLocationMods === "function") ? bizLocationMods(p) : null;
     burn = (p.budgetNow * frac) / wk * (lm && lm.costMult ? lm.costMult : 1) * (S.strike > 0 ? 1.2 : 1);
+    /* CFO lever: production cost discipline (opsuite.js) */
+    if (typeof opsCostMult === "function") burn *= opsCostMult() || 1;
     spend(burn, "Production · " + p.title);
     if (p.phase === "shoot") {
       dir = findTalent(p.dirId);
@@ -483,6 +486,10 @@ function expectedOpening(p) {
   if (typeof franchiseOpeningMult === "function") open *= franchiseOpeningMult(p) || 1;
   if (typeof imprintOpeningMult === "function") open *= imprintOpeningMult(p) || 1;
   if (typeof bizOpenMult === "function") open *= bizOpenMult(p) || 1;
+  /* live ops: seasonal event genre multiplier (liveops.js) */
+  if (typeof liveopsEventMult === "function") open *= liveopsEventMult(p.genre) || 1;
+  /* marketing blitz campaigns bought for this release (mktblitz.js) */
+  if (typeof blitzOpenMult === "function") open *= blitzOpenMult(p) || 1;
   open *= rf(0.8, 1.25);
   open *= clashFactor(p.releaseWeek, open, p.genre);
   return clamp(open, 0.5, 320);
@@ -511,7 +518,12 @@ function releaseFilm(p) {
   var act0 = findTalent(p.actId), dir0 = findTalent(p.dirId);
   var qEff = p.quality - (p.recut ? 2 : 0) - (p.cut ? 2 : 0);
   var shield = (act0 && act0.ability === "shield") || (dir0 && dir0.ability === "shield") ? 3 : 0;
-  var rv = reviewFilm(p, qEff + shield);
+  /* campaign buzz lands before the review so it reaches the same release */
+  if (typeof blitzBuzzAdd === "function") p.buzz = (p.buzz || 0) + (blitzBuzzAdd(p) || 0);
+  var _bCritic = (typeof blitzCriticAdj === "function") ? (blitzCriticAdj(p) || 0) : 0;
+  /* live ops amenity: screening lounge lifts critics (liveops.js) */
+  if (typeof liveopsAmenityMods === "function") _bCritic += liveopsAmenityMods().critic || 0;
+  var rv = reviewFilm(p, qEff + shield + _bCritic + ((typeof opsCreditMod === "function") ? (opsCreditMod(p) || 0) : 0));
   var act = act0;
   var cmR = (typeof creativeProjectMods === "function") ? creativeProjectMods(p) : null;
   var aud = clamp(Math.round(qEff + g.aud + Math.min(act ? act.power : 2, 6) * 1.2 + supportBonus(p) + (p.recut ? 5 : 0) + (p.ratingAud || 0) + (p.pricingAud || 0) + (p.cameoAud || 0) + (cmR && cmR.aud ? cmR.aud : 0) + gauss() * 3), 5, 99);
@@ -552,6 +564,14 @@ function releaseFilm(p) {
   toast("“" + f.title + "” opens at " + fm(f.opening) + "!", f.opening >= 30 ? "good" : "");
   if (typeof chainWindowBump === "function") chainWindowBump(p.window || 45);
   if (typeof premiereApply === "function") premiereApply(p, f);
+  /* consume the release-time campaign rows (mktblitz.js) */
+  if (typeof blitzOnRelease === "function") blitzOnRelease(p);
+  /* live ops: seasonal challenge credit + co-production gross share settle (liveops.js) */
+  if (typeof liveopsCoprodShare === "function") {
+    var _cpShare = liveopsCoprodShare(f) || 0;
+    if (_cpShare > 0) spend(f.opening * _cpShare, "Co-production share · " + f.title);
+  }
+  if (typeof liveopsOnRelease === "function") liveopsOnRelease(f);
   return f;
 }
 
@@ -1092,9 +1112,12 @@ function advanceWeek() {
 
   /* standing costs */
   var _cmo = (typeof challengeMod === "function") ? challengeMod() : null;
+  var _opsOH = (typeof opsOverheadMult === "function") ? (opsOverheadMult() || 1) : 1;
+  /* live ops amenity: daycare cuts overhead (liveops.js) */
+  if (typeof liveopsAmenityMods === "function") _opsOH *= liveopsAmenityMods().overhead || 1;
   spend((0.25 + ORIGINS.reduce(function (a, o) { return o.id === S.origin ? o.overhead : a; }, 0)
         + S.upg.post * 0.05 + S.upg.backlot * 0.05 + (S.diff === "hard" ? 0.2 : 0))
-        * (_cmo && _cmo.overheadMult ? _cmo.overheadMult : 1), "Overhead");
+        * (_cmo && _cmo.overheadMult ? _cmo.overheadMult : 1) * _opsOH, "Overhead");
   if (st.catalog > 0) earn(st.catalog * 0.004, "Library royalties");
   if (S.loans.length) {
     var interest = 0;
@@ -1148,6 +1171,14 @@ function advanceWeek() {
   if (typeof tickSocial === "function") tickSocial();
   if (typeof tickStad === "function") tickStad();
   if (typeof tickCameo === "function") tickCameo();
+  /* studio ops: executive payroll + placement expiry (opsuite.js) */
+  if (typeof tickStudioOps === "function") tickStudioOps();
+  /* live ops: seasonal rollover, pity decay (liveops.js) */
+  if (typeof tickLiveOps === "function") tickLiveOps();
+  /* marketing campaigns: window decay and pruning (mktblitz.js) */
+  if (typeof tickMktBlitz === "function") tickMktBlitz();
+  /* console platform + first-party hardware: stages, royalties (consolehw.js) */
+  if (typeof tickConsoleHW === "function") tickConsoleHW();
   tickMine();
   tickSeries();
 

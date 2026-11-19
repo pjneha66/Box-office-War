@@ -97,6 +97,23 @@ try {
     if (S().projects.filter((p) => !p.releaseWeek).length < 2) {
       let idea = null;
       for (const g of PRIO_INTL.concat(PRIO_EU)) { idea = S().ideas.find((i) => i.genre === g); if (idea) break; }
+      /* The idea pool is refilled with a random genre, so an EU-lean genre can be
+         missing for a whole run. Seed one of each priority genre deterministically
+         (the engine's own genIdea shape, via the real ctx) instead of hoping the
+         dice cooperate — the point of this test is the regional pipeline, not genre
+         luck. Without this, "EU rep grew" failed ~1 run in 12. */
+      if (!idea) {
+        let want = null;
+        for (const g of PRIO_EU) { if (!S().ideas.find((i) => i.genre === g)) { want = g; break; } }
+        if (!want) want = PRIO_EU[0];
+        const makeIdea = ctx.genIdea || null;
+        if (makeIdea) {
+          const seeded = makeIdea();
+          seeded.genre = want;
+          S().ideas.push(seeded);
+          idea = seeded;
+        }
+      }
       if (idea) {
         const scale = st.cash > 45 ? "indie" : "micro";
         const budget = ctx.scaleOf(scale).budgets[0];
