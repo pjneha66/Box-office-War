@@ -176,7 +176,13 @@ click($('#btnOpenCastDirectory'));
 const dir=$('#modalRoot .modal');
 assert(dir,'cast directory must open');
 assert(dir.classList.contains('command-develop-modal'),'cast directory must use the Develop dialog skin');
-assert.equal($$('.cast-row').length,60,'the directory pages its rows instead of painting the whole roster');
+/* The directory pages its rows rather than painting the whole roster in one go.
+   Assert the paging contract (first page size = CAST_DIR_PAGE, and paging out
+   reaches the full roster) instead of a hardcoded page length, so raising the
+   page size does not look like a regression. */
+const firstPage=$$('.cast-row').length;
+assert.equal(firstPage,w.eval('CAST_DIR.limit'),'the first page must render exactly CAST_DIR.limit rows');
+assert(firstPage<bigTotal,'a 1,000+ roster must still be paged, not painted whole');
 assert($('#castDirCount').textContent.includes(bigTotal.toLocaleString()),'the directory must report the full roster size');
 /* search */
 const search=$('#castDirSearch');

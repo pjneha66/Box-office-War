@@ -161,6 +161,15 @@ function supportBonus(p) {
   for (i = 0; i < ids.length; i++) { t = findTalent(ids[i]); if (t) sum += Math.max(0, t.power - 2) * 0.5; }
   return Math.min(3, sum);
 }
+/* Opening multiplier from supporting cast: a strong bench sells tickets on the poster.
+   Tuned so the greenlight estimate and the real release agree — both read this one
+   function, so the number shown before greenlight is the number the film opens on
+   (before the release-week randomisation). */
+function supportOpenMult(p) {
+  var b = supportBonus(p);            /* 0 … 3 audience points */
+  if (!(b > 0)) return 1;
+  return 1 + b * 0.06;                /* up to +18% opening with a full three-star bench */
+}
 function findTalent(id) { var i; for (i = 0; i < S.market.length; i++) if (S.market[i].id === id) return S.market[i]; return null; }
 function findProject(id) { var i; for (i = 0; i < S.projects.length; i++) if (S.projects[i].id === id) return S.projects[i]; return null; }
 function findFilm(id) { var i; for (i = 0; i < S.films.length; i++) if (S.films[i].id === id) return S.films[i]; return null; }
@@ -460,6 +469,7 @@ function expectedOpening(p) {
   if (act && act.ability === "crowd") abF *= 1.08;
   if (p.franchiseOf && act && act.ability === "franchise") abF *= 1.08;
   var open = sc.openBase * g.mass * g.open * starF * mktF * season.s * repF * frF * buzzF * abF * S.econ.box;
+  open *= supportOpenMult(p); /* supporting cast — the greenlight estimate reads the same factor */
   open *= ((S.trends && S.trends[p.genre]) || 1);
   /* v43.2: Collection Command — circuit screens, booking corridor, discount Tuesday lift the opening */
   if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.openingMultiplier) open *= BoxOfficeCollection.openingMultiplier(p);

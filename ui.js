@@ -2433,7 +2433,10 @@ function commandDevelopTalent(){
 }
 
 /* ═══════════ cast directory — every performer, 1,000+ safe ═══════════ */
-const CAST_DIR={q:"",filter:"all",limit:60,source:"roster"};
+const CAST_DIR={q:"",filter:"all",limit:120,source:"roster"};
+/* Page size for "Show more". The old 60-row cap meant a 1,000-strong roster
+   was effectively unreachable; a bigger page plus auto-fill reaches everyone. */
+const CAST_DIR_PAGE=120;
 const CAST_PIN_MAX=4;
 function castPins(){
   if(typeof G==="undefined"||!G) return {film:[],series:[]};
@@ -2506,7 +2509,7 @@ function castDirSync(v){
   if(list) list.innerHTML=shown.length?shown.map(castDirRow).join(""):`<div class="command-empty"><b>No one matches this search.</b><small>Clear the box or switch back to Everyone.</small></div>`;
   if(count) count.innerHTML=`<b>${rows.length.toLocaleString()}</b> match${rows.length===1?"":"es"} · <b>${(G.talent||[]).length.toLocaleString()}</b> in the directory · <b>${(G.talent||[]).filter(castIsFree).length.toLocaleString()}</b> free now${rows.length>shown.length?` · showing ${shown.length}`:""}`;
   const more=v.querySelector("#castDirMore");
-  if(more){ more.textContent=`Show ${Math.min(60,rows.length-shown.length)} more`; more.style.display=rows.length>shown.length?"":"none"; }
+  if(more){ more.textContent=`Show ${Math.min(CAST_DIR_PAGE,rows.length-shown.length)} more`; more.style.display=rows.length>shown.length?"":"none"; }
   const pins=v.querySelector("#castDirPins"); if(pins) pins.innerHTML=castDirPinsMarkup();
   const chips=v.querySelectorAll("[data-castfilter]");
   chips.forEach(b=>{ const on=b.dataset.castfilter===CAST_DIR.filter; b.classList.toggle("active",on); b.setAttribute("aria-pressed",on); });
@@ -2593,7 +2596,7 @@ function castScoutMarkup(){
 
 function openCastDirectory(){
   if(typeof G==="undefined"||!G||!Array.isArray(G.talent)) return;
-  if(!CAST_DIR.limit||CAST_DIR.limit<60) CAST_DIR.limit=60;
+  if(!CAST_DIR.limit||CAST_DIR.limit<CAST_DIR_PAGE) CAST_DIR.limit=CAST_DIR_PAGE;
   CAST_DIR.q="";
   let h="<h3>Cast directory</h3>"+
     "<div class='develop-filters' role='group' aria-label='Choose the pool'><button data-castsource='roster' class='"+(CAST_DIR.source!=="catalog"?"active":"")+"'>On your roster</button><button data-castsource='catalog' class='"+(CAST_DIR.source==="catalog"?"active":"")+"'>Full catalog · "+castCatalog().length.toLocaleString()+"</button></div>"+
@@ -2609,10 +2612,10 @@ function openCastDirectory(){
   const dm=v.querySelector(".modal"); if(dm) dm.classList.add("cast-directory-modal");
   const refresh=()=>castDirSync(v);
   const search=v.querySelector("#castDirSearch");
-  if(search) search.oninput=()=>{ CAST_DIR.q=search.value; CAST_DIR.limit=60; refresh(); };
-  v.querySelectorAll("[data-castfilter]").forEach(b=>b.onclick=()=>{ CAST_DIR.filter=b.dataset.castfilter; CAST_DIR.limit=60; refresh(); });
-  v.querySelectorAll("[data-castsource]").forEach(b=>b.onclick=()=>{ CAST_DIR.source=b.dataset.castsource; CAST_DIR.limit=60; v.querySelectorAll("[data-castsource]").forEach(x=>{ x.classList.toggle("active",x===b); }); refresh(); });
-  v.querySelector("#castDirMore").onclick=()=>{ CAST_DIR.limit=(CAST_DIR.limit||60)+60; refresh(); };
+  if(search) search.oninput=()=>{ CAST_DIR.q=search.value; CAST_DIR.limit=CAST_DIR_PAGE; refresh(); };
+  v.querySelectorAll("[data-castfilter]").forEach(b=>b.onclick=()=>{ CAST_DIR.filter=b.dataset.castfilter; CAST_DIR.limit=CAST_DIR_PAGE; refresh(); });
+  v.querySelectorAll("[data-castsource]").forEach(b=>b.onclick=()=>{ CAST_DIR.source=b.dataset.castsource; CAST_DIR.limit=CAST_DIR_PAGE; v.querySelectorAll("[data-castsource]").forEach(x=>{ x.classList.toggle("active",x===b); }); refresh(); });
+  v.querySelector("#castDirMore").onclick=()=>{ CAST_DIR.limit=(CAST_DIR.limit||CAST_DIR_PAGE)+CAST_DIR_PAGE; refresh(); };
   v.querySelector("#castDirDone").onclick=()=>closeModal();
   const unlock=v.querySelector("#castDirUnlock");
   if(unlock) unlock.onclick=()=>{ if(typeof unlockAllCast==="function") unlockAllCast(); refresh(); if(typeof render==="function") render(); };

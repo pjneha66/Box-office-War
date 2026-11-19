@@ -202,9 +202,11 @@ try {
       }
     }
 
-    try { ctx.advanceWeek(); } catch (e) { threw = { w, e }; break; }
+    /* snapshot BEFORE the week runs: engine.js advanceWeek now calls
+       tickLicensing() itself, so expiry happens inside advanceWeek. */
     const openBefore = S().lic.offers.map((o) => o.id);
-    ctx.tickLicensing();
+    try { ctx.advanceWeek(); } catch (e) { threw = { w, e }; break; }
+    ctx.tickLicensing(); /* idempotent per week (lastTick guard) */
     /* expired: open ids that vanished without an accept/decline */
     for (const id of openBefore) {
       if (!S().lic.offers.some((q) => q.id === id) && !acceptedIds.has(id) && !declinedIds.has(id)) expiredCount++;

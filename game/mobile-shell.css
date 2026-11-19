@@ -1,0 +1,1165 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Box Office War — MOBILE SHELL (portrait phone chrome)
+   ---------------------------------------------------------------------------
+   Opt-in stylesheet. Nothing here applies until JS puts `bow-mobile` on <body>,
+   so desktop / tablet-web is untouched.
+
+   Load order matters: this file must be linked AFTER style.css (and after
+   boc-premium.css) so the palette + sheet overrides win where specificity ties.
+
+   It is purely additive: no rule below changes layout of the game's own
+   markup unless that markup is part of the phone chrome (shell, tab bar,
+   sheet, tap targets).
+
+   Contents
+     1.  Design tokens (--bow-*)
+     2.  Safe areas + app shell
+     3.  Bottom tab bar (4 tabs + display-settings button)
+     4.  Advance-week FAB (thumb zone)
+     5.  Tap targets + spacing
+     6.  Bottom-sheet presentation
+     7.  Numeric / chart typography
+     8.  Compact mode (small phones)
+     9.  Light theme (dark is the default, inherited from style.css)
+     10. High-contrast variant
+     11. Reduced motion
+     12. Horizontal-overflow guards (360px)
+     13. On-screen keyboard safety
+     14. Display-settings panel (shell-owned UI)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   1. Design tokens
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Font scale is driven by JS (BowMobileShell.setFontScale). Clamped 0.85–1.2. */
+  --bow-font-scale: 1;
+
+  /* Height of the shell's bottom bar (excludes the gesture-bar inset). */
+  --bow-bar-h: 62px;
+
+  /* Minimum tap target, per Android/Material and WCAG 2.5.5. */
+  --bow-tap: 48px;
+
+  /* Minimum spacing between adjacent tap targets. */
+  --bow-gap: 8px;
+
+  /* Week FAB diameter. */
+  --bow-fab: 56px;
+
+  /* Drag-handle colour for bottom sheets. */
+  --bow-handle: rgba(255, 255, 255, 0.24);
+
+  /* Brand gold as a FILLED SURFACE (buttons, FAB, progress bars). Distinct from
+     --gold, which is gold-as-TEXT and must meet contrast on the background it
+     sits on. In dark both are the same value; light theme darkens --gold ink
+     while keeping this surface bright. */
+  --gold-surface: #f5c518;
+  --gold-surface-deep: #c89b0e;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   2. Safe areas + app shell
+   ---------------------------------------------------------------------------
+   Every inset is written as env(<name>, 0px) so devices without a notch and
+   browsers without env() support both resolve to 0.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.bow-mobile {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+
+  /* style.css reads --nav-h for #view padding and #toast offset. Pointing it
+     at the shell bar means those two keep working without extra overrides. */
+  --nav-h: var(--bow-bar-h);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Typography — font scale that actually works
+   ---------------------------------------------------------------------------
+   style.css declares every text size in absolute px (47 of them), so scaling an
+   ancestor's font-size would change almost nothing: px does not inherit as a
+   multiplier. Each key text selector therefore has to be restated as
+   `calc(<original px> * var(--bow-font-scale))`.
+
+   Values below are copied verbatim from style.css and multiplied by the scale,
+   so at --bow-font-scale: 1 (the default) the rendering is byte-identical to
+   the game's own typography. Specificity: `body.bow-mobile …` outranks the
+   original plain-class selectors, so no !important is needed anywhere.
+
+   Inputs are the one exception — they stay at exactly 16px so Android WebView
+   never auto-zooms the page when a field is focused.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Body copy / inherited text. 16px base per the shell spec, scaled by the
+   user's font setting. The plain 16px line is the fallback for engines that
+   cannot parse calc() with a custom property; the calc() line wins where it
+   is understood. On engines that reject the calc(), every descendant below
+   likewise falls back to its own px value from style.css, so the layout
+   degrades to the game's original typography rather than breaking. */
+body.bow-mobile #app {
+  font-size: 16px;
+  font-size: calc(16px * var(--bow-font-scale));
+}
+
+/* Brand + header chrome (15px). */
+body.bow-mobile .brand {
+  font-size: calc(15px * var(--bow-font-scale));
+}
+
+/* Pills / chips (12.5px). Informational, so scaling is safe. */
+body.bow-mobile .chip {
+  font-size: calc(12.5px * var(--bow-font-scale));
+}
+
+/* Buttons (14.5px, small 13px). */
+body.bow-mobile .btn {
+  font-size: calc(14.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .btn.sm {
+  font-size: calc(13px * var(--bow-font-scale));
+}
+
+/* Section headings (13px, link 12.5px). */
+body.bow-mobile .sechead h2 {
+  font-size: calc(13px * var(--bow-font-scale));
+}
+
+body.bow-mobile .sechead .lnk {
+  font-size: calc(12.5px * var(--bow-font-scale));
+}
+
+/* Card titles / field labels (12px). */
+body.bow-mobile .card-title,
+body.bow-mobile .field-label {
+  font-size: calc(12px * var(--bow-font-scale));
+}
+
+/* Hero figures (34px / 11.5px / 13px). */
+body.bow-mobile .hero .val {
+  font-size: calc(34px * var(--bow-font-scale));
+}
+
+body.bow-mobile .hero .lbl {
+  font-size: calc(11.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .hero .sub {
+  font-size: calc(13px * var(--bow-font-scale));
+}
+
+/* Film cards (16.5px title). */
+body.bow-mobile .film .title {
+  font-size: calc(16.5px * var(--bow-font-scale));
+}
+
+/* Stat rows (13.5px). */
+body.bow-mobile .statrow {
+  font-size: calc(13.5px * var(--bow-font-scale));
+}
+
+/* News feed (13.5px / 15px icon / 11px timestamp). */
+body.bow-mobile .news-item {
+  font-size: calc(13.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .news-item .ico {
+  font-size: calc(15px * var(--bow-font-scale));
+}
+
+body.bow-mobile .news-item .when {
+  font-size: calc(11px * var(--bow-font-scale));
+}
+
+/* Segmented controls (13px). */
+body.bow-mobile .seg button {
+  font-size: calc(13px * var(--bow-font-scale));
+}
+
+/* Talent picker (12.5px / 11px / 11.5px). */
+body.bow-mobile .person .nm {
+  font-size: calc(12.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .person .st {
+  font-size: calc(11px * var(--bow-font-scale));
+}
+
+body.bow-mobile .person .fee {
+  font-size: calc(11.5px * var(--bow-font-scale));
+}
+
+/* Desk cards (21px emoji / 14px name / 11.5px description). */
+body.bow-mobile .desk .em {
+  font-size: calc(21px * var(--bow-font-scale));
+}
+
+body.bow-mobile .desk .nm {
+  font-size: calc(14px * var(--bow-font-scale));
+}
+
+body.bow-mobile .desk .ds {
+  font-size: calc(11.5px * var(--bow-font-scale));
+}
+
+/* Genre grid (10.5px label / 17px emoji). */
+body.bow-mobile .ggrid button {
+  font-size: calc(10.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .ggrid button .em {
+  font-size: calc(17px * var(--bow-font-scale));
+}
+
+/* Sheets (16px title, 12.5px footer note). */
+body.bow-mobile .sheet-head h3 {
+  font-size: calc(16px * var(--bow-font-scale));
+}
+
+body.bow-mobile .sheet-foot .proj {
+  font-size: calc(12.5px * var(--bow-font-scale));
+}
+
+/* Start / game-over screens. */
+body.bow-mobile .start .eyebrow {
+  font-size: calc(11px * var(--bow-font-scale));
+}
+
+body.bow-mobile .start .tagline {
+  font-size: calc(13.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .origin .nm {
+  font-size: calc(14.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .origin .ds {
+  font-size: calc(12.5px * var(--bow-font-scale));
+}
+
+/* Empty states (13.5px / 30px emoji). */
+body.bow-mobile .empty {
+  font-size: calc(13.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .empty .em {
+  font-size: calc(30px * var(--bow-font-scale));
+}
+
+/* Toast (13.5px). */
+body.bow-mobile #toast {
+  font-size: calc(13.5px * var(--bow-font-scale));
+}
+
+/* Shell-owned chrome scales with the user's choice too. */
+body.bow-mobile .bow-bar .tab span {
+  font-size: calc(10.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .bow-fab {
+  font-size: calc(10.5px * var(--bow-font-scale));
+}
+
+body.bow-mobile .bow-prefs-head h3 {
+  font-size: calc(16px * var(--bow-font-scale));
+}
+
+body.bow-mobile .bow-seg-b,
+body.bow-mobile .bow-seg-out {
+  font-size: calc(13px * var(--bow-font-scale));
+}
+
+body.bow-mobile .bow-prefs-k {
+  font-size: calc(12px * var(--bow-font-scale));
+}
+
+/* Header sits BELOW the notch: we add the full inset to its height instead of
+   style.css's half-inset, so the brand/HUD row is never under a cutout. */
+body.bow-mobile #topbar {
+  height: calc(var(--top-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
+  z-index: 5;
+}
+
+/* Scroll container keeps clear of the bar AND the FAB hovering above it, so no
+   card is ever trapped underneath the chrome. */
+body.bow-mobile #view {
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--bow-bar-h) + env(safe-area-inset-bottom, 0px) + 84px);
+}
+
+/* The game's original in-flow nav is replaced by the cloned bar. Hiding it (as
+   opposed to deleting it) keeps #btnWeek alive: the FAB forwards clicks to it
+   and the game keeps toggling its .attn / disabled state. */
+body.bow-mobile #tabbar.bow-src-hidden {
+  display: none !important;
+}
+
+/* Toasts were offset by --nav-h; lift them clear of the FAB so the two never
+   overlap at the bottom-right. */
+body.bow-mobile #toast {
+  bottom: calc(var(--bow-bar-h) + env(safe-area-inset-bottom, 0px) + 84px);
+  max-width: calc(100vw - 32px);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   3. Bottom tab bar
+   ---------------------------------------------------------------------------
+   Markup is created by JS: a <nav id="bowBar" class="bow-bar"> holding clones
+   of the game's own four [data-view] buttons, plus one shell-owned button for
+   display settings. The clones keep the game's `.tab` class, so icons, colours
+   and the `.on` active state are inherited — no new visual contract.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bow-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 52px; /* 4 tabs + settings */
+  grid-gap: 0;
+  gap: 0;
+  align-items: stretch;
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: calc(var(--bow-bar-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  background: rgba(17, 20, 31, 0.97);
+  border-top: 1px solid var(--line-soft);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.bow-bar .bow-tab {
+  min-height: var(--bow-tap);
+  min-width: var(--bow-tap);
+}
+
+/* Settings affordance: deliberately understated, icon-sized, but still a full
+   tap target. It only opens the shell's own panel — it never touches game UI. */
+.bow-bar-prefs {
+  align-self: center;
+  justify-self: center;
+  width: var(--bow-tap);
+  height: var(--bow-tap);
+  min-width: var(--bow-tap);
+  min-height: var(--bow-tap);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.bow-bar-prefs:active {
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   4. Advance-week FAB (thumb zone)
+   ---------------------------------------------------------------------------
+   A clone of #btnWeek (same icon + label), fixed to the bottom-right corner,
+   floating just above the bar. Never smaller than 48px.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bow-fab {
+  position: fixed;
+  z-index: 7;
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--bow-bar-h) + env(safe-area-inset-bottom, 0px) + 14px);
+  width: var(--bow-fab);
+  height: var(--bow-fab);
+  min-width: var(--bow-tap);
+  min-height: var(--bow-tap);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: radial-gradient(circle at 32% 28%, #ffe473, var(--gold) 55%, #c89b0e);
+  color: #221a00;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  box-shadow: 0 6px 18px rgba(245, 197, 24, 0.4), 0 0 0 4px rgba(11, 13, 18, 0.85);
+  transition: transform 0.08s ease;
+}
+
+.bow-fab svg {
+  width: 20px;
+  height: 20px;
+}
+
+.bow-fab:active {
+  transform: scale(0.93);
+}
+
+/* Mirrors #btnWeek.attn so the "there is work to do" pulse survives the move. */
+.bow-fab.attn {
+  animation: bowFabGlow 1.6s ease infinite;
+}
+
+@keyframes bowFabGlow {
+  50% {
+    box-shadow: 0 6px 26px rgba(245, 197, 24, 0.7), 0 0 0 4px rgba(11, 13, 18, 0.85);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   5. Tap targets + spacing
+   ---------------------------------------------------------------------------
+   Behaviour: every *interactive* control is at least 48x48 CSS px and adjacent
+   controls are separated by at least 8px. Status pills in the header (.chip /
+   .tag without an action) are informational, not tappable, so they keep their
+   compact size — making them 48px tall would break the 54px header.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.bow-mobile .btn,
+body.bow-mobile .tab,
+body.bow-mobile .sheet-x,
+body.bow-mobile .seg button,
+body.bow-mobile .person,
+body.bow-mobile .desk,
+body.bow-mobile .origin button,
+body.bow-mobile .stadium-card button,
+body.bow-mobile button[data-action],
+body.bow-mobile [data-action][role="button"] {
+  min-height: var(--bow-tap);
+  min-width: var(--bow-tap);
+}
+
+/* Compact variants must not opt out of the minimum target. */
+body.bow-mobile .btn.sm {
+  min-height: var(--bow-tap);
+}
+
+/* The close X in sheets was 38px. */
+body.bow-mobile .sheet-x {
+  width: var(--bow-tap);
+  height: var(--bow-tap);
+}
+
+/* Tappable pills (rare, but they exist in a few desks). */
+body.bow-mobile button.chip,
+body.bow-mobile button.tag,
+body.bow-mobile .chip[data-action],
+body.bow-mobile .tag[data-action] {
+  min-height: var(--bow-tap);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Rows inside sheets are tap targets in most desks — give them real height. */
+body.bow-mobile .sheet-body > .card,
+body.bow-mobile .sheet-body .statrow {
+  min-height: var(--bow-tap);
+}
+
+/* ≥8px between adjacent controls (style.css uses margin-based spacing because
+   the target WebView predates flex `gap`, so we extend that same trick). */
+body.bow-mobile .btnrow > * + * {
+  margin-left: var(--bow-gap);
+  margin-top: var(--bow-gap);
+}
+
+body.bow-mobile .btn + .btn,
+body.bow-mobile .btnrow > .btn + .btn {
+  margin-left: var(--bow-gap);
+}
+
+body.bow-mobile .seg button + button {
+  margin-left: 4px;
+}
+
+body.bow-mobile .sheet-foot > * + * {
+  margin-left: var(--bow-gap);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   6. Bottom-sheet presentation
+   ---------------------------------------------------------------------------
+   The game already renders sheets as bottom-anchored flex columns
+   (.sheet > .sheet-head + .sheet-body + .sheet-foot). We only restyle the
+   container: 90dvh cap, rounder top corners, a drag-handle affordance and a
+   footer that sits above the gesture bar.
+
+   IMPORTANT: no new scroll container. .sheet-body remains the single scroller.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.bow-mobile .sheet {
+  max-height: 90vh;
+  max-height: 90dvh;
+  border-radius: 22px 22px 0 0;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+  /* Overflow stays hidden at the container level so the rounded corners clip
+     the scrolling body, without creating a second scrollbox. */
+  overflow: hidden;
+}
+
+/* Drag-handle affordance (CSS-only, no extra markup). */
+body.bow-mobile .sheet::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 40px;
+  height: 4px;
+  margin-left: -20px;
+  border-radius: 999px;
+  background: var(--bow-handle);
+  pointer-events: none;
+}
+
+body.bow-mobile .sheet-head {
+  padding-top: 24px; /* clears the handle */
+}
+
+body.bow-mobile .sheet-body {
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Footer is the last flex child of a bottom-anchored sheet, so it is already
+   pinned; it only needs the gesture-bar inset and a hairline separation. */
+body.bow-mobile .sheet-foot {
+  flex: none;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Sheets that open with a body-first layout have no head to pad. */
+body.bow-mobile .sheet > .sheet-body:first-child {
+  padding-top: 26px;
+}
+
+body.bow-mobile .sheet-backdrop {
+  background: rgba(4, 6, 10, 0.72);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   7. Numeric / chart typography
+   ---------------------------------------------------------------------------
+   Money and percentages line up in columns; list-style charts stretch to the
+   row instead of forcing horizontal scrolling.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.bow-mobile .num,
+body.bow-mobile .statrow .v,
+body.bow-mobile .chip,
+body.bow-mobile .tag,
+body.bow-mobile .person .fee,
+body.bow-mobile .film .head .num,
+body.bow-mobile .hero .val {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Right-aligned numeric column, fixed enough to form a column at 360px. */
+body.bow-mobile .statrow .v {
+  text-align: right;
+  min-width: 5.5em;
+  flex: none;
+}
+
+body.bow-mobile .statrow .k {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* List-based charts: label | inline bar | value, no horizontal scroll. */
+body.bow-mobile .chart {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+body.bow-mobile .chart .c {
+  min-width: 0;
+}
+
+body.bow-mobile .chart .c > i {
+  max-width: 100%;
+}
+
+body.bow-mobile .bar {
+  max-width: 100%;
+  min-width: 32px;
+}
+
+/* A row that shows a bar inline between a label and a value. */
+body.bow-mobile .rowbar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+body.bow-mobile .rowbar .bar {
+  flex: 1;
+  min-width: 24px;
+  margin: 0 var(--bow-gap);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   8. Compact mode
+   ---------------------------------------------------------------------------
+   Two triggers: the automatic small-phone query (<400px) and the persisted
+   `.bow-compact` body class the user can toggle from the settings panel.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bow-mobile.bow-compact .talent-row,
+.bow-mobile.bow-compact .deskgrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: var(--bow-gap);
+  gap: var(--bow-gap);
+  overflow-x: visible;
+}
+
+.bow-mobile.bow-compact .person {
+  width: auto;
+  min-width: 0;
+  margin-right: 0;
+}
+
+.bow-mobile.bow-compact .desk .ds,
+.bow-mobile.bow-compact .person .nm,
+.bow-mobile.bow-compact .film .title,
+.bow-mobile.bow-compact .card-title,
+.bow-mobile.bow-compact .news-item .txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bow-mobile.bow-compact .ggrid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.bow-mobile.bow-compact .film .head {
+  flex-wrap: wrap;
+}
+
+/* Automatic compacting on very small phones (iPhone SE / 360px Androids). */
+@media (max-width: 399px) {
+  .bow-mobile .talent-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: var(--bow-gap);
+    gap: var(--bow-gap);
+    overflow-x: visible;
+  }
+
+  .bow-mobile .person {
+    width: auto;
+    min-width: 0;
+    margin-right: 0;
+  }
+
+  .bow-mobile .person .nm,
+  .bow-mobile .film .title,
+  .bow-mobile .desk .nm {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bow-mobile .ggrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   9. Light theme
+   ---------------------------------------------------------------------------
+   Dark is the default and comes straight from style.css :root, so this file
+   only has to describe light. Declared on BOTH html[data-theme] (the attribute
+   JS maintains on documentElement) and a body class, because the game also
+   writes body[data-theme] — the class form outranks it on specificity so the
+   two systems cannot fight.
+   Contrast check (on --panel / --bg): text 14.8:1, muted 6.9:1, faint 4.6:1.
+   ─────────────────────────────────────────────────────────────────────────── */
+html[data-theme="light"] {
+  --bg: #eef0f5;
+  --bg-glow: radial-gradient(1200px 500px at 50% -10%, #ffffff 0%, transparent 60%);
+  --panel: #ffffff;
+  --panel-2: #f2f4f9;
+  --line: #c8cdda;
+  --line-soft: #dde1ec;
+  --text: #12151f;
+  --muted: #4c5265;
+  --faint: #5c6373;
+  /* --gold is TEXT here, so it must clear 4.5:1 on white: 5.33:1.
+     Filled controls keep the bright brand gold via --gold-surface, with the
+     dark #221a00 label on top (10.60:1). Splitting the two is required —
+     one value cannot be both readable-on-white and a bright surface. */
+  --gold: #8a6500;
+  --gold-soft: rgba(138, 101, 0, 0.12);
+  --gold-surface: #f5c518;
+  --gold-surface-deep: #c89b0e;
+  --bow-handle: rgba(0, 0, 0, 0.28);
+}
+
+body.bow-mobile.bow-theme-light {
+  --bg: #eef0f5;
+  --panel: #ffffff;
+  --panel-2: #f2f4f9;
+  --line: #c8cdda;
+  --line-soft: #dde1ec;
+  --text: #12151f;
+  --muted: #4c5265;
+  --faint: #5c6373;
+  --gold: #8a6500;
+  --gold-soft: rgba(138, 101, 0, 0.12);
+  --gold-surface: #f5c518;
+  --gold-surface-deep: #c89b0e;
+  --bow-handle: rgba(0, 0, 0, 0.28);
+}
+
+/* Filled controls: bright brand surface + dark label (never gold-on-white). */
+body.bow-mobile.bow-theme-light .btn.primary,
+body.bow-mobile.bow-theme-light .seg button.on,
+body.bow-mobile.bow-theme-light .bow-seg-b.on,
+body.bow-mobile.bow-theme-light .ggrid button.on {
+  background: linear-gradient(180deg, #ffe062, var(--gold-surface) 70%);
+  border-color: transparent;
+  color: #221a00;
+}
+
+/* The FAB is a surface, not text — keep it bright with its dark glyph. */
+body.bow-mobile.bow-theme-light .bow-fab {
+  background: radial-gradient(circle at 32% 28%, #ffe473, var(--gold-surface) 55%, var(--gold-surface-deep));
+  color: #221a00;
+  box-shadow: 0 6px 18px rgba(180, 140, 0, 0.35), 0 0 0 4px rgba(238, 240, 245, 0.9);
+}
+
+/* Progress fills are graphics, not labels — keep them bright. */
+body.bow-mobile.bow-theme-light .bar > i {
+  background: linear-gradient(90deg, var(--gold-surface-deep), var(--gold-surface));
+}
+
+/* Chrome that hardcodes the dark shell colour needs a light equivalent. */
+body.bow-mobile.bow-theme-light #topbar {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+body.bow-mobile.bow-theme-light .bow-bar {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+body.bow-mobile.bow-theme-light .gear {
+  background: #f2f4f9;
+}
+
+/* Active tab label: --gold ink on the white bar (5.33:1), not the surface. */
+body.bow-mobile.bow-theme-light .bow-bar .tab.on,
+body.bow-mobile.bow-theme-light .bow-bar .bow-tab.on {
+  color: var(--gold);
+}
+
+body.bow-mobile.bow-theme-light .sheet-backdrop {
+  background: rgba(20, 24, 33, 0.42);
+}
+
+/* Dark safety net: bump --faint so tertiary labels still clear 4.5:1. */
+body.bow-mobile.bow-theme-dark {
+  --faint: #7d869c;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   10. High-contrast variant
+   ---------------------------------------------------------------------------
+   Applied by JS as html[data-contrast="high"] + body.bow-contrast-high.
+   Must stay AFTER the theme rules: equal specificity, so source order decides.
+   ─────────────────────────────────────────────────────────────────────────── */
+/* Set on html AND on body separately — deliberately NOT as one grouped
+   selector list. A grouped list forces every selector to the specificity of
+   the most specific member in some engines, which let the plain high-contrast
+   values win over the light+high-contrast overrides below. One selector per
+   rule keeps the cascade predictable. */
+html[data-contrast="high"] {
+  --text: #ffffff;
+  --muted: #e8ebf2;
+  --faint: #cfd4de;
+  --line: #8f97a8;
+  --line-soft: #6c7488;
+  --bg: #000000;
+  --panel: #0b0b0b;
+  --panel-2: #191919;
+}
+
+body.bow-mobile.bow-contrast-high {
+  --text: #ffffff;
+  --muted: #e8ebf2;
+  --faint: #cfd4de;
+  --line: #8f97a8;
+  --line-soft: #6c7488;
+  --bg: #000000;
+  --panel: #0b0b0b;
+  --panel-2: #191919;
+}
+
+/* Light + high contrast: black on white, no soft greys. Declared after (and
+   with >= specificity than) both blocks above so it wins when both are on. */
+html[data-contrast="high"][data-theme="light"] {
+  --text: #000000;
+  --muted: #1c1c1c;
+  --faint: #333333;
+  --line: #000000;
+  --line-soft: #444444;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f4f4f4;
+}
+
+body.bow-mobile.bow-contrast-high.bow-theme-light {
+  --text: #000000;
+  --muted: #1c1c1c;
+  --faint: #333333;
+  --line: #000000;
+  --line-soft: #444444;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f4f4f4;
+}
+
+body.bow-mobile.bow-contrast-high .card,
+body.bow-mobile.bow-contrast-high .bow-bar,
+body.bow-mobile.bow-contrast-high .bow-prefs-sheet {
+  border-width: 2px;
+  border-color: var(--line);
+}
+
+body.bow-mobile.bow-contrast-high .btn,
+body.bow-mobile.bow-contrast-high .seg,
+body.bow-mobile.bow-contrast-high .text-input {
+  border-width: 2px;
+  border-color: var(--line);
+}
+
+body.bow-mobile.bow-contrast-high .tab.on {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+/* Focus rings must be unmissable in this mode. */
+body.bow-mobile.bow-contrast-high a:focus-visible,
+body.bow-mobile.bow-contrast-high button:focus-visible,
+body.bow-mobile.bow-contrast-high .text-input:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   11. Reduced motion
+   ---------------------------------------------------------------------------
+   Honours the OS preference AND the persisted shell setting
+   (html[data-motion="reduced"] / body.bow-motion-reduced).
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .bow-bar,
+  .bow-fab,
+  .bow-prefs,
+  .bow-prefs-sheet,
+  .bow-bar .bow-tab {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+html[data-motion="reduced"] *,
+body.bow-mobile.bow-motion-reduced * {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-motion="reduced"] .bow-fab,
+body.bow-mobile.bow-motion-reduced .bow-fab {
+  transform: none !important;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   12. Horizontal-overflow guards (360px and narrower)
+   ─────────────────────────────────────────────────────────────────────────── */
+body.bow-mobile #view,
+body.bow-mobile .card,
+body.bow-mobile .sheet,
+body.bow-mobile .sheet-body {
+  max-width: 100%;
+}
+
+body.bow-mobile img,
+body.bow-mobile svg,
+body.bow-mobile canvas,
+body.bow-mobile video {
+  max-width: 100%;
+}
+
+/* No fixed element may be wider than the viewport. */
+body.bow-mobile [style*="width:"] {
+  max-width: 100%;
+}
+
+/* Long studio/film/person names wrap instead of pushing the layout wide. */
+body.bow-mobile .film .title,
+body.bow-mobile .person .nm,
+body.bow-mobile .desk .nm,
+body.bow-mobile .card-title,
+body.bow-mobile .news-item,
+body.bow-mobile .sheet-body,
+body.bow-mobile .hero .sub {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+@supports (overflow-wrap: anywhere) {
+  body.bow-mobile .film .title,
+  body.bow-mobile .person .nm,
+  body.bow-mobile .desk .nm {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Tables/definition rows shrink rather than scroll sideways. */
+body.bow-mobile table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+body.bow-mobile .statrow {
+  flex-wrap: nowrap;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   13. On-screen keyboard safety
+   ---------------------------------------------------------------------------
+   When a field is focused the browser scrolls it into view; scroll-margin tells
+   it how much room to leave for the header, the bar and the keyboard itself.
+   ─────────────────────────────────────────────────────────────────────────── */
+body.bow-mobile input,
+body.bow-mobile textarea,
+body.bow-mobile select {
+  scroll-margin-top: 88px;
+  scroll-margin-bottom: 45vh;
+  scroll-margin-block: 88px;
+  font-size: 16px; /* ≥16px stops Android WebView auto-zoom on focus */
+}
+
+body.bow-mobile .text-input:focus,
+body.bow-mobile .text-input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+  border-color: var(--gold);
+}
+
+body.bow-mobile input:focus-visible,
+body.bow-mobile textarea:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* Empty sheets collapse to nothing rather than a sliver above the keyboard. */
+body.bow-mobile .sheet-foot:empty {
+  display: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   14. Display-settings panel (shell-owned, never part of the game's sheets)
+   ---------------------------------------------------------------------------
+   z-index sits above the game's sheet (20) and toast (30) so it can be opened
+   from anywhere. Its body is the only scroller inside it.
+   ─────────────────────────────────────────────────────────────────────────── */
+.bow-prefs {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+}
+
+.bow-prefs-bd {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(4, 6, 10, 0.68);
+}
+
+.bow-prefs-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 640px;
+  margin: 0 auto;
+  max-height: 82vh;
+  max-height: 82dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.bow-prefs-grab {
+  flex: none;
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--bow-handle);
+}
+
+.bow-prefs-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 6px;
+}
+
+.bow-prefs-head h3 {
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.bow-prefs-x {
+  width: var(--bow-tap);
+  height: var(--bow-tap);
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bow-prefs-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 16px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bow-prefs-row {
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.bow-prefs-row:first-child {
+  border-top: 0;
+}
+
+.bow-prefs-k {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bow-prefs-k em {
+  font-style: normal;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.bow-seg {
+  display: flex;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 3px;
+}
+
+.bow-seg-b {
+  flex: 1;
+  min-height: var(--bow-tap);
+  min-width: var(--bow-tap);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 0 6px;
+}
+
+.bow-seg-b + .bow-seg-b {
+  margin-left: 3px;
+}
+
+.bow-seg-b.on {
+  background: var(--gold);
+  color: #221a00;
+  font-weight: 750;
+}
+
+/* The shell's chrome is phone-only. Resizing a window wider than the phone
+   breakpoint (or loading this file on desktop) leaves the elements in the DOM
+   but out of sight, and the game's own in-flow nav takes over again. */
+body:not(.bow-mobile) .bow-bar,
+body:not(.bow-mobile) .bow-fab,
+body:not(.bow-mobile) .bow-prefs {
+  display: none !important;
+}
+
+/* Static read-out inside the font-size segmented control (not a button, so it
+   must not read as a selected option). */
+.bow-seg-out {
+  flex: 1;
+  min-height: var(--bow-tap);
+  min-width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin: 0 3px;
+}
+
+/* Wide screens: keep the shell centred and the bar out of the way. */
+@media (min-width: 700px) {
+  .bow-bar {
+    border-radius: 16px 16px 0 0;
+  }
+
+  .bow-fab {
+    right: calc(50% - 320px + 14px);
+  }
+}

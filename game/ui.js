@@ -520,6 +520,7 @@ function settingsBody() {
     + '<button class="' + (PREFS.font === 126 ? "on" : "") + '" data-action="set-pref" data-key="accent" data-val="126">A++</button>'.replace('data-key="accent"', 'data-key="font"')
     + "</div>"
     + '<div class="statrow"><span class="k">Sound effects</span><button class="btn sm" data-action="sound-toggle">' + (typeof SOUND_ON !== "undefined" && SOUND_ON ? "On — tap to mute" : "Off — tap to enable") + "</button></div>"
+    + '<div class="statrow"><span class="k">Full cast library</span><button class="btn sm" data-action="unlock-cast">' + (S.allCastUnlocked ? "Unlocked ✓" : "Unlock all cast") + "</button></div>"
     + '<div class="empty" style="padding:8px 0 0">v42.5 · autosaves locally after every week</div>'
     + "</div>";
   return html;
@@ -598,11 +599,18 @@ function glProjection() {
   var idea = findIdea(GL.ideaId), sc = scaleOf(GL.scale), g = genreOf(idea.genre);
   var budget = sc.budgets[GL.bIdx];
   var dir = findTalent(GL.dirId), act = findTalent(GL.actorId);
-  var starF = 1 + 0.09 * Math.min(act ? act.power : 2, 5.5);
-  var recM = Math.max(budget * sc.mktRate, 0.8);
-  var mktF = clamp(Math.pow(budget * sc.mktRate * MKT_TIERS[GL.mktIdx].mult / recM, 0.45), 0.5, 1.6);
-  var repF = 0.92 + S.studio.rep / 600;
-  var base = sc.openBase * g.mass * g.open * starF * mktF * repF * S.econ.box;
+  /* Single source of truth: build the same probe object previewOpening() uses and
+     let the engine's expectedOpening() do the maths. A hand-rolled copy of the
+     formula went stale (it ignored the supporting cast), so the opening estimate
+     disagreed with the film's actual opening. */
+  var probe = {
+    genre: idea.genre, scale: GL.scale, budget: budget, actId: GL.actorId,
+    supIds: (GL.supIds || []).slice(),
+    scandal: false, buzz: 0, franchiseOf: idea.franchiseOf || null,
+    mkt: Math.round(budget * sc.mktRate * MKT_TIERS[GL.mktIdx].mult * 10) / 10,
+    releaseWeek: S.studio.week + 1
+  };
+  var base = expectedOpening(probe);
   var quality = Math.round(0.32 * (idea.script + (idea.franchiseOf ? 5 : 0) + (GL.packaged ? 4 : 0)) + 0.26 * ((dir ? dir.skill : 45) + (dir && dir.fit.indexOf(idea.genre) >= 0 ? 6 : 0)) + 0.24 * ((act ? act.skill : 45) + (act && act.fit.indexOf(idea.genre) >= 0 ? 6 : 0)) + 0.18 * (55 + S.upg.post * 3));
   return { open: base, quality: quality };
 }
@@ -682,7 +690,7 @@ function sheetGreenlight(ideaId) {
 function previewOpening(p, weekAbs, mktIdx) {
   var sc = scaleOf(p.scale);
   var mkt = Math.round(p.budget * sc.mktRate * MKT_TIERS[mktIdx].mult * 10) / 10;
-  var probe = { genre: p.genre, scale: p.scale, budget: p.budget, actId: p.actId, scandal: p.scandal, buzz: p.buzz, franchiseOf: p.franchiseOf, mkt: mkt, releaseWeek: weekAbs };
+  var probe = { genre: p.genre, scale: p.scale, budget: p.budget, actId: p.actId, supIds: p.supIds || [], scandal: p.scandal, buzz: p.buzz, franchiseOf: p.franchiseOf, mkt: mkt, releaseWeek: weekAbs };
   return expectedOpening(probe);
 }
 function sheetRelease(pId) {
@@ -1053,6 +1061,15 @@ function onAction(a, elx) {
     case "continue-dynasty": sheetHeirs(); break;
     case "set-pref": setPref(elx.getAttribute("data-key"), elx.getAttribute("data-val")); render(); refreshDeskSheet(); break;
     case "sound-toggle": setSound(!SOUND_ON); pushToast(SOUND_ON ? "Sound on." : "Sound off.", ""); render(); refreshDeskSheet(); break;
+    case "unlock-cast": {
+      /* Bridged to game/cast-bridge.js: the legacy generator wrote to G.talent,
+         which does not exist in this build (state is S, talent is S.market). */
+      var uc = (typeof bowUnlockAllCast === "function") ? bowUnlockAllCast() : null;
+      if (uc && uc.ok) pushToast("Full cast unlocked — " + uc.total + " performers available.", "good");
+      else pushToast("Could not unlock the cast.", "bad");
+      render(); refreshDeskSheet();
+      break;
+    }
     case "pwa-install": {
       if (window.__deferredPrompt) { window.__deferredPrompt.prompt(); window.__deferredPrompt = null; }
       break;

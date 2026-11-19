@@ -91,8 +91,40 @@ else
 fi
 
 echo "── 3/6 rebuild APK ────────────────────────────────────────"
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
-export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+# ── toolchain discovery (macOS Homebrew, Linux, CI) ────────────
+# The old script hardcoded /opt/homebrew paths, so it only ran on one Mac.
+# Resolve JDK 17+ and the Android SDK from the environment first, then fall
+# back to the usual install locations on each platform.
+find_jdk() {
+  if [ -n "${JAVA_HOME:-}" ] && [ -x "$JAVA_HOME/bin/java" ]; then echo "$JAVA_HOME"; return 0; fi
+  if command -v java >/dev/null 2>&1; then
+    local jh; jh=$(java -XshowSettings:properties -version 2>&1 | awk -F'= ' '/java.home/{print $2; exit}')
+    [ -n "$jh" ] && echo "$jh" && return 0
+  fi
+  local c
+  for c in /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+           /usr/lib/jvm/java-21-openjdk-amd64 /usr/lib/jvm/java-17-openjdk-amd64 \
+           /usr/lib/jvm/java-21-openjdk /usr/lib/jvm/default-java \
+           "${ANDROID_STUDIO_JDK:-}"; do
+    [ -n "$c" ] && [ -x "$c/bin/java" ] && echo "$c" && return 0
+  done
+  return 1
+}
+find_sdk() {
+  if [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME" ]; then echo "$ANDROID_HOME"; return 0; fi
+  if [ -n "${ANDROID_SDK_ROOT:-}" ] && [ -d "$ANDROID_SDK_ROOT" ]; then echo "$ANDROID_SDK_ROOT"; return 0; fi
+  local c
+  for c in /opt/homebrew/share/android-commandlinetools "$HOME/Android/Sdk" "$HOME/Library/Android/sdk" /usr/local/lib/android/sdk; do
+    [ -d "$c" ] && echo "$c" && return 0
+  done
+  return 1
+}
+JDK_DIR=$(find_jdk) || { echo "✗ no JDK found — install JDK 17+ or set JAVA_HOME"; exit 1; }
+SDK_DIR=$(find_sdk) || { echo "✗ no Android SDK found — install it or set ANDROID_HOME"; exit 1; }
+export JAVA_HOME="$JDK_DIR"
+export ANDROID_HOME="$SDK_DIR"
+echo "  JDK: $JAVA_HOME"
+echo "  SDK: $ANDROID_HOME"
 node apk/build-www.js
 # cap sync copies apk/www into the Android assets gradle actually packs —
 # without it the APK ships whatever web code was synced during the FIRST build
@@ -102,14 +134,19 @@ mkdir -p apk/dist
 # in dry-run the version bump wasn't applied, so the built APK is still CUR_VER
 OUT_VER="$VERSION"; [ "$DRY_RUN" = true ] && OUT_VER="$CUR_VER"
 cp apk/android/app/build/outputs/apk/release/app-release.apk "apk/dist/BoxOfficeWar-$OUT_VER.apk"
-cp "apk/dist/BoxOfficeWar-$OUT_VER.apk" ~/Downloads/BoxOfficeWar.apk
+# convenience copy — only when there is a Downloads folder (Linux/CI usually hasn't)
+if [ -d "$HOME/Downloads" ]; then
+  cp "apk/dist/BoxOfficeWar-$OUT_VER.apk" "$HOME/Downloads/BoxOfficeWar.apk"
+  echo "✓ apk/dist/BoxOfficeWar-$OUT_VER.apk + ~/Downloads/BoxOfficeWar.apk"
+else
+  echo "✓ apk/dist/BoxOfficeWar-$OUT_VER.apk"
+fi
 # hard gate: refuse to ship an APK whose bundled index.html isn't this version
 APK_META=$(unzip -p "apk/dist/BoxOfficeWar-$OUT_VER.apk" assets/public/index.html | grep -o 'name="app-version" content="[0-9.]*"')
 if [ "$APK_META" != "name=\"app-version\" content=\"$OUT_VER\"" ]; then
   echo "✗ APK content check FAILED: bundled app-version is '$APK_META' (expected $OUT_VER) — web assets are stale, aborting."; exit 1
 fi
 echo "✓ APK content verified: bundled app-version $OUT_VER"
-echo "✓ apk/dist/BoxOfficeWar-$OUT_VER.apk + ~/Downloads/BoxOfficeWar.apk"
 
 if [ "$DRY_RUN" = true ]; then
   echo "── dry-run complete — next steps skipped ──────────────────"

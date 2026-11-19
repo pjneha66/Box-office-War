@@ -322,11 +322,34 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
           var newer=false;
           for(var i=0;i<Math.max(a.length,b.length);i++){ var d=(a[i]||0)-(b[i]||0); if(d>0){ newer=true; break; } if(d<0) break; }
           if(!newer) return;
-          var rel=(j.apk && /^https:\/\/github\.com\//.test(j.apk))? j.apk : "https://github.com/pjneha66/Box-office-War/releases/latest";
-          bowShowUpdateBar({ msg:"Update available: v"+j.v+" is out (installed: v"+local+").", action:"Get update", onGo:function(){
-            var a2=document.createElement("a"); a2.href=rel; a2.target="_blank"; a2.rel="noopener";
-            document.body.appendChild(a2); a2.click(); a2.remove();
-          }});
+          /* version.json lands on main as soon as the version is bumped, which
+             can be before the APK finishes building. Never point a player at a
+             release that has no downloadable APK: confirm the tag exists and
+             carries an .apk asset first. Fail closed (no prompt) when we cannot
+             confirm, so nobody is sent to a dead download link. */
+          var tag="v"+j.v;
+          var api="https://api.github.com/repos/pjneha66/Box-office-War/releases/tags/"+encodeURIComponent(tag);
+          var actl=("AbortController" in window)? new AbortController() : null;
+          var akill=actl? setTimeout(function(){ actl.abort(); }, 9000) : null;
+          fetch(api, {cache:"no-store", headers:{Accept:"application/vnd.github+json"}, signal:actl? actl.signal : undefined})
+            .then(function(r){
+              if(akill) clearTimeout(akill);
+              if(!r.ok) return null;            /* 404 = release not published yet */
+              return r.json();
+            })
+            .then(function(rel){
+              if(!rel || rel.draft) return;      /* still building — try again next launch */
+              var apk=null;
+              (rel.assets||[]).forEach(function(asset){
+                if(!apk && /\.apk$/i.test(asset.name||"") && asset.browser_download_url) apk=asset.browser_download_url;
+              });
+              if(!apk) return;                   /* release exists but the APK is missing */
+              bowShowUpdateBar({ msg:"Update available: v"+j.v+" is out (installed: v"+local+").", action:"Get update", onGo:function(){
+                var a2=document.createElement("a"); a2.href=apk; a2.target="_blank"; a2.rel="noopener";
+                document.body.appendChild(a2); a2.click(); a2.remove();
+              }});
+            })
+            .catch(function(){ if(akill) clearTimeout(akill); });
         })
         .catch(function(){ if(kill) clearTimeout(kill); });
     });

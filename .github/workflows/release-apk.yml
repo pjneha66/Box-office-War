@@ -99,6 +99,28 @@ jobs:
             fi
           done
 
+      - name: Decode signing keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set — cannot produce a signed, save-preserving APK."
+            exit 1
+          fi
+          mkdir -p apk/signing
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > apk/signing/boxofficewar.keystore
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "../../signing/boxofficewar.keystore" \
+            "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_ALIAS" "$ANDROID_KEY_PASSWORD" \
+            > apk/android/keystore.properties
+          chmod 600 apk/signing/boxofficewar.keystore apk/android/keystore.properties
+          echo "keystore staged ($(stat -c%s apk/signing/boxofficewar.keystore) bytes)"
+
       - name: Build web bundle
         run: node apk/build-www.js
 

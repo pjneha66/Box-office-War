@@ -40,8 +40,23 @@ if (t) {
     check(r.ok, "greenlight film with agency talent");
   }
 
-  for (let w = 0; w < 60; w++) advanceWeek();
-  check(t.picDeal == null || t.picDeal.pics < 3, "picDeal counts down after film run");
+  /* The film must actually reach theatres for the deal to count down:
+     endTheatrical() is where picDeal.pics-- lives. Schedule the release the
+     way the real UI does (setRelease once the project is ready), then run. */
+  let guard = 0;
+  while (guard++ < 40 && S.projects.some((p) => p.actId === t.id && p.phase !== "ready")) advanceWeek();
+  const proj = S.projects.find((p) => p.actId === t.id);
+  if (proj && proj.phase === "ready" && proj.releaseWeek == null) setRelease(proj, S.studio.week + 2, 1);
+  /* setRelease() moves the project out of S.projects into the release queue,
+     so wait on the film reaching "done" rather than on the project vanishing. */
+  guard = 0;
+  while (guard++ < 40) {
+    const f = S.films.find((x) => x.actId === t.id);
+    if (f && f.status === "done") break;
+    advanceWeek();
+  }
+  check(t.picDeal == null || t.picDeal.pics < 3, "picDeal counts down after film run"
+    + (t.picDeal ? " (pics " + t.picDeal.pics + ")" : " (fulfilled)"));
 
   const reps = tickTalentAgency();
   check(typeof reps === "number", "tickTalentAgency returns number");

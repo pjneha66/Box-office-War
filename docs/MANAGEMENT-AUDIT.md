@@ -19,6 +19,17 @@ This is functional DOM/engine coverage, not a guarantee of absence of all bugs.
 Browser screenshot tests require a Chromium environment with system libraries;
 this sandbox lacks libnspr4.so, so visual/browser-layout verification is pending.
 
+**Status:** the whole `npm run test:management` suite (13 JSDOM tests:
+`command-deck`, `management-audit`, `header-settings-guide`, `develop-deck`,
+`boxoffice-deck`, `boxoffice-charts`, `rebrand-streamer`, `ott-desk`, `live-desk`,
+`empire-desk`, `library-desk`, `finance-desk`, `cost-sheet`) was re-run and passes
+13/13. It is now also enforced by the `test` job in `.github/workflows/ci.yml`.
+The one failure found on re-run was a stale assertion, not a product defect:
+`test/develop-deck.mjs` still hardcoded the cast directory's first page at 60
+rows after `CAST_DIR_PAGE` was raised to 120. That assertion now derives the
+expected length from `CAST_DIR.limit` and additionally asserts that a 1,000+
+roster is still paged rather than painted whole.
+
 ## Fixed defects
 
 1. The modular picture-contract ledger was disconnected from film fees and

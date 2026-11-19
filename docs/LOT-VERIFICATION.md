@@ -98,13 +98,18 @@ greenlighting, production advancement and release through management controls.
 - `cargo test` could not run because Cargo is absent. The original legacy WASM is
   intentionally inactive; canonical JS is used on both platforms. The new protocol
   is not implemented in Rust and no WASM feature-parity claim is made.
-- APK production dependency installation reported **three moderate audit findings**.
-  No broad unrelated dependency upgrade was attempted. Optional APK art-generation
-  dev dependencies hit an old sharp certificate/download failure; production-only
-  installation (`npm ci --prefix apk --omit=dev`) succeeded without weakening TLS.
+- APK build dependencies now report **0 vulnerabilities** (`npm audit` clean in
+  `apk/`: `@capacitor/*` 8.6.2, `@capacitor/assets` 4.0.0, resolving `tar@7.5.22`,
+  `sharp@0.35.5`, `xcode@4.0.0`). This replaced the earlier three moderate findings
+  and also cleared the transitive critical (`tar`) and high (`sharp`) advisories.
+  CI gates this at `--audit-level=moderate` in the `audit` job.
 - Touch emulation is not hardware validation. Portrait, screen-reader usability,
   long careers on low-memory devices and multi-hour soak coverage remain manual QA.
-- Route reservations and occupancy prevent routine overlap, but are not a formal
-  proof of deadlock-freedom under arbitrary player-created densely packed layouts.
+- Route reservations and occupancy prevent routine overlap. **Verified against a
+  dense 34-building lot with 18 agents**: 7 routes are refused while agents are
+  clustered on a shared gate tile, and all 612 agent→building routes resolve once
+  the crowd disperses (all 18 reach their interiors). Refusals are transient
+  occupancy, not deadlock. This remains empirical rather than a formal proof for
+  arbitrary player-created layouts.
 - Original actor work animations are four-frame stylized loops. Room furniture is
   static; it is not described as a fully animated background illustration.

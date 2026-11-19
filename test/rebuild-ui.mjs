@@ -9,9 +9,27 @@ import { fileURLToPath } from "url";
 import puppeteer from "puppeteer-core";
 import { existsSync } from "fs";
 
-const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-if (!existsSync(CHROME)) {
-  console.error("Chrome not found at " + CHROME + " — set CHROME_PATH");
+/* Chrome/Chromium resolution order: CHROME_PATH env → common Linux system
+   paths → macOS bundle → @sparticuz/chromium's bundled binary. */
+function findChrome() {
+  const candidates = [
+    process.env.CHROME_PATH,
+    "/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable", "/snap/bin/chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  ].filter(Boolean);
+  for (const p of candidates) if (existsSync(p)) return p;
+  return null;
+}
+let CHROME = findChrome();
+if (!CHROME) {
+  try {
+    const mod = await import("@sparticuz/chromium");
+    CHROME = await (mod.default || mod).executablePath();
+  } catch (e) { /* fall through */ }
+}
+if (!CHROME) {
+  console.error("Chrome not found — install Chromium or set CHROME_PATH");
   process.exit(2);
 }
 
@@ -77,10 +95,10 @@ for (const vp of VIEWPORTS) {
   const startVisible = await page.evaluate(() => !!document.querySelector(".start h1"));
   startVisible ? ok("start screen renders") : fail("start screen missing");
   const scripts = await page.evaluate(() => document.querySelectorAll("script[src]").length);
-  scripts === 32 ? ok("32 script files (data, engine, 29 modules, ui)") : fail("expected 32 script tags, got " + scripts);
+  scripts >= 32 ? ok(scripts + " script files (data, engine, modules, ui)") : fail("expected >= 32 script tags, got " + scripts);
 
   await page.type("#studioName", "Test Pictures");
-  await clickBy(page, '.origin button[data-origin="veteran"]');
+  await clickBy(page, '[data-action="pick-origin"][data-origin="veteran"]');
   await clickBy(page, '[data-action="start-game"]');
   await sleep(200);
 

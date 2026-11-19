@@ -65,8 +65,7 @@ let weeksDriven = 0, minCash = Infinity, threw = null;
 function advance(n) {
   for (let i = 0; i < n; i++) {
     try {
-      C.advanceWeek();
-      C.tickCrew(); /* engine wiring is the integrator's one-liner; harness emulates it */
+      C.advanceWeek(); /* engine.js advanceWeek now calls tickCrew() itself */
     } catch (e) {
       threw = "week " + S().studio.week + ": " + (e.stack || e);
       return;

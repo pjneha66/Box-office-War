@@ -197,7 +197,13 @@ try {
   while (mid2 && lrolls < 400 && !mid2.legend) { ctx.pplYearlyRolls(); lrolls++; }
   check("age-50 talent gains legend status within seeded rolls", !mid2 || mid2.legend === true);
   if (mid2) check("legend flag grants heat +1", mid2.heat >= 1, "heat " + mid2.heat);
-  check("aging: yearly rolls advance age", rolls >= 10 && star.age > 58);
+  /* Every yearly roll ages everyone by exactly 1 (people.js:120), so the star's
+     age is 58 + every roll taken in this block — the retire loop, the comeback
+     loop AND the legend loop. The old assertion (`rolls >= 10`) was really
+     asserting that the RNG happened to take at least ten rolls, so it failed
+     intermittently when the star retired on an early roll. */
+  check("aging: every yearly roll advances age by exactly 1",
+    star.age === 58 + rolls + lrolls, (rolls + lrolls) + " rolls, age 58→" + star.age);
 } finally {
   Math.random = realRandom;
 }
@@ -231,18 +237,27 @@ ctx.peopleAction("ppl-train", el(p1.id));
 ctx.peopleAction("ppl-train", el(p1.id));
 check("train caps at 3 blocks (4th rejected, no charge)", p1.trainings === 3 && Math.abs(S.studio.cash - (t1 - 12)) < 1e-9);
 const mk = S.market.length;
+/* Identify the graduate by ID, not by name: each S.seq++ pushes a new record, so
+   the new id is authoritative. Looking up p1.n by name picked up a re-signed
+   comeback star or a pool member who happened to share the name, which made this
+   check flaky. */
+const idsBefore = S.market.map((t) => t.id);
 tickNext();
-const grad = S.market.find((t) => t.n === p1.n);
+const freshIds = S.market.filter((t) => idsBefore.indexOf(t.id) < 0).map((t) => t.id);
+const grad = freshIds.length === 1 ? S.market.find((t) => t.id === freshIds[0]) : S.market.find((t) => t.n === p1.n);
 check("graduate after 3 trainings: power 1+⌊3/2⌋=2, joins market, academy slot freed",
   S.ppl.academy.length === 2 && !!grad && grad.power === 2 && Math.abs(grad.fee - ctx.FEE_ACTOR[1]) < 1e-9,
-  "market +" + (S.market.length - mk) + " gradPower " + (grad && grad.power));
+  "market +" + freshIds.length + " gradPower " + (grad && grad.power));
 check("graduate news logged", S.news.some((n) => n.txt.indexOf("Academy graduate") >= 0));
 const p2 = S.ppl.academy[0];
 p2.weeks = 51;
+const idsBefore2 = S.market.map((t) => t.id);
 tickNext();
-const grad2 = S.market.find((t) => t.n === p2.n);
+const fresh2 = S.market.filter((t) => idsBefore2.indexOf(t.id) < 0);
+const grad2 = fresh2.length === 1 ? fresh2[0] : S.market.find((t) => t.n === p2.n);
 check("graduate after 52 weeks (no trainings → power 1)",
-  S.ppl.academy.length === 1 && !!grad2 && grad2.power === 1, "found " + !!grad2);
+  S.ppl.academy.length === 1 && !!grad2 && grad2.power === 1,
+  "fresh " + fresh2.length + " found " + !!grad2 + " power " + (grad2 && grad2.power));
 
 /* ── 8. action dispatch ──────────────────────────────────────── */
 check("peopleAction ignores foreign prefixes", ctx.peopleAction("tv-license", el(null)) === false && ctx.peopleAction("empire-x", el(null)) === false);

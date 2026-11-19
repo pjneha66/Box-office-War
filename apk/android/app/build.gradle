@@ -1,12 +1,21 @@
 apply plugin: 'com.android.application'
 
-// v28.15: self-signed release keystore — keep signing/boxofficewar.keystore safe;
-// losing it forces uninstall/reinstall (and local saves live in the app's storage)
+/* Release signing. The keystore and its passwords are NO LONGER committed:
+   they arrive as GitHub Actions secrets and are written to apk/android/ at
+   build time (see .github/workflows/release-apk.yml), or via
+   ANDROID_KEYSTORE_PATH / keystore.properties for a local build.
+   Keep the same key forever — saves live in the app's storage, and an update
+   signed with a different key forces an uninstall that wipes them. */
 def keystoreProps = new Properties()
 def keystorePropsFile = rootProject.file("keystore.properties")
 if (keystorePropsFile.exists()) {
     keystorePropsFile.withInputStream { keystoreProps.load(it) }
 }
+def ksFile = keystoreProps['storeFile'] ?: System.getenv("ANDROID_KEYSTORE_PATH")
+def ksStorePass = keystoreProps['storePassword'] ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+def ksAlias = keystoreProps['keyAlias'] ?: System.getenv("ANDROID_KEY_ALIAS")
+def ksKeyPass = keystoreProps['keyPassword'] ?: System.getenv("ANDROID_KEY_PASSWORD")
+def hasSigning = ksFile && file(ksFile).exists() && ksStorePass && ksAlias
 
 android {
     namespace = "com.pjneha66.boxofficewar"
@@ -26,11 +35,11 @@ android {
     }
     signingConfigs {
         release {
-            if (keystorePropsFile.exists()) {
-                storeFile file(keystoreProps['storeFile'])
-                storePassword keystoreProps['storePassword']
-                keyAlias keystoreProps['keyAlias']
-                keyPassword keystoreProps['keyPassword']
+            if (hasSigning) {
+                storeFile file(ksFile)
+                storePassword ksStorePass
+                keyAlias ksAlias
+                keyPassword ksKeyPass ?: ksStorePass
             }
         }
     }

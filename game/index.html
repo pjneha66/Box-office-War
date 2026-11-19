@@ -11,6 +11,9 @@
 <link rel="icon" href="icon.svg">
 <link rel="stylesheet" href="style.css?v=43.2">
 <link rel="stylesheet" href="boc-premium.css?v=43.2">
+<!-- Phone shell: safe areas, bottom tab bar, bottom sheets, touch targets,
+     themes. Loaded after the base styles so it can refine them. -->
+<link rel="stylesheet" href="mobile-shell.css?v=43.2">
 </head>
 <body>
 
@@ -66,6 +69,9 @@
 <script src="data.js?v=43.2"></script>
 <script src="cast-banks.js?v=43.2"></script>
 <script src="box-office-sim-2-cast.js?v=43.2"></script>
+<!-- Bridge the BOS2 cast DB onto this build's state shape (S.market, not
+     G.talent), and provide the working "Unlock all cast" action. -->
+<script src="cast-bridge.js?v=43.2"></script>
 <script src="engine.js?v=43.2"></script>
 <script src="tv.js?v=43.2"></script>
 <script src="empire.js?v=43.2"></script>
@@ -103,5 +109,11 @@
 <script src="box-office-collection-engine.js?v=43.2"></script>
 <script src="help.js?v=43.2"></script>
 <script src="ui.js?v=43.2"></script>
+<!-- Phone-first shell: bottom tab bar + advance-week FAB, display preferences.
+     Additive only — it mirrors the real nav and never re-renders the app. -->
+<script src="mobile-shell.js?v=43.2"></script>
+<!-- Phone UX: week summary, autosave indicator, keyboard shortcut, glossary,
+     haptics, crash log, save export/import. Additive and defensive. -->
+<script src="phone-ux.js?v=43.2"></script>
 </body>
 </html>

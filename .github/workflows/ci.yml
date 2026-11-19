@@ -1,0 +1,174 @@
+name: CI
+
+# Runs on every PR: syntax checks + the full test suite, including the
+# `rebuild-*` module harnesses that were previously not run in CI (regressions
+# like the stale tick wiring and the served-version check went unnoticed).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install root dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Syntax check (node --check)
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(git ls-files '*.js' '*.mjs' '*.cjs' | grep -v -E '^(node_modules|apk/www|apk/android)/' || true)
+          n=0
+          for f in $files; do
+            case "$f" in
+              apk/android/*|apk/www/*) continue ;;
+            esac
+            # .mjs/.cjs may use ESM/CJS syntax node --check handles natively
+            node --check "$f" >/dev/null 2>&1 || { echo "::error file=$f::node --check failed"; node --check "$f"; exit 1; }
+            n=$((n+1))
+          done
+          echo "syntax clean: $n files"
+
+      - name: Smoke test
+        run: node test/smoke.js
+
+      - name: Management and desk suites
+        shell: bash
+        run: |
+          set -uo pipefail
+          pass=0; fail=0; failed=""
+          for t in command-deck management-audit header-settings-guide develop-deck \
+                   boxoffice-deck boxoffice-charts rebrand-streamer ott-desk \
+                   live-desk empire-desk library-desk finance-desk cost-sheet; do
+            if node "test/$t.mjs" > "/tmp/$t.log" 2>&1; then
+              pass=$((pass+1)); echo "PASS  $t"
+            else
+              fail=$((fail+1)); failed="$failed $t"; echo "FAIL  $t"
+              tail -25 "/tmp/$t.log" || true
+            fi
+          done
+          echo "::notice::desk suites — pass=$pass fail=$fail"
+          if [ "$fail" -gt 0 ]; then
+            echo "::error::failing desk suites:$failed"
+            exit 1
+          fi
+
+      - name: Module harnesses (rebuild-*)
+        shell: bash
+        run: |
+          set -uo pipefail
+          pass=0; fail=0; failed=""
+          for f in test/rebuild-*.mjs; do
+            case "$f" in
+              *rebuild-ui*) continue ;; # browser harness, separate job
+            esac
+            if node "$f" > "/tmp/$(basename "$f").log" 2>&1; then
+              pass=$((pass+1)); echo "PASS  $f"
+            else
+              fail=$((fail+1)); failed="$failed $f"; echo "FAIL  $f"
+              tail -25 "/tmp/$(basename "$f").log" || true
+            fi
+          done
+          echo "::notice::rebuild harnesses — pass=$pass fail=$fail"
+          if [ "$fail" -gt 0 ]; then
+            echo "::error::failing harnesses:$failed"
+            exit 1
+          fi
+
+      - name: Upload harness logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-logs
+          path: /tmp/rebuild-*.mjs.log
+          if-no-files-found: ignore
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # The APK toolchain (Capacitor CLI + @capacitor/assets) is the only place
+      # this project takes third-party runtime code into a shipped artifact.
+      # Keep it at zero known advisories so a release build can't ship one.
+      - name: Audit APK build dependencies
+        working-directory: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          if ! npm audit --audit-level=moderate; then
+            echo "::error::apk build dependencies have known advisories — run 'npm audit fix' in apk/"
+            exit 1
+          fi
+
+      - name: Audit root dependencies (informational)
+        continue-on-error: true
+        run: npm audit --audit-level=high || true
+
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install root dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Install Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+
+      - name: Run UI harness (phone viewports)
+        env:
+          CHROME_PATH: /usr/bin/chromium-browser
+        run: |
+          if [ ! -x "$CHROME_PATH" ]; then export CHROME_PATH=/usr/bin/chromium; fi
+          node test/rebuild-ui.mjs
+
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: rebuild-notes/ui-*.png
+          if-no-files-found: ignore

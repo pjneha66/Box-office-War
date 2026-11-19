@@ -47,3 +47,11 @@ test-results/
 
 # generated visual-harness page
 .harness.html
+
+# ── signing material (never commit) ───────────────────────────────
+# The release keystore and its passwords arrive as GitHub Actions secrets
+# (ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS /
+# ANDROID_KEY_PASSWORD) and are written into the tree at build time only.
+apk/signing/*.keystore
+apk/signing/*.jks
+apk/android/keystore.properties

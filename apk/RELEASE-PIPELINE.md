@@ -1,27 +1,61 @@
-# Working APK release pipeline (proven — v42.5 & v42.8)
+# Working APK release pipeline
 
-The zip-swap + jarsigner pipeline is NOT installable on modern Android
-(v1 signature only; targetSdk 30+ requires v2). Use the Capacitor gradle
-pipeline — this is how v42.5 and v42.8 were built:
+The signed APK is built by Capacitor + Gradle. Two supported paths:
+
+- **CI (recommended):** push a `v*` tag or run **Actions → Release APK**. The
+  workflow installs the Android SDK, materialises the keystore from repository
+  secrets, builds, verifies the bundled `app-version`, and publishes the
+  GitHub release with the APK attached. See `.github/workflows/release-apk.yml`.
+- **Local:** `bash release.sh <version>` from the repo root (works on macOS and
+  Linux; the script discovers the JDK and Android SDK, or honours
+  `JAVA_HOME` / `ANDROID_HOME`).
+
+The zip-swap + jarsigner pipeline is **not** installable on modern Android
+(v1 signature only; targetSdk 30+ requires v2). Always use the Gradle pipeline.
+
+## What the build does
 
 ```bash
-export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
-export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+# 1. package the game into apk/www/ (index.html, style.css, data.js, engine.js,
+#    ui.js, the module files, manifest, icons)
+node apk/build-www.js
 
-# 1. package the game (game/ -> apk/www/, 44 files incl. cast banks + cameo.js)
-node apk/build-www.js --rebuild
+# 2. sync the web assets into the android project
+cd apk && node node_modules/@capacitor/cli/bin/capacitor sync android
 
-# 2. stage into the Capacitor working tree (copy of the repo at /tmp/bow-main)
-cp apk/www/* /tmp/bow-main/apk/www/
+# 3. signed release build
+cd android && ./gradlew assembleRelease --no-daemon
 
-# 3. bump apk/android/app/build.gradle: versionCode / versionName
-
-# 4. sync web assets into the android project + signed release build
-cd /tmp/bow-main/apk && node node_modules/@capacitor/cli/bin/capacitor sync android
-cd android && ./gradlew assembleRelease --no-daemon -q
-
-# 5. output: app/build/outputs/apk/release/app-release.apk  (v2-signed, aligned)
+# output: app/build/outputs/apk/release/app-release.apk (v2-signed, aligned)
 ```
 
-Verified on v42.8: package com.pjneha66.boxofficewar, versionCode 54,
-versionName 42.8, v2 signature block, assets/public/* contains the full game.
+`release.sh` wraps all of this, then runs a hard gate: it refuses to publish an
+APK whose bundled `index.html` `app-version` does not match the release version,
+so stale web assets can never ship.
+
+## Signing
+
+The keystore is **not** committed. It is provided to CI through repository
+secrets and written into `apk/signing/` only for the duration of the build:
+
+| Secret | Contents |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | base64 of `boxofficewar.keystore` |
+| `ANDROID_KEYSTORE_PASSWORD` | store password |
+| `ANDROID_KEY_ALIAS` | key alias (`bow`) |
+| `ANDROID_KEY_PASSWORD` | key password |
+
+For a local build, either set `ANDROID_KEYSTORE_PATH`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, or
+create `apk/android/keystore.properties` (gitignored).
+
+**Keep this key safe.** The game's saves live in the app's local storage, and
+installing an update signed with a different key forces an uninstall that wipes
+them. Losing the keystore means every existing player must lose their save to
+get the next update.
+
+For Play Store distribution upload an **AAB** (`./gradlew bundleRelease`) with
+Play App Signing instead of a self-signed APK.
+
+Verified on v44.0: package `com.pjneha66.boxofficewar`, versionCode 57,
+versionName 44.0, v2 signature block, assets/public/* contains the full game.

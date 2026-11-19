@@ -61,6 +61,8 @@ function optEl(idx) { return { getAttribute: (k) => (k === "data-idx" ? String(i
 /* ── 1. 80-week drive through the real weekly path ───────────── */
 let threw = null;
 try {
+  /* engine.js advanceWeek calls tickWorld() itself (lastTick-guarded), so the
+     explicit call here is a no-op — kept to prove idempotency. */
   for (let w = 0; w < 80 && !S.over; w++) {
     ctx.advanceWeek();
     ctx.tickWorld();
@@ -118,15 +120,16 @@ forceArc("feud", rivName);
 wtick(0.99); wtick(0.99); wtick(0.99);
 withRand(0.99, () => ctx.worldAction("pending-opt", optEl(2))); /* double down */
 check("double down arms next-week dock", S.world.ddWeek === S.studio.week + 1, "ddWeek " + S.world.ddWeek);
-ctx.advanceWeek();
-const dockBefore = S.studio.cash;
+ctx.advanceWeek(); /* the engine's own tickWorld() applies the dock */
+/* Read the dock from the ledger row, not from cash: the same week can also
+   book awards or other income, which would mask the deduction. */
+const dockRow = (S.weekTx.rows || []).find((r) => r.k === "Feud retaliation at the box office");
+const dockDelta = Math.round(Math.abs(dockRow ? dockRow.v : 0) * 10) / 10;
 const g = S.films[0].weekly[S.films[0].weekly.length - 1];
 const dockExp = Math.round((g * 0.05 * 0.52) * 10) / 10;
-ctx.tickWorld();
-const dockDelta = Math.round((dockBefore - S.studio.cash) * 10) / 10;
 check("feud dock hits running films (-5% week gross rentals)",
-  S.world.ddWeek === 0 && Math.abs(dockDelta - dockExp) < 0.01,
-  "gross " + fmSafe(g) + " dock " + fmSafe(dockDelta));
+  S.world.ddWeek === 0 && !!dockRow && Math.abs(dockDelta - dockExp) < 0.05 && dockDelta > 0,
+  "gross " + fmSafe(g) + " dock " + fmSafe(dockDelta) + " expected " + fmSafe(dockExp));
 
 /* ── 5. takeover: merger / poach / ignore-at-expiry ───────────── */
 forceArc("takeover", rivName);
