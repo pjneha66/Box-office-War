@@ -2,6 +2,55 @@
 
 **Date:** 2026-11-14 · **Updated:** 2026-11-19 · Method: two exhaustive sweeps of the old codebase (rebuild-notes/old-features-inventory-a.md, -b.md) cross-checked against `game/`. Everything already ported is excluded.
 
+## 0.3 v46.0 — the remaining gaps, closed (2026-11-19)
+
+The v45 audit closed the *ported-content* gaps. A second pass looked for systems the
+rebuild had never had in any form, and for features the UI advertised but nothing
+populated. Eight systems plus one engine fix, all shipped:
+
+| Gap | Why it mattered | Now lives in | Harness |
+|---|---|---|---|
+| rival `ytd` never written | `libStrongestRival()`/`libWeakestRival()` both always returned `rivals[0]`; the finance comparable-company table priced every rival at `—`; the rival panel showed `0M ytd` for a whole career | `engine.js` `tickRivals()` (accumulator) | `test/rebuild-rivals.mjs` |
+| no market share / ranking | nothing told you whether you were the #1 studio or the #6 | `game/rivals.js` | 65 checks |
+| no sequel planning | the most obvious studio decision in the genre was RNG-only | `game/sequel.js` | 86 checks |
+| thin production roles | no cinematographer, production designer, sound mix or pre-viz — films had no craft identity | `game/craft.js` | 109 checks |
+| talent had no growth arc | stars were rented, never built | `game/mentor.js` | 73 checks |
+| reputation capped, no progression | 100 rep and then nothing mattered again | `game/legacy.js` | 83 checks |
+| window was a number, not a choice | no theatrical-vs-streaming trade-off | `game/window.js` | 100 checks |
+| strike was a flat cost multiplier | no guilds, no contracts, no negotiation | `game/labor.js` | 85 checks |
+| awards were "Best Picture or nothing" | no craft categories, no way to lose to a rival | `game/awardsplus.js` | 79 checks |
+
+Module achievements also became extensible: `meta.js` has `allAchievements()`, which
+merges `*_ACHIEVEMENTS` arrays published by any module. The count went 39 → 87.
+
+Three of the four bugs below were found *by* the new harnesses, not by reading code:
+
+1. `game/meta.js` audience desk rendered the literal string `undefined` for each film's
+   genre (`genreOf(x).n`; the field is `.name`). Caught by the desk-render sweep in
+   `test/wiring-integration.mjs`.
+2. `yearAwards()` returned early on the `awardNightBegin` pending flow, before
+   `awardsPlusCategories()` — so below-the-line categories were unreachable for any year
+   in which the player had a 70+ quality film. Caught by the hook call-spy.
+3. `awpCeremony()` had no idempotency guard: the engine path and the tick catch-up could
+   both pay the same season, duplicating $8.9M. Caught by
+   `test/awards-payout-guard.mjs`.
+4. `expectedOpening()` referenced `rivalWarBuzzMult()` before `rivals.js` existed, so the
+   call was a permanent no-op. Caught by the "every hook is reachable" assertion.
+
+### The guard that prevents the v44.0 class of bug
+
+`test/wiring-integration.mjs` loads every module exactly as `game/index.html` does,
+installs a call-spy on each of the 28 hooks, drives a 220-week career through the
+engine's own `greenlight()` / `setRelease()` / `advanceWeek()` path, and **fails if the
+engine never calls a hook**. Per-module harnesses cannot catch this: they load one module,
+so a hook that exists and works is still invisible if the engine never reaches it. That is
+precisely what shipped the legacy game in v44.0.
+
+It also renders all 106 desks and rejects any that throw, render empty, or leak `NaN` /
+`undefined` — which is how the genre-name bug was found.
+
+---
+
 ## 0. Status as of 2026-11-19 — the audit is closed
 
 The 18 "whole systems still missing" below were re-checked against `game/` by grepping

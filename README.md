@@ -2,7 +2,7 @@
 
 > A phone-first Hollywood studio tycoon. Greenlight films, pitch your own projects,
 > cast stars, book celebrity cameos, produce limited series for the streamers, pick
-> your release dates and win the weekend — with 75+ live feature desks running a
+> your release dates and win the weekend — with 106 live feature desks running a
 > deterministic weekly simulation.
 
 [Download Android APK (latest)](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
@@ -31,7 +31,58 @@ regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
 
 ---
 
-## What is new in v45.0 — release fix + four new systems
+## What is new in v46.0 — the rival economy wakes up, eight new systems
+
+**The rival studios were never real.** Every studio in the game tracked a
+year-to-date gross of `0M` forever, because nothing in the code ever wrote that
+field. That one dead value quietly broke three features the game already
+advertised: the strongest/weakest rival actions always targeted the same studio,
+the finance desk's comparable-company valuation showed `—` for everyone, and the
+rival panel was a wall of zeros. Rival films were being simulated — real
+openings, real decay — their gross simply never made it back to the studio that
+released them. It does now.
+
+That fix gives the career a scoreboard, and eight new systems build on it:
+
+| System | What it adds |
+|---|---|
+| **Rival war room** | Industry ranking and market share. Rivals react to you winning — aggressive when they are losing, cowed when you have crushed them — and will poach your stars harder the more you dominate. Buy counter-programming against a named rival. |
+| **Sequel planning** | Greenlight a sequel to a hit yourself instead of waiting for RNG. Each sequel in a franchise ships with decaying anticipation and craft, so a fourth entry is not a third printing of the first. |
+| **Craft departments** | Cinematography, production design, sound mix and pre-viz heads. Assign them to a project and they move its craft, audience score, legs and reviews. |
+| **Talent mentoring** | Pair a veteran with a young performer for 26 weeks. The mentee gains permanent skill, signs cheaper afterwards, and lifts the room when they finally headline. |
+| **Studio legacy tiers** | Indie label → boutique → mid-tier → major → studio system → legacy house. Higher tiers open bigger films, borrow cheaper and sign talent on better terms. |
+| **Distribution windows** | A real decision, in dollars: 90-day theatrical exclusive, 45-day standard, 17-day day-and-date or PVOD-first. A long hold sells more tickets and a shorter one sells a bigger streaming cheque. |
+| **Guild relations** | Writers, actors, directors and crew, each with a mood, a contract expiry and a cost. Concede wages, offer residuals or back-end, or refuse and risk a strike. |
+| **Deeper awards night** | Six below-the-line categories — cinematography, production design, sound, editing, score, ensemble — where a rival film can and will beat you. |
+
+**Achievements now scale.** The trophy table used to be a closed list, so new
+content shipped with no acknowledgement. Modules can now publish their own
+trophies; the count went from 39 to 87, and every new system has its own.
+
+### Bugs fixed
+
+- The audience-analytics desk printed the literal word `undefined` where each
+  film's genre belonged.
+- Year-end awards returned early whenever the awards-night decision fired, so
+  the below-the-line categories never ran for an entire career.
+- The craft ceremony had no idempotency guard: a replayed season paid its
+  bonuses twice ($8.9M duplicated).
+- A hook was referenced from the opening calculation before the module that
+  defines it existed.
+
+### New shipping guards
+
+- `test/wiring-integration.mjs` puts a call-spy on every engine hook and fails
+  if the engine never reaches one — the only test that catches *"module
+  written, hook never wired"*, which is the failure that shipped the legacy
+  game in v44.0. It also renders all 106 desks and rejects `NaN`/`undefined`.
+- `test/achievements-merge.mjs` proves module trophies reach the gallery and
+  survive a stripped old save.
+- `test/awards-payout-guard.mjs` proves a season pays its craft awards once.
+
+---
+
+## What shipped in v45.0 — release fix + four systems
 
 **The v44.0 APK shipped the wrong game.** The release pipeline built the legacy
 60-script game instead of the rebuilt one; v45.0 fixes the pipeline and ships
