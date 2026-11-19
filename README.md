@@ -31,6 +31,25 @@ regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
 
 ---
 
+## What is new in v46.1 — the cashflow forecast tells the truth
+
+Three defects, all masked by `typeof x === "function"` guards, so nothing ever threw:
+
+- The 12-week cashflow projection was computed by a function in **ui.js**, which
+  `engine.js` called. Headless runs had no forecast at all, and it only summed
+  four of the eighteen modules that publish income hooks.
+- `forecastAdjust_tv` was named by that aggregator but **defined nowhere** — so
+  the streamer's subscription income and the syndication royalty tail, both real
+  weekly earnings, never showed up in the projection.
+- Fourteen modules had dead forecast hooks.
+
+The engine now owns its own projection, sums every module, and `tv.js` reports
+its real weekly numbers (including the upkeep deduction and the deal-expiry
+cutoff). New guard: `test/no-phantom-hooks.mjs` proves all 126 guarded hooks the
+engine references actually exist.
+
+---
+
 ## What is new in v46.0 — the rival economy wakes up, eight new systems
 
 **The rival studios were never real.** Every studio in the game tracked a
