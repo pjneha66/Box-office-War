@@ -75,6 +75,9 @@ jobs:
             exit 1
           fi
 
+      - name: Bundle integrity (every referenced file ships)
+        run: node test/bundle-integrity.mjs
+
       - name: Module harnesses (rebuild-*)
         shell: bash
         run: |

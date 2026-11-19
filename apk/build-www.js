@@ -11,7 +11,7 @@ const WWW = path.join(__dirname, "www");
 // The legacy 60-file build below is untouched and still the default.
 const REBUILD = process.argv.includes("--rebuild");
 const GAME_FILES = [
-  "index.html", "style.css", "data.js", "cast-banks.js", "box-office-sim-2-cast.js", "cast-bridge.js", "engine.js", "ui.js",
+  "index.html", "style.css", "boc-premium.css", "data.js", "cast-banks.js", "box-office-sim-2-cast.js", "cast-bridge.js", "engine.js", "ui.js",
   "mobile-shell.css", "mobile-shell.js", "phone-ux.js",
   "tv.js", "empire.js", "pr.js", "biz.js", "ott.js", "games.js", "library.js",
   "exhibition.js", "creative.js", "finance.js", "challenges.js", "i18n.js", "sound.js",
@@ -20,6 +20,7 @@ const GAME_FILES = [
   "crew.js", "mastery.js", "world.js", "licensing.js", "awards.js", "festivals.js",
   "social_viral.js", "stadium.js", "talent_agency.js", "cameo.js",
   "box-office-collection-engine.js", "opsuite.js", "liveops.js", "mktblitz.js", "consolehw.js",
+  "help.js",
   "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"
 ];
 

@@ -189,8 +189,12 @@ for (const vp of VIEWPORTS) {
   // box office view + chart
   await clickBy(page, '[data-view="playing"]');
   await sleep(150);
-  const bars = await page.evaluate(() => document.querySelectorAll("#view .chart .c").length);
-  bars > 0 ? ok(`weekend chart draws (${bars} columns)`) : fail("chart empty");
+  /* The weekend chart was re-skinned from `.chart .c` columns to the ranked
+     `.bo-chart .bo-row` table; query both so this keeps working across skins. */
+  const bars = await page.evaluate(() =>
+    document.querySelectorAll("#view .bo-chart .bo-row").length ||
+    document.querySelectorAll("#view .chart .c").length);
+  bars > 0 ? ok(`weekend chart draws (${bars} rows)`) : fail("chart empty");
   await page.screenshot({ path: path.join(shotDir, `ui-${vp.name}-playing.png`) });
 
   // film detail sheet
@@ -227,6 +231,10 @@ for (const vp of VIEWPORTS) {
   await sleep(120);
   const agBtn = await page.evaluate(() => !!document.querySelector('[data-action="ag-found"]'));
   agBtn ? ok("agency desk shows found action") : fail("agency desk broken");
+  /* Funding an agency costs $25M. Cash depends on how many weeks the drive ran
+     and what the early slate earned, so top up rather than hoping the run is rich
+     enough — the assertion under test is the desk action, not the bankroll. */
+  await page.evaluate(() => { if (window.S && S.studio) S.studio.cash = Math.max(S.studio.cash, 60); });
   await clickBy(page, '[data-action="ag-found"]');
   await sleep(120);
   const founded = await page.evaluate(() => window.S && S.agency.founded);
