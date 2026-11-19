@@ -233,8 +233,14 @@ for (const vp of VIEWPORTS) {
   agBtn ? ok("agency desk shows found action") : fail("agency desk broken");
   /* Funding an agency costs $25M. Cash depends on how many weeks the drive ran
      and what the early slate earned, so top up rather than hoping the run is rich
-     enough — the assertion under test is the desk action, not the bankroll. */
-  await page.evaluate(() => { if (window.S && S.studio) S.studio.cash = Math.max(S.studio.cash, 60); });
+     enough — the assertion under test is the desk action, not the bankroll.
+     The button is rendered disabled when cash is short, so the sheet has to be
+     re-rendered after the top-up or the click lands on a disabled element. */
+  await page.evaluate(() => {
+    if (window.S && S.studio) S.studio.cash = Math.max(S.studio.cash, 60);
+    if (typeof refreshDeskSheet === "function") refreshDeskSheet();
+  });
+  await sleep(80);
   await clickBy(page, '[data-action="ag-found"]');
   await sleep(120);
   const founded = await page.evaluate(() => window.S && S.agency.founded);
