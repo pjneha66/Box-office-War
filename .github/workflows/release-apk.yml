@@ -121,8 +121,28 @@ jobs:
           chmod 600 apk/signing/boxofficewar.keystore apk/android/keystore.properties
           echo "keystore staged ($(stat -c%s apk/signing/boxofficewar.keystore) bytes)"
 
-      - name: Build web bundle
-        run: node apk/build-www.js
+      - name: Build web bundle (rebuild game)
+        # The shipped game is the rebuilt, phone-first build in game/.
+        # Without --rebuild this packages the legacy 60-script game instead,
+        # which is how v44.0 regressed to the old UI.
+        run: node apk/build-www.js --rebuild
+
+      - name: Verify the bundle is the rebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          IDX=apk/www/index.html
+          [ -f "$IDX" ] || { echo "::error::apk/www/index.html missing"; exit 1; }
+          for f in mobile-shell.js phone-ux.js opsuite.js liveops.js mktblitz.js consolehw.js; do
+            if ! grep -q "$f" "$IDX"; then
+              echo "::error::bundle is not the rebuild — $f is not referenced by apk/www/index.html"
+              exit 1
+            fi
+          done
+          if grep -q "industry-expansion-suite.js" "$IDX"; then
+            echo "::error::bundle contains the LEGACY game (industry-expansion-suite.js)"; exit 1
+          fi
+          echo "bundle verified as the rebuild ($(grep -c '<script src=' "$IDX") scripts)"
 
       - name: Sync Capacitor web assets
         working-directory: apk

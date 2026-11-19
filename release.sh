@@ -125,7 +125,12 @@ export JAVA_HOME="$JDK_DIR"
 export ANDROID_HOME="$SDK_DIR"
 echo "  JDK: $JAVA_HOME"
 echo "  SDK: $ANDROID_HOME"
-node apk/build-www.js
+# The shipped game is the rebuilt, phone-first build in game/ (--rebuild).
+# Plain `node apk/build-www.js` packages the legacy 60-script game instead.
+node apk/build-www.js --rebuild
+if ! grep -q "mobile-shell.js" apk/www/index.html; then
+  echo "✗ build-www.js produced the legacy bundle, not the rebuild — aborting"; exit 1
+fi
 # cap sync copies apk/www into the Android assets gradle actually packs —
 # without it the APK ships whatever web code was synced during the FIRST build
 ( cd apk && node node_modules/@capacitor/cli/bin/capacitor sync android )

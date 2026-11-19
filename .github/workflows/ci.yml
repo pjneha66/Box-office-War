@@ -78,6 +78,9 @@ jobs:
       - name: Bundle integrity (every referenced file ships)
         run: node test/bundle-integrity.mjs
 
+      - name: Release path builds the right game
+        run: node test/release-mode.mjs
+
       - name: Module harnesses (rebuild-*)
         shell: bash
         run: |
