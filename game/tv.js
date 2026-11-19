@@ -562,3 +562,26 @@ var TV_DESKS = [
 ];
 
 /* Wiring lives in engine.js (tickTV) and ui.js (tvAction + desk shell) — no self-wiring needed. */
+
+/* ── forecast hook (engine.js forecastAdjust) ──────────────────
+   tv.js earns real recurring cash on the weekly tick: streamer subscriptions,
+   live ad revenue and the syndication royalty tail. None of it appeared in the
+   12-week cashflow forecast, because this hook never existed — ui.js's old
+   aggregator named forecastAdjust_tv but nothing defined it. Returning the
+   actual weekly numbers keeps the projection honest. */
+function forecastAdjust_tv(weekAbs) {
+  if (!S || !S.tv) return 0;
+  var n = 0, i, st = S.tv.streamer;
+  if (st) {
+    /* mirror tvTickStreamer's earn line, using the subscriber count it will have */
+    var nextSubs = Math.max(0.1, st.subs * 0.98 + 0.02 * st.licensed + 0.05 * st.exclusives + 0.01);
+    n += nextSubs * 0.015 - 3;                 /* subscription income less streamer upkeep */
+  }
+  if (S.tv.synd && S.tv.synd.deals) {
+    for (i = 0; i < S.tv.synd.deals.length; i++) {
+      if (weekAbs >= S.tv.synd.deals[i].until) continue;   /* deal ends before that week */
+      n += S.tv.synd.deals[i].weekly;
+    }
+  }
+  return n;
+}

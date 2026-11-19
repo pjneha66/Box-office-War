@@ -94,6 +94,13 @@ jobs:
       - name: A season pays its craft awards exactly once
         run: node test/awards-payout-guard.mjs
 
+      # A `typeof x === "function"` guard makes a typo'd or not-yet-written hook
+      # a silent no-op forever. That is how rivalWarBuzzMult was referenced from
+      # expectedOpening() before rivals.js existed, and how forecastAdjust_tv was
+      # named by the old aggregator while nothing ever defined it.
+      - name: No phantom hooks
+        run: node test/no-phantom-hooks.mjs
+
       - name: Module harnesses (rebuild-*)
         shell: bash
         run: |

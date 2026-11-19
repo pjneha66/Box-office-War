@@ -150,13 +150,19 @@ try {
       const o = openOffers.find((q) => !acceptedIds.has(q.id));
       if (o) { declinedOk = ctx.licensingAction("lic-decline", btn({ id: o.id })) === true; declinedIds.add(o.id); staleReacceptErr = ctx.licAccept(o.id).err != null; }
     }
-    /* take a natural hotels offer to exercise the trickle */
+    /* take a natural hotels offer to exercise the trickle. Only pick an offer whose
+       film is still unlicensed: a hotels offer can outlive its film being licensed
+       by a different buyer's offer, and licAccept rejects that cleanly. Taking the
+       baseline BEFORE knowing the accept succeeded used to leave a stale
+       totalBeforeTrickle with trickleStartWk still null, which failed three checks
+       depending on which offers happened to be on the table. */
     if (acceptedIds.size && trickleStartWk == null && w <= 44) {
-      const o = S().lic.offers.find((q) => q.buyer === "hotels");
+      const o = S().lic.offers.find((q) => q.buyer === "hotels" && !(ctx.findFilm(q.filmId) || {}).licensed);
       if (o) {
         const f = ctx.findFilm(o.filmId);
-        totalBeforeTrickle = S().lic.total;
+        const base = S().lic.total;
         if (ctx.licensingAction("lic-accept", btn({ id: o.id })) === true) {
+          totalBeforeTrickle = base;
           acceptedIds.add(o.id);
           trickleStartWk = w; trickleFilmTitle = f.title;
         }
@@ -183,19 +189,33 @@ try {
         }
       }
     }
-    /* backstop: if no hotels trickle started by week 44, craft one via the real accept path */
+    /* backstop: if no hotels trickle started by week 44, craft one via the real
+       accept path. If every done film is already licensed (which happens when the
+       deals fire early), synthesise one so the trickle branch is still exercised —
+       otherwise this backstop silently no-ops and three checks fail on RNG. */
     if ((w === 44 || w === 46 || w === 48) && trickleStartWk == null) {
       let f = S().films.find((q) => q.status === "done" && !q.licensed && q.ww >= 30);
       if (!f) {
         f = S().films.find((q) => q.status === "done" && !q.licensed);
         if (f && f.ww < 30) f.ww = Math.max(f.ww, 120);
       }
+      if (!f) {
+        f = { id: "lic-backstop", title: "Backstop Feature", genre: "drama", status: "done",
+              ww: 240, dom: 120, licensed: false };
+        S().films.push(f);
+      }
       if (f) {
         const perWk = Math.round(f.ww * 0.0002 * 10000) / 10000;
         const amt = Math.round(f.ww * 0.0002 * 12 * 10) / 10;
-        totalBeforeTrickle = S().lic.total;
+        const base = S().lic.total;
         S().lic.offers.push({ id: "lo-t1", filmId: f.id, buyer: "hotels", amt, perWk, expires: w + 3 });
-        if (ctx.licAccept("lo-t1") === true) {
+        /* licAccept returns { ok: true }, not a bare boolean. Comparing to `true`
+           made this backstop silently never fire, so the trickle branch was only
+           ever exercised when a NATURAL hotels offer happened to land unlicensed —
+           a ~1-in-20 RNG dependency that failed CI intermittently. */
+        const acc = ctx.licAccept("lo-t1");
+        if (acc && acc.ok) {
+          totalBeforeTrickle = base;
           acceptedIds.add("lo-t1"); acceptedFilmId = acceptedFilmId || f.id;
           trickleStartWk = w; trickleFilmTitle = f.title;
         }
@@ -265,7 +285,8 @@ try {
   check("officeRegionalBonus Tokyo+Seoul→APAC 1.0", ctx.officeRegionalBonus("APAC") === 1.0, ctx.officeRegionalBonus("APAC"));
   check("officeRegionalBonus CN 0", ctx.officeRegionalBonus("CN") === 0, ctx.officeRegionalBonus("CN"));
 
-  check("hotels trickle started (natural or backstop)", trickleStartWk != null, trickleStartWk);
+  check("hotels trickle started (natural or backstop)", trickleStartWk != null,
+    trickleStartWk != null ? ("wk " + trickleStartWk) : ("never — drive ended wk " + S().studio.week + ", over=" + !!S().over));
   check("hotels trickle paid 'Licensing · Hotels · …' rows", hotelsRows >= 1, hotelsRows);
   check("trickle income moved S.lic.total (≥ 0.1)", totalBeforeTrickle != null && totalAfterTrickle != null && totalAfterTrickle - totalBeforeTrickle >= 0.1,
     totalBeforeTrickle + "→" + totalAfterTrickle);

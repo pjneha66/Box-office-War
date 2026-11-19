@@ -1422,6 +1422,36 @@ function checkScenario() {
   }
 }
 
+/* ── combined cashflow adjustments from every module ──────────────
+   This used to live in ui.js, which meant the sim layer depended on the view
+   layer: a headless run (balance sim, harnesses) silently lost every module's
+   recurring income because ui.js was never loaded. It also only aggregated four
+   modules, so the other fourteen published forecastAdjust_* hooks were dead.
+   The engine owns its own forecast; ui.js now just reads it. */
+function forecastAdjust(weekAbs) {
+  var n = 0;
+  if (typeof forecastAdjust_tv === "function") n += forecastAdjust_tv(weekAbs) || 0;
+  if (typeof forecastAdjust_ott === "function") n += forecastAdjust_ott(weekAbs) || 0;
+  if (typeof forecastAdjust_games === "function") n += forecastAdjust_games(weekAbs) || 0;
+  if (typeof forecastAdjust_strategy === "function") n += forecastAdjust_strategy(weekAbs) || 0;
+  if (typeof forecastAdjust_awards === "function") n += forecastAdjust_awards(weekAbs) || 0;
+  if (typeof forecastAdjust_bizdeal === "function") n += forecastAdjust_bizdeal(weekAbs) || 0;
+  if (typeof forecastAdjust_cameo === "function") n += forecastAdjust_cameo(weekAbs) || 0;
+  if (typeof forecastAdjust_crew === "function") n += forecastAdjust_crew(weekAbs) || 0;
+  if (typeof forecastAdjust_finance === "function") n += forecastAdjust_finance(weekAbs) || 0;
+  if (typeof forecastAdjust_library === "function") n += forecastAdjust_library(weekAbs) || 0;
+  if (typeof forecastAdjust_licensing === "function") n += forecastAdjust_licensing(weekAbs) || 0;
+  if (typeof forecastAdjust_mastery === "function") n += forecastAdjust_mastery(weekAbs) || 0;
+  if (typeof forecastAdjust_media === "function") n += forecastAdjust_media(weekAbs) || 0;
+  if (typeof forecastAdjust_people === "function") n += forecastAdjust_people(weekAbs) || 0;
+  if (typeof forecastAdjust_rivalwar === "function") n += forecastAdjust_rivalwar(weekAbs) || 0;
+  if (typeof forecastAdjust_slots === "function") n += forecastAdjust_slots(weekAbs) || 0;
+  if (typeof forecastAdjust_tech === "function") n += forecastAdjust_tech(weekAbs) || 0;
+  if (typeof forecastAdjust_world === "function") n += forecastAdjust_world(weekAbs) || 0;
+  if (typeof forecastAdjust_mentor === "function") n += forecastAdjust_mentor(weekAbs) || 0;
+  return n;
+}
+
 /* ── 12-week cashflow forecast (display) ──────────────────────── */
 function forecast12() {
   var rows = [], w, i;

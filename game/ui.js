@@ -1509,15 +1509,9 @@ function vLotDesk() {
   return html;
 }
 
-/* ── combined cashflow adjustments from every module ─────────── */
-function forecastAdjust(weekAbs) {
-  var n = 0;
-  if (typeof forecastAdjust_tv === "function") n += forecastAdjust_tv(weekAbs) || 0;
-  if (typeof forecastAdjust_ott === "function") n += forecastAdjust_ott(weekAbs) || 0;
-  if (typeof forecastAdjust_games === "function") n += forecastAdjust_games(weekAbs) || 0;
-  if (typeof forecastAdjust_strategy === "function") n += forecastAdjust_strategy(weekAbs) || 0;
-  return n;
-}
+/* forecastAdjust(weekAbs) now lives in engine.js — the sim layer owns its own
+   cashflow projection. Duplicating the name here would shadow it depending on
+   load order, which is exactly how the headless forecast silently lost income. */
 
 /* ── restored cast banks: merge v41 name banks + BOS2 cast DB into the engine pools ── */
 function mergeCastBanks() {
