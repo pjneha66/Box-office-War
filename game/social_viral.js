@@ -91,13 +91,26 @@ function tickSocial() {
   }
 }
 
-/* opening mult from active creator endorsements on the film (social following). */
+/* Opening mult: creator endorsements + the lead's own following.
+   Merged v47 — this used to be defined twice (people.js and here). social_viral.js
+   loads later, so the followers-based version in people.js was silently dead code
+   and a star's follower count never moved an opening. Both effects now apply. */
 function socialBuzzMult(p) {
-  if (!S || !S.social || !p) return 1;
+  if (!S || !p) return 1;
   var m = 1, i;
-  for (i = 0; i < S.social.creators.length; i++) {
-    var cr = S.social.creators[i];
-    if (cr.filmId === p.id && cr.weeksLeft > 0) m += cr.bonus * 0.01;
+  if (S.social && S.social.creators) {
+    for (i = 0; i < S.social.creators.length; i++) {
+      var cr = S.social.creators[i];
+      if (cr.filmId === p.id && cr.weeksLeft > 0) m += cr.bonus * 0.01;
+    }
+  }
+  /* the lead's followers: up to +15%, only when a lead is attached.
+     seedFollowings() is idempotent, so calling it here keeps old saves (and any
+     state built outside newGame) honest instead of silently returning 1. */
+  if (typeof seedFollowings === "function") seedFollowings();
+  if (typeof findTalent === "function" && p.actId) {
+    var lead = findTalent(p.actId);
+    if (lead && lead.followersK) m *= 1 + Math.min(0.15, lead.followersK / 4000);
   }
   return m;
 }

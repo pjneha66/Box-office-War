@@ -285,6 +285,11 @@ console.log("── save compatibility ─────────────�
   check("a pre-v43 save lazy-initialises collection state", !!(st && st.bump && Array.isArray(st.history)), "screens " + st.bump.screens);
   const keep = BOW.G;
   BOW.G = legacy;
+  /* loadGame() rewires the logger onto the state it restores (engine.js "G.log = log"),
+     because JSON round-trips drop function references. A harness that assigns a parsed
+     clone straight onto BOW.G must do the same, or any random event whose handler calls
+     G.log() throws — a flaky failure that had nothing to do with the save format. */
+  BOW.G.log = keep.log;
   legacytick();
   function legacytick() {
     try { BOW.advanceWeeks(1); } catch (e) { check("a pre-v43 save ticks without crashing", false, e.message); return; }

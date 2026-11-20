@@ -6,7 +6,7 @@
 var VIEW = "studio";
 var DEV_TAB = "scripts";
 var PLAY_TAB = "now";          // Playing sub-tab: now | collection | release | audience | awards | broadcast
-var DESK_SUB = { studio: "people", develop: "creative", business: "finance" };
+var DESK_SUB = { studio: "people", develop: "scripts", business: "finance" };
 var selOrigin = "veteran";
 var selDiff = "std";
 var selScenario = "free";
@@ -270,34 +270,285 @@ function vStudio() {
   return html;
 }
 
-/* ── develop ──────────────────────────────────────────────────── */
-function ideaCard(idea) {
-  var g = genreOf(idea.genre);
-  return '<div class="card film">'
-    + '<div class="head"><div class="title">' + g.em + " " + esc(idea.title) + "</div>" + tag(fm(idea.price), "gold") + "</div>"
-    + '<div class="meta">' + tag(g.name) + tag("Script ✦ " + idea.script, idea.script >= 75 ? "green" : "") + (idea.theme ? tag("✦ " + esc(themeName(idea.theme))) : "") + (idea.local ? tag("Local-language", "blue") : "") + (idea.franchiseOf ? tag("Sequel pitch", "blue") : "") + "</div>"
-    + '<div class="foot"><button class="btn primary sm grow" data-action="gl-open" data-id="' + idea.id + '">' + t("Greenlight") + "</button></div>"
-    + "</div>";
+/* ── develop ────────────────────────────────────────────────────
+   v47 rebuild: the Story Department is one deck with one navigation.
+   Before this, vDevelop() was a 20-line list of bare idea cards, and render()
+   appended a SECOND, unrelated desk strip underneath it — so Develop had two
+   tab bars that meant different things, stacked. Every section below is a real
+   view of studio state, not a link to somewhere else. */
+
+var DEV_TAB = "scripts";   /* scripts | slate | series | talent | craft | rights | world */
+
+/* Live one-line telemetry strip, so each section reads as a department. */
+function devTelemetry(cells) {
+  var html = '<div class="dev-tele">';
+  cells.forEach(function (c) {
+    html += '<div class="dev-tel"><span class="k">' + esc(c[0]) + '</span><b>' + c[1] + "</b>"
+      + (c[2] ? '<small>' + c[2] + "</small>" : "") + "</div>";
+  });
+  return html + "</div>";
+}
+function devHead(eyebrow, title, sub) {
+  return '<div class="dev-head"><span class="eyebrow">' + esc(eyebrow) + "</span>"
+    + "<h1>" + title + "</h1>" + (sub ? "<p>" + sub + "</p>" : "") + "</div>";
+}
+function devSection(title, sub, body, action) {
+  return '<div class="dev-sec"><div class="dev-sec-head"><div><h2>' + title + "</h2>"
+    + (sub ? "<p>" + sub + "</p>" : "") + "</div>" + (action || "") + "</div>" + body + "</div>";
+}
+/* A desk rendered inline, without the sheet chrome. */
+function devDesk(id, note) {
+  var d = findDesk(id);
+  if (!d) return "";
+  var body = "";
+  try { body = d.render(); } catch (e) { body = '<div class="card empty">This desk failed to render.</div>'; }
+  return devSection(d.icon + " " + esc(d.name), esc(d.desc) + (note ? " " + note : ""), body + readonlyNote(d.id) + unlockNote(d.id, body));
 }
 
-function vDevelop() {
-  var html = '<div class="seg" style="flex-wrap:wrap">'
-    + '<button class="' + (DEV_TAB === "scripts" ? "on" : "") + '" data-action="dev-tab" data-tab="scripts">' + t("Scripts") + " (" + S.ideas.length + ')</button>'
-    + '<button class="' + (DEV_TAB === "slate" ? "on" : "") + '" data-action="dev-tab" data-tab="slate">' + t("Slate") + " (" + S.projects.length + ')</button>'
-    + '<button class="' + (DEV_TAB === "series" ? "on" : "") + '" data-action="dev-tab" data-tab="series">' + t("Series") + " (" + S.series.length + ')</button>'
+/* Genre heat from the live trend table (engine drifts S.trends every quarter). */
+function devHeat(gid) { return (S.trends && S.trends[gid]) || 1; }
+function devHottest() {
+  var best = null, bg = 1;
+  GENRES.forEach(function (g) { var h = devHeat(g.id); if (h > bg) { bg = h; best = g; } });
+  return best ? { g: best, heat: bg } : null;
+}
+function devWeeksToRerate() {
+  var woy = S.studio.woy, marks = [1, 14, 27, 40], i;
+  for (i = 0; i < marks.length; i++) if (marks[i] >= woy) return marks[i] - woy;
+  return 52 - woy + 1;
+}
+var SCRIPT_FILTER = "all";
+function devScriptCard(idea) {
+  var g = genreOf(idea.genre), heat = devHeat(idea.genre);
+  var timing = heat >= 1.07 ? ["HOT", "gold"] : heat <= 0.94 ? ["COLD", "red"] : ["STEADY", ""];
+  var sc = idea.script, scCls = sc >= 80 ? "green" : sc >= 65 ? "" : "red";
+  return '<div class="dev-script">'
+    + '<div class="dev-script-top"><div><b>' + g.em + " " + esc(idea.title) + "</b>"
+    + '<div class="dev-script-tags">' + tag(g.name) + tag(scaleNameFor(idea)) + (idea.theme ? tag("✦ " + esc(themeName(idea.theme))) : "") + (idea.local ? tag("Local-language", "blue") : "") + (idea.franchiseOf ? tag("Sequel", "blue") : "") + "</div></div>"
+    + '<div class="dev-script-price"><span>' + fm(idea.price) + '</span><small>script</small></div></div>'
+    + '<div class="dev-bars">'
+    + '<div class="dev-bar"><span>Script</span><i><b class="' + scCls + '" style="width:' + clamp(sc, 4, 100) + '%"></b></i><em>' + sc + "</em></div>"
+    + '<div class="dev-bar"><span>Market</span><i><b class="' + (heat >= 1.07 ? "green" : heat <= 0.94 ? "red" : "") + '" style="width:' + clamp(Math.round(heat / 1.4 * 100), 4, 100) + '%"></b></i><em>' + heat.toFixed(2) + "×</em></div>"
+    + "</div>"
+    + '<div class="dev-script-foot">' + tag(timing[0] + " TIMING", timing[1])
+    + '<button class="btn primary sm" data-action="gl-open" data-id="' + idea.id + '">' + t("Greenlight") + "</button></div>"
     + "</div>";
-  if (DEV_TAB === "scripts") {
-    S.ideas.forEach(function (i) { html += ideaCard(i); });
-    html += '<div class="btnrow">'
-      + '<button class="btn block" data-action="scout">Scout new scripts · $1M</button>'
-      + '<button class="btn block" data-action="pitch-open">💡 Pitch a project · $2M</button>'
+}
+/* Best guess at the scale an idea wants, from its script score. */
+function scaleNameFor(idea) {
+  var s = idea.script;
+  return s >= 84 ? "Tentpole money" : s >= 74 ? "Mid-budget" : s >= 62 ? "Indie" : "Micro";
+}
+
+function vDevScripts() {
+  var hot = devHottest(), weeks = devWeeksToRerate();
+  var writers = S.lot ? S.lot.writers : 0;
+  var html = devHead("01 / SCRIPTS", "Put a story into development.",
+    S.ideas.length + " draft" + (S.ideas.length === 1 ? "" : "s") + " on the desk · " + S.projects.length + " in the slate · " + fm(S.studio.cash) + " to spend");
+  html += devTelemetry([
+    ["DRAFTS", String(S.ideas.length), "specs ready to develop"],
+    ["WRITERS ROOM", writers + "/10", writers ? "+" + (writers * 0.5).toFixed(1) + " script on new ideas" : "hire writers on the lot"],
+    ["HOTTEST GENRE", hot ? hot.g.em + " " + hot.g.name : "flat", hot ? hot.heat.toFixed(2) + "× market heat" : "no genre above 1.07×"],
+    ["MARKET RE-RATES", weeks + " wk", "heat rotates every quarter"]
+  ]);
+
+  /* filter chips */
+  var counts = {};
+  S.ideas.forEach(function (i) { counts[i.genre] = (counts[i.genre] || 0) + 1; });
+  html += '<div class="dev-chips">'
+    + '<button class="' + (SCRIPT_FILTER === "all" ? "on" : "") + '" data-action="dev-filter" data-key="all">All (' + S.ideas.length + ")</button>";
+  GENRES.forEach(function (g) {
+    if (!counts[g.id]) return;
+    html += '<button class="' + (SCRIPT_FILTER === g.id ? "on" : "") + '" data-action="dev-filter" data-key="' + g.id + '">' + g.em + " " + g.name + " (" + counts[g.id] + ")</button>";
+  });
+  html += "</div>";
+
+  var list = SCRIPT_FILTER === "all" ? S.ideas : S.ideas.filter(function (i) { return i.genre === SCRIPT_FILTER; });
+  if (!list.length) {
+    html += '<div class="card empty"><span class="em">📝</span>'
+      + (S.ideas.length ? "No drafts in this genre." : "The desk is empty. Scout the market or pitch your own concept.")
       + "</div>";
-  } else if (DEV_TAB === "series") {
-    html += vSeriesDesk();
   } else {
-    if (!S.projects.length) html += '<div class="card empty"><span class="em">🎬</span>Nothing in production. Buy a script and greenlight it.</div>';
-    S.projects.forEach(function (p) { html += projCard(p, false); });
+    html += '<div class="dev-scripts">';
+    list.slice().sort(function (a, b) { return (devHeat(b.genre) * b.script) - (devHeat(a.genre) * a.script); })
+      .forEach(function (i) { html += devScriptCard(i); });
+    html += "</div>";
   }
+  html += '<div class="btnrow" style="margin-top:12px">'
+    + '<button class="btn grow" data-action="scout" ' + (S.studio.cash < 1 || S.ideas.length >= 8 ? "disabled" : "") + ">Scout new scripts · $1M</button>"
+    + '<button class="btn primary grow" data-action="pitch-open" ' + (S.studio.cash < 2 ? "disabled" : "") + ">💡 Pitch a project · $2M</button>"
+    + "</div>";
+  if (S.ideas.length >= 8) html += '<div class="empty" style="padding:6px 0 0">The desk holds eight drafts — greenlight one to make room.</div>';
+
+  /* the market table: what is hot, what is cold, this quarter */
+  html += devSection("Market heat", "Opening multiplier per genre. Heat rotates every quarter — a cold genre is a discount, not a ban.",
+    '<div class="dev-market">' + GENRES.map(function (g) {
+      var h = devHeat(g.id), pct = clamp(Math.round((h - 0.7) / 0.7 * 100), 3, 100);
+      return '<div class="dev-mrow"><span>' + g.em + " " + esc(g.name) + '</span>'
+        + '<i><b class="' + (h >= 1.07 ? "green" : h <= 0.94 ? "red" : "") + '" style="width:' + pct + '%"></b></i>'
+        + "<em>" + h.toFixed(2) + "×</em></div>";
+    }).join("") + "</div>");
+  return html;
+}
+
+function vDevSlate() {
+  var ready = readyProjects();
+  var html = devHead("02 / SLATE", "Pictures in production.",
+    S.projects.length + " in the pipeline · " + ready.length + " waiting on a release date");
+  var weeklyBurn = 0;
+  S.projects.forEach(function (p) {
+    if (p.phase === "ready") return;
+    weeklyBurn += p.budgetNow * (p.phase === "pre" ? 0.10 : p.phase === "shoot" ? 0.70 : 0.20) / Math.max(1, p.phaseLen[p.phase]);
+  });
+  html += devTelemetry([
+    ["IN PRODUCTION", String(S.projects.length), "pre · shoot · post"],
+    ["READY TO RELEASE", String(ready.length), ready.length ? "set a date to start earning" : "none waiting"],
+    ["WEEKLY BURN", fm(weeklyBurn), "production spend per week"],
+    ["CASH", fm(S.studio.cash), "after this week's costs"]
+  ]);
+  if (ready.length) {
+    html += devSection("Awaiting a release date", "A finished picture earns nothing until it opens.",
+      '<div class="dev-ready">' + ready.map(function (p) {
+        var g = genreOf(p.genre);
+        return '<div class="dev-ready-row"><div><b>' + g.em + " " + esc(p.title) + "</b>"
+          + '<div class="dev-script-tags">' + tag(g.name) + tag(fm(p.budgetNow) + " budget") + (p.qPreview ? tag("Screening " + p.qPreview, "blue") : "") + "</div></div>"
+          + '<button class="btn primary sm" data-action="rl-open" data-id="' + p.id + '">Set release date</button></div>';
+      }).join("") + "</div>");
+  }
+  var active = S.projects.filter(function (p) { return p.phase !== "ready"; });
+  if (!active.length && !ready.length) {
+    html += '<div class="card empty"><span class="em">🎬</span>Nothing in production.'
+      + '<div class="btnrow" style="margin-top:10px">'
+      + '<button class="btn primary grow" data-action="dev-tab" data-tab="scripts">Go to the scripts desk</button>'
+      + "</div></div>";
+  } else if (active.length) {
+    html += devSection("In production", "Each phase bills weekly. A finished film waits for you in the section above.",
+      '<div class="dev-slate">' + active.map(function (p) { return projCard(p, false); }).join("") + "</div>");
+  }
+  return html;
+}
+
+function vDevSeries() {
+  var airing = S.series.filter(function (p) { return !p.done; }).length;
+  var waiting = S.series.filter(function (p) { return p.done && !p.outlet; }).length;
+  var html = devHead("03 / SERIES", "Episodic is a different business.",
+    "Shoot for a few weeks, air weekly, then sell the rights or keep them.");
+  html += devTelemetry([
+    ["ON THE SLATE", S.series.length + "/3", "three concurrent series max"],
+    ["SHOOTING OR AIRING", String(airing), "billing weekly"],
+    ["AWAITING A DEAL", String(waiting), waiting ? "pick a buyer below" : "nothing to sell"],
+    ["CHEAPEST ORDER", fm(SERIES_BUDGETS[0]), "a limited series"]
+  ]);
+  return html + vSeriesDesk();
+}
+
+function vDevTalent() {
+  var free = S.market.filter(function (t) { return !talentBusy(t); });
+  var actors = free.filter(function (t) { return t.k === "actor"; }).length;
+  var dirs = free.filter(function (t) { return t.k === "dir"; }).length;
+  var html = devHead("04 / TALENT", "Who is available, and who is worth it.",
+    actors + " actors and " + dirs + " directors are free to take a picture this week.");
+  html += devTelemetry([
+    ["FREE ACTORS", String(actors), "not booked on a film"],
+    ["FREE DIRECTORS", String(dirs), "shape tone and craft"],
+    ["ON THE LOT", ((S.lot && S.lot.writers) || 0) + " writers · " + ((S.lot && S.lot.crew) || 0) + " crew", "permanent quality"],
+    ["AGENCY", S.agency && S.agency.founded ? S.agency.clients.length + "/3 clients" : "not founded", S.agency && S.agency.founded ? "weekly commissions" : "cut talent fees 10%"]
+  ]);
+  /* the shortlist — the stars actually worth casting, ranked by power */
+  var top = free.filter(function (t) { return t.power >= 4; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; }).slice(0, 8);
+  if (top.length) {
+    html += devSection("Stars on the market", "Four stars and up. Fees scale with the film's budget at greenlight.",
+      '<div class="dev-talent">' + top.map(function (t) {
+        return '<div class="dev-trow"><div><b>' + esc(t.n) + "</b><div class=\"dev-script-tags\">"
+          + tag("★".repeat(t.power), "gold") + tag(t.k === "dir" ? "Director" : "Actor") + tag("Skill " + t.skill)
+          + (t.followersK ? tag((t.followersK / 1000).toFixed(1) + "M followers", "blue") : "") + "</div></div>"
+          + "<div class=\"dev-trow-val\">" + (t.k === "dir" ? "craft" : "opening") + "</div></div>";
+      }).join("") + "</div>");
+  } else {
+    html += '<div class="card empty"><span class="em">🌟</span>No four-star talent is free this week. Book early — a lead stays attached for 40 weeks.</div>';
+  }
+  html += devDesk("talent-agency");
+  html += devDesk("mentor-pool");
+  return html;
+}
+
+function vDevCraft() {
+  var html = devHead("05 / CRAFT", "The work above the line.",
+    "Permanent quality, poster art, pricing strategy and the audience lab.");
+  html += devTelemetry([
+    ["POST WING", (S.upg.post || 0) + "/3", "+" + (S.upg.post || 0) * 3 + " craft on every film"],
+    ["BACKLOT", (S.upg.backlot || 0) + "/3", "fewer overruns"],
+    ["LOT STAFF", ((S.lot && S.lot.crew) || 0) + " crew · " + ((S.lot && S.lot.vfx) || 0) + " VFX", "production values"],
+    ["RELEASED", String(S.films.filter(function (f) { return f.status === "done"; }).length), "pictures to work with"]
+  ]);
+  html += devDesk("cre-cam");
+  html += devDesk("cre-room");
+  html += devDesk("posters-studio");
+  html += devDesk("strat-pricing");
+  return html;
+}
+
+function vDevRights() {
+  var html = devHead("06 / RIGHTS & IP", "What you own, and what you can license.",
+    "Library value compounds; licensing turns finished films into annuities.");
+  html += devTelemetry([
+    ["LIBRARY VALUE", fm(S.studio.catalog), "grows with every release"],
+    ["FINISHED FILMS", String(S.films.filter(function (f) { return f.status === "done"; }).length), "available to license"],
+    ["FRANCHISES", String(Object.keys((S.sequel && S.sequel.shipped) || {}).length), "sequel-eligible roots"],
+    ["CASH", fm(S.studio.cash), "for rights and advances"]
+  ]);
+  html += devDesk("library-desk");
+  html += devDesk("lic-market");
+  html += devDesk("sequel-plan");
+  html += devDesk("games-hq");
+  return html;
+}
+
+function vDevWorld() {
+  var html = devHead("07 / WORLD", "The industry around you.",
+    "Rivals, feuds, the museum and the long history of the lot.");
+  var leader = null, lead = -1;
+  S.rivals.forEach(function (r) { if (r.ytd > lead) { lead = r.ytd; leader = r; } });
+  html += devTelemetry([
+    ["RIVALS", String(S.rivals.length), "studios in the market"],
+    ["MARKET LEADER", leader ? leader.name : "—", leader ? fm(leader.ytd) + " ytd" : ""],
+    ["YOUR YTD", fm(S.studio.lifetime), "lifetime gross"],
+    ["REPUTATION", Math.round(S.studio.rep) + "/100", "unlocks bigger scales"]
+  ]);
+  html += devDesk("world-story");
+  html += devDesk("world-museum");
+  html += devDesk("strat-wars");
+  return html;
+}
+
+var DEV_SECTIONS = [
+  { key: "scripts", label: "Scripts", render: vDevScripts },
+  { key: "slate", label: "Slate", render: vDevSlate },
+  { key: "series", label: "Series", render: vDevSeries },
+  { key: "talent", label: "Talent", render: vDevTalent },
+  { key: "craft", label: "Craft", render: vDevCraft },
+  { key: "rights", label: "Rights", render: vDevRights },
+  { key: "world", label: "World", render: vDevWorld }
+];
+
+function vDevelop() {
+  var known = false, i;
+  for (i = 0; i < DEV_SECTIONS.length; i++) if (DEV_SECTIONS[i].key === DEV_TAB) known = true;
+  if (!known) DEV_TAB = "scripts";
+  var html = '<div class="dev-nav">';
+  DEV_SECTIONS.forEach(function (s, idx) {
+    var n = "";
+    if (s.key === "scripts") n = S.ideas.length;
+    else if (s.key === "slate") n = S.projects.length;
+    else if (s.key === "series") n = S.series.length;
+    html += '<button class="' + (DEV_TAB === s.key ? "on" : "") + '" data-action="dev-tab" data-tab="' + s.key + '">'
+      + '<small>0' + (idx + 1) + "</small><span>" + t(s.label) + "</span>"
+      + (n !== "" ? "<em>" + n + "</em>" : "") + "</button>";
+  });
+  html += "</div>";
+  var sec = null;
+  for (i = 0; i < DEV_SECTIONS.length; i++) if (DEV_SECTIONS[i].key === DEV_TAB) sec = DEV_SECTIONS[i];
+  html += '<div class="dev-body">' + sec.render() + "</div>";
   return html;
 }
 
@@ -316,7 +567,7 @@ function vSeriesDesk() {
   });
   html += '</div><div class="btnrow" style="margin-top:12px">'
     + '<button class="btn primary grow" data-action="se-go" ' + (S.series.length >= 3 || S.studio.cash < SERIES_BUDGETS[SE_UI.bIdx] ? "disabled" : "") + '">📺 Greenlight series</button></div>'
-    + '<div class="empty" style="padding:8px 0 0">A series shoots for a few weeks, then airs weekly episode by episode. When the finale lands: sell the rights to a streamer for a lump sum, or keep it exclusive on your own platform (More → Streaming desk).</div></div>';
+    + '<div class="empty" style="padding:8px 0 0">A series shoots for a few weeks, then airs weekly episode by episode. When the finale lands: sell the rights to a streamer for a lump sum, or keep it exclusive on your own platform (Playing → Broadcast → Streaming platform).</div></div>';
   if (!S.series.length) html += '<div class="card empty"><span class="em">📺</span>No series yet. Greenlight one above — up to three at once.</div>';
   S.series.forEach(function (p) {
     var g = genreOf(p.genre);
@@ -378,8 +629,12 @@ function vNowPlaying() {
   var html = '<div class="sechead"><h2>' + t("Weekend chart") + " · " + season.name + "</h2></div>"
     + chartTableHTML(weeklyChart());
   var mine = S.films.filter(function (f) { return f.status === "run"; });
+  var weekTotal = 0;
+  mine.forEach(function (f) { weekTotal += f.weekly.length ? f.weekly[f.weekly.length - 1] : f.opening; });
   html += '<div class="sechead"><h2>' + t("Your films in theaters") + "</h2></div>";
-  if (!mine.length) html += '<div class="card empty"><span class="em">🎟️</span>Nothing playing. Schedule a release from the Develop slate.</div>';
+  if (!mine.length) html += '<div class="card empty"><span class="em">🎟️</span>Nothing playing. Set a release date on a finished picture in Develop → Slate.</div>';
+  else html += '<div class="card">' + statrow("Your gross this week", fm(weekTotal), "up")
+    + statrow("Pictures in release", String(mine.length)) + "</div>";
   mine.forEach(function (f) { html += filmCard(f); });
   html += '<div class="sechead"><h2>' + t("Release calendar") + "</h2></div><div class=\"card\">";
   var rows = "", w, i;
@@ -521,7 +776,7 @@ function settingsBody() {
     + "</div>"
     + '<div class="statrow"><span class="k">Sound effects</span><button class="btn sm" data-action="sound-toggle">' + (typeof SOUND_ON !== "undefined" && SOUND_ON ? "On — tap to mute" : "Off — tap to enable") + "</button></div>"
     + '<div class="statrow"><span class="k">Full cast library</span><button class="btn sm" data-action="unlock-cast">' + (S.allCastUnlocked ? "Unlocked ✓" : "Unlock all cast") + "</button></div>"
-    + '<div class="empty" style="padding:8px 0 0">v42.5 · autosaves locally after every week</div>'
+    + '<div class="empty" style="padding:8px 0 0">v47.0 · autosaves locally after every week</div>'
     + "</div>";
   return html;
 }
@@ -566,9 +821,9 @@ function render() {
   if (VIEW === "start") html = vStart();
   else if (VIEW === "gameover") html = vGameOver();
   else if (VIEW === "studio") html = vStudio() + deskPanel("studio");
-  else if (VIEW === "develop") html = vDevelop() + deskPanel("develop");
+  else if (VIEW === "develop") html = vDevelop();
   else if (VIEW === "playing") html = vPlaying();
-  else if (VIEW === "ledger") html = vLedger() + deskPanel("business");
+  else if (VIEW === "ledger") html = vLedger() + deskPanel("business") + unfiledPanel();
   if (typeof tutorialBanner === "function" && VIEW !== "start" && VIEW !== "gameover") {
     var tb = tutorialBanner();
     if (tb) html = tb + html;
@@ -725,8 +980,20 @@ function sheetRelease(pId) {
   html += "</div></div>";
   var mkt = Math.round(p.budget * scaleOf(p.scale).mktRate * MKT_TIERS[RL.mktIdx].mult * 10) / 10;
   var open = previewOpening(p, RL.week, RL.mktIdx);
+  var shortfall = Math.round((mkt - S.studio.cash) * 10) / 10;
   html += '<div class="sheet-foot"><div class="proj">Projected opening <b>' + fm(open * 0.8) + "–" + fm(open * 1.2) + "</b> · campaign <b>" + fm(mkt) + "</b> · cash after <b>" + fm(S.studio.cash - mkt) + "</b></div>"
-    + '<button class="btn primary" data-action="rl-confirm" ' + (S.studio.cash >= mkt ? "" : "disabled") + ">Schedule</button></div>";
+    + '<button class="btn primary" data-action="rl-confirm" ' + (shortfall <= 0 ? "" : "disabled") + ">Schedule</button></div>";
+  /* v47: a greyed Schedule button with no explanation was the single most common
+     dead end for new players. Explain the gap and offer the two real ways out. */
+  if (shortfall > 0) {
+    html += '<div class="card" style="border-color:rgba(217,102,90,.45)">'
+      + '<div class="statrow"><span class="k">Short on the campaign</span><span class="v num down">' + fm(shortfall) + "</span></div>"
+      + '<div class="empty" style="padding:6px 0 0">A ' + MKT_TIERS[RL.mktIdx].name + " campaign costs " + fm(mkt) + " up front. Raise it, or drop to a cheaper tier and open smaller.</div>"
+      + '<div class="btnrow">'
+      + (S.loans.length < 2 ? '<button class="btn danger sm grow" data-action="rl-loan">Emergency loan +$30M</button>' : '<span class="tag red">Loan limit reached</span>')
+      + (RL.mktIdx > 0 ? '<button class="btn sm grow" data-action="rl-mkt" data-idx="' + (RL.mktIdx - 1) + '">Drop to ' + MKT_TIERS[RL.mktIdx - 1].name + "</button>" : "")
+      + "</div></div>";
+  }
   openSheet(html);
 }
 
@@ -895,8 +1162,8 @@ function onAction(a, elx) {
   if (typeof libAction === "function" && libAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof exhibitionAction === "function" && exhibitionAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof creativeAction === "function" && creativeAction(a, elx)) { refreshDeskSheet(); return; }
-  if (typeof financeAction === "function" && financeAction(a, elx)) { refreshDeskSheet(); return; }
-  if (typeof challengeAction === "function" && challengeAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof finAction === "function" && finAction(a, elx)) { refreshDeskSheet(); return; }
+  if (typeof chalAction === "function" && chalAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof posterAction === "function" && posterAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof peopleAction === "function" && peopleAction(a, elx)) { refreshDeskSheet(); return; }
   if (typeof mediaAction === "function" && mediaAction(a, elx)) { refreshDeskSheet(); return; }
@@ -947,6 +1214,7 @@ function onAction(a, elx) {
       break;
     }
     case "dev-tab": DEV_TAB = elx.getAttribute("data-tab"); render(); break;
+    case "dev-filter": SCRIPT_FILTER = elx.getAttribute("data-key"); render(); break;
     case "scout": scoutScripts(); render(); break;
     case "gl-open": sheetGreenlight(id); break;
     case "gl-scale": GL.scale = elx.getAttribute("data-scale"); sheetGreenlight(GL.ideaId); break;
@@ -972,6 +1240,7 @@ function onAction(a, elx) {
     case "rl-week": RL.week = +elx.getAttribute("data-week"); sheetRelease(RL.pId); break;
     case "rl-window": RL.window = +elx.getAttribute("data-window"); sheetRelease(RL.pId); break;
     case "rl-mkt": RL.mktIdx = +elx.getAttribute("data-idx"); sheetRelease(RL.pId); break;
+    case "rl-loan": if (takeLoan()) { sheetRelease(RL.pId); drainFlash(); } break;
     case "rl-confirm": {
       var p = findProject(RL.pId);
       var rr = setRelease(p, RL.week, RL.mktIdx, RL.window);
@@ -984,8 +1253,9 @@ function onAction(a, elx) {
       var d = findDesk(id);
       if (d) {
         LAST_DESK = d;
+        var dbody = d.render();
         openSheet('<div class="sheet-head"><h3>' + d.icon + " " + esc(d.name) + '</h3><button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div>'
-          + '<div class="sheet-body">' + d.render() + "</div>");
+          + '<div class="sheet-body">' + dbody + readonlyNote(d.id) + unlockNote(d.id, dbody) + "</div>");
       }
       break;
     }
@@ -1296,7 +1566,7 @@ function wire() {
     var key = b.getAttribute("data-boc-bump");
     var filmId = b.getAttribute("data-boc-film") || null;
     if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.applyLever) {
-      var res = BoxOfficeCollection.applyLever(S(), key, filmId);
+      var res = BoxOfficeCollection.applyLever(S, key, filmId);
       if (!res || !res.ok) pushToast(res && res.reason ? res.reason : "Not available.", "bad");
       else pushToast("Collection lever applied.", "good");
       if (VIEW === "playing" && PLAY_TAB === "collection") render();
@@ -1372,7 +1642,10 @@ function findDesk(id) {
 }
 /* ── desk homes: which main tab / sub-tab each desk lives in ──────
    Keyed by the desk's existing `group` string, so no desk file needs editing.
-   Unmapped groups fall back to Business · Finance; "Slots" goes to the gear menu. */
+   v47: an unmapped group used to fall back silently to Business · Finance, which
+   meant a typo'd group on a new desk appeared in Finance forever and looked like a
+   design choice. Unknown groups now land in a visible "Unfiled" section so the
+   mistake shows up on screen. "Slots"/"Help" go to the gear menu. */
 var DESK_GROUPS = {
   studio: [
     { key: "people", label: "People", groups: ["Talent", "The lot", "Crew"] },
@@ -1380,8 +1653,13 @@ var DESK_GROUPS = {
     { key: "career", label: "Career", groups: ["Career", "Career 2"] }
   ],
   develop: [
-    { key: "creative", label: "Creative", groups: ["Creative", "Strategy", "The lobby", "World"] },
-    { key: "ip", label: "IP & games", groups: ["Library & fans", "Game studio", "Games & hardware"] }
+    { key: "scripts", label: "Scripts", groups: [] },
+    { key: "slate", label: "Slate", groups: [] },
+    { key: "series", label: "Series", groups: [] },
+    { key: "talent", label: "Talent", groups: ["Talent office"] },
+    { key: "craft", label: "Craft", groups: ["Creative", "Strategy", "The lobby"] },
+    { key: "rights", label: "Rights & IP", groups: ["Library & fans", "Game studio", "Games & hardware", "Licensing"] },
+    { key: "world", label: "World", groups: ["World"] }
   ],
   playing: [
     { key: "release", label: "Release", groups: ["Distribution", "Exhibition", "Deals", "Events", "Marketing"] },
@@ -1397,6 +1675,7 @@ var DESK_GROUPS = {
   ]
 };
 var GEAR_GROUPS = ["Slots", "Help"];
+var UNFILED = { tab: "business", sub: "unfiled" };
 function deskHome(d) {
   var tabs = Object.keys(DESK_GROUPS), i, j, k;
   for (i = 0; i < tabs.length; i++) {
@@ -1408,7 +1687,10 @@ function deskHome(d) {
     }
   }
   if (GEAR_GROUPS.indexOf(d.group) >= 0) return { tab: "gear", sub: "" };
-  return { tab: "business", sub: "finance" };
+  return { tab: UNFILED.tab, sub: UNFILED.sub };
+}
+function unfiledDesks() {
+  return collectDesks().filter(function (d) { return deskHome(d).sub === UNFILED.sub; });
 }
 function desksIn(tab, sub) {
   return collectDesks().filter(function (d) {
@@ -1425,7 +1707,7 @@ function deskGridFor(tab, subKey) {
   });
   return html + "</div>";
 }
-/* desk panel shown at the bottom of Studio and Business, and inside Develop */
+/* desk panel shown at the bottom of Studio and Business */
 function deskPanel(tab) {
   var subs = DESK_GROUPS[tab], cur = DESK_SUB[tab], html = '<div class="sechead sub-head"><h2>Desks</h2></div>';
   html += '<div class="seg desk-subnav" style="flex-wrap:wrap">';
@@ -1433,6 +1715,18 @@ function deskPanel(tab) {
     html += '<button class="' + (s.key === cur ? "on" : "") + '" data-action="desk-sub" data-tab="' + tab + '" data-sub="' + s.key + '">' + esc(s.label) + "</button>";
   });
   return html + "</div>" + deskGridFor(tab, cur);
+}
+/* v47: desks whose group matches no DESK_GROUPS entry. These used to vanish into
+   Business · Finance silently. Surfaced here so a typo'd group is visible. */
+function unfiledPanel() {
+  var list = unfiledDesks();
+  if (!list.length) return "";
+  return '<div class="sechead sub-head"><h2>⚠ Unfiled desks</h2></div>'
+    + '<div class="card"><div class="empty" style="padding:0 0 8px">These desks declare a group that no tab claims. '
+    + "Either add the group to DESK_GROUPS or fix the desk's group string.</div></div>"
+    + '<div class="deskgrid">' + list.map(function (d) {
+      return '<button class="desk" data-action="desk-open" data-id="' + d.id + '"><div class="em">' + d.icon + '</div><div class="nm">' + esc(d.name) + '</div><div class="ds">' + esc(d.group) + " · " + esc(d.desc) + "</div></button>";
+    }).join("") + "</div>";
 }
 
 /* ── gear sheet: save slots + settings ───────────────────────── */
@@ -1457,8 +1751,96 @@ function refreshDeskSheet() {
   b.innerHTML = '<div class="sheet-head"><h3>' + LAST_DESK.icon + " " + esc(LAST_DESK.name) + '</h3><button class="sheet-x" data-action="sheet-close"><svg><use href="#i-x"/></svg></button></div><div class="sheet-body">' + LAST_DESK.render() + "</div>";
   b.scrollTop = st;
 }
+/* v47: desks that are intentionally read-only dashboards. Everything else must
+   render at least one [data-action]; test/desk-actions.mjs enforces that. This
+   list exists so "no buttons" is a declared decision rather than an accident. */
+var READONLY_DESKS = {
+  "posters-wall": "Your twelve highest-grossing one-sheets, drawn as they played.",
+  "meta-trophies": "Every career achievement, bronze to gold. Unlocks as you play.",
+  "meta-top": "Every released film ranked by worldwide gross.",
+  "meta-demo": "Who bought tickets — audience quadrants per film.",
+  "m2-pass": "Ten goals per game-year. Rewards land automatically.",
+  "help-guide": "How the four tabs and the weekly loop fit together.",
+  "world-story": "Rival feuds, alliances and takeover scares, as they happen.",
+  "fest-board": "The six-festival year calendar. Submit from Develop → Craft.",
+  "rivalwar-share": "Year-to-date gross and market share against the four rivals.",
+  "ev2-log": "A running record of premieres, award nights and crisis years."
+};
+/* Desks that are empty because the studio has not reached their trigger yet.
+   Each entry is the concrete next step, so a gated desk teaches instead of
+   looking broken. Rendered under the desk body whenever it offers no controls. */
+var UNLOCK_HINTS = {
+  "emp-franchise": "Franchise heat comes from sequels and crossovers. Release a film that earns a sequel plan to start one.",
+  "emp-merch": "Merch lines open on a property with heat. Ship a hit, then plan its sequel.",
+  "pr-awards": "For Your Consideration runs open in weeks 40–52 on a release that scored 75+ with critics.",
+  "pr-fest": "The fall festival window is weeks 34–38. Submit a prestige project from that window.",
+  "pr-test": "Test screenings need a cut in post-production. Greenlight a film and wait for post.",
+  "pr-social": "Social pushes run on a project in shoot, post or ready. Greenlight a film first.",
+  "pr-conv": "A convention booth needs a scheduled release date. Set one on a finished picture.",
+  "biz-board": "The board convenes quarterly, on week 1 of each quarter. Check back then.",
+  "biz-market": "Share price and restorations unlock once you have a release history.",
+  "biz-insurance": "Policies apply to films in production. Nothing is shooting this week.",
+  "biz-locations": "Locations are chosen per production. Greenlight a film, then pick a territory.",
+  "biz-presales": "Territory pre-sales need a film in shoot, post or ready.",
+  "ott-deals": "Pay-1 offers arrive for finished films. Release a picture and wait for the window.",
+  "exh-previews": "Thursday previews attach to a scheduled release. Set a date first.",
+  "cre-cam": "A camera package is chosen once, when production starts. Greenlight a film to pick one.",
+  "cre-demo": "Dial tests need a finished film. Release one and screen it here.",
+  "ppl-chem": "Pairings build from films you actually shoot. Greenlight a director and a lead together.",
+  "med-ratings": "Ratings apply to a finished cut. Complete a film to argue its certificate.",
+  "med-premiere": "Cannes, Sundance and Venice bid in weeks 34–38 on a prestige project.",
+  "strat-pricing": "Ticket strategy is set per finished film. Complete a picture, then price it here.",
+  "strat-wars": "War exclusives need a tentpole in pre-production or shooting to co-finance.",
+  "meta-gamedepth": "Sequels and engine IP sales open after your first game ships.",
+  "deal-screens": "Screen deals need a film ready for release. Finish one first.",
+  "m2-legends": "Legends rank directors and stars with a long track record. Release a few films.",
+  "crew-main": "Crew are hired per project in pre-production. Greenlight a film to staff it.",
+  "mast-genre": "Genre tiers build from completed films. Each genre climbs at 5, 10 and 20 done.",
+  "aw-hist": "Statuettes arrive at the week-52 ceremony. Finish a year with a strong slate.",
+  "cam-main": "Guest spots attach to a film in production. Greenlight one, then book a cameo.",
+  "ops-placement": "Sponsor slots sell on films in production. Start a shoot to place one.",
+  "live-coprod": "Co-production partners sign on an unreleased project. Greenlight a film first.",
+  "blitz-ladder": "Campaign rungs buy against an upcoming film. Greenlight one and the ladder opens.",
+  "blitz-windows": "Rungs pay full value inside their window. A campaign needs a scheduled release.",
+  "blitz-ledger": "The blitz ledger fills once you have bought a campaign rung.",
+  "chw-devteams": "Devkit distribution needs a first-party console. Build one in Games & hardware.",
+  "craft-assign": "Assign a department head to a film in pre, shoot or post. Hire heads in Craft departments.",
+  "mentor-program": "Start a mentorship from the pool: a veteran (3★+, skill 68+) and a young hopeful.",
+  "window-strategy": "Windows are picked per film before release. Finish a picture to plan its window.",
+  "labor-guilds": "Guild relations matter once you are in production. Greenlight a film to open negotiations.",
+  "awp-history": "Below-the-line statuettes arrive at the week-52 ceremony.",
+  "awp-campaign": "Category campaigns need a finished film in contention. Release a contender."
+};
+function readonlyNote(id) {
+  var note = READONLY_DESKS[id];
+  if (!note) return "";
+  return '<div class="card readonly-note"><span class="tag">READ ONLY</span>'
+    + '<div class="empty" style="padding:6px 0 0">' + esc(note) + "</div></div>";
+}
+/* Shown when a desk renders no controls: the concrete next step. */
+function unlockNote(id, bodyHTML) {
+  if (UNLOCK_HINTS[id] === undefined) return "";
+  if (/data-action/.test(bodyHTML)) return "";
+  return '<div class="card unlock-note"><span class="tag gold">NEXT STEP</span>'
+    + '<div class="empty" style="padding:6px 0 0">' + esc(UNLOCK_HINTS[id]) + "</div></div>";
+}
+
 function vCollection() {
   if (typeof BoxOfficeCollection === "undefined") return '<div class="produce-panel"><div class="bo-empty">Collection desk not available.</div></div>';
+  /* v47: with nothing in release every lever rejects with "Pick a release first."
+     — show a real empty state instead of a wall of dead buttons. */
+  var live = S.films.filter(function (f) { return f.status === "run"; });
+  if (!live.length) {
+    var ready = readyProjects();
+    return '<div class="card empty"><span class="em">🎟️</span>'
+      + "Collection levers act on a film that is <b>playing right now</b> — extra screens, event pricing, an international blitz."
+      + (ready.length
+        ? '<div class="btnrow" style="margin-top:10px">' + ready.map(function (p) {
+            return '<button class="btn primary sm" data-action="rl-open" data-id="' + p.id + '">Release ' + esc(p.title) + "</button>";
+          }).join("") + "</div>"
+        : '<div class="empty" style="padding:8px 0 0">Nothing is in theaters and nothing is ready. Finish a picture on the Develop slate, then set its release date.</div>')
+      + "</div>";
+  }
   return '<div class="boc-root">' + BoxOfficeCollection.html() + "</div>";
 }
 

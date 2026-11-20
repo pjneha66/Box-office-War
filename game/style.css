@@ -390,3 +390,329 @@ body[data-accent="mint"] {
   --gold: #3ddc9e;
   --gold-soft: rgba(61, 220, 158, 0.14);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   v47 · STORY DEPARTMENT (Develop) — one deck, one navigation.
+   Replaces the old 3-button strip that sat above a second, unrelated
+   desk tab bar. Every rule uses the existing theme variables so the
+   light / contrast / accent variants keep working.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── section switcher: numbered, scrolls sideways on a phone ───── */
+.dev-nav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0 10px;
+  margin: 0 -2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.dev-nav::-webkit-scrollbar { display: none; }
+.dev-nav button {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 82px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.dev-nav button small {
+  font: 700 9px/1.2 ui-monospace, monospace;
+  letter-spacing: 1.4px;
+  color: var(--faint);
+}
+.dev-nav button span {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+  white-space: nowrap;
+}
+.dev-nav button em {
+  font: 700 10px/1.2 ui-monospace, monospace;
+  font-style: normal;
+  color: var(--gold);
+}
+.dev-nav button.on {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.dev-nav button.on small { color: var(--gold); }
+.dev-nav button.on span { color: var(--gold); }
+
+/* ── page heading ─────────────────────────────────────────────── */
+.dev-head { padding: 2px 0 12px; }
+.dev-head .eyebrow {
+  font: 700 9px/1.5 ui-monospace, monospace;
+  letter-spacing: 2px;
+  color: var(--gold);
+}
+.dev-head h1 {
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 4px 0 3px;
+  color: var(--text);
+}
+.dev-head p { font-size: 12.5px; color: var(--muted); }
+
+/* ── telemetry strip ──────────────────────────────────────────── */
+.dev-tele {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.dev-tel {
+  background: var(--panel);
+  padding: 9px 11px;
+  min-width: 0;
+}
+.dev-tel .k {
+  display: block;
+  font: 700 8.5px/1.4 ui-monospace, monospace;
+  letter-spacing: 1.1px;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dev-tel b {
+  display: block;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dev-tel small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── genre filter chips ───────────────────────────────────────── */
+.dev-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.dev-chips button {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dev-chips button.on {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ── script cards ─────────────────────────────────────────────── */
+.dev-scripts { display: flex; flex-direction: column; gap: 9px; }
+.dev-script {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 11px 13px;
+}
+.dev-script-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.dev-script-top b { font-size: 14.5px; line-height: 1.3; color: var(--text); }
+.dev-script-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.dev-script-price { text-align: right; flex: 0 0 auto; }
+.dev-script-price span {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.dev-script-price small {
+  display: block;
+  font: 700 8px/1.3 ui-monospace, monospace;
+  letter-spacing: 1px;
+  color: var(--faint);
+}
+.dev-bars { display: flex; flex-direction: column; gap: 5px; margin: 9px 0; }
+.dev-bar {
+  display: grid;
+  grid-template-columns: 46px 1fr 40px;
+  align-items: center;
+  gap: 7px;
+}
+.dev-bar span {
+  font: 700 8.5px/1 ui-monospace, monospace;
+  letter-spacing: .8px;
+  color: var(--faint);
+}
+.dev-bar i {
+  height: 5px;
+  background: var(--line-soft);
+  border-radius: 3px;
+  overflow: hidden;
+  display: block;
+}
+.dev-bar i b {
+  display: block;
+  height: 100%;
+  background: var(--muted);
+  border-radius: 3px;
+}
+.dev-bar i b.green { background: var(--green); }
+.dev-bar i b.red { background: var(--red); }
+.dev-bar em {
+  font: 700 10.5px/1 ui-monospace, monospace;
+  font-style: normal;
+  color: var(--muted);
+  text-align: right;
+}
+.dev-script-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ── market heat table ────────────────────────────────────────── */
+.dev-market { display: flex; flex-direction: column; gap: 4px; }
+.dev-mrow {
+  display: grid;
+  grid-template-columns: 92px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+.dev-mrow span {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dev-mrow i {
+  height: 5px;
+  background: var(--line-soft);
+  border-radius: 3px;
+  overflow: hidden;
+  display: block;
+}
+.dev-mrow i b {
+  display: block;
+  height: 100%;
+  background: var(--muted);
+  border-radius: 3px;
+}
+.dev-mrow i b.green { background: var(--green); }
+.dev-mrow i b.red { background: var(--red); }
+.dev-mrow em {
+  font: 700 10.5px/1 ui-monospace, monospace;
+  font-style: normal;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ── slate ────────────────────────────────────────────────────── */
+.dev-ready { display: flex; flex-direction: column; gap: 8px; }
+.dev-ready-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid rgba(245, 197, 24, .35);
+  border-radius: var(--r);
+  padding: 11px 13px;
+}
+.dev-ready-row b { font-size: 14px; color: var(--text); }
+.dev-slate { display: flex; flex-direction: column; gap: 9px; }
+
+/* ── talent shortlist ─────────────────────────────────────────── */
+.dev-talent { display: flex; flex-direction: column; gap: 7px; }
+.dev-trow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 9px 12px;
+}
+.dev-trow b { font-size: 13.5px; color: var(--text); }
+.dev-trow-val {
+  font: 700 9px/1.3 ui-monospace, monospace;
+  letter-spacing: 1px;
+  color: var(--faint);
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+
+/* ── generic section wrapper ──────────────────────────────────── */
+.dev-sec { margin-top: 18px; }
+.dev-sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.dev-sec-head h2 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.dev-sec-head p {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--faint);
+  margin-top: 2px;
+}
+.dev-body { padding-bottom: 8px; }
+
+@media (min-width: 520px) {
+  .dev-tele { grid-template-columns: repeat(4, 1fr); }
+  .dev-scripts { display: grid; grid-template-columns: repeat(2, 1fr); }
+}
+
+/* v47 · read-only desk marker */
+.readonly-note { border-style: dashed; }
+.readonly-note .empty { color: var(--faint); font-size: 11.5px; }
+.unlock-note { border-style: dashed; border-color: rgba(245, 197, 24, .35); }
+.unlock-note .empty { color: var(--muted); font-size: 11.5px; }

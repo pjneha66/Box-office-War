@@ -53,7 +53,10 @@ function makeCtx() {
 
 const ctx = makeCtx();
 const sandbox = vm.createContext(ctx);
-for (const f of ["data.js", "engine.js", "people.js"]) {
+/* social_viral.js is loaded too: v47 moved socialBuzzMult there (people.js's copy was
+   dead code shadowed by this file) and it now owns both creator endorsements and the
+   lead's followers, so the harness has to load the module that actually defines it. */
+for (const f of ["data.js", "engine.js", "people.js", "social_viral.js"]) {
   vm.runInContext(readFileSync(path.join(gameDir, f), "utf8"), sandbox, { filename: f });
 }
 
@@ -93,7 +96,22 @@ buzzLead.followersK = 600;
 check("socialBuzzMult: 600K → cap boundary 1.15", Math.abs(ctx.socialBuzzMult({ actId: buzzLead.id }) - 1.15) < 1e-9);
 buzzLead.followersK = 9000;
 check("socialBuzzMult: caps at 1.15", Math.abs(ctx.socialBuzzMult({ actId: buzzLead.id }) - 1.15) < 1e-9);
-check("socialBuzzMult: no lead → 0 (engine treats as neutral)", ctx.socialBuzzMult({ actId: "t999999" }) === 0);
+/* v47 contract change: the surviving definition in social_viral.js is a multiplier,
+   so "no lead" is 1 (neutral), not 0 — the old people.js version returned 0 and relied
+   on engine.js `|| 1`. Also proves creator endorsements still fold in. */
+check("socialBuzzMult: no lead → 1 (neutral multiplier)", ctx.socialBuzzMult({ actId: "t999999" }) === 1);
+check("socialBuzzMult: no project → 1", ctx.socialBuzzMult(null) === 1);
+ctx.socialEnsure();
+S.social.creators.push({ id: "scTest", bonus: 20, weeksLeft: 3, filmId: "fSOCIAL" });
+check("socialBuzzMult: creator endorsement +20% stacks onto the follower lift",
+  Math.abs(ctx.socialBuzzMult({ id: "fSOCIAL", actId: buzzLead.id }) - 1.15 * 1.2) < 1e-9,
+  String(ctx.socialBuzzMult({ id: "fSOCIAL", actId: buzzLead.id })));
+check("socialBuzzMult: an expired endorsement does not apply",
+  Math.abs(ctx.socialBuzzMult({ id: "fSOCIAL", actId: buzzLead.id }, 0) - 1.15 * 1.2) < 1e-9);
+S.social.creators[S.social.creators.length - 1].weeksLeft = 0;
+check("socialBuzzMult: weeksLeft 0 drops the endorsement",
+  Math.abs(ctx.socialBuzzMult({ id: "fSOCIAL", actId: buzzLead.id }) - 1.15) < 1e-9);
+S.social.creators.length = 0;
 
 /* ── 4. release bumps + chemistry on completed films ─────────── */
 /* power ≤ 3 picks: star drift (±10%/wk) only touches power ≥ 4, so the math stays exact */

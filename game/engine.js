@@ -1113,7 +1113,7 @@ function sellSeriesOtt(id) {
 function releaseSeriesStreamer(id) {
   var p = findSeries(id);
   if (!p || !p.done || p.outlet) return { err: "That series is not ready." };
-  if (typeof S === "undefined" || !S.tv || !S.tv.streamer) return { err: "Launch your own streaming platform first (More → Streaming platform)." };
+  if (typeof S === "undefined" || !S.tv || !S.tv.streamer) return { err: "Launch your own streaming platform first (Playing → Broadcast → Streaming platform)." };
   p.outlet = "streamer";
   S.tv.streamer.subs = Math.round((S.tv.streamer.subs + 0.3 + p.rating / 250) * 100) / 100;
   S.tv.streamer.exclusives = (S.tv.streamer.exclusives || 0) + 1;
@@ -1299,6 +1299,10 @@ function newGame(name, originId, diff, scenarioId) {
   var legacy = null;
   try { legacy = JSON.parse(localStorage.getItem("bow2.legacy.v1") || "null"); } catch (e) {}
   newState(name, originId, diff);
+  /* v47: seed follower counts at day one. seedFollowings() used to run only from
+     advanceWeek, so a studio's first picture opened with a flat socialBuzzMult
+     and every star looked like a social nobody on the Develop talent shortlist. */
+  if (typeof seedFollowings === "function") seedFollowings();
   var sc = null, si;
   for (si = 0; si < SCENARIOS.length; si++) if (SCENARIOS[si].id === (scenarioId || "free")) sc = SCENARIOS[si];
   if (sc && sc.id !== "free") {

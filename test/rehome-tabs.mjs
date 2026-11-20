@@ -56,9 +56,18 @@ const placed = ev(`(function(){
   var out = {}; collectDesks().forEach(function(d){ var h = deskHome(d); var k = h.tab + "/" + h.sub; out[k] = (out[k]||0) + 1; out["_ids"] = (out["_ids"]||[]).concat([d.id]); });
   return out;
 })()`);
-const expectHomes = { "studio/people": 6, "studio/production": 6, "studio/career": 9, "develop/creative": 10, "develop/ip": 4,
-  "playing/release": 9, "playing/audience": 7, "playing/awards": 5, "playing/broadcast": 6,
-  "business/finance": 5, "business/licensing": 2, "business/empire": 7, "gear/": 3 };
+/* v47: Develop is now a single seven-section deck, so the desk homes changed.
+   develop/scripts, develop/slate and develop/series are view-rendered sections
+   (no desks behind them); Licensing joined develop/rights; Operations is a real
+   business sub-tab; World is its own section. */
+const expectHomes = {
+  "studio/people": 8, "studio/production": 8, "studio/career": 9,
+  "develop/scripts": 0, "develop/slate": 0, "develop/series": 0, "develop/talent": 0,
+  "develop/craft": 8, "develop/rights": 9, "develop/world": 2,
+  "playing/release": 14, "playing/audience": 7, "playing/awards": 7, "playing/broadcast": 6,
+  "business/finance": 7, "business/ops": 9, "business/licensing": 0, "business/empire": 9,
+  "gear/": 3
+};
 const mismatches = Object.keys(expectHomes).filter(k => (placed[k] || 0) !== expectHomes[k]).map(k => k + "=" + (placed[k] || 0) + "/" + expectHomes[k]);
 check("every desk has a home with the expected counts", mismatches.length === 0,
   mismatches.length ? mismatches.join(", ") : Object.keys(expectHomes).map(k => k + " " + expectHomes[k]).join(", "));
@@ -84,8 +93,9 @@ renderOk("Business tab", '(function(){ VIEW="ledger"; render(); return document.
 for (const sub of ["now", "collection", "release", "audience", "awards", "broadcast"]) {
   renderOk("Playing · " + sub, `(function(){ VIEW="playing"; PLAY_TAB="${sub}"; render(); return document.getElementById("view").innerHTML.length; })()`);
 }
-// Collection must show inside Playing
-const collInPlaying = ev('(function(){ VIEW="playing"; PLAY_TAB="collection"; render(); return document.getElementById("view").innerHTML.indexOf("produce-panel") >= 0 || document.getElementById("view").innerHTML.indexOf("bo-empty") >= 0; })()');
+// Collection must show inside Playing. v47 also gives it a real empty state, so
+// accept either the live levers (boc-root / produce-panel) or that explanation.
+const collInPlaying = ev('(function(){ VIEW="playing"; PLAY_TAB="collection"; render(); var h=document.getElementById("view").innerHTML; return h.indexOf("produce-panel") >= 0 || h.indexOf("boc-root") >= 0 || h.indexOf("Collection levers act on a film") >= 0; })()');
 check("Collection renders inside Playing", collInPlaying === true);
 
 // every desk opens cleanly from its real render()

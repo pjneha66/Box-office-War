@@ -17,7 +17,7 @@
      window.BowHaptics     = { enabled(), set(bool), buzz(ms) }
      window.BowSaved       = { mark(), last() }
      window.PhoneUX        = { init(), version }
-   Load it with a <script src="phone-ux.js?v=43.2"></script> line after ui.js.
+   Load it with a script tag pointing at phone-ux.js, after ui.js.
 */
 "use strict";
 

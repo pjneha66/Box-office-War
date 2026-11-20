@@ -7,8 +7,8 @@
    peopleAction. No self-wrapping (wave-4 rules). Notes:
    - Films are scanned for aftermath only once they reach status "done" (profit verdict is
      set at endTheatrical), tracked via S.ppl.seenFilmIds.
-   - socialBuzzMult looks the lead up in the market only; a retired/churned lead returns 0,
-     which the engine's `|| 1` guard treats as neutral.
+   - socialBuzzMult is defined in social_viral.js (v47: it owns both creator endorsements
+     and the lead's followers). This module seeds followersK and bumps it on releases.
    - forecastAdjust() → 0: this module moves no weekly cash, uniform with library.js/finance.js. */
 "use strict";
 
@@ -40,15 +40,9 @@ function pplStarDrift() {
   }
 }
 
-/* socialBuzzMult(p) → 1 + min(0.15, lead.followersK / 4000); 0 (→ neutral) if no lead */
-function socialBuzzMult(p) {
-  if (!S || !p) return 0;
-  pplEnsure();
-  seedFollowings();
-  var lead = findTalent(p.actId);
-  if (!lead || !lead.followersK) return 0;
-  return 1 + Math.min(0.15, lead.followersK / 4000);
-}
+/* socialBuzzMult(p) lived here and was overwritten by social_viral.js (loaded later),
+   so its followers-based lift was dead code. The surviving definition in
+   social_viral.js now folds in both creator endorsements and the lead's following. */
 
 /* ── casting chemistry ───────────────────────────────────────── */
 function pplChemUpdate(f) {
