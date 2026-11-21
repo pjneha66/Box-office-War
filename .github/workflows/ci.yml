@@ -101,6 +101,23 @@ jobs:
       - name: No phantom hooks
         run: node test/no-phantom-hooks.mjs
 
+      - name: Empty subtab guard
+        run: node test/empty-subtab-guard.mjs
+
+      - name: JSdom load guard
+        shell: bash
+        run: |
+          python3 -m http.server 8123 --bind 127.0.0.1 &
+          sleep 1
+          node test/jsdom-load-guard.mjs
+
+      - name: Collection click guard
+        shell: bash
+        run: |
+          python3 -m http.server 8123 --bind 127.0.0.1 &
+          sleep 1
+          node test/collection-click-guard.mjs
+
       - name: Module harnesses (rebuild-*)
         shell: bash
         run: |
@@ -198,3 +215,9 @@ jobs:
           name: ui-screenshots
           path: rebuild-notes/ui-*.png
           if-no-files-found: ignore
+
+      - name: E2E smoke (optional)
+        continue-on-error: true
+        run: |
+          npx playwright install chromium
+          npx playwright test test/e2e-smoke.spec.js || true

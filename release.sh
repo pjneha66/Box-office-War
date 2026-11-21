@@ -47,7 +47,7 @@ for f in data.js engine.js industry-expansion-suite.js studio-nextwave-suite.js 
          sports-stadium-deals.js kairo-theme-suite.js box-office-collection-engine.js test/smoke.js test/smoke-body.js test/ui-test.mjs; do node --check "$f"; done
 echo "✓ syntax clean (all core and modular engine files)"
 if [ "$SKIP_TESTS" = false ]; then
-  npm test > /tmp/bow-test.log 2>&1 || { echo "✗ tests failed — see /tmp/bow-test.log"; grep -E "✗|ERRORS|FAILED" /tmp/bow-test.log | head; exit 1; }
+  : "${TMPDIR:=/data/user/0/ai.antigem/files/usr/tmp}"; mkdir -p "$TMPDIR"; npm test > "$TMPDIR/bow-test.log" 2>&1 || { echo "✗ tests failed — see $TMPDIR/bow-test.log"; grep -E "✗|ERRORS|FAILED" "$TMPDIR/bow-test.log" | head; exit 1; }
   echo "✓ full test suite green (smoke + UI + balance + scenarios)"
 fi
 

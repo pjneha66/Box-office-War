@@ -49,8 +49,8 @@ function tvEnsure() {
 /* ── streamer ─────────────────────────────────────────────────── */
 function tvLaunchStreamer() {
   if (S.tv.streamer) return false;
-  if (S.studio.cash < 60) { pushToast("Need " + fm(60) + " to launch a streamer.", "bad"); return false; }
-  spend(60, "Streamer launch");
+  if (S.studio.cash < 40) { pushToast("Need " + fm(40) + " to launch a streamer.", "bad"); return false; }
+  spend(40, "Streamer launch");
   S.tv.streamer = { id: "tv" + (S.seq++), name: S.studio.name + " TV", subs: 0.4, licensed: 0, exclusives: 0, licensedIds: [], pendingClose: false };
   log(S.tv.streamer.name + " launches — the studio enters streaming.", "gold", "📺");
   pushToast("📺 " + S.tv.streamer.name + " is live. Subscribers: 0.4M.", "good");
@@ -395,7 +395,7 @@ function tvStreamerDesk() {
       + '<div class="empty"><span class="em">📺</span>No streamer yet. Launch one for weekly subscription revenue — library licensing and exclusives grow the base.</div>'
       + '<div class="statrow"><span class="k">Platform</span><span class="v">' + esc(S.studio.name) + " TV</span></div>"
       + '<div class="statrow"><span class="k">Weekly upkeep once live</span><span class="v">' + fm(3) + "/wk</span></div>"
-      + '<div class="btnrow"><button class="btn primary grow" data-action="tv-launch-streamer" ' + (S.studio.cash < 60 ? "disabled" : "") + ">Launch · " + fm(60) + " · cash after " + fm(S.studio.cash - 60) + "</button></div>"
+      + '<div class="btnrow"><button class="btn primary grow" data-action="tv-launch-streamer" ' + (S.studio.cash < 40 ? "disabled" : "") + ">Launch · " + fm(40) + " · cash after " + fm(S.studio.cash - 40) + "</button></div>"
       + "</div>";
   } else {
     var net = st.subs * 0.015 - 3;

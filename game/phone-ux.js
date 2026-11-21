@@ -1169,9 +1169,23 @@
     push: function (msg) { return pushCrash("manual", msg, "", 0, 0, ""); }
   };
 
+  function repairCurrent() {
+    var raw = readSaveRaw();
+    if (!raw) { return { err: "No save to repair." }; }
+    var parsed = null;
+    try { parsed = JSON.parse(raw); } catch (e) { return { err: "Save is not valid JSON." }; }
+    if (!parsed || parsed.v !== 1 || !parsed.studio || !parsed.studio.name) {
+      return { err: "Save structure is invalid." };
+    }
+    try { w.localStorage.setItem(SAVE_KEY, JSON.stringify(parsed)); } catch (e2) {}
+    w.S = parsed;
+    try { if (typeof w.render === "function") w.render(); } catch (e3) {}
+    return { ok: true, studio: parsed.studio.name };
+  }
   w.BowSaveIO = {
     exportCurrent: function () { return exportCurrent(); },
-    importText: function (str) { return importText(str); }
+    importText: function (str) { return importText(str); },
+    repairCurrent: function () { return repairCurrent(); }
   };
 
   w.BowHaptics = {

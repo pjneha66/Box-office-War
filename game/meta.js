@@ -94,7 +94,21 @@ var ACHIEVEMENTS = [
   { id: "imprints", tier: 2, name: "Label hoarder", desc: "Run an active studio imprint.", test: achImprintActive },
   { id: "postersSet", tier: 1, name: "Walls of one-sheets", desc: "Set a custom poster.", test: achPostersSet },
   { id: "passSubscriber", tier: 1, name: "Season pass holder", desc: "Run a strategy season pass.", test: achPassSubscriber },
-  { id: "prestige", tier: 3, name: "Five-star slate", desc: "Release five films critics score 80+.", test: function (S) { return achCriticCount(S, 80) >= 5; } }
+  { id: "prestige", tier: 3, name: "Five-star slate", desc: "Release five films critics score 80+.", test: function (S) { return achCriticCount(S, 80) >= 5; } },
+  { id: "collectionCommand", tier: 1, name: "Collection command", desc: "Apply a collection lever.", test: function (S) { return !!(S.collection && S.collection.history && S.collection.history.length); } },
+  { id: "genreWestern", tier: 1, name: "Howdy", desc: "Release a Western.", test: function (S) { return (S.films || []).some(function (f) { return f.status === "done" && f.genre === "western"; }); } },
+  { id: "genreFamily", tier: 1, name: "Family night", desc: "Release a Family film.", test: function (S) { return (S.films || []).some(function (f) { return f.status === "done" && f.genre === "family"; }); } },
+  { id: "collectionMax", tier: 2, name: "Circuit owner", desc: "Own 5+ circuit screens.", test: function (S) { return !!(S.collection && S.collection.bump && (S.collection.bump.screens || 0) >= 5); } },
+  { id: "seasonPass", tier: 1, name: "Season ticket", desc: "Run a seasonal event.", test: function (S) { return !!(S.news && S.news.some(function (n) { return /season|corridor/i.test(n.txt || ""); })); } },
+  { id: "rivalCrush", tier: 2, name: "Market leader", desc: "Beat all rivals in YTD gross.", test: function (S) { return (S.rivals || []).every(function (r) { return (S.studio.lifetime || 0) > (r.ytd || 0); }); } },
+  { id: "tenFilms", tier: 1, name: "Double feature", desc: "Release 10 films.", test: function (S) { return !!S.stats && S.stats.releases >= 10; } },
+  { id: "cash500", tier: 2, name: "War chest", desc: "Hold $500M in cash.", test: function (S) { return S.studio.cash >= 500; } },
+  { id: "rep50", tier: 1, name: "Respected", desc: "Reach 50 reputation.", test: function (S) { return S.studio.rep >= 50; } },
+  { id: "catalog100", tier: 1, name: "Vault starter", desc: "Build catalog past 100.", test: function (S) { return S.studio.catalog >= 100; } },
+  { id: "tenWeeks", tier: 1, name: "Still standing", desc: "Survive 10 weeks.", test: function (S) { return S.studio.week >= 10; } },
+  { id: "firstFranchise", tier: 2, name: "Franchise founder", desc: "Create a franchise.", test: function (S) { return !!(S.sequel && Object.keys(S.sequel.shipped || {}).length); } },
+  { id: "firstStreamer", tier: 2, name: "Streaming debut", desc: "Launch your streamer.", test: function (S) { return !!(S.tv && S.tv.streamer); } },
+  { id: "firstStage", tier: 2, name: "Stage debut", desc: "Open a stage show.", test: function (S) { return !!(S.stage && S.stage.shows && S.stage.shows.length); } }
 ];
 var TIER_NAMES = { 1: "Bronze", 2: "Silver", 3: "Gold" };
 

@@ -161,7 +161,12 @@
     if (!f) return { ok: false, reason: "Pick a release first." };
     var check = canApply(G, key, f);
     if (!check.ok) return check;
-    var cfg = CONFIG[key], rec = recOf(G, f, key);
+    var cfg = CONFIG[key];
+    var _s = ensure(G);
+    var _k = String(f.id);
+    if (!_s.bump[_k] || typeof _s.bump[_k] !== "object") _s.bump[_k] = {};
+    var rec = _s.bump[_k];
+    TACTIC_KEYS.forEach(function (t) { if (!(t in rec)) rec[t] = null; });
     spendMoney("marketing", check.cost);
     var prev = rec[key];
     var nextLevel = (prev && Number(prev.weeksLeft) > 0) ? (Number(prev.level) || 1) : (Number(prev && prev.level) || 0) + 1;

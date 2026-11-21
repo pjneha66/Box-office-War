@@ -65,7 +65,7 @@ function newState(name, originId, diff) {
   };
   var j;
   var rpm = diff === "easy" ? 0.88 : diff === "hard" ? 1.15 : 1;
-  for (j = 0; j < RIVAL_DEFS.length; j++) S.rivals.push({ name: RIVAL_DEFS[j].name, style: RIVAL_DEFS[j].style, power: Math.round(rf(0.85, 1.15) * rpm * 100) / 100, slots: [], ytd: 0, lastRel: null });
+  for (j = 0; j < RIVAL_DEFS.length; j++) S.rivals.push({ name: RIVAL_DEFS[j].name, style: RIVAL_DEFS[j].style, strategy: RIVAL_DEFS[j].strategy || "", power: Math.round(rf(0.85, 1.15) * rpm * 100) / 100, slots: [], ytd: 0, lastRel: null });
   var k;
   for (k = 0; k < 20; k++) S.market.push(genTalent("actor"));
   for (k = 0; k < 9; k++) S.market.push(genTalent("dir"));
@@ -81,7 +81,17 @@ function newState(name, originId, diff) {
   return S;
 }
 
-function saveGame() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* private mode — play on */ } }
+function saveGame() {
+  try {
+    var prev = localStorage.getItem(SAVE_KEY);
+    if (prev) {
+      localStorage.setItem(SAVE_KEY + ".bak2", localStorage.getItem(SAVE_KEY + ".bak1") || "");
+      localStorage.setItem(SAVE_KEY + ".bak1", localStorage.getItem(SAVE_KEY + ".bak0") || "");
+      localStorage.setItem(SAVE_KEY + ".bak0", prev);
+    }
+    localStorage.setItem(SAVE_KEY, JSON.stringify(S));
+  } catch (e) { /* private mode — play on */ }
+}
 function loadGame() {
   try {
     var raw = localStorage.getItem(SAVE_KEY);
@@ -406,7 +416,9 @@ function setRelease(p, weekAbs, mktIdx, windowDays) {
   if (weekAbs > S.studio.week + 12) return { err: "At most 12 weeks ahead." };
   p.mktIdx = mktIdx;
   p.window = windowDays || 45;
-  var mkt = Math.round(p.budget * scaleOf(p.scale).mktRate * MKT_TIERS[mktIdx].mult * 10) / 10;
+  var season = seasonOf(woyOf(p.releaseWeek));
+  var seasonMult = season.hol ? 1.10 : (season.s >= 1.2 ? 1.05 : (season.s < 0.9 ? 0.90 : 1.0));
+  var mkt = Math.round(p.budget * scaleOf(p.scale).mktRate * MKT_TIERS[mktIdx].mult * seasonMult * 10) / 10;
   if (S.studio.cash < mkt) return { err: "Need " + fm(mkt) + " free for the campaign." };
   spend(mkt, "Marketing · " + p.title);
   p.mkt = mkt;
@@ -1180,6 +1192,12 @@ function advanceWeek() {
     var _ri;
     for (_ri = 0; _ri < S.rivals.length; _ri++) S.rivals[_ri].ytd = 0;
   }
+  if (st.woy === 18) log("Summer season opens — marketing costs rise, openings surge.", "gold", "☀️");
+  if (st.woy === 26) { log("Midsummer festival — audiences surge, marketing discounted.", "good", "🎪"); earn(2, "Festival bonus"); }
+  if (st.woy === 44) { log("Awards corridor — prestige campaigns cost less.", "good", "🏆"); }
+  if (st.woy === 48) log("Holiday corridor opens — premium pricing window.", "gold", "🎄");
+  if (st.woy === 50) { log("Holiday gala — premium ticket surge.", "gold", "🎄"); earn(3, "Holiday bonus"); }
+  if (st.week % 10 === 0 && typeof chance === "function" && chance(0.35)) { log("Seasonal event: " + (chance(0.5) ? "festival buzz lifts the lot." : "a piracy wave trims margins."), chance(0.5) ? "good" : "bad", chance(0.5) ? "🎪" : "🏴‍☠️"); }
   S.weekTx = { w: st.week, in: 0, out: 0, rows: [] };
   S.flash = [];
 

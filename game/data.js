@@ -14,7 +14,9 @@ var GENRES = [
   { id: "fantasy",  name: "Fantasy",     em: "🐉", mass: 1.10, legs: +0.10, intl: 0.62, open: 1.00, critic: -1, aud: +2 },
   { id: "crime",    name: "Crime",       em: "🕵️", mass: 0.85, legs: +0.15, intl: 0.48, open: 0.85, critic: +4, aud: -2 },
   { id: "musical",  name: "Musical",     em: "🎵", mass: 0.75, legs: +0.30, intl: 0.50, open: 0.80, critic: +1, aud: +2 },
-  { id: "docs",     name: "Documentary", em: "🎥", mass: 0.50, legs: +0.20, intl: 0.35, open: 0.55, critic: +8, aud: -6 }
+  { id: "docs",     name: "Documentary", em: "🎥", mass: 0.50, legs: +0.20, intl: 0.35, open: 0.55, critic: +8, aud: -6 },
+  { id: "western",  name: "Western",     em: "🤠", mass: 0.70, legs: +0.15, intl: 0.40, open: 0.75, critic: +2, aud: +1 },
+  { id: "family",   name: "Family",      em: "👨‍👩‍👧", mass: 1.05, legs: +0.35, intl: 0.55, open: 0.90, critic: +1, aud: +4 }
 ];
 function genreOf(id) { for (var i = 0; i < GENRES.length; i++) if (GENRES[i].id === id) return GENRES[i]; return GENRES[0]; }
 
@@ -70,10 +72,10 @@ var UPGRADES = {
 
 /* Rival studios. */
 var RIVAL_DEFS = [
-  { name: "Meridian Pictures", style: "tentpole" },
-  { name: "Solstice Films",    style: "prestige" },
-  { name: "Titan Global",      style: "tentpole" },
-  { name: "Crown & Banner",    style: "genre" }
+  { name: "Meridian Pictures", style: "tentpole", strategy: "blockbuster tentpoles" },
+  { name: "Solstice Films",    style: "prestige", strategy: "awards contenders" },
+  { name: "Titan Global",      style: "tentpole", strategy: "global franchises" },
+  { name: "Crown & Banner",    style: "genre",    strategy: "genre counter-programming" }
 ];
 
 /* Named critics: a harshness bias plus genres they love or hate. */

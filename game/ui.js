@@ -66,6 +66,12 @@ function openSheet(html) {
   toastQ = []; toastOn = false;
   clearTimeout(toastTimer);
   el("toast").hidden = true;
+  setTimeout(function () {
+    try {
+      var f = el("sheetBody").querySelector("button, input, select, textarea, [tabindex]");
+      if (f) f.focus();
+    } catch (e) {}
+  }, 0);
 }
 function rerenderSheet(html) {
   var b = el("sheetBody"), st = b.scrollTop;
@@ -248,6 +254,17 @@ function vStudio() {
     GENRES.forEach(function (g) { var lv = mastGenreTier(g.id); if (lv) known.push(g.em + " " + g.name + " · " + lv.n); });
     if (known.length) html += '<div class="card">' + statrow("Known for (genre mastery)", known.join(" · ")) + "</div>";
   }
+  var doneFilms = (S.films || []).filter(function (f) { return f.status === "done"; });
+  if (doneFilms.length) {
+    var hits = doneFilms.filter(function (f) { return (f.profit || 0) > 0; }).length;
+    var bestOpen = doneFilms.reduce(function (a, f) { return Math.max(a, f.opening || 0); }, 0);
+    html += '<div class="card"><div class="sechead"><h2>Legacy summary</h2></div>'
+      + statrow("Films released", doneFilms.length)
+      + statrow("Hits", hits)
+      + statrow("Best opening", fm(bestOpen))
+      + statrow("Lifetime gross", fm(st.lifetime))
+      + '<div class="btnrow"><button class="btn sm" data-action="legacy-summary">Open full summary</button></div></div>';
+  }
 
   if (S.projects.length) {
     html += '<div class="sechead"><h2>' + t("In production") + "</h2></div>";
@@ -264,7 +281,7 @@ function vStudio() {
   S.rivals.forEach(function (r) {
     var next = null;
     r.slots.forEach(function (s) { if (!next && !s.done && s.announced && s.week > st.week) next = s; });
-    html += statrow(r.name, fm(r.ytd) + " ytd" + (next ? ' · next: <b>' + esc(next.title) + "</b> W" + woyOf(next.week) : ""), "");
+    html += statrow(r.name + " (" + esc(r.style) + ")", fm(r.ytd) + " ytd" + (r.strategy ? " · " + esc(r.strategy) : "") + (next ? ' · next: <b>' + esc(next.title) + "</b> W" + woyOf(next.week) : ""), "");
   });
   html += "</div>";
   return html;
@@ -675,6 +692,12 @@ function vPlaying() {
 function vLedger() {
   var st = S.studio;
   var html = '<div class="card hero"><div class="val num">' + fm(st.cash) + '</div><div class="lbl">cash on hand</div></div>';
+  if (S.txHistory && S.txHistory.length) {
+    var avgOut = S.txHistory.reduce(function (a, t) { return a + (t.out || 0); }, 0) / S.txHistory.length;
+    if (avgOut > 0 && st.cash < avgOut * 4) {
+      html += '<div class="card" style="border-color:var(--red)"><b>⚠ Runway warning:</b> cash covers fewer than 4 weeks of recent spend. Slow production or raise capital.</div>';
+    }
+  }
 
   html += '<div class="sechead"><h2>Weekly P&L · last ' + Math.max(S.txHistory.length, 1) + '</h2></div><div class="card">';
   if (S.txHistory.length) {
@@ -871,7 +894,7 @@ function glProjection() {
 }
 function personRow(kind, selectedId) {
   var out = '<div class="talent-row">';
-  var list = S.market.filter(function (t) { return t.k === kind; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; });
+  var list = S.market.filter(function (t) { return t.k === kind; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; }).slice(0, 12);
   list.forEach(function (t) {
     var busy = talentBusy(t);
     out += '<button class="person' + (t.id === selectedId ? " on" : "") + '" data-action="' + (kind === "dir" ? "gl-dir" : "gl-act") + '" data-id="' + t.id + '" ' + (busy ? "disabled" : "") + '>'
@@ -883,7 +906,7 @@ function personRow(kind, selectedId) {
 }
 function supportRow() {
   var out = '<div class="talent-row">';
-  var list = S.market.filter(function (t) { return t.k === "actor" && t.id !== GL.actorId; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; });
+  var list = S.market.filter(function (t) { return t.k === "actor" && t.id !== GL.actorId; }).sort(function (a, b) { return b.power - a.power || b.skill - a.skill; }).slice(0, 12);
   list.forEach(function (t) {
     var on = GL.supIds.indexOf(t.id) >= 0, busy = talentBusy(t) && !on;
     out += '<button class="person' + (on ? " on" : "") + '" data-action="gl-sup" data-id="' + t.id + '" ' + (busy ? "disabled" : "") + '>'
@@ -1199,6 +1222,20 @@ function onAction(a, elx) {
   var id = elx.getAttribute("data-id");
   switch (a) {
     case "nav": VIEW = elx.getAttribute("data-view"); render(); break;
+    case "legacy-summary": {
+      var st2 = S.studio;
+      var done = (S.films || []).filter(function (f) { return f.status === "done"; });
+      var h = '<div class="sheet-head"><h3>🏆 Legacy summary</h3></div><div class="sheet-body">';
+      h += statrow("Films released", done.length);
+      h += statrow("Hits", done.filter(function (f) { return (f.profit || 0) > 0; }).length);
+      h += statrow("Best opening", fm(done.reduce(function (a, f) { return Math.max(a, f.opening || 0); }, 0)));
+      h += statrow("Lifetime gross", fm(st2.lifetime));
+      h += statrow("Reputation", Math.round(st2.rep));
+      h += statrow("Catalog value", fm(st2.catalog));
+      h += "</div>";
+      openSheet(h);
+      break;
+    }
     case "gear": openGear(); break;
     case "play-tab": PLAY_TAB = elx.getAttribute("data-tab"); render(); break;
     case "desk-sub": DESK_SUB[elx.getAttribute("data-tab")] = elx.getAttribute("data-sub"); render(); break;
@@ -1573,6 +1610,21 @@ function wire() {
     }
   });
   el("btnWeek").addEventListener("click", onAdvance);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      var sw = el("sheetWrap");
+      if (sw && !sw.hidden) { closeSheet(); e.preventDefault(); }
+    }
+    if (e.key === "Tab") {
+      var sw2 = el("sheetWrap");
+      if (!sw2 || sw2.hidden) return;
+      var focusables = Array.prototype.slice.call(el("sheetBody").querySelectorAll("button, input, select, textarea, [tabindex]")).filter(function (x) { return !x.disabled; });
+      if (!focusables.length) return;
+      var first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+    }
+  });
 }
 
 /* ── More: feature desks ─────────────────────────────────────── */
@@ -1656,7 +1708,7 @@ var DESK_GROUPS = {
     { key: "scripts", label: "Scripts", groups: [] },
     { key: "slate", label: "Slate", groups: [] },
     { key: "series", label: "Series", groups: [] },
-    { key: "talent", label: "Talent", groups: ["Talent office"] },
+    { key: "talent", label: "Talent", groups: ["Talent"] },
     { key: "craft", label: "Craft", groups: ["Creative", "Strategy", "The lobby"] },
     { key: "rights", label: "Rights & IP", groups: ["Library & fans", "Game studio", "Games & hardware", "Licensing"] },
     { key: "world", label: "World", groups: ["World"] }
@@ -1703,7 +1755,7 @@ function deskGridFor(tab, subKey) {
   if (!list.length) return '<div class="card empty"><span class="em">🗂️</span>No desks in this section yet.</div>';
   var html = "<div class='deskgrid'>";
   list.forEach(function (d) {
-    html += '<button class="desk" data-action="desk-open" data-id="' + d.id + '"><div class="em">' + d.icon + '</div><div class="nm">' + esc(d.name) + '</div><div class="ds">' + esc(d.desc) + "</div></button>";
+    html += '<button class="desk" data-action="desk-open" data-id="' + d.id + '" aria-label="' + esc(d.name) + ': ' + esc(d.desc) + '"><div class="em">' + d.icon + '</div><div class="nm">' + esc(d.name) + '</div><div class="ds">' + esc(d.desc) + "</div></button>";
   });
   return html + "</div>";
 }
