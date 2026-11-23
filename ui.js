@@ -274,7 +274,12 @@ function confetti(opts){
 /* ═══════════ helpers ═══════════ */
 const $ = s=>document.querySelector(s);
 const $$ = s=>[...document.querySelectorAll(s)];
-function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+/* Escapes for HTML text and BOTH quote styles. Single quotes matter: many
+   templates interpolate esc() into single-quoted attributes (value='...',
+   data-title='...'), and an unescaped ' there ends the attribute early —
+   "Schindler's List" truncated the field and allowed handler injection.
+   Never feed the result to textContent/.value; the entities are HTML-only. */
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function stars(n){ let s=""; for(let i=1;i<=5;i++) s+= i<=n? "★":"<span class='off'>★</span>"; return "<span class='stars'>"+s+"</span>"; }
 function meter(v, max, cls){ return "<div class='bar'><i style='width:"+clamp(v/max*100,2,100)+"%"+(cls?";background:"+cls:"")+"'></i></div>"; }
 function genreIconHtml(genre, extraClass = ""){
@@ -12549,13 +12554,19 @@ function deepfakeModal(){
   h+="<div class='tiny muted' style='margin-top:6px'>Flag every synthetic frame, then submit. Clock running out counts as a miss. Best streak: "+(G.dfStreak||0)+" · wins "+(G.dfWins||0)+" / losses "+(G.dfLosses||0)+"</div>";
   h+="<div class='df-actions' style='margin-top:14px;display:flex;gap:10px'><button class='btn btn-alt' id='dfDefer' style='flex:1'>Defer (-1 rep)</button><button class='btn btn-primary' id='dfSolve' style='flex:1'>Submit Verification</button></div>";
   h+="</div>";
-  const v=openModal(h);
-
   const picked=new Set();
   let finished=false;
+  let tick=null;
+  /* The drill's clock must stop when the player dismisses the dialog by hand
+     (✕ / backdrop / Escape). Those paths never reached submit() or dfDefer, so
+     the interval kept firing every second for the rest of the session. onClose
+     is the one hook all three share. Marking finished also stops the expiry
+     from resolving an event the player already walked away from. */
+  const v=openModal(h, { onClose: function(){ if(!finished){ finished=true; clearInterval(tick); } } });
+
   let left=totalTime;
   const timerEl=v.querySelector("#dfTimer");
-  const tick=setInterval(function(){
+  tick=setInterval(function(){
     left--;
     if(timerEl) timerEl.textContent="Time Remaining: "+left+"s";
     if(left<=0 && !finished){ finished=true; clearInterval(tick); submit(false, true); }

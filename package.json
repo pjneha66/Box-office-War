@@ -1,6 +1,6 @@
 {
   "name": "box-office-war",
-  "version": "47.1.0",
+  "version": "47.2.0",
   "description": "A realistic movie-business simulation game that runs in any browser \u2014 phone, tablet, or PC. No installs, no dependencies, no server: pure HTML/CSS/JS, works offline (just open index.html).",
   "main": "data.js",
   "directories": {
@@ -11,6 +11,7 @@
     "apk": "node apk/build-www.js --rebuild && cd apk && npx --no-install cap sync android && cd android && ./gradlew assembleRelease",
     "test": "node test/smoke.js && node test/collection-engine.mjs && node test/ui-test.mjs && node test/balance.js && node test/scenario-playthrough.mjs && node test/sandbox-audit.mjs && node test/stage-division.mjs && npm run test:guards",
     "test:guards": "node test/handler-name-bridge.mjs && node test/callable-state-guard.mjs && node test/desk-actions.mjs && node test/duplicate-globals.mjs && node test/style-coverage.mjs && node test/no-phantom-hooks.mjs && node test/bundle-integrity.mjs",
+    "test:regression": "node test/collection-multiplier.mjs && node test/save-quota.mjs && node test/esc-attr.mjs && node test/xss-holiday.mjs && node test/save-guards.mjs && node test/deepfake-timer.mjs && node test/lot-life-gate.mjs && node test/rebuild-collection-lever.mjs",
     "test:sandbox": "node test/sandbox-audit.mjs",
     "test:engine": "node test/smoke.js",
     "test:ui": "node test/ui-test.mjs",

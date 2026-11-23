@@ -16,8 +16,10 @@ import glob
 import os
 import re
 import colorsys
+from pathlib import Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_PATH = Path(ROOT).resolve()
 FAMILIES = ("--cd-", "--ts-", "--bow-")
 HEX = re.compile(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
@@ -257,9 +259,13 @@ def main():
         lines.append("")
         print(f"recoloured {len(dark)} dark-on-dark text rules")
 
-    out = os.path.join(ROOT, "system", "legacy-map.css")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    open(out, "w", encoding="utf-8").write("\n".join(lines))
+    out = (ROOT_PATH / "system" / "legacy-map.css").resolve()
+    # relative_to() raises ValueError if the target resolves outside the project.
+    # `out` is built from a constant today; this keeps that invariant enforced
+    # rather than merely implied if the destination ever becomes a parameter.
+    out.relative_to(ROOT_PATH)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines), encoding="utf-8")
     print(f"mapped {mapped} legacy variables -> system/legacy-map.css")
 
 

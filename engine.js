@@ -266,17 +266,6 @@ async function restoreSafetyCopy(id){
   saveGame();
   return G;
 }
-function countSafetyCopies(){
-  try{
-    let backups=0, checkpoints=0;
-    for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i)||"";
-      if(k.indexOf(BACKUP_PREFIX)===0) backups++;
-      if(k.indexOf(CHECKPOINT_PREFIX)===0) checkpoints++;
-    }
-    return {backups, checkpoints};
-  }catch(e){ return {backups:0, checkpoints:0}; }
-}
 
 function showSaveIndicator(msg){
   const el = $("#saveIndicator");
@@ -302,11 +291,18 @@ function saveGame(){
     const raw = JSON.stringify(G); // perf: serialize once, write twice
     const slot = clampSlotNumber(G.slot||1);
     const stamp = Date.now();
-    writeSaveKeys([
+    const wrote = writeSaveKeys([
       [SAVE_KEY, raw],
       ["bow_slot"+slot, raw],
       [SLOT_META_PREFIX+slot, JSON.stringify(slotMetaRecord(G, raw, stamp))]
     ]);
+    if(!wrote){
+      /* Never claim a save that did not land: the player would lose the week
+         on reload with no warning. */
+      showSaveIndicator("⚠️ Storage full — save not written");
+      try{ if(typeof toast==="function") toast("Storage full — save not written. Export a save code or delete old slots.","bad"); }catch(e){}
+      return;
+    }
     // Named slot
     if(G.saveName) writeSaveKeys([["bow_named_"+G.saveName, raw]]);
     // IndexedDB sync (async, fire-and-forget)
@@ -316,21 +312,40 @@ function saveGame(){
   }catch(e){}
 }
 /* One quota-aware write path: a big career can fill localStorage, so we try
-   the full write, then drop the oldest named copies, then keep the autosave. */
+   the full write, then drop the oldest named copies, then keep the autosave.
+   Writes are rolled back as a set: a partial write would leave SAVE_KEY and
+   bow_slotN/bow_slotmetaN describing different saves, so a later load could
+   restore a slot the autosave knows nothing about. */
 function writeSaveKeys(pairs){
   if(typeof localStorage==="undefined") return false;
-  try{ pairs.forEach(function(p){ localStorage.setItem(p[0], p[1]); }); return true; }
+  const prior=[];
+  const setOne=function(k,v){
+    let had=false, old=null;
+    try{ old=localStorage.getItem(k); had=old!==null; }catch(e){}
+    prior.push({k:k, had:had, old:old});
+    localStorage.setItem(k,v);
+  };
+  const rollback=function(){
+    for(let i=prior.length-1;i>=0;i--){
+      const p=prior[i];
+      try{ if(p.had) localStorage.setItem(p.k,p.old); else localStorage.removeItem(p.k); }catch(e){}
+    }
+    prior.length=0;
+  };
+  try{ pairs.forEach(function(p){ setOne(p[0],p[1]); }); return true; }
   catch(e){
+    rollback();
     try{
       const named=[];
-      for(let i=0;i<localStorage.length;i++){
+      const n=(typeof localStorage.length==="number")? localStorage.length : 0;
+      for(let i=0;i<n;i++){
         const k=localStorage.key(i);
         if(k && k.indexOf("bow_named_")===0) named.push(k);
       }
       named.slice(0, 4).forEach(function(k){ localStorage.removeItem(k); });
-      pairs.forEach(function(p){ try{ localStorage.setItem(p[0], p[1]); }catch(err){} });
-      return true;
-    }catch(err){ return false; }
+    }catch(err){}
+    try{ pairs.forEach(function(p){ setOne(p[0],p[1]); }); return true; }
+    catch(err2){ rollback(); return false; }
   }
 }
 function clampSlotNumber(n){
@@ -599,6 +614,9 @@ function validateSave(s){
     if(!Number.isFinite(s.studio.rep))  problems.push("studio.rep is not a number");
   }
   if(!Number.isFinite(s.week) || s.week<1) problems.push("bad week counter");
+  /* v47: difficulty is read unguarded every week (tickPoaching), so a save
+     without a valid one would throw mid-tick rather than fail to load. */
+  if(!s.difficulty || !DATA.DIFFICULTIES[s.difficulty]) problems.push("bad difficulty");
   for(const k of ["projects","films","series","offers","ideas","franchises","talent","rivals","news"]){
     if(!Array.isArray(s[k])) problems.push("missing array: "+k);
   }
@@ -2373,8 +2391,11 @@ function weekendCompetitors(p, weekAbs){
   return list;
 }
 function legsOf(film){
-  const g=DATA.GENRES[film.genre];
-  let legs = 1.6 + (film.quality.overall-30)*0.028 + g.legsAdj;
+  /* Custom/legacy films can carry a genre with no DATA entry (the sandbox lets
+     players type one). A missing row must not throw mid-run; fall back to the
+     drama profile (the neutral mid-table genre) instead of crashing the tick. */
+  const g=DATA.GENRES[film.genre] || DATA.GENRES.drama || { legsAdj: 0 };
+  let legs = 1.6 + (film.quality.overall-30)*0.028 + (g.legsAdj||0);
   if(seasonOfW(film.releaseWeek).holiday) legs += 0.12;
   const aud = (typeof audienceScoreOf==="function")? audienceScoreOf(film) : film.quality.aud;
   if(aud>=85) legs += 0.08;
@@ -3005,9 +3026,11 @@ function tickTheatrical(){
     if(G.theaterCap>0) gross*=0.55;
     if(G.piracy && DATA.PIRACY) gross *= 1 - clamp(G.piracy/100,0,1)*DATA.PIRACY.maxGrossDamage;  // v5: piracy meter bleeds live runs
     /* v43: Collection Command — player levers (screen expansion, event pricing,
-       international blitz, corridor, discount Tuesday) scale this week's gross.
-       They lift f.dom/f.intl/f.ww together, so territory splits stay honest. */
-    if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.grossMultiplier) gross *= BoxOfficeCollection.grossMultiplier(f,G);
+       international blitz, corridor, discount Tuesday) are deliberately NOT
+       applied here. BoxOfficeCollection.tick() is the single payer: it adds the
+       lever increment, and being the only payer is what lets it damp the lift
+       against the weekly valve. Applying the multiplier here as well squared it
+       (a 1.5× stack behaved like 2.25×) and paid rentals twice. */
     const isHoliday = seasonOfW(G.week).holiday;
     if(isHoliday) gross*=1.18;
     // v17: Economic cycle box office multiplier
@@ -7074,7 +7097,10 @@ function tickLicensedOut(){
 }
 
 function tickPoaching(){
-  if(!chance(0.022*DATA.DIFFICULTIES[G.difficulty].eventRate)) return;
+  /* A save that predates the difficulty field (or an edited one) must not throw
+     inside the weekly tick — fall back to the documented default. */
+  const diff = DATA.DIFFICULTIES[G.difficulty] || DATA.DIFFICULTIES.normal;
+  if(!chance(0.022*diff.eventRate)) return;
   const cands = G.talent.filter(t=>!t.bookedUntil && ((t.heat||0)>=2 || (t.pics||0)>=2));
   if(!cands.length) return;
   const t=pick(cands.filter(x=>!(x.contract&&x.contract.type==="exclusive"&&(x.contract.until||0)>G.week)));

@@ -455,8 +455,13 @@
       ensureFilm(f);
       var m = grossMultiplier(f, G);
       if (m <= 1.0001) return;
-      var last = f.weekly && f.weekly.length ? Number(f.weekly[f.weekly.length - 1].gross) : Number(f.opening);
-      var base = Math.max(0, isFinite(last) ? last : 0);
+      /* Base the lift on THIS week's un-levered gross that tickTheatrical just
+         pushed. Using the previous record would compound: last week's record
+         already carried its own increment, so each week would re-lift the lift
+         (≈ m/wk decay tail, not m). */
+      var wk = (f.weekly && f.weekly.length) ? f.weekly[f.weekly.length - 1] : null;
+      var base = (wk && Number(wk.w) === Number(G.week)) ? Number(wk.gross) : Number(f.opening);
+      base = Math.max(0, isFinite(base) ? base : 0);
       if (base > 0) lift[f.id] = base * (m - 1);
     });
     var totalLift = Object.keys(lift).reduce(function (a, k) { return a + lift[k]; }, 0);
@@ -478,12 +483,30 @@
       f.dom = rm1(newDom);
       f.intl = newIntl;
       f.ww = rm1(f.dom + newIntl);
+      /* tickTheatrical pushed this week's un-levered gross into f.weekly and
+         ran its intl/territory maths on that. Fold the increment into the same
+         record so sum(weekly.gross) keeps tracking f.dom; otherwise the chart,
+         chart WoW maths and the collection history all read a stale figure. */
+      var wk = (f.weekly && f.weekly.length) ? f.weekly[f.weekly.length - 1] : null;
+      if (wk && Number(wk.w) === Number(G.week)) {
+        wk.gross = rm1(Math.max(0, Number(wk.gross) || 0) + amount);
+      } else {
+        f.weekly = f.weekly || [];
+        f.weekly.push({ w: G.week, gross: amount });
+      }
       earnMoney("theatrical", rm1(amount * CONFIG.domShare));
       var intlDelta = rm1(Math.max(0, newIntl - oldIntl) * CONFIG.intlShare);
       if (intlDelta > 0) earnMoney("theatrical", intlDelta);
+      /* territory licensees take their royalty on this increment too */
+      try {
+        if (typeof BOW_TERRITORIES !== "undefined" && typeof BOW_TERRITORIES.tickWeeklyRoyalties === "function") {
+          var share = f.presales ? 0 : ((D() && D().GENRES && D().GENRES[f.genre] && D().GENRES[f.genre].intlShare) || 0.45);
+          BOW_TERRITORIES.tickWeeklyRoyalties(f, amount * share, G);
+        }
+      } catch (e) {}
       upliftTotal += amount;
       col.totals.uplift = rm1((col.totals.uplift || 0) + amount);
-      col.history.unshift({ w: G.week, uplift: amount, gross: f.weekly && f.weekly.length ? f.weekly[f.weekly.length - 1].gross : 0 });
+      col.history.unshift({ w: G.week, uplift: amount, gross: wk ? wk.gross : amount });
       if (col.history.length > 24) col.history.length = 24;
       if (amount >= 1.5) lines.push("📈 \"" + f.title + "\" collects an extra " + fmt(amount) + " this week on the lever stack.");
     });

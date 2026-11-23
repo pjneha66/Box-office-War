@@ -77,6 +77,15 @@ if [ "$DRY_RUN" = false ]; then
     if(qv<5) throw new Error("expected 5 ?v= cache-busters in index.html, found "+qv);
     idx=idx.replace(/(\.(?:css|js)\?v=)[0-9.]+(")/g,"$1"+ver+"$2");
     fs.writeFileSync("index.html",idx);
+    /* The APK bundles game/ (--rebuild), and its own index.html carries the
+       app-version meta the APK content gate reads plus its own ?v= busters.
+       Bumping only the root file left the shipped bundle tagged a version
+       behind, and the gate in step 3 then aborts the release. */
+    let gidx=fs.readFileSync("game/index.html","utf8");
+    if(!/name="app-version"/.test(gidx)) throw new Error("app-version meta missing in game/index.html");
+    gidx=gidx.replace(/(name="app-version" content=")[0-9.]+(")/,"$1"+ver+"$2");
+    gidx=gidx.replace(/(\.(?:css|js)\?v=)[0-9.]+(")/g,"$1"+ver+"$2");
+    fs.writeFileSync("game/index.html",gidx);
     let vj=fs.readFileSync("version.json","utf8");
     if(!/"v"/.test(vj)) throw new Error("version.json missing its v field");
     vj=vj.replace(/"v":\s*"[0-9.]+"/,"\"v\": \""+ver+"\"");
@@ -84,7 +93,7 @@ if [ "$DRY_RUN" = false ]; then
     let pj=fs.readFileSync("package.json","utf8");
     pj=pj.replace(/"version":\s*"[0-9.]+"/,"\"version\": \""+(ver.split(".").length===2?ver+".0":ver)+"\"");
     fs.writeFileSync("package.json",pj);
-    console.log("  bumped: APK "+ver+" (code "+code+"), SW cache v"+sw+", app meta + version.json + package.json "+ver);
+    console.log("  bumped: APK "+ver+" (code "+code+"), SW cache v"+sw+", app meta (root+game) + version.json + package.json "+ver);
   ' "$VERSION" "$((CUR_CODE+1))" "$((CUR_SW+1))"
 else
   echo "  (dry-run) would bump: APK ${CUR_VER} -> ${VERSION}, SW cache v${CUR_SW} -> v$((CUR_SW+1))"
@@ -134,6 +143,9 @@ fi
 # cap sync copies apk/www into the Android assets gradle actually packs —
 # without it the APK ships whatever web code was synced during the FIRST build
 ( cd apk && node node_modules/@capacitor/cli/bin/capacitor sync android )
+# gradlew's executable bit is not preserved on every checkout (it was 100644 in
+# the v47.1 commit, so `./gradlew` died with "Permission denied", exit 126).
+chmod +x apk/android/gradlew 2>/dev/null || true
 ( cd apk/android && ./gradlew assembleRelease --no-daemon -q )
 mkdir -p apk/dist
 # in dry-run the version bump wasn't applied, so the built APK is still CUR_VER
@@ -161,7 +173,7 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo "── 4/6 commit + push ──────────────────────────────────────"
-git add sw.js apk/android/app/build.gradle index.html version.json package.json
+git add sw.js apk/android/app/build.gradle index.html game/index.html version.json package.json package-lock.json
 git commit -m "v$VERSION: release — SW cache v$((CUR_SW+1)), APK $VERSION"
 git push origin main
 echo "✓ pushed to main"

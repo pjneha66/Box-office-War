@@ -45,6 +45,15 @@ jobs:
             case "$f" in
               apk/android/*|apk/www/*) continue ;;
             esac
+            # Playwright specs are ESM by convention and the repo is "type":
+            # "commonjs", so plain `node --check` rejected their `import` line
+            # ("Cannot use import statement outside a module") and failed CI on
+            # a file that is not part of the shipped build. Check those as modules.
+            case "$f" in
+              *.spec.js)
+                node --input-type=module --check < "$f" >/dev/null 2>&1 || { echo "::error file=$f::module syntax check failed"; node --input-type=module --check < "$f"; exit 1; }
+                n=$((n+1)); continue ;;
+            esac
             # .mjs/.cjs may use ESM/CJS syntax node --check handles natively
             node --check "$f" >/dev/null 2>&1 || { echo "::error file=$f::node --check failed"; node --check "$f"; exit 1; }
             n=$((n+1))

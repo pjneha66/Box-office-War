@@ -20,6 +20,12 @@ const SHIM = `
 if (typeof global.window === "undefined") global.window = global;
 global.localStorage = { _s:{}, getItem(k){ return this._s[k] ?? null; }, setItem(k,v){ this._s[k]=v; }, removeItem(k){ delete this._s[k]; } };
 if (typeof global.DATA === "undefined") global.DATA = {};
+/* engine.js calls Math.random() directly in a dozen places (slate generation,
+   poaching, festival picks). Overriding only the global \`rnd()\` left the
+   snapshot itself non-deterministic, so each run built a different film and the
+   percentage thresholds below drifted across runs. Seed the primitive too. */
+global.__mr = (function(){ var st = 0x2545F491; return function(){ st ^= st << 13; st >>>= 0; st ^= st >> 17; st ^= st << 5; st >>>= 0; return st / 4294967296; }; })();
+Math.random = function () { return global.__mr(); };
 `;
 const read = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/"use strict";/g, "");
 

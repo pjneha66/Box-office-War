@@ -631,7 +631,14 @@ function tickTheatrical() {
     g = genreOf(f.genre);
     f.weeksOut++;
     gross = f.opening * Math.pow(f.decay, f.weeksOut) * (seasonOf(woyOf(S.studio.week)).hol ? 1.18 : 1) * S.econ.box * (S.piracy > 0 ? 0.94 : 1);
-    if (typeof BoxOfficeCollection !== "undefined" && BoxOfficeCollection.grossMultiplier) gross *= BoxOfficeCollection.grossMultiplier(f);
+    /* v47.2: lever uplift is paid by BoxOfficeCollection.tick() alone. Multiplying
+       here as well squared the stack — a 1.42x lever behaved like 2.02x — because
+       tick() reads the week's gross back out of f.weekly and adds base*(m-1) on
+       top, and it paid rentals twice. Measured before/after in this file's history:
+       dom ratio 2.0167 (=m^2) -> 1.4194 (=m) for a 1.42x lever. Unlike the legacy
+       engine, game/ has no opening-week gate on grossMultiplier: its
+       openingMultiplier prices only screens/corridor/relief, so the weekly levers
+       must be able to earn from week one. */
     if (typeof exhibitionGrossMult === "function") gross *= exhibitionGrossMult(f) || 1;
     gross = Math.round(gross * 10) / 10;
     if (gross < Math.max(0.25, f.opening * 0.006) || f.weeksOut > 16) { endTheatrical(f); continue; }

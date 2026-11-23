@@ -6,6 +6,15 @@
 "use strict";
 
 (function(global){
+  /* Local HTML escaper — this IIFE cannot see ui.js's esc(). The holiday
+     calendar interpolates user-supplied film titles/genres into an innerHTML
+     modal, so they must be neutralised here, not left raw. */
+  function escHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+
   const BOW_SANDBOX = {
     version: "1.0.0",
 
@@ -369,7 +378,7 @@
         h += "<div style='margin-top:8px;padding-top:6px;border-top:1px dashed rgba(255,255,255,0.1)'>";
         h += "<b class='tiny pos'>Your Slated Releases:</b>";
         myFilms.forEach(f => {
-          h += "<div class='tiny gold'>• \"" + f.title + "\" (" + f.genre + " · " + (f.scale || "Standard") + ")</div>";
+          h += "<div class='tiny gold'>• \"" + escHtml(f.title) + "\" (" + escHtml(f.genre) + " · " + escHtml(f.scale || "Standard") + ")</div>";
         });
         h += "</div>";
       } else {
