@@ -1,11 +1,16 @@
-/* Release-path guard: the shipped APK must contain the rebuilt, phone-first game
-   in game/, never the legacy 60-script game at the repo root.
+/* Release-path guard: the shipped APK must contain the root app with the
+   portrait shell (system/vertical.css), and must never regress to packaging
+   the retired game/ tree.
 
-   This exists because v44.0 shipped the wrong game: the release workflow called
-   `node apk/build-www.js` without `--rebuild`, so the APK regressed to the legacy
-   build (62 scripts, no phone shell) while the whole rebuild lived untouched in
-   game/. Nothing failed — the APK was valid, just the wrong product — so this
-   asserts the build mode itself, not the built output.
+   History, because the assertions below look like they point the wrong way:
+   this guard was originally written the other way round. v44.0 shipped the
+   "wrong game" by calling build-www.js without --rebuild, so the guard was
+   built to assert that the build used game/ and not the root app. Phase 6
+   inverted that: game/ was retired as the shipped product, the root app grew
+   the portrait shell, and the APK is locked to portrait in AndroidManifest.
+   So the roles swapped — root is now the product and game/ is what must not
+   ship. The failure mode this guard exists for is unchanged: a release that
+   silently packages the wrong tree.
 
    Usage: node test/release-mode.mjs */
 import { readFileSync } from "fs";
@@ -54,9 +59,7 @@ for (const { file, label } of buildPaths) {
     bad.length ? "LEGACY BUILD: " + bad.map((c) => c || "(no flags)").join(", ") : "all --rebuild");
 }
 
-/* The npm scripts a human would reach for must also default to the rebuild.
-   (test:packaging intentionally builds the legacy bundle for the legacy
-   lot-packaging test, so it is not in this list.) */
+/* The npm scripts a human would reach for must also default to the rebuild. */
 const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
 const scripts = pkg.scripts || {};
 for (const key of ["apk", "apk:web"]) {
@@ -64,19 +67,37 @@ for (const key of ["apk", "apk:web"]) {
   check(`package.json "${key}" builds the rebuild`, cmd.indexOf("--rebuild") >= 0, cmd || "missing");
 }
 
-/* The rebuild marker set must exist in game/, so the guard cannot pass vacuously */
-const gameHtml = readFileSync(path.join(root, "game", "index.html"), "utf8");
-const markers = ["mobile-shell.js", "phone-ux.js", "opsuite.js", "liveops.js", "mktblitz.js", "consolehw.js"];
-const missing = markers.filter((m) => gameHtml.indexOf(m) < 0);
-check("game/index.html is the rebuild (its marker scripts are present)",
-  missing.length === 0, missing.length ? "missing: " + missing.join(", ") : "all present");
+/* The build must package the ROOT app. build-www.js copies from ROOT for the
+   FILES list; if it ever copies from game/ again, this catches it. */
+const buildSrc = readFileSync(path.join(root, "apk", "build-www.js"), "utf8");
+check("build-www.js packages the root app (no game/ source tree)",
+  buildSrc.indexOf('path.join(ROOT, "game"') < 0 && buildSrc.indexOf('path.join(ROOT, "game", f)') < 0,
+  buildSrc.indexOf('path.join(ROOT, "game"') < 0 ? "no game/ copy path" : "STILL COPIES game/");
 
-/* The legacy game must stay distinguishable from the rebuild, because the guard
-   above relies on that difference to tell them apart. */
-const legacyHtml = readFileSync(path.join(root, "index.html"), "utf8");
-check("legacy root index.html is distinguishable from the rebuild",
-  legacyHtml.indexOf("industry-expansion-suite.js") >= 0 && gameHtml.indexOf("industry-expansion-suite.js") < 0,
-  "legacy marker present only at root");
+/* The root app must carry the portrait shell, or the APK ships landscape UI on
+   a portrait-locked screen. These are the markers the release workflow also
+   verifies against the built bundle. */
+const rootHtml = readFileSync(path.join(root, "index.html"), "utf8");
+const shellMarkers = ["system/vertical.css", "system/tokens.css", "system/components.css"];
+const missingShell = shellMarkers.filter((m) => rootHtml.indexOf(m) < 0);
+check("root index.html loads the portrait shell", missingShell.length === 0,
+  missingShell.length ? "missing: " + missingShell.join(", ") : "all present");
+
+/* Match the call, not the word. `data-layout` also appears in a <head> comment
+   (explaining the flag) and in every rule of vertical.css, so a bare substring
+   check passes on prose and reports a working flag on a page that never sets
+   one. This guard briefly did exactly that — the negative control caught it. */
+const setsFlag = /setAttribute\(\s*["']data-layout["']/.test(rootHtml);
+check("root index.html sets the data-layout flag (the call, not the word)", setsFlag,
+  setsFlag ? "set by script in <head>" : "NO setAttribute('data-layout') — shell cannot activate");
+
+/* The retired tree must stay distinguishable from the product, so a bundle
+   containing the wrong one is detectable. mobile-shell.js and phone-ux.js were
+   loaded only by game/. */
+const gameHtml = readFileSync(path.join(root, "game", "index.html"), "utf8");
+check("retired game/ is distinguishable from the product",
+  gameHtml.indexOf("mobile-shell.js") >= 0 && rootHtml.indexOf("mobile-shell.js") < 0,
+  "game-only markers present only in game/");
 
 console.log("\n" + (failures ? `FAILED ${failures}/${total}` : "ALL RELEASE-MODE CHECKS PASSED"));
 process.exit(failures ? 1 : 0);

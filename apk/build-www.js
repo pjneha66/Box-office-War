@@ -7,8 +7,18 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const WWW = path.join(__dirname, "www");
 
-// --rebuild: package the fresh mobile-first game in game/ as the whole app.
-// The legacy 60-file build below is untouched and still the default.
+/* --rebuild: package the ROOT app (index.html + the system/ UI layer) as the
+   whole APK bundle.
+
+   History: this flag used to package game/, a separate phone-first rewrite
+   that shared no code with the root app. The root app has since gained the
+   portrait shell (system/vertical.css) and the APK is locked to portrait
+   (AndroidManifest screenOrientation="portrait"), so game/ is now the older
+   of the two — packaging it would ship an APK that looks nothing like the app
+   in the browser. Phase 6 folds the two back together; this is that fold.
+
+   GAME_FILES is kept, unreferenced, so the Phase 6.5 deletion of game/ can be
+   checked against the exact list that used to ship. Nothing reads it now. */
 const REBUILD = process.argv.includes("--rebuild");
 const GAME_FILES = [
   "index.html", "style.css", "boc-premium.css", "data.js", "cast-banks.js", "box-office-sim-2-cast.js", "cast-bridge.js", "engine.js", "ui.js",
@@ -27,8 +37,9 @@ const GAME_FILES = [
 
 const FILES = [
   "index.html",
-  "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css", "command-deck.css", "industry-expansion.css", "studio-nextwave.css", "theme-studio.css", "landscape-phone.css",
+  "design-tokens.css", "style.css", "ui-v33.css", "lot-life.css", "bow-restyle.css", "lot-gameplay.css", "welcome.css", "command-deck.css", "pitch-board.css", "industry-expansion.css", "studio-nextwave.css", "theme-studio.css", "landscape-phone.css",
   "data.js", "engine.js", "industry-expansion-suite.js", "studio-nextwave-suite.js", "i18n.js", "ui.js", "settings-studio.js",
+  "cast-catalog.js",
   "finance-desk.js", "finance-tools.js", "v31-features.js", "bo-charts.js", "gamestudio-desk.js",
   "challenge-leaderboard.js", "theater-chains.js", "dynamic-soundtrack.js", "dynasty-legacy.js",
   "bow-shorts.js", "talent-agency.js", "film-restoration.js", "festival-pr.js",
@@ -65,14 +76,22 @@ function pruneSidecars(dir) {
 
 fs.rmSync(WWW, { recursive: true, force: true });
 fs.mkdirSync(WWW, { recursive: true });
-if (REBUILD) {
-  for (const f of GAME_FILES) fs.copyFileSync(path.join(ROOT, "game", f), path.join(WWW, f));
-} else {
-for (const f of FILES) fs.copyFileSync(path.join(ROOT, f), path.join(WWW, f));
+
+/* Both modes now package the root app. --rebuild is kept as the flag the
+   workflow passes (and as the wording in the logs), but it no longer selects
+   a different source tree — there is only one app again. The branch that
+   copied game/ was removed here rather than left as dead code, because a
+   silent fallback to the retired tree is exactly the failure this fold is
+   meant to prevent. */
+for (const f of FILES) {
+  const src = path.join(ROOT, f);
+  if (!fs.existsSync(src)) throw new Error("missing from the bundle manifest: " + f);
+  fs.copyFileSync(src, path.join(WWW, f));
+}
 if (fs.existsSync(path.join(ROOT, "assets"))) fs.cpSync(path.join(ROOT, "assets"), path.join(WWW, "assets"), { recursive: true, filter: skipJunk });
-// The UI system lives in system/ (tokens, legacy palette map, components).
-// Directory copy, not the FILES list, so it keeps its path. The style guide is
-// a developer reference and is not shipped to users.
+// The UI system lives in system/ (tokens, legacy palette map, components, and
+// the vertical shell). Directory copy, not the FILES list, so it keeps its
+// path. The style guide is a developer reference and is not shipped to users.
 if (fs.existsSync(path.join(ROOT, "system"))) {
   fs.cpSync(path.join(ROOT, "system"), path.join(WWW, "system"), {
     recursive: true,
@@ -80,16 +99,13 @@ if (fs.existsSync(path.join(ROOT, "system"))) {
   });
 }
 if (fs.existsSync(path.join(ROOT, "pkg"))) fs.cpSync(path.join(ROOT, "pkg"), path.join(WWW, "pkg"), { recursive: true, filter: skipJunk });
-}
 
 // strip the SW registration <script> block from the copied index.html
-// (both modes: game/index.html carries the same /* PWA: */ marker)
-
-// strip the SW registration <script> block from the copied index.html
+// (both modes: the root index.html carries the same /* PWA: */ marker)
 const idxPath = path.join(WWW, "index.html");
 let idx = fs.readFileSync(idxPath, "utf8");
 const swBlock = /<script>\s*\/\* PWA:[^]*?<\/script>/;
-if (!swBlock.test(idx)) throw new Error("SW registration block not found in index.html" + (REBUILD ? " (game/)" : ""));
+if (!swBlock.test(idx)) throw new Error("SW registration block not found in index.html");
 idx = idx.replace(swBlock, "");
 fs.writeFileSync(idxPath, idx);
 

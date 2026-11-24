@@ -121,28 +121,58 @@ jobs:
           chmod 600 apk/signing/boxofficewar.keystore apk/android/keystore.properties
           echo "keystore staged ($(stat -c%s apk/signing/boxofficewar.keystore) bytes)"
 
-      - name: Build web bundle (rebuild game)
-        # The shipped game is the rebuilt, phone-first build in game/.
-        # Without --rebuild this packages the legacy 60-script game instead,
-        # which is how v44.0 regressed to the old UI.
+      - name: Build web bundle
+        # Packages the root app, which is the portrait-first build. The flag is
+        # retained because the verify step below refers to it, but build-www.js
+        # no longer selects a second source tree — game/ was retired in Phase 6.
         run: node apk/build-www.js --rebuild
 
-      - name: Verify the bundle is the rebuild
+      - name: Verify the bundle is the portrait app
         shell: bash
         run: |
           set -euo pipefail
           IDX=apk/www/index.html
           [ -f "$IDX" ] || { echo "::error::apk/www/index.html missing"; exit 1; }
-          for f in mobile-shell.js phone-ux.js opsuite.js liveops.js mktblitz.js consolehw.js; do
+
+          # The portrait shell is the point of this bundle. If the shell or its
+          # layout flag is missing, this is the old landscape app and must not
+          # be released.
+          for f in system/vertical.css system/tokens.css system/components.css; do
             if ! grep -q "$f" "$IDX"; then
-              echo "::error::bundle is not the rebuild — $f is not referenced by apk/www/index.html"
-              exit 1
+              echo "::error::bundle is missing $f — not the portrait build"; exit 1
             fi
           done
-          if grep -q "industry-expansion-suite.js" "$IDX"; then
-            echo "::error::bundle contains the LEGACY game (industry-expansion-suite.js)"; exit 1
+          # Match the setAttribute call, not the bare word: `data-layout` also
+          # appears in a <head> comment and in every vertical.css selector, so a
+          # substring grep would pass on prose with the flag never being set.
+          if ! grep -qE "setAttribute\([\"']data-layout[\"']" "$IDX"; then
+            echo "::error::bundle never sets data-layout — the vertical shell cannot activate"; exit 1
           fi
-          echo "bundle verified as the rebuild ($(grep -c '<script src=' "$IDX") scripts)"
+          [ -f apk/www/system/vertical.css ] || { echo "::error::system/vertical.css was not copied into the bundle"; exit 1; }
+
+          # The retired game/ tree must not leak back in. mobile-shell.js and
+          # phone-ux.js were loaded only by game/, so either one means the old
+          # tree got packaged.
+          if grep -qE 'mobile-shell\.js|phone-ux\.js' "$IDX"; then
+            echo "::error::bundle contains the retired game/ tree (mobile-shell.js/phone-ux.js)"; exit 1
+          fi
+
+          # Every asset the shipped index.html names must exist in the bundle.
+          # This is the check that would have caught the missing pitch-board.css
+          # and cast-catalog.js before they reached a release.
+          missing=0
+          while IFS= read -r ref; do
+            case "$ref" in http*|data:*|//*|"#"*) continue;; esac
+            clean="${ref%%\?*}"
+            [ -z "$clean" ] && continue
+            if [ ! -e "apk/www/$clean" ]; then
+              echo "::error::referenced asset missing from bundle: $clean"
+              missing=$((missing+1))
+            fi
+          done < <(grep -oE '(href|src)="[^"]+"' "$IDX" | sed -E 's/^(href|src)="//; s/"$//')
+          [ "$missing" -eq 0 ] || { echo "::error::$missing referenced asset(s) missing"; exit 1; }
+
+          echo "bundle verified as the portrait app ($(grep -c '<script src=' "$IDX") scripts)"
 
       - name: Sync Capacitor web assets
         working-directory: apk
