@@ -13,8 +13,10 @@
      3. legacy alias the v30 names other stylesheets already depend on
      4. scales       type, space, radius, elevation, motion, density
 
-   Target device is a phone in landscape (360–430px tall), so the default
-   density is the compact one and desktop opts up via `data-density`.
+   Target device is a portrait phone (360px wide). That is the primary
+   viewport all new layout work targets; landscape and desktop are
+   enhancements of the same DOM, not a separate information architecture.
+   The compact density below is the six-inch phone default.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -189,6 +191,22 @@
   --spring: 220ms cubic-bezier(.3, 1.2, .5, 1);
 
   --container-max: 1240px;
+
+  /* ── vertical shell ────────────────────────────────────────────────────────
+     Metrics for the portrait-first shell (system/vertical.css). These are
+     declared unconditionally so the shell renders correctly even before the
+     layout flag flips; vertical.css only *uses* them. Bar heights follow
+     Material's 56/44/64/64 convention, and --v-tap meets the 44px minimum
+     touch target the accessibility pass requires. */
+  --v-bar-h: 56px;          /* app bar (brand, capital, week)      */
+  --v-sub-h: 44px;          /* sticky destination sub-nav          */
+  --v-action-h: 64px;       /* pinned Next Week action bar         */
+  --v-nav-h: 64px;          /* bottom destination nav              */
+  --v-tap: 44px;            /* minimum interactive target          */
+  --v-gap: 12px;            /* card gutter on a 360px phone        */
+  --v-pad: 14px;            /* content inset                       */
+  --v-radius: 14px;         /* card radius                         */
+  --v-lot-collapsed: 44px;  /* collapsed lot-stage strip           */
 
   --z-nav: 50;
   --z-dropdown: 100;

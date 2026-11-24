@@ -36,6 +36,32 @@
 <!-- Game skin ("Toybox"): loaded last so it wins the cascade. Remove
      data-skin="game" from <html> to fall back to the classic graphite skin. -->
 <link rel="stylesheet" href="system/game-ui.css?v=47.2">
+<!-- Vertical shell: portrait-first chrome. Every rule inside is scoped to
+     :root[data-layout="vertical"], so on desktop this contributes nothing.
+     Linked last so it outranks the legacy layers without !important. -->
+<link rel="stylesheet" href="system/vertical.css?v=47.2">
+<script>
+/* Layout flag. Set here, in <head>, so the shell is correct on the very
+   first paint — no flash of landscape chrome before a deferred script runs.
+
+   Portrait phone only. Desktop and tablet stay on the landscape-first
+   layout this phase; Phase 6 decides whether the shell follows rotation.
+
+   matchMedia is guarded: jsdom (the test harness) and some older WebViews do
+   not implement it, and an uncaught error here would abort the whole boot. */
+(function () {
+  var root = document.documentElement;
+  function set(vertical) {
+    root.setAttribute("data-layout", vertical ? "vertical" : "landscape");
+  }
+  if (typeof window.matchMedia !== "function") { set(false); return; }
+  var mq = window.matchMedia("(max-width: 600px) and (orientation: portrait)");
+  function apply() { set(mq.matches); }
+  apply();
+  if (mq.addEventListener) mq.addEventListener("change", apply);
+  else if (mq.addListener) mq.addListener(apply);   /* Safari < 14 */
+})();
+</script>
 </head>
 <body>
 <div id="offlineBanner" class="offline-banner" style="display:none">Offline mode — changes saved locally in device storage</div>
