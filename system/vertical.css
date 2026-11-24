@@ -24,13 +24,13 @@
    become inert and can be dropped without a behaviour change.
 
    ── scope note ─────────────────────────────────────────────────────────────
-   Two Phase-2 items are pulled forward because the 56px app bar is
-   unreachable without them:
-     · #tabsNav (13 desktop tabs) is hidden — the bottom nav + sub-nav replace it
-     · the header's inline time controls are hidden — the pinned action bar is
-       the single Next-Week CTA
-   Everything else in the navigation unification (moreSheet, renderSubTabs
-   collapse, header inbox) stays in Phase 2.
+   This phase is purely additive: it restyles chrome, it does not remove any
+   route. The inline time controls are hidden because the pinned action bar is
+   the single Next-Week CTA; the 13-tab strip is KEPT because it is currently
+   the only way to reach productions, fans and library (see §2).
+   Navigation unification — deleting moreSheet(), collapsing renderSubTabs(),
+   the header inbox, and retiring the tab strip — is Phase 2, and the strip
+   cannot go before its replacement routes land.
 
    Metrics come from system/tokens.css (--v-*). This file hardcodes no bar
    height, so one token change re-flows the whole shell.
@@ -55,8 +55,9 @@
 }
 
 /* ── 2. app bar (56px) ───────────────────────────────────────────────────────
-   The header is a container for the app bar + sub-nav; #tabsNav inside it is
-   hidden below, so its height becomes 56 + 44 rather than 212. */
+   The header is a container for the app bar + the destination strip. The app
+   bar itself is pinned to 56px below; the strip keeps its own 44px row, so the
+   header totals 100px rather than the 212px the legacy stack produced. */
 :root[data-layout="vertical"] #app .topbar {
   position: sticky !important;
   top: 0 !important;
@@ -81,10 +82,41 @@
   padding: 0 !important;
 }
 
-/* The desktop tab strip is replaced by the bottom nav in portrait. Hiding it
-   also removes 44px from the header's own height. */
+/* The 13-tab strip is KEPT in portrait. It is the only route to productions,
+   fans and library: the bottom nav carries 4 destinations and moreSheet carries
+   5 (ott, live, empire, finance, games), so hiding the strip strands three
+   desks. Phase 2 replaces it, and must land the replacement routes in the same
+   commit — until then this strip stays.
+   What portrait does change is its weight: one non-wrapping 44px scroll track
+   with 44px tap targets, instead of a 44px strip that legacy rules let wrap. */
 :root[data-layout="vertical"] #app #tabsNav {
-  display: none !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  min-height: var(--v-sub-h) !important;
+  height: auto !important;
+  padding: 0 var(--v-pad) !important;
+  gap: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-top: 0;
+  border-bottom: 1px solid var(--line-1);
+}
+
+:root[data-layout="vertical"] #app #tabsNav::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-layout="vertical"] #app #tabsNav .tab {
+  flex: 0 0 auto !important;
+  min-height: var(--v-tap) !important;
+  padding: 0 12px !important;
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px !important;
+  white-space: nowrap;
 }
 
 /* components.css sets `flex-shrink:0` on the ledger so header controls keep
@@ -187,12 +219,15 @@
 }
 
 /* ── 3. sticky sub-nav (44px) ────────────────────────────────────────────────
-   Directly under the app bar, stays put while the desk scrolls beneath it. */
+   Sits under the app bar and the destination strip, and stays put while the
+   desk scrolls beneath it. No desk currently renders sub-tabs (renderSubTabs
+   early-returns for all 11), so this is dormant until Phase 2 decides whether
+   the strip survives; the offset is written for the current 56 + 44 header. */
 :root[data-layout="vertical"] #app .subtabs {
   display: flex !important;
   flex-wrap: nowrap;
   position: sticky !important;
-  top: var(--v-bar-h) !important;
+  top: calc(var(--v-bar-h) + var(--v-sub-h)) !important;
   z-index: calc(var(--z-nav) - 1) !important;
   min-height: var(--v-sub-h) !important;
   gap: 6px;
@@ -287,8 +322,11 @@
 
 /* ── 7. lot stage ────────────────────────────────────────────────────────────
    Only shown on the Studio tab, where it is a fixed full-bleed layer. In
-   portrait it must sit between the sub-nav and the action bar instead of
-   covering the whole viewport (lot-gameplay.css pins it to the full height). */
+   portrait it must sit between the header and the action bar instead of
+   covering the whole viewport (lot-gameplay.css pins it to the full height).
+   Studio renders no sub-nav (renderSubTabs early-returns for it), so the
+   header there is the app bar plus the tab strip: 56 + 44 = 100px, which is
+   exactly --v-bar-h + --v-sub-h. */
 :root[data-layout="vertical"] #app #studiolotGlobalStage.lot-full {
   top: calc(var(--v-bar-h) + var(--v-sub-h)) !important;
   bottom: calc(var(--v-nav-h) + var(--v-action-h)) !important;
