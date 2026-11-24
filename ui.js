@@ -850,6 +850,24 @@ function enterApp(fresh){
   else if(G.pendingReport) reportModal();
   else if(G.over) gameOverModal();
 }
+/* The five groups of the bottom nav. Everything not carried by its own button
+   (Home, Studio, Create, Market) is a destination inside the More sheet, so
+   these two lists together are the complete portrait navigation. moreSheet()
+   renders its [GO TO] grid from MORE_DESTS and switchTab() lights the More
+   button from MORE_TABS, both derived from this one array — that way a desk
+   can never be listed in one place and missing from the other. */
+const MORE_DESTS = [
+  ["productions", "Productions", "Slate, shoots &amp; release dates"],
+  ["fans",        "Fans",        "Mailroom, buzz &amp; campaigns"],
+  ["ott",         "OTT &amp; Series", "Subscriber tiers &amp; catalog"],
+  ["live",        "Live TV",     "24h broadcast schedule"],
+  ["empire",      "Empire",      "Merch, parks &amp; licensing rights"],
+  ["library",     "Library",     "Your released catalog"],
+  ["games",       "Game Studio", "Adapt IP into games &amp; live ops"],
+  ["finance",     "Finance",     "Treasury desk &amp; debt markets"]
+];
+const MORE_TABS = MORE_DESTS.map(d => d[0]);
+
 function switchTab(t){
   if(t==="more"){ beep("click"); moreSheet(); return; }   // v10: mobile More sheet
   if(t==="develop") DEVELOP_SUB = "scripts";
@@ -893,7 +911,11 @@ function switchTab(t){
   TAB=t; try{ beep("click"); }catch(e){}   // v28.9: never let audio/haptics kill the render flush
   $$(".tab,.btab").forEach(b=>{
     // The live 2D lot is entered from Studio, so Studio stays lit while you are on it.
-    const match = b.dataset.tab===t || (t==="studiolot" && b.dataset.tab==="studio") || (b.id==="btabMore" && (t==="ott"||t==="empire"||t==="finance"||t==="games"));
+    // Everything the More sheet can reach keeps More lit, so the bottom nav always
+    // shows which of the five groups you are in — not just the four with a tab.
+    const match = b.dataset.tab===t
+      || (t==="studiolot" && b.dataset.tab==="studio")
+      || (b.id==="btabMore" && MORE_TABS.includes(t));
     b.classList.toggle("active", match);
     b.setAttribute("aria-current", match?"true":"false");   // v27 a11y
   });
@@ -1013,6 +1035,22 @@ function hallOfFameModal(){
 function moreSheet(){
   let h="<div class='modal-head'><h3>Quick Actions &amp; Studio Command Hub</h3></div>";
   h+="<div class='tiny muted' style='margin-bottom:12px'>Instant 1-click command center for all production, distribution, intelligence, and studio empire operations.</div>";
+
+  /* Destinations. The bottom nav carries four desks (Home, Studio, Create,
+     Market); this list carries every other one. It has to be complete: on a
+     360px phone there is no room for a 13-item strip, and a desk that is in
+     neither list cannot be reached at all. Notifications is deliberately
+     absent — it lives in the header inbox (#btnBell) on every tab.
+     Rendered from MORE_DESTS so the list and the More-highlight logic in
+     switchTab() cannot drift apart. data-more-tab is wired by the generic
+     handler below, so these need no individual onclick. */
+  h+="<div class='card' style='margin-bottom:10px'>";
+  h+="<div class='row spread' style='margin-bottom:6px'><b>[GO TO]</b><span class='tag blue'>Destinations</span></div>";
+  h+="<div class='grid g2' style='gap:6px'>";
+  MORE_DESTS.forEach(([tab, name, desc])=>{
+    h+="<button class='btn btn-sm btn-alt' data-more-tab='"+esc(tab)+"' style='text-align:left;padding:8px 10px'><b>"+name+"</b><div class='tiny muted'>"+desc+"</div></button>";
+  });
+  h+="</div></div>";
 
   // Section 1: Distribution & Licensing
   h+="<div class='card' style='margin-bottom:10px'>";

@@ -24,13 +24,15 @@
    become inert and can be dropped without a behaviour change.
 
    ── scope note ─────────────────────────────────────────────────────────────
-   This phase is purely additive: it restyles chrome, it does not remove any
-   route. The inline time controls are hidden because the pinned action bar is
-   the single Next-Week CTA; the 13-tab strip is KEPT because it is currently
-   the only way to reach productions, fans and library (see §2).
-   Navigation unification — deleting moreSheet(), collapsing renderSubTabs(),
-   the header inbox, and retiring the tab strip — is Phase 2, and the strip
-   cannot go before its replacement routes land.
+   Everything here is scoped to portrait. The 13-tab strip is retired in
+   portrait only: the bottom nav carries four desks and the More sheet carries
+   the other eight, plus the header inbox, so all 13 remain reachable (verified
+   by click-through with the strip removed from the DOM). Desktop keeps the
+   strip — it is hidden, not deleted, so Phase 5 can still decide its fate with
+   the landscape layout intact.
+
+   The inline time controls are hidden because the pinned action bar is the
+   single Next-Week CTA.
 
    Metrics come from system/tokens.css (--v-*). This file hardcodes no bar
    height, so one token change re-flows the whole shell.
@@ -55,9 +57,10 @@
 }
 
 /* ── 2. app bar (56px) ───────────────────────────────────────────────────────
-   The header is a container for the app bar + the destination strip. The app
-   bar itself is pinned to 56px below; the strip keeps its own 44px row, so the
-   header totals 100px rather than the 212px the legacy stack produced. */
+   The header is a container for the app bar and (on desktop) the destination
+   strip. In portrait the strip is hidden below, so the header is just the
+   56px bar — but this rule still does not assume that, so a future header row
+   does not need it rewritten. */
 :root[data-layout="vertical"] #app .topbar {
   position: sticky !important;
   top: 0 !important;
@@ -82,41 +85,13 @@
   padding: 0 !important;
 }
 
-/* The 13-tab strip is KEPT in portrait. It is the only route to productions,
-   fans and library: the bottom nav carries 4 destinations and moreSheet carries
-   5 (ott, live, empire, finance, games), so hiding the strip strands three
-   desks. Phase 2 replaces it, and must land the replacement routes in the same
-   commit — until then this strip stays.
-   What portrait does change is its weight: one non-wrapping 44px scroll track
-   with 44px tap targets, instead of a 44px strip that legacy rules let wrap. */
+/* The 13-tab strip is retired in portrait. Its replacement is verified
+   complete: every one of the 13 desks is reachable from the 4 bottom-nav
+   destinations, the 8 destinations in the More sheet, and the header inbox
+   (13/13 confirmed by click-through with the strip removed from the DOM).
+   The strip stays in the markup for desktop, where there is room for it. */
 :root[data-layout="vertical"] #app #tabsNav {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  align-items: stretch !important;
-  min-height: var(--v-sub-h) !important;
-  height: auto !important;
-  padding: 0 var(--v-pad) !important;
-  gap: 0 !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  border-top: 0;
-  border-bottom: 1px solid var(--line-1);
-}
-
-:root[data-layout="vertical"] #app #tabsNav::-webkit-scrollbar {
-  display: none;
-}
-
-:root[data-layout="vertical"] #app #tabsNav .tab {
-  flex: 0 0 auto !important;
-  min-height: var(--v-tap) !important;
-  padding: 0 12px !important;
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px !important;
-  white-space: nowrap;
+  display: none !important;
 }
 
 /* components.css sets `flex-shrink:0` on the ledger so header controls keep
@@ -127,6 +102,16 @@
   flex: 0 1 auto !important;
   min-width: 0 !important;      /* lets the studio name ellipsis, not push */
   max-width: 40% !important;
+}
+
+/* The name's wrapper is a flex item with the default `min-width:auto`, so it
+   refuses to shrink below its content and spills out of the 40%-capped
+   identity — measured at 84px inside a 67px box, which put the tail of the
+   name underneath the capital chip. `min-width:0` lets it shrink, and the
+   .brand rule below then ellipsises instead of overflowing. */
+:root[data-layout="vertical"] #app .command-header-identity > div {
+  min-width: 0 !important;
+  overflow: hidden;
 }
 
 :root[data-layout="vertical"] #app .command-header-mark {
@@ -154,6 +139,14 @@
   min-width: 0 !important;
   display: flex;
   flex-wrap: nowrap;
+  /* flex-start, not flex-end: command-deck.css:69 sets flex-end at
+     max-width:1350px, and in a scroll container flex-end pushes the leading
+     content past the left edge, where scrolling can never bring it back. At
+     360px the three chips need ~236px in a 188px track, so with flex-end the
+     cash chip's "CAPITAL $130.0M" was cut down to a stray "M" painting over
+     the studio name. Anchored at the start, the first figures stay readable
+     and the overflow scrolls. */
+  justify-content: flex-start !important;
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -162,6 +155,15 @@
 
 :root[data-layout="vertical"] #app .command-header-ledger::-webkit-scrollbar {
   display: none;
+}
+
+/* The track is narrower than its chips at 360px, so the last one is cut off.
+   A fade on the trailing edge says "there is more, scroll" instead of looking
+   like a clipped button. Both spellings are set: the standard property is not
+   yet unconditional in Safari, where the -webkit- one still applies. */
+:root[data-layout="vertical"] #app .command-header-ledger {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
 }
 
 :root[data-layout="vertical"] #app .command-header-ledger .chip {
@@ -219,17 +221,19 @@
 }
 
 /* ── 3. sticky sub-nav (44px) ────────────────────────────────────────────────
-   Sits under the app bar and the destination strip, and stays put while the
-   desk scrolls beneath it. No desk currently renders sub-tabs (renderSubTabs
-   early-returns for all 11), so this is dormant until Phase 2 decides whether
-   the strip survives; the offset is written for the current 56 + 44 header. */
+   Sits directly under the 56px app bar and stays put while the desk scrolls
+   beneath it. Only productions currently reaches renderSubTabs (the other ten
+   early-return), but this has to be right wherever a sub-nav appears.
+   The +1px compensates for the bottom border: with border-box, a bare 44px
+   min-height would leave 43px of content, and the flex children stretch to
+   that, putting every sub-tab 1px under the 44px tap minimum. */
 :root[data-layout="vertical"] #app .subtabs {
   display: flex !important;
   flex-wrap: nowrap;
   position: sticky !important;
-  top: calc(var(--v-bar-h) + var(--v-sub-h)) !important;
+  top: var(--v-bar-h) !important;
   z-index: calc(var(--z-nav) - 1) !important;
-  min-height: var(--v-sub-h) !important;
+  min-height: calc(var(--v-sub-h) + 1px) !important;
   gap: 6px;
   padding: 0 var(--v-pad) !important;
   overflow-x: auto;
@@ -322,13 +326,11 @@
 
 /* ── 7. lot stage ────────────────────────────────────────────────────────────
    Only shown on the Studio tab, where it is a fixed full-bleed layer. In
-   portrait it must sit between the header and the action bar instead of
+   portrait it must sit between the app bar and the action bar instead of
    covering the whole viewport (lot-gameplay.css pins it to the full height).
-   Studio renders no sub-nav (renderSubTabs early-returns for it), so the
-   header there is the app bar plus the tab strip: 56 + 44 = 100px, which is
-   exactly --v-bar-h + --v-sub-h. */
+   The strip is retired above, so the header there is just the 56px app bar. */
 :root[data-layout="vertical"] #app #studiolotGlobalStage.lot-full {
-  top: calc(var(--v-bar-h) + var(--v-sub-h)) !important;
+  top: var(--v-bar-h) !important;
   bottom: calc(var(--v-nav-h) + var(--v-action-h)) !important;
   height: auto !important;
   min-height: 0 !important;
@@ -343,7 +345,40 @@
   box-sizing: border-box;
 }
 
-/* ── 9. reduced motion ───────────────────────────────────────────────────────
+/* ── 9. overlays clear the fixed chrome ──────────────────────────────────────
+   Two floating things predate the shell and were positioned against a page
+   that scrolled freely. In portrait both now land on fixed bars.
+
+   #saveIndicator is created by engine.js:270 with inline styles —
+   `bottom:20px;right:20px` — so only !important can move it. 20px from the
+   bottom is inside the 64px bottom nav, which is why the "Saved" chip painted
+   over the More button. It sits above the action bar instead.
+
+   #toasts hangs from the top (style.css:818, lot-life.css:601). z-index 200
+   puts it above the 56px app bar, so a toast would cover the capital and
+   calendar chips. It starts below the bar, and below the sub-nav when one is
+   showing — `:has()` is guarded so a browser without it just gets the plain
+   app-bar offset, which is still correct. */
+:root[data-layout="vertical"] #saveIndicator {
+  bottom: calc(
+    var(--v-nav-h) + var(--v-action-h) + env(safe-area-inset-bottom, 0px) + 12px
+  ) !important;
+  right: calc(var(--v-pad) + env(safe-area-inset-right, 0px)) !important;
+}
+
+:root[data-layout="vertical"] #toasts {
+  top: calc(var(--v-bar-h) + env(safe-area-inset-top, 0px) + 8px) !important;
+  left: var(--v-pad) !important;
+  right: var(--v-pad) !important;
+}
+
+:root[data-layout="vertical"] body:has(#app .subtabs:not(:empty)) #toasts {
+  top: calc(
+    var(--v-bar-h) + var(--v-sub-h) + env(safe-area-inset-top, 0px) + 8px
+  ) !important;
+}
+
+/* ── 10. reduced motion ──────────────────────────────────────────────────────
    tokens.css already zeroes the motion durations; this stops the shell's own
    transitions from ignoring that. */
 @media (prefers-reduced-motion: reduce) {
