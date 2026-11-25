@@ -423,8 +423,19 @@
     if(guide.step>=GUIDE_STEPS.length){guide.done=true;guide.active=false;guide.completedWeek=G.week;say(G,"🎓 FIRST FILM LAB complete — you have commissioned, released and reviewed your first title. Your studio is ready for the full market.","gold");}
     return guide;
   }
-  function renderGuide(G){
-    const guide=updateGuide(G);if(!guide||!guide.active||guide.done||guide.dismissed)return "";
+  function renderGuide(G, checklist=false){
+    const guide=updateGuide(G);
+    if(checklist){
+      const pictures=[...(G.projects||[]), ...(G.films||[])];
+      const items=[
+        { title:"Option a script", note:"Acquire your opening screenplay in Create", tab:"develop", done:pictures.length>0 },
+        { title:"Attach director & lead", note:"Package key creative talent for buzz", tab:"develop", done:pictures.some(p=>p.director&&p.cast?.length) },
+        { title:"Greenlight production", note:"Lock soundstages and start principal photography", tab:"productions", done:pictures.some(p=>p.phase==="shoot"||p.phase==="post"||p.phase==="ready"||p.phase==="delivered"||p.releaseWeek>0) }
+      ];
+      const tasks=items.map(item=>`<button class="nw-step${item.done?" is-done":""}" data-nw-guide-tab="${item.tab}"><span class="nw-check" aria-hidden="true">${item.done?"✓":""}</span><span class="nw-step-body"><span class="nw-step-title">${esc(item.title)}${item.done?'<span class="sr-only"> (complete)</span>':""}</span><span class="nw-step-sub">${esc(item.note)}</span></span><span class="nw-step-arrow" aria-hidden="true">›</span></button>`).join("");
+      return `<aside class="nw-guide nw-guide-milestones" aria-label="Up next milestones"><div class="nw-guide-head"><span>UP NEXT</span><b>${items.filter(item=>item.done).length}/${items.length} done</b></div><div class="nw-checklist">${tasks}</div></aside>`;
+    }
+    if(!guide||!guide.active||guide.done||guide.dismissed)return "";
     const step=GUIDE_STEPS[Math.min(guide.step,GUIDE_STEPS.length-1)],count=guide.step+1;
     return `<aside class="nw-guide" aria-label="First-run guided campaign"><div><span class="nw-eyebrow">FIRST FILM LAB · STEP ${count} OF ${GUIDE_STEPS.length}</span><h2>${esc(step.title)}</h2><p>${esc(step.body)}</p><div class="nw-progress" role="progressbar" aria-valuenow="${guide.step}" aria-valuemin="0" aria-valuemax="${GUIDE_STEPS.length}"><i style="width:${Math.round(guide.step/GUIDE_STEPS.length*100)}%"></i></div></div><div class="nw-guide-actions"><button class="nw-primary" data-nw-guide-tab="${step.tab}">Go to ${esc(step.tab==="develop"?"Develop":step.tab==="productions"?"Productions":"Box Office")} ↗</button><button class="nw-quiet" id="nwGuideHide" aria-label="Hide campaign guidance">Hide</button></div></aside>`;
   }
@@ -489,7 +500,7 @@
     const rivalRows=offers.map(o=>`<article class="nw-row"><div class="nw-row-main"><b>${esc(o.rivalName)} bids for ${esc(o.talentName)}</b><small>${fmt(o.fee)} offer · expires week ${o.expires}</small></div><button class="nw-action" data-nw-counter="${esc(o.id)}">Counter · ${fmt(Math.max(2,(findById(G.talent,o.talentId)?.fee||2)*1.25))}</button></article>`).join("")||`<p class="nw-muted">No active rival talent bids. Offers can be countered for a 26-week exclusive.</p>`;
     const recentDeals=n.rivals.deals.slice(0,3).map(d=>`<li>W${d.week}: ${esc(d.buyer)} acquired ${esc(d.target)} · ${fmt(d.price)}</li>`).join("");
     const goal=guideProgress;
-    return `<section class="nextwave-desk" aria-label="Next Wave studio systems"><header class="nw-hero"><div><span class="nw-eyebrow">STUDIO HQ / 09 / INDUSTRY INTELLIGENCE</span><h1>Next Wave</h1><p>Episode room, production calendar, distribution market and the systems that carry a studio into its next career.</p></div><div class="nw-hero-status"><small>CAREER CHECKS</small><b>${report.passed}/${report.total}</b><span>balance &amp; regression</span></div></header>
+    return `<section class="nextwave-desk" aria-label="Next Wave studio systems"><section class="nw-hero" aria-label="Career checks"><div class="nw-hero-status"><small>Career checks</small><b>${report.passed}/${report.total}</b><span>Balance &amp; regression</span></div></section>
       ${guide&&guide.active?`<section class="nw-section nw-campaign-callout"><div><span class="nw-eyebrow">GUIDED CAMPAIGN · ${guide.done?"COMPLETE":"IN PROGRESS"}</span><h2>${guide.done?"First Film Lab cleared":"First Film Lab"}</h2><p>${guide.done?"Your first production loop is complete.":"A short playable introduction to greenlight → production → release → results."}</p>${goal?`<small>Goal ${goal.films}/${goal.targetFilms} titles · ${fmt(goal.gross)} / ${fmt(goal.targetGross)} gross · ${Math.max(0,goal.deadline-goal.remaining)} weeks left</small>`:""}</div><span class="nw-badge">${guide.done?"CLEARED":Math.min(guide.step+1,GUIDE_STEPS.length)+" / "+GUIDE_STEPS.length}</span></section>`:""}
       <section class="nw-section"><div class="nw-section-head"><div><span class="nw-eyebrow">01 / TELEVISION</span><h2>Episode production room</h2><p>Schedule episodes, choose a season arc and focus, then inspect episode-level quality before the platform decides on renewal.</p></div></div><div class="nw-list">${series}</div></section>
       <section class="nw-section"><div class="nw-section-head"><div><span class="nw-eyebrow">02 / PRODUCTION CONTROL</span><h2>Calendar &amp; crew availability</h2><p>Shared cast, department crew and locations are reserved together. Weather can push exterior shoots and automatically extend the hold.</p></div></div><div class="nw-list">${schedule}</div><div class="nw-conflicts" role="status"><b>Conflict scan</b><ul>${calendarNotice}</ul></div></section>

@@ -212,7 +212,7 @@ function applyTheme(t){
     if(metaTheme){
       const welcome=document.getElementById('startScreen');
       const onWelcome=welcome && welcome.style.display!=='none';
-      metaTheme.setAttribute("content", onWelcome?'#181b1e':(def.chrome || "#0b0e14"));
+      metaTheme.setAttribute("content", onWelcome?'#111019':(def.chrome || "#0b0e14"));
     }
   }catch(e){}
   try{ localStorage.setItem("bow_theme", THEME); }catch(e){}
@@ -514,10 +514,12 @@ function buildManagementWorkspace(dialog){
   dialog.classList.add('command-workspace-modal');
   dialog.setAttribute('aria-label',title);dialog.removeAttribute('aria-labelledby');
 }
+let openingMoreDesk=false;
 function openModal(html, opts){
   opts=opts||{};
   // Store the element that triggered the modal for focus restoration
   const triggerEl = document.activeElement;
+  const moreDesk=openingMoreDesk||!!$("#modalRoot .parallax-more-dialog");
   closeModal();
   if(typeof document!=="undefined" && document.body) document.body.style.overflow="hidden";
   const veil=document.createElement("div"); veil.className="modal-veil";
@@ -556,6 +558,7 @@ function openModal(html, opts){
     const title=dialog.querySelector('h3,h2');
     if(title){ dialog.setAttribute('aria-label',title.textContent); }
   }
+  if(moreDesk) veil.querySelector(".modal").classList.add("parallax-more-dialog");
   if(!opts.noX) veil.querySelector(".modal-x").onclick=()=>{ closeModal(triggerEl); if(opts.onClose) opts.onClose(); };
   if(!opts.locked) veil.addEventListener("click", e=>{ if(e.target===veil){ closeModal(triggerEl); if(opts.onClose) opts.onClose(); } });
   // Store trigger element reference on veil for focus restoration
@@ -687,20 +690,20 @@ window.addEventListener("DOMContentLoaded", ()=>{
     DATA.ARCHETYPES.forEach(a=>{
       const cleanName = (a.name||"").replace(/^[^a-zA-Z0-9]+/, "");
       const avatarSrc = archAvatars[a.id] || "assets/itch-avatars/Avatars_01.png";
-      const d=document.createElement("div"); d.className="arch"+(a.id===archSel?" sel":"");
-      d.innerHTML="<div style='display:flex;gap:12px;align-items:center'>"+
-        "<img src='"+avatarSrc+"' alt='"+esc(cleanName)+"' class='arch-avatar' style='width:52px;height:52px;border-radius:8px;border:2px solid var(--gold);background:#131b26;image-rendering:pixelated;object-fit:cover;flex-shrink:0'>"+
-        "<div style='flex:1'>"+
-          "<div class='arch-header'><h4>"+esc(cleanName)+"</h4><span class='arch-tag'>"+(a.id==="auteur"?"Creative Indie":a.id==="producer"?"Commercial Studio":"Conglomerate")+"</span></div>"+
-          "<div class='a-sub'>"+a.sub+"</div>"+
-        "</div>"+
-      "</div>"+
-      "<div class='a-stats' style='margin-top:8px'>"+
-        "<span class='tag gold'>War Chest: "+fmtM(a.cash)+"</span>"+
-        "<span class='tag blue'>Rep: "+a.rep+"</span>"+
-        "<span class='tag'>Overhead: $"+a.overhead+"M/wk</span>"+
-      "</div>";
-      d.onclick=()=>{ archSel=a.id; $$(".arch").forEach(x=>x.classList.remove("sel")); d.classList.add("sel"); beep("click"); };
+      const d=document.createElement("button");
+      d.type="button";
+      d.dataset.origin=a.id;
+      d.className="arch start-choice"+(a.id===archSel?" sel":"");
+      d.setAttribute("aria-pressed", String(a.id===archSel));
+      d.innerHTML=`<span class="start-origin-overview">
+        <img src="${avatarSrc}" alt="" class="arch-avatar" width="40" height="40">
+        <span class="start-choice-copy"><strong class="start-choice-title">${esc(cleanName)}</strong><span class="a-sub">${esc(a.sub)}</span></span>
+      </span><span class="start-origin-stats">
+        <span><small>Capital</small><b>${fmtM(a.cash)}</b></span>
+        <span><small>Reputation</small><b>${a.rep}</b></span>
+        <span><small>Overhead</small><b>$${a.overhead}M/wk</b></span>
+      </span>`;
+      d.onclick=()=>{ archSel=a.id; selectStartChoice(al, d); };
       al.appendChild(d);
     });
   }
@@ -727,6 +730,8 @@ window.addEventListener("DOMContentLoaded", ()=>{
   if(hasSave()) $("#btnContinue").style.display="block";
   $("#btnContinue").onclick=()=>{ const g=loadGame(); if(g){ enterApp(); } };
   $("#btnStart").onclick=()=>{
+    const existing=slotMeta(SEL.slot);
+    if(existing && !confirm(`Replace “${existing.label || existing.name}” in Slot ${SEL.slot}?`)) return;
     const nm=($("#studioName").value||"Parallax Pictures").trim().slice(0,26);
     newGame(archSel, nm, {scenario:SEL.scenario, difficulty:SEL.difficulty, sandbox:SEL.sandbox, slot:SEL.slot, legacy:SEL.legacy, ngPerk:SEL.ngPerk, tutorial:SEL.scenario==="producer_school"?false:undefined});
     enterApp(true);
@@ -734,6 +739,7 @@ window.addEventListener("DOMContentLoaded", ()=>{
   try{
     const wantSlot = parseInt(localStorage.getItem("bow_start_slot")||"0",10);
     if(wantSlot>=1 && wantSlot<=SAVE_SLOT_COUNT){ SEL.slot = wantSlot; localStorage.removeItem("bow_start_slot"); }
+    else SEL.slot = Array.from({length:SAVE_SLOT_COUNT}, (_,i)=>i+1).find(slot=>!slotMeta(slot)) || SEL.slot;
   }catch(e){}
   try{ buildStartOptions(); }catch(e){ console.warn("start options", e); }
   // topbar
@@ -829,6 +835,7 @@ function enterApp(fresh){
   $("#startScreen").style.display="none";
   applyTheme();
   const app=$("#app");
+  app.hidden=false;
   app.style.display="flex";
   try{ if(motionOK()){ app.style.animation="viewIn .45s cubic-bezier(.2,.85,.3,1)"; } }catch(e){}
   if(fresh){
@@ -874,6 +881,8 @@ function switchTab(t){
   document.getElementById("app").dataset.activeTab = t;
   const stage = document.getElementById("studiolotGlobalStage");
   const viewEl = document.getElementById("view");
+  const scrollTrack = document.documentElement.dataset.layout === "vertical" ? viewEl : document.scrollingElement;
+  if(scrollTrack) TAB_SCROLL[TAB] = scrollTrack.scrollTop;
   if(stage){
     stage.style.display = t === "studiolot" ? "block" : "none";
     if (t === "studiolot") {
@@ -922,10 +931,8 @@ function switchTab(t){
   /* v28.9: flush the debounced render immediately on tab switch — fixes the
      race where a fast click (or the UI test) hits a not-yet-rendered view */
   if(_renderTimer){ clearTimeout(_renderTimer); _renderTimer=null; }
-  /* v28.9 mobile P2: remember per-tab scroll position */
-  try{ TAB_SCROLL[TAB]=window.scrollY; }catch(e){}
   _renderImpl();
-  try{ if(TAB_SCROLL[t]!=null) window.scrollTo(0, TAB_SCROLL[t]); else window.scrollTo(0,0); }catch(e){}
+  if(scrollTrack) scrollTrack.scrollTop = TAB_SCROLL[t] || 0;
   const v=$("#view");   // v7: replay the entrance so the new tab glides in
   if(v && motionOK()){ v.classList.remove("view-enter"); void v.offsetWidth; v.classList.add("view-enter"); }
 }
@@ -1033,8 +1040,7 @@ function hallOfFameModal(){
   openModal(h);
 }
 function moreSheet(){
-  let h="<div class='modal-head'><h3>Quick Actions &amp; Studio Command Hub</h3></div>";
-  h+="<div class='tiny muted' style='margin-bottom:12px'>Instant 1-click command center for all production, distribution, intelligence, and studio empire operations.</div>";
+  let h="";
 
   /* Destinations. The bottom nav carries four desks (Home, Studio, Create,
      Market); this list carries every other one. It has to be complete: on a
@@ -1044,136 +1050,102 @@ function moreSheet(){
      Rendered from MORE_DESTS so the list and the More-highlight logic in
      switchTab() cannot drift apart. data-more-tab is wired by the generic
      handler below, so these need no individual onclick. */
-  h+="<div class='card' style='margin-bottom:10px'>";
-  h+="<div class='row spread' style='margin-bottom:6px'><b>[GO TO]</b><span class='tag blue'>Destinations</span></div>";
-  h+="<div class='grid g2' style='gap:6px'>";
-  MORE_DESTS.forEach(([tab, name, desc])=>{
-    h+="<button class='btn btn-sm btn-alt' data-more-tab='"+esc(tab)+"' style='text-align:left;padding:8px 10px'><b>"+name+"</b><div class='tiny muted'>"+desc+"</div></button>";
-  });
-  h+="</div></div>";
+  const tiles=[
+    ["Empire","Studio tier &amp; standing","data-more-tab='empire'"],
+    ["Treasury","Cash flow &amp; loans","data-more-tab='finance'"],
+    ["Library","Catalog &amp; IP rights","data-more-tab='library'"],
+    ["Awards","Campaigns &amp; trophies","id='qaAwards'"],
+    ["Festivals","Premieres &amp; buzz","id='qaFestivals'"],
+    ["Rivals","Competing slates","id='qaClash'"],
+    ["Settings","Audio &amp; saves","id='moreSet'"],
+    ["Field Guide","Rules &amp; formulas","id='moreHelp'"]
+  ];
+  const tileGrid=items=>"<div class='more-destinations'><div class='grid g2'>"+items.map(([label,description,attrs])=>
+    "<button class='btn btn-alt' "+attrs+"><b>"+sectionEmoji("more",label)+label+"</b><small>"+description+"</small></button>").join("")+"</div></div>";
+  const extra=MORE_DESTS.filter(([tab])=>!["empire","finance","library"].includes(tab))
+    .map(([tab,name,desc])=>[name,desc,"data-more-tab='"+esc(tab)+"'"]);
+  h+=tileGrid(tiles)+"<details class='more-specialists'><summary>More game desks</summary>"+tileGrid(extra)+"</details>"
+    +"<details class='more-specialists'><summary>Specialist tools</summary>";
 
-  // Section 1: Distribution & Licensing
-  h+="<div class='card' style='margin-bottom:10px'>";
-  h+="<div class='row spread' style='margin-bottom:6px'><b>[DISTRIBUTION &amp; MARKETS]</b><span class='tag blue'>Global Sales</span></div>";
-  h+="<div class='grid g2' style='gap:6px'>";
-  h+="<button class='btn btn-sm btn-alt' id='qaTerritory' style='text-align:left;padding:8px 10px'><b>Territory Licensing</b><div class='tiny muted'>Foreign MG &amp; backend deals</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaClash' style='text-align:left;padding:8px 10px'><b>Clash Radar</b><div class='tiny muted'>Counter-program rival releases</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaOtt' data-more-tab='ott' style='text-align:left;padding:8px 10px'><b>OTT Streamer</b><div class='tiny muted'>Manage subscriber tiers &amp; catalog</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaLiveTv' data-more-tab='live' style='text-align:left;padding:8px 10px'><b>Linear TV EPG</b><div class='tiny muted'>Program 24h broadcast schedule</div></button>";
-  h+="</div></div>";
+  const specialists=[
+    ["Distribution &amp; markets",[
+      ["Territory Licensing","Foreign sales &amp; rights","qaTerritory"],
+      ["OTT Streamer","Subscriber tiers &amp; catalog","qaOtt"],
+      ["Linear TV EPG","Broadcast schedule","qaLiveTv"]
+    ]],
+    ["Talent &amp; production",[
+      ["Agency Packaging","Cast and crew packages","qaAgency"],
+      ["Multi-Pic Contracts","Multi-picture talent deals","qaContracts"],
+      ["Studio Facilities","Soundstages, VFX &amp; backlots","qaFacilities"],
+      ["Test Screenings","Audience previews &amp; reshoots","qaTestScreens"],
+      ["Location Scouting","Locations &amp; tax rebates","qaScouting"],
+      ["Production Bonds","Completion insurance","qaInsurance"]
+    ]],
+    ["Corporate &amp; intelligence",[
+      ["Crisis PR War Room","Respond to scandals &amp; leaks","qaCrisis"],
+      ["Studio Espionage","Rival intelligence","qaSpy"],
+      ["Merchandising Empire","Licensing &amp; merchandise","qaMerch"],
+      ["Bond Debt Market","Issue studio bonds","qaBonds"]
+    ]],
+    ["Prestige &amp; expansion",[
+      ["Comic-Con Hall H","Conventions &amp; fan events","qaConventions"],
+      ["Franchise Dynasty","Studio succession","qaDynasty"],
+      ["Game Studio","Game adaptations &amp; live ops","qaGames"],
+      ["Sandbox Creator","Custom talent, rivals &amp; franchises","qaSandbox"]
+    ]],
+    ["Career tools",[
+      ["Awards Ledger","Career trophies","moreAch"],
+      ["Hall of Fame","Studio records","moreHall"],
+      ["Finance Ledger","Weekly cash flow","moreFinanceLedger"],
+      ["Save Progress","Save this career locally","moreSave"]
+    ]]
+  ];
+  h+=specialists.map(([heading,items])=>`<section class="more-tool-group"><h4>${heading}</h4>${tileGrid(items.map(([label,description,id])=>[label,description,"id='"+id+"'"]))}</section>`).join("")
+    +"<div class='more-save-status' id='moreSaveInfo' role='status'></div></details>";
 
-  // Section 2: Talent & Production Operations
-  h+="<div class='card' style='margin-bottom:10px'>";
-  h+="<div class='row spread' style='margin-bottom:6px'><b>[TALENT &amp; PRODUCTION]</b><span class='tag gold'>Slate Power</span></div>";
-  h+="<div class='grid g2' style='gap:6px'>";
-  h+="<button class='btn btn-sm btn-alt' id='qaAgency' style='text-align:left;padding:8px 10px'><b>Agency Packaging</b><div class='tiny muted'>CAA / WME star packages</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaContracts' style='text-align:left;padding:8px 10px'><b>Multi-Pic Contracts</b><div class='tiny muted'>Lock directors &amp; stars for 3-5 films</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaFacilities' style='text-align:left;padding:8px 10px'><b>Studio Facilities</b><div class='tiny muted'>Soundstages, VFX houses &amp; backlots</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaTestScreens' style='text-align:left;padding:8px 10px'><b>Test Screenings</b><div class='tiny muted'>Audience previews &amp; reshoots</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaScouting' style='text-align:left;padding:8px 10px'><b>Location Scouting</b><div class='tiny muted'>Global rebates &amp; tax credits</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaInsurance' style='text-align:left;padding:8px 10px'><b>Production Bonds</b><div class='tiny muted'>Completion insurance &amp; overrun shield</div></button>";
-  h+="</div></div>";
-
-  // Section 3: Corporate Strategy, Risk & Intelligence
-  h+="<div class='card' style='margin-bottom:10px'>";
-  h+="<div class='row spread' style='margin-bottom:6px'><b>[CORPORATE &amp; INTELLIGENCE]</b><span class='tag red'>Risk &amp; Defense</span></div>";
-  h+="<div class='grid g2' style='gap:6px'>";
-  h+="<button class='btn btn-sm btn-alt' id='qaCrisis' style='text-align:left;padding:8px 10px'><b>Crisis PR War Room</b><div class='tiny muted'>Spin doctor scandals &amp; leaks</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaSpy' style='text-align:left;padding:8px 10px'><b>Studio Espionage</b><div class='tiny muted'>Sabotage rivals &amp; steal scripts</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaMerch' data-more-tab='empire' style='text-align:left;padding:8px 10px'><b>Merchandising Empire</b><div class='tiny muted'>Toys, apparel &amp; theme park rights</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaBonds' data-more-tab='finance' style='text-align:left;padding:8px 10px'><b>Bond Debt Market</b><div class='tiny muted'>Issue institutional junk &amp; AAA notes</div></button>";
-  h+="</div></div>";
-
-  // Section 4: Prestige, Culture & Creative Live Ops
-  h+="<div class='card' style='margin-bottom:12px'>";
-  h+="<div class='row spread' style='margin-bottom:6px'><b>[PRESTIGE &amp; EXPANSION]</b><span class='tag purple'>Awards &amp; IP</span></div>";
-  h+="<div class='grid g2' style='gap:6px'>";
-  h+="<button class='btn btn-sm btn-alt' id='qaAwards' style='text-align:left;padding:8px 10px'><b>FYC Awards Campaigns</b><div class='tiny muted'>Guild screenings &amp; Oscar pushes</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaFestivals' style='text-align:left;padding:8px 10px'><b>Festival Circuit</b><div class='tiny muted'>Cannes, Venice &amp; Sundance premieres</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaConventions' style='text-align:left;padding:8px 10px'><b>Comic-Con Hall H</b><div class='tiny muted'>Teaser trailers &amp; fandom hype spikes</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaDynasty' style='text-align:left;padding:8px 10px'><b>Franchise Dynasty</b><div class='tiny muted'>Multi-generation studio lineage</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaGames' data-more-tab='games' style='text-align:left;padding:8px 10px'><b>Game Studio</b><div class='tiny muted'>Adapt IP into games &amp; live ops</div></button>";
-  h+="<button class='btn btn-sm btn-alt' id='qaSandbox' style='text-align:left;padding:8px 10px'><b>Sandbox Creator</b><div class='tiny muted'>Custom talent, rivals &amp; franchises</div></button>";
-  h+="</div></div>";
-
-  // Utility row
-  h+="<div class='row' style='gap:6px;flex-wrap:wrap;margin-bottom:10px'>"+
-    "<button class='btn btn-sm btn-alt' id='moreAch'>Awards Ledger</button>"+
-    "<button class='btn btn-sm btn-alt' id='moreHall'>Hall of Fame</button>"+
-    "<button class='btn btn-sm btn-alt' id='moreFinanceLedger' data-more-tab='finance'>Finance Ledger</button>"+
-    "<button class='btn btn-sm btn-alt' id='moreSet'>Settings</button>"+
-    "<button class='btn btn-sm btn-alt' id='moreHelp'>Help &amp; Guide</button>"+
-    "</div>";
-
-  h+="<div class='row spread' style='align-items:center;padding:8px 12px;background:var(--card-sub);border-radius:var(--radius-sm);border:1px solid var(--line)'>"+
-    "<button class='btn btn-xs btn-primary' id='moreSave'>Save Progress</button>"+
-    "<span class='tiny muted' id='moreSaveInfo'>Box Office War v"+((typeof bowAppVersion==='function')?bowAppVersion():'32.3')+"</span>"+
-    "</div>";
-
-  const v=openModal(h);
+  const v=openModal(h,{className:"studio-destination-modal"});
+  v.querySelector(".modal-head > div").innerHTML="<h3>More Desks</h3>";
   v.querySelectorAll("[data-more-tab]").forEach(b=>b.onclick=()=>{ closeModal(); switchTab(b.dataset.moreTab); });
 
-  // Wire Distribution
-  const btnTerritory = v.querySelector("#qaTerritory");
-  if(btnTerritory) btnTerritory.onclick=()=>{ closeModal(); if(typeof global.openTerritoryDealsModal==='function') global.openTerritoryDealsModal(); else if(typeof BOW_TERRITORIES!=='undefined') BOW_TERRITORIES.openDesk(); };
-  const btnClash = v.querySelector("#qaClash");
-  if(btnClash) btnClash.onclick=()=>{ closeModal(); if(typeof clashAnalyticsModal==='function') clashAnalyticsModal(); else switchTab("boxoffice"); };
-  const btnOtt = v.querySelector("#qaOtt");
-  if(btnOtt) btnOtt.onclick=()=>{ closeModal(); switchTab("ott"); };
-  const btnLiveTv = v.querySelector("#qaLiveTv");
-  if(btnLiveTv) btnLiveTv.onclick=()=>{ closeModal(); switchTab("live"); };
-
-  // Wire Talent & Production
-  const btnAgency = v.querySelector("#qaAgency");
-  if(btnAgency) btnAgency.onclick=()=>{ closeModal(); if(typeof agencyPackagingModal==='function') agencyPackagingModal(); else switchTab("develop"); };
-  const btnContracts = v.querySelector("#qaContracts");
-  if(btnContracts) btnContracts.onclick=()=>{ closeModal(); if(typeof contractDeskModal==='function') contractDeskModal(); else switchTab("studio"); };
-  const btnFacilities = v.querySelector("#qaFacilities");
-  if(btnFacilities) btnFacilities.onclick=()=>{ closeModal(); if(typeof facilitiesModal==='function') facilitiesModal(); else switchTab("studio"); };
-  const btnTest = v.querySelector("#qaTestScreens");
-  if(btnTest) btnTest.onclick=()=>{ closeModal(); if(typeof testScreeningsModal==='function') testScreeningsModal(); else switchTab("productions"); };
-  const btnScouting = v.querySelector("#qaScouting");
-  if(btnScouting) btnScouting.onclick=()=>{ closeModal(); if(typeof scoutingModal==='function') scoutingModal(); else switchTab("develop"); };
-  const btnInsurance = v.querySelector("#qaInsurance");
-  if(btnInsurance) btnInsurance.onclick=()=>{ closeModal(); if(typeof insuranceModal==='function') insuranceModal(); else switchTab("productions"); };
-
-  // Wire Corporate & Risk
-  const btnCrisis = v.querySelector("#qaCrisis");
-  if(btnCrisis) btnCrisis.onclick=()=>{ closeModal(); if(typeof crisisPrModal==='function') crisisPrModal(); else switchTab("fans"); };
-  const btnSpy = v.querySelector("#qaSpy");
-  if(btnSpy) btnSpy.onclick=()=>{ closeModal(); if(typeof espionageModal==='function') espionageModal(); else switchTab("fans"); };
-  const btnMerch = v.querySelector("#qaMerch");
-  if(btnMerch) btnMerch.onclick=()=>{ closeModal(); if(typeof merchLicensingModal==='function') merchLicensingModal(); else switchTab("empire"); };
-  const btnBonds = v.querySelector("#qaBonds");
-  if(btnBonds) btnBonds.onclick=()=>{ closeModal(); if(typeof bondMarketModal==='function') bondMarketModal(); else switchTab("finance"); };
-
-  // Wire Prestige & Expansion
-  const btnAwards = v.querySelector("#qaAwards");
-  if(btnAwards) btnAwards.onclick=()=>{ closeModal(); if(typeof awardsCampaignModal==='function') awardsCampaignModal(); else switchTab("fans"); };
-  const btnFestivals = v.querySelector("#qaFestivals");
-  if(btnFestivals) btnFestivals.onclick=()=>{ closeModal(); if(typeof festivalPrModal==='function') festivalPrModal(); else switchTab("boxoffice"); };
-  const btnConventions = v.querySelector("#qaConventions");
-  if(btnConventions) btnConventions.onclick=()=>{ closeModal(); if(typeof fanConventionModal==='function') fanConventionModal(); else switchTab("fans"); };
-  const btnDynasty = v.querySelector("#qaDynasty");
-  if(btnDynasty) btnDynasty.onclick=()=>{ closeModal(); if(typeof dynastyLegacyModal==='function') dynastyLegacyModal(); else switchTab("empire"); };
-  const btnGames = v.querySelector("#qaGames");
-  if(btnGames) btnGames.onclick=()=>{ closeModal(); switchTab("games"); };
-  const btnSandbox = v.querySelector("#qaSandbox");
-  if(btnSandbox) btnSandbox.onclick=()=>{ closeModal(); if(typeof customCreatorModal==='function') customCreatorModal(); else switchTab("develop"); };
-
-  // Wire Utilities
-  const btnAch = v.querySelector("#moreAch");
-  if(btnAch) btnAch.onclick=()=>{ closeModal(); achievementsModal(); };
-  const btnHall = v.querySelector("#moreHall");
-  if(btnHall) btnHall.onclick=()=>{ closeModal(); hallOfFameModal(); };
-  const btnFin = v.querySelector("#moreFinanceLedger");
-  if(btnFin) btnFin.onclick=()=>{ closeModal(); financeOverviewSheet(); };
-  const btnSet = v.querySelector("#moreSet");
-  if(btnSet) btnSet.onclick=()=>{ closeModal(); settingsModal(); };
-  const btnHelp = v.querySelector("#moreHelp");
-  if(btnHelp) btnHelp.onclick=()=>{ closeModal(); helpModal(); };
-  const btnSave = v.querySelector("#moreSave");
-  if(btnSave) btnSave.onclick=()=>{ saveGame(); const i=v.querySelector("#moreSaveInfo"); if(i) i.textContent="Saved successfully"; beep("click"); };
+  const actions={
+    qaTerritory:()=>openTerritoryDealsModal(),
+    qaClash:()=>{ BOXOFFICE_SUB="clash"; switchTab("boxoffice"); },
+    qaOtt:()=>switchTab("ott"),
+    qaLiveTv:()=>switchTab("live"),
+    qaAgency:()=>openAgencyPackagingModal(),
+    qaContracts:()=>openTalentContractsModal(),
+    qaFacilities:()=>openStudioFacilitiesModal(),
+    qaTestScreens:()=>openTestScreeningModal(),
+    qaScouting:()=>openLocationScoutingModal(),
+    qaInsurance:()=>openInsuranceModal(),
+    qaCrisis:()=>openCrisisPrModal(),
+    qaSpy:()=>openStudioEspionageModal(),
+    qaMerch:()=>openMerchLicensingModal(),
+    qaBonds:()=>openBondMarketModal(),
+    qaAwards:()=>openAwardsCampaignModal(),
+    qaFestivals:()=>openFestivalPrModal(),
+    qaConventions:()=>openFanClubModal(),
+    qaDynasty:()=>openDynastyModal(),
+    qaGames:()=>switchTab("games"),
+    qaSandbox:()=>openCustomSandboxModal(),
+    moreAch:()=>achievementsModal(),
+    moreHall:()=>hallOfFameModal(),
+    moreFinanceLedger:()=>financeOverviewSheet(),
+    moreSet:()=>settingsModal(),
+    moreHelp:()=>helpModal()
+  };
+  for(const [id,open] of Object.entries(actions)){
+    v.querySelector("#"+id).onclick=()=>{
+      closeModal();
+      openingMoreDesk=true;
+      try{ open(); }finally{ openingMoreDesk=false; }
+    };
+  }
+  v.querySelector("#moreSave").onclick=()=>{
+    saveGame();
+    v.querySelector("#moreSaveInfo").textContent="Saved successfully";
+    beep("click");
+  };
 }
 /* v10 spec §5: tap the cash chip → finance overview drawer */
 function financeOverviewSheet(){
@@ -1270,6 +1242,10 @@ function _renderImpl(){
   const tStart = (typeof performance!=="undefined") ? performance.now() : 0;
   try {
     $("#brandName").textContent=G.studio.name;
+    const brandMark = $(".command-header-mark");
+    if(brandMark) brandMark.dataset.initial = Array.from(G.studio.name.trim())[0]?.toUpperCase() || "B";
+    const weekMeta = $("#fabWeekMeta");
+    if(weekMeta) weekMeta.textContent = "Overhead −" + fmtM(weeklyOverhead());
     setCashChip(G.studio.cash);
     $("#chipDebt").textContent=fmtM(G.studio.debt);
     $("#chipDebtWrap").style.display = G.studio.debt>0.5? "":"none";
@@ -1281,7 +1257,9 @@ function _renderImpl(){
       : "Y"+yearOf(G.week)+" · "+DATA.seasonOf(woyOf(G.week)).month+" W"+woyOf(G.week);
     const v=$("#view");
     let h="";
-    if(TAB==="dashboard") h=viewDashboard();
+    const nwGuide = typeof NextWaveSuite!=="undefined" && NextWaveSuite.renderGuide ? NextWaveSuite.renderGuide(G, TAB==="dashboard" && DASHBOARD_SUB==="overview") : "";
+    const dashboardOverview = TAB==="dashboard" && DASHBOARD_SUB==="overview";
+    if(TAB==="dashboard") h=viewDashboard(nwGuide);
     else if(TAB==="studiolot") h=viewStudioLot2D();
     else if(TAB==="studio") h=viewStudio();
     else if(TAB==="develop") h=viewDevelop();
@@ -1300,7 +1278,6 @@ function _renderImpl(){
       if(identity) h=commandSubpage("studio",identity[0],identity[1],h);
     }
     const tb = tutBanner();   // v5 interactive tutorial rides on top of every tab
-    const nwGuide = typeof NextWaveSuite!=="undefined" && NextWaveSuite.renderGuide ? NextWaveSuite.renderGuide(G) : "";
     /* v34.6: fans joined the command desks, so the pixel banner would double up the header.
        v38.0: finance joined them too. Its Kairo banner was the last one still
        rendering, and it carried hardcoded fiction ("AAA Investment", "+34.8%
@@ -1311,7 +1288,16 @@ function _renderImpl(){
       : "";
     v.dataset.screen = TAB;
     const commandNav = ["dashboard", "studio"].includes(TAB) ? commandSectionNav(TAB) : (TAB === "develop" ? commandDevelopNav() : "");
-    v.innerHTML = (nwGuide?nwGuide:"") + (tb? tb : "") + kairoBanner + commandNav + h;
+    v.innerHTML = (dashboardOverview ? "" : nwGuide) + (tb? tb : "") + kairoBanner + commandNav + h;
+    if(document.documentElement.dataset.layout==="vertical"){
+      v.querySelectorAll(".command-nav-items button.active, .develop-filters button.active").forEach(button=>{
+        const rail=button.parentElement;
+        if(rail.scrollWidth<=rail.clientWidth||getComputedStyle(rail).overflowX!=="auto") return;
+        const bounds=rail.getBoundingClientRect(), target=button.getBoundingClientRect();
+        if(target.right>bounds.right) rail.scrollLeft+=target.right-bounds.right;
+        else if(target.left<bounds.left) rail.scrollLeft+=target.left-bounds.left;
+      });
+    }
     bindView();
     bindFolds(v);   // v15: collapsible sections remember their state
     updateBellBadge();   // v28.16: keep the bell badge fresh on every render
@@ -1409,7 +1395,7 @@ function nextUpdatesPanel(items){
    [data-mail-reply], [data-mail-apology], #btnFanGala) and nothing here writes
    simulation state. Reads offline: trend tags, buzz and audience scores all
    come from existing helpers. */
-const FAN_MAIL_CATS = [["all","All"],["love","💌 Love"],["demand","🙏 Demands"],["angry","😡 Angry"],["scandal","📰 Scandal"],["sub","📺 Subscribers"]];
+const FAN_MAIL_CATS = [["all","All"],["love","Love"],["demand","Demands"],["angry","Angry"],["scandal","Scandal"],["sub","Subscribers"]];
 
 function fansHead(){
   const w=woyOf(G.week), m=DATA.seasonOf(w);
@@ -1457,7 +1443,7 @@ function fansMailPanel(){
       const k=cat[0], label=cat[1];
       const n = k==="all"? rawMail.length : rawMail.filter(m=>m.kind===k).length;
       const on = FAN_MAIL_FILTER===k;
-      return "<button data-mail-cat='"+k+"' class='"+(on?"active":"")+"' aria-pressed='"+(on?"true":"false")+"'>"+label+"<b>"+n+"</b></button>";
+      return "<button data-mail-cat='"+k+"' class='"+(on?"active":"")+"' aria-pressed='"+(on?"true":"false")+"'>"+sectionEmoji("fans",k)+label+"<b>"+n+"</b></button>";
     }).join("")+"</div>";
   const ICON={love:"💌", demand:"🙏", angry:"😡", scandal:"📰", sub:"📺"};
   let rows="";
@@ -1670,17 +1656,13 @@ function viewStudio(){
     return h;
   }
 
-  // Heritage & Dynasty
-  h += "<div class='section-title'>Studio Heritage &amp; Dynasty</div><div class='grid g2'>"+
-    "<div class='card'><b>Dynasty &amp; Succession</b><div class='tiny muted' style='margin:4px 0'>Plan succession, prepare heirs, and preserve prestige across generations.</div>"+
-    "<button class='btn btn-sm btn-primary' id='btnOpenDynasty'>Dynasty &amp; Heirs</button></div>"+
-    "<div class='card'><b>Film Restoration Vault</b><div class='tiny muted' style='margin:4px 0'>Restore decayed catalog classics into pristine 4K HDR master prints for re-releases.</div>"+
-    "<button class='btn btn-sm btn-primary' id='btnRestorationVault'>Restoration Vault</button></div>"+
-    "<div class='card'><b>Multi-Picture Talent Pacts</b><div class='tiny muted' style='margin:4px 0'>Lock stars and directors into 3- or 5-picture commitments with volume discounts.</div>"+
-    "<button class='btn btn-sm btn-primary' id='btnOpenContracts'>Talent Contracts</button></div>"+
-    "<div class='card'><b>Shared Cinematic Universes</b><div class='tiny muted' style='margin:4px 0'>Link films across connected universes and build massive crossover team-up events.</div>"+
-    "<button class='btn btn-sm btn-primary' id='btnOpenUniverses'>Cinematic Universes</button></div>"+
-  "</div>";
+  const legacyDesks=[
+    ["Dynasty &amp; Succession","Plan succession, prepare heirs, and preserve prestige across generations.","btnOpenDynasty","Dynasty &amp; Heirs"],
+    ["Film Restoration Vault","Restore catalog films for new releases.","btnRestorationVault","Restoration Vault"],
+    ["Multi-Picture Talent Pacts","Negotiate discounted three- or five-picture commitments with stars and directors.","btnOpenContracts","Talent Contracts"],
+    ["Shared Cinematic Universes","Link films and organize crossover events.","btnOpenUniverses","Cinematic Universes"]
+  ];
+  h += `<div class="studio-legacy-list">${legacyDesks.map(([title,note,id,label])=>`<article class="studio-legacy-card"><h2>${title}</h2><p>${note}</p><button class="command-secondary" id="${id}">${label} ↗</button></article>`).join("")}</div>`;
   {
     const got = (typeof achCount==="function") ? achCount() : Object.keys(G.ach||{}).length;
     if(got){
@@ -2134,6 +2116,33 @@ function getSubTabPixelIcon(tab, key){
   return SUBTAB_PIXEL_ICONS[tab + ":" + key] || SUBTAB_PIXEL_ICONS[key] || "";
 }
 
+const SECTION_EMOJIS = {
+  dashboard: { overview: "🏠", actions: "🗂️", slate: "🎬", macro: "📈" },
+  studio: { lot: "🏢", csuite: "👔", board: "♟️", operations: "👥", crisis: "🛡️", heritage: "🏛️", industry: "🎞️", nextwave: "🌊" },
+  develop: { scripts: "📝", pitch: "🎬", demographics: "👥", creativity: "🎨", ip: "🔑", talent: "🌟", combos: "🧩", tax: "📍" },
+  boxoffice: { chart: "📊", chains: "🎟️", plf: "🍿", blitz: "📣", territories: "🌍", awards: "🏆", clash: "📡" },
+  productions: { all: "🎬", pre: "📋", shoot: "🎥", post: "✂️", ready: "✅", dated: "🗓️" },
+  ott: { home: "🏠", originals: "🎬", deals: "🤝", sports: "🏟️", market: "🌐" },
+  live: { home: "🏠", linear: "📺", shows: "🎭", stream: "📡", events: "🗓️", studio: "🎙️" },
+  empire: { home: "🏠", franchises: "🎞️", universes: "🌌", divisions: "🏢", stage: "🎭", endgame: "👑" },
+  library: { overview: "📚", films: "🎞️", series: "📺", rights: "🔑", catalogue: "🗂️", physical: "💿", restoration: "🛠️" },
+  games: { overview: "🎮", develop: "🛠️", catalog: "📚", studio: "👥", contracts: "🤝", awards: "🏆", hardware: "🕹️" },
+  finance: { ledger: "📒", capital: "🏦", forecast: "📈", equity: "📊", deals: "🤝", analysis: "🔍", board: "👥", invest: "💼" },
+  fans: { all: "📬", love: "💌", demand: "🙏", angry: "😡", scandal: "📰", sub: "📺" },
+  notifications: { all: "📬", decisions: "🤝", alerts: "🔔", market: "📈", notes: "📝" },
+  more: { Empire: "👑", Treasury: "🏦", Library: "📚", Awards: "🏆", Festivals: "🎞️", Rivals: "🎯",
+    Settings: "⚙️", "Field Guide": "📖", Productions: "🎬", Fans: "💌", "OTT &amp; Series": "📺", "Live TV": "📡", "Game Studio": "🎮" },
+  lot: { campus: "🏢", soundstage: "🎥", writers: "✍️", post: "✂️", cinema: "🍿", executive: "👔" },
+  creativeLab: { talent: "🌟", rival: "🏢", franchise: "🌌", idea: "✍️" },
+  settings: { experience: "🎨", audio: "🔊", access: "♿", career: "🎬", saves: "💾", device: "🔒" },
+  guide: { all: "📖", start: "🎬", people: "👥", money: "💰", growth: "📈" }
+};
+
+function sectionEmoji(tab, key){
+  const emoji = SECTION_EMOJIS[tab]?.[key];
+  return emoji ? `<span class="section-emoji" aria-hidden="true" data-emoji="${emoji}"></span>` : "";
+}
+
 /* ═══════════ Mobile sub-tab strip renderer ═══════════ */
 /* Renders the horizontal sub-tab bar (#subTabs) based on the active tab.
    Called from bindView() so it stays in sync with TAB and sub-tab state. */
@@ -2159,7 +2168,7 @@ function renderSubTabs(){
   bar.innerHTML = meta.map(([key, label]) => {
     const ico = getSubTabPixelIcon(TAB, key);
     const icoHtml = ico ? "<img class='subtab-pixel-icon' src='"+ico+"' alt='' />" : "";
-    return "<button class='btn btn-sm subtab-btn "+(key===activeKey ? "btn-primary active" : ghost)+"' "+attr+"='"+key+"'>"+icoHtml+"<span>"+esc(label)+"</span></button>";
+    return "<button class='btn btn-sm subtab-btn "+(key===activeKey ? "btn-primary active" : ghost)+"' "+attr+"='"+key+"'>"+icoHtml+"<span>"+sectionEmoji(TAB,key)+esc(label)+"</span></button>";
   }).join("");
   bar.style.display = "flex";
 }
@@ -2204,7 +2213,7 @@ function commandDevelopNav(){
   const active = DEVELOP_SECTIONS.some(s=>s[0]===DEVELOP_SUB) ? DEVELOP_SUB : "scripts";
   return `<nav class="command-section-nav command-develop-nav" aria-label="Story department sections">
     <div class="command-nav-brand"><span>STORY DEPARTMENT</span><small>WRITE / RIGHTS / CAST / SHOOT</small></div>
-    <div class="command-nav-items">${DEVELOP_SECTIONS.map(([key,label],i)=>`<button data-devsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div>
+    <div class="command-nav-items">${DEVELOP_SECTIONS.map(([key,label],i)=>`<button data-devsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${sectionEmoji("develop",key)}${label}</span></button>`).join("")}</div>
     <div class="command-nav-tools" role="group" aria-label="Story department tools"><span class="command-nav-tools-label">TOOLS</span><button id="btnOpenAgencyPackaging" aria-label="Agency packaging desk"><small>TOOL / TALENT</small><span>Agency packaging</span></button><button id="btnOpenContracts" aria-label="Picture partners and multi-picture contracts"><small>TOOL / CONTRACTS</small><span>Picture partners</span></button><button id="btnOpenTalentAgency" aria-label="Talent agency ownership"><small>TOOL / AGENCY</small><span>Talent agency</span></button></div>
   </nav>`;
 }
@@ -2223,7 +2232,7 @@ function viewDevelop(){
 
 /* ── Pitch hub: pick film or series ────────────────────────────────── */
 function commandDevelopPitch(){
-  return `<section class="pitch-hub"><header class="command-heading"><div><span class="command-eyebrow">STORY DEPARTMENT / PITCH</span><h2>Pitch to the room</h2><p>Choose what you are selling. Every pitch goes to a vote, and the vote is shown on screen.</p></div></header>
+  return `<section class="pitch-hub"><header class="command-heading"><div><span class="command-eyebrow">STORY DEPARTMENT</span><h1>Pitch to the room</h1><p>Bring a film to the studio board or a series to a buyer.</p></div></header>
     <div class="pitch-hub-grid">
       <button class="pitch-hub-card" id="btnHubFilm"><span class="pitch-hub-icon" aria-hidden="true">🎬</span><b>Film</b><small>Concept, team, cast, and release. The studio board votes on the picture.</small><em>Start a film pitch →</em></button>
       <button class="pitch-hub-card" id="btnHubSeries"><span class="pitch-hub-icon" aria-hidden="true">📺</span><b>Series</b><small>Format, leads, season arc, and pilot. A buyer committee decides.</small><em>Start a series pitch →</em></button>
@@ -2234,19 +2243,17 @@ function commandDevelopPitch(){
 function developScriptCard(i){
   const S=DATA.SCALES?DATA.SCALES[i.scale]:null, G0=DATA.GENRES[i.genre];
   const heat=developHeat(i.genre);
-  const tl=(typeof trendLabel==="function")?trendLabel(i.genre):{tag:"",cls:""};
   let budget=0, dev=0;
   try{ budget=neededBudget(i.genre,i.scale); }catch(e){}
   try{ dev=devCostOf(i); }catch(e){}
   const timing = heat>=1.07 ? "HOT TIMING" : heat<=0.94 ? "COLD CYCLE" : "STEADY";
   return `<article class="develop-script">
-    <header><span>${G0?G0.emoji+" "+esc(G0.name):esc(i.genre)}</span><b>${S?esc(S.name):esc(i.scale)}</b></header>
-    <h3>${esc(i.title)}</h3>
+    <header><div><span>${G0?esc(G0.name):esc(i.genre)} · ${S?esc(S.name):esc(i.scale)}</span><h3>${esc(i.title)}</h3></div><b class="script-score">Script ${i.script}</b></header>
     <p class="develop-script-blurb">“${esc(i.blurb)}”</p>
     <div class="develop-script-flags">${i.hot?'<span class="flag-hot">HOT SPEC</span>':""}${i.awareness?'<span class="flag-ip">KNOWN IP</span>':""}${i.crossover?'<span class="flag-crossover">CROSSOVER</span>':""}<span class="flag-timing ${heat>=1.07?"hot":heat<=0.94?"cold":""}">${timing}</span></div>
     <dl class="develop-script-stats"><div><dt>Script</dt><dd>${i.script}</dd></div><div><dt>Trend</dt><dd>${heat.toFixed(2)}×</dd></div><div><dt>Budget</dt><dd>${fmtM(budget)}</dd></div><div><dt>Dev rights</dt><dd>${fmtM(dev)}</dd></div></dl>
     ${i.pitch?`<p class="develop-script-pitch">Pitched ${i.pitch.score} · ${esc(i.pitch.verdict)}</p>`:""}
-    <footer><button class="develop-ghost" data-pitch="${i.id}">Pitch</button><button class="develop-action" data-dev="${i.id}">Develop this film</button></footer>
+    <footer><span class="script-price">Budget ${fmtM(budget)} · Rights <b>${fmtM(dev)}</b></span><button class="develop-ghost" data-pitch="${i.id}">Pitch</button><button class="develop-action" data-dev="${i.id}">Develop this film</button></footer>
   </article>`;
 }
 function developGenreFilterBar(){
@@ -2283,7 +2290,7 @@ function developTrendBoard(){
 function developMarketTable(){
   const rows=developMarketRows();
   return `<section class="develop-panel"><div class="develop-panel-head"><div><span class="command-eyebrow">52-WEEK READ</span><h2>Genre intelligence</h2><p>Your own runs and rival slates, measured against the current corridor.</p></div></div>
-  <div class="develop-table-wrap"><table class="develop-table"><thead><tr><th scope="col">Genre</th><th scope="col">Heat</th><th scope="col">Quarter Δ</th><th scope="col">Your runs (52w)</th><th scope="col">Rivals dated (12w)</th><th scope="col">Verdict</th></tr></thead><tbody>${rows.map(r=>{const G0=DATA.GENRES[r.g];const cls=r.heat>=1.07?"good":r.heat<=0.94?"bad":"mid";return `<tr><th scope="row">${G0.emoji} ${esc(G0.name)}</th><td><b class="${cls}">${r.heat.toFixed(2)}×</b></td><td>${r.delta>0?"+":""}${r.delta.toFixed(2)}</td><td>${r.rec.n?`${r.rec.hits} hits · ${r.rec.flops} flops · ${r.rec.n} runs`:"no runs yet"}</td><td>${r.comp.live?r.comp.live+" live · ":""}${r.comp.soon} dated</td><td>${esc(genreOpp(r.g,r.heat,r.delta,r.rec,r.comp))}</td></tr>`}).join("")}</tbody></table></div></section>`;
+  <div class="develop-table-wrap" role="region" aria-label="Genre trends table" tabindex="0"><table class="develop-table"><thead><tr><th scope="col">Genre</th><th scope="col">Heat</th><th scope="col">Quarter Δ</th><th scope="col">Your runs (52w)</th><th scope="col">Rivals dated (12w)</th><th scope="col">Verdict</th></tr></thead><tbody>${rows.map(r=>{const G0=DATA.GENRES[r.g];const cls=r.heat>=1.07?"good":r.heat<=0.94?"bad":"mid";return `<tr><th scope="row">${G0.emoji} ${esc(G0.name)}</th><td><b class="${cls}">${r.heat.toFixed(2)}×</b></td><td>${r.delta>0?"+":""}${r.delta.toFixed(2)}</td><td>${r.rec.n?`${r.rec.hits} hits · ${r.rec.flops} flops · ${r.rec.n} runs`:"no runs yet"}</td><td>${r.comp.live?r.comp.live+" live · ":""}${r.comp.soon} dated</td><td>${esc(genreOpp(r.g,r.heat,r.delta,r.rec,r.comp))}</td></tr>`}).join("")}</tbody></table></div></section>`;
 }
 function developSeasonStrip(){
   if(!DATA.seasonOf) return "";
@@ -2305,7 +2312,12 @@ function commandDevelopScripts(){
   const top=rows[0], hottest=top&&top.heat>=1.07?top:null;
   const inSlate=(G.projects||[]).filter(p=>!p.released).length;
   return `<section class="command-deck command-develop">
-    ${developHead("01 / SCRIPTS","Put a story into development.",`${esc(G.studio.name)} · ${inSlate} project(s) in the slate · ${ideas.length} draft(s) on the desk`)}
+    ${developHead("SCRIPT MARKET","Find a Story",`${ideas.length} drafts available · ${inSlate} in development`)}
+    <section class="develop-panel develop-script-market">
+      <div class="develop-panel-head"><div><span class="command-eyebrow">SCRIPT MARKET</span><h2>Specs on the desk</h2><p>Each draft carries its own script score, scale, and dev price. Trend timing is checked against the live market.</p></div><span class="develop-stamp">${filtered.length} / ${ideas.length} SHOWN</span></div>
+      ${developGenreFilterBar()}
+      ${filtered.length?`<div class="develop-scripts">${filtered.map(developScriptCard).join("")}</div>`:`<div class="command-empty"><b>No specs match this filter.</b><small>Reset the filter, or pitch a new film to put something back on the desk.</small><button class="develop-ghost" onclick="SCRIPT_GENRE_FILTER='all';render();">Show all genres</button></div>`}
+    </section>
     <div class="command-telemetry">${commandMetric("DRAFTS ON THE DESK",ideas.length,"Specs ready to develop")}${commandMetric("WRITERS AVAILABLE",writers,"Free to take an assignment")}${commandMetric("HOTTEST GENRE",hottest?`${esc(DATA.GENRES[hottest.g].name)} · ${hottest.heat.toFixed(2)}×`:"No genre above 1.07×",hottest?"Develop into the heat":"Wait for a warmer cycle")}${commandMetric("MARKET RE-RATES",weeksLeft+" wk"+(weeksLeft===1?"":"s"),"Heat rotates every quarter")}</div>
     <div class="develop-lead">
       <section class="develop-brief">
@@ -2325,11 +2337,6 @@ function commandDevelopScripts(){
       <button id="btnFestivalPr"><small>PUBLICITY</small><span>Festivals &amp; PR</span></button>
       <button id="btnClashAnalytics"><small>RELEASE PLANNING</small><span>Clash radar</span></button>
     </nav>
-    <section class="develop-panel">
-      <div class="develop-panel-head"><div><span class="command-eyebrow">SCRIPT MARKET</span><h2>Specs on the desk</h2><p>Each draft carries its own script score, scale, and dev price. Trend timing is checked against the live market.</p></div><span class="develop-stamp">${filtered.length} / ${ideas.length} SHOWN</span></div>
-      ${developGenreFilterBar()}
-      ${filtered.length?`<div class="develop-scripts">${filtered.map(developScriptCard).join("")}</div>`:`<div class="command-empty"><b>No specs match this filter.</b><small>Reset the filter, or pitch a new film to put something back on the desk.</small><button class="develop-ghost" onclick="SCRIPT_GENRE_FILTER='all';render();">Show all genres</button></div>`}
-    </section>
     ${developRightsRail()}
     ${developTrendBoard()}
     ${developMarketTable()}
@@ -2782,7 +2789,7 @@ function openLocationDesk(projectId){
 
   const html=`<div class="loc-desk command-dialog">
     <header class="loc-head">
-      <div><span class="command-eyebrow">LOCATION DESK / WORLDWIDE COMMISSIONS</span><h3>Where the next picture shoots.</h3><p>Every commission carries a government rebate paid when the picture wraps, a travel cost paid now, and a craft buff on location. Pick a picture, then book the ground it stands on.</p></div>
+      <div><span class="command-eyebrow">LOCATION DESK / WORLDWIDE COMMISSIONS</span><h3><span class="dialog-emoji" aria-hidden="true" data-emoji="📍"></span>Where the next picture shoots.</h3><p>Every commission carries a government rebate paid when the picture wraps, a travel cost paid now, and a craft buff on location. Pick a picture, then book the ground it stands on.</p></div>
       <div class="loc-head-stats"><div><small>COMMISSIONS</small><b>${d.dests.length}</b></div><div><small>REBATES BANKED</small><b>${fmtM(d.collected)}</b></div><div><small>IN PLAY</small><b>${d.projects.length}</b></div></div>
     </header>
     <div class="loc-body">
@@ -3367,6 +3374,7 @@ function wizardModal(){
   const v=openModal(pitchShell({
     eyebrow:"STORY DEPARTMENT / GREENLIGHT DESK",
     title:"Greenlight: “"+esc(title||"Untitled")+"”",
+    emoji:"🎬",
     sub:"Spec to call sheet. Every figure is read from your live studio state.",
     badge:`<div class="pitch-head-score"><small>PROJECTED QUALITY</small><b>${r.quality}</b><span>/100</span></div>`,
     steps:GREENLIGHT_STEPS, active:step-2, stepAttr:"glstep",
@@ -3654,6 +3662,7 @@ function seriesModal(){
 
   const v=openModal(pitchShell({
     title:"Pitch a series",
+    emoji:"📺",
     sub:"Format, room, buyer. One decision path — no gatekeeping you cannot see.",
     eyebrow:"TELEVISION / PITCH STUDIO",
     badge:`<div class="pitch-head-score"><small>ODDS</small><b>${r.odds}</b><span>%</span></div>`,
@@ -3843,7 +3852,7 @@ function pitchShell(opts){
   const steps=opts.steps||[], active=opts.active||0;
   const rail=steps.map((st,i)=>`<button class="pitch-step${i===active?" on":""}${i<active?" done":""}" ${opts.stepAttr?`data-${opts.stepAttr}="${i}"`:"disabled"} aria-current="${i===active?"step":"false"}"><small>${String(i+1).padStart(2,"0")}</small><span>${st[1]}</span></button>`).join("");
   return `<div class="pitch-shell">
-    <header class="pitch-head"><div><span class="command-eyebrow">${opts.eyebrow||"STORY DEPARTMENT / PITCH STUDIO"}</span><h3>${opts.title}</h3><p>${opts.sub||""}</p></div>${opts.badge||""}</header>
+    <header class="pitch-head"><div><span class="command-eyebrow">${opts.eyebrow||"STORY DEPARTMENT / PITCH STUDIO"}</span><h3>${opts.emoji?`<span class="dialog-emoji" aria-hidden="true" data-emoji="${opts.emoji}"></span>`:""}${opts.title}</h3><p>${opts.sub||""}</p></div>${opts.badge||""}</header>
     <nav class="pitch-steps" aria-label="Pitch steps">${rail}</nav>
     <div class="pitch-body${opts.aside?"":" solo"}">
       <section class="pitch-main">${opts.main}</section>
@@ -4145,6 +4154,7 @@ function filmPitchModal(){
 
   const v=openModal(pitchShell({
     title:"Pitch a film",
+    emoji:"🎬",
     sub:"Concept to call sheet. Every figure comes from your live studio state.",
     badge:`<div class="pitch-head-score"><small>ROOM READ</small><b>${ev.score}</b><span>/100</span></div>`,
     steps:PITCH_FILM_STEPS, active:step, stepAttr:"fpstep",
@@ -5743,7 +5753,7 @@ const BOXOFFICE_COPY = {
 function boxOfficeHead(){
   const w=woyOf(G.week), m=DATA.seasonOf(w);
   const copy=BOXOFFICE_COPY[BOXOFFICE_SUB]||BOXOFFICE_COPY.chart;
-  return `<header class="command-heading"><div><span class="command-edition">BOX OFFICE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">${copy[0]}</span><h1>${copy[1]}</h1><p>${copy[2]}</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
+  return `<header class="command-heading"><div><span class="command-edition">BOX OFFICE DESK / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">${copy[0]}</span><h1>${BOXOFFICE_SUB==="chart"?"Box Office":copy[1]}</h1><p${BOXOFFICE_SUB==="chart"?' class="bo-chart-intro"':""}>${copy[2]}</p></div><div class="command-date"><span>WEEK</span><b>${String(w).padStart(2,"0")}</b><small>${esc(m.month)}</small></div></header>`;
 }
 function boxOfficeTelemetry(){
   let chart=[]; try{ chart=weeklyChart()||[]; }catch(e){ chart=[]; }
@@ -5764,7 +5774,7 @@ function boxOfficeTelemetry(){
 }
 function boxOfficeNav(){
   const active=BOXOFFICE_SECTIONS.some(s=>s[0]===BOXOFFICE_SUB)?BOXOFFICE_SUB:"chart";
-  return `<nav class="command-section-nav command-boxoffice-nav" aria-label="Box office sections"><div class="command-nav-brand"><span>BOX OFFICE DESK</span><small>CHART / SCREENS / TERRITORIES</small></div><div class="command-nav-items">${BOXOFFICE_SECTIONS.map(([key,label],i)=>`<button data-bosub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div><div class="command-nav-tools"><button id="btnBoCollection" aria-label="Collection Command — raise what a picture actually collects"><small>TOOL / COLLECTION</small><span>Collection</span></button><button id="btnBoScreenings" aria-label="Audience screenings — festival and press screenings"><small>TOOL / AUDIENCE</small><span>Screenings</span></button><button id="btnBoTheaters" aria-label="Theater chains desk"><small>TOOL / CIRCUITS</small><span>Theater chains</span></button><button id="btnBoGrosses" aria-label="Weekend grosses analytics"><small>TOOL / ANALYTICS</small><span>Weekend grosses</span></button><button id="btnBoLibrary" aria-label="Film library — open the catalogue"><small>TOOL / CATALOGUE</small><span>Film library</span></button></div></nav>`;
+  return `<nav class="command-section-nav command-boxoffice-nav" aria-label="Box office sections"><div class="command-nav-brand"><span>BOX OFFICE DESK</span><small>CHART / SCREENS / TERRITORIES</small></div><div class="command-nav-items">${BOXOFFICE_SECTIONS.map(([key,label],i)=>`<button data-bosub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small><span>${sectionEmoji("boxoffice",key)}${label}</span></button>`).join("")}</div><div class="command-nav-tools"><button id="btnBoCollection" aria-label="Collection Command — raise what a picture actually collects"><small>TOOL / COLLECTION</small><span>Collection</span></button><button id="btnBoScreenings" aria-label="Audience screenings — festival and press screenings"><small>TOOL / AUDIENCE</small><span>Screenings</span></button><button id="btnBoTheaters" aria-label="Theater chains desk"><small>TOOL / CIRCUITS</small><span>Theater chains</span></button><button id="btnBoGrosses" aria-label="Weekend grosses analytics"><small>TOOL / ANALYTICS</small><span>Weekend grosses</span></button><button id="btnBoLibrary" aria-label="Film library — open the catalogue"><small>TOOL / CATALOGUE</small><span>Film library</span></button></div></nav>`;
 }
 function boxOfficePanel(eyebrow,title,description,content,stamp){
   return `<section class="produce-panel"><div class="produce-panel-head"><div><span class="command-eyebrow">${eyebrow}</span><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${stamp?`<span class="produce-stamp">${stamp}</span>`:""}</div>${content}</section>`;
@@ -5774,10 +5784,15 @@ function boxOfficeChartPanel(){
   if(!chart.length){
     return boxOfficePanel("THE WEEKEND CHART","Where the money went","Nothing is playing this week. A film earns nothing until it is dated.","<div class='bo-empty'><b>The multiplex is dark.</b><p>No picture is on screens right now. Finish a film, then date it from Productions to open a run.</p><button class='produce-action' onclick=\"switchTab('productions')\">Open productions →</button></div>","NO RUNS");
   }
-  const max=Math.max(1,...chart.map(c=>c.gross||0));
-  const rows=chart.map((c,i)=>`<div class="bo-chart-row${c.mine?" mine":""}"><span class="bo-rank">${String(i+1).padStart(2,"0")}</span><div class="bo-chart-name"><b>${c.mine?"🎬 ":""}${esc(c.title)}</b><small>${(DATA.GENRES[c.genre]||{}).name||esc(c.genre||"Feature")} · wk ${c.weeksOut}${c.mine?"":" · "+esc(c.studio||"independent")}</small></div><span class="bo-chart-bar"><i style="width:${Math.max(4,(c.gross||0)/max*100)}%${c.mine?"":";background:"+(c.color||"#4a5570")}"></i></span><b class="bo-chart-gross">${fmtG(c.gross||0)}</b></div>`).join("");
+  const max=Math.max(0,...chart.map(c=>c.gross||0));
+  const rows=chart.map((c,i)=>`<div class="bo-chart-row${c.mine?" mine":""}"><span class="bo-rank">#${i+1}</span><div class="bo-chart-name"><b>${esc(c.title)}</b><small>${(DATA.GENRES[c.genre]||{}).name||esc(c.genre||"Feature")} · wk ${c.weeksOut}${c.mine?" · Your studio":" · "+esc(c.studio||"independent")}</small></div><span class="bo-chart-bar" aria-hidden="true"><i style="width:${(max ? Math.max(0,c.gross||0)/max*100 : 0)}%${c.mine?"":";background:"+(c.color||"#4a5570")}"></i></span><b class="bo-chart-gross">${fmtG(c.gross||0)}</b></div>`).join("");
   const mine=chart.filter(c=>c.mine).length;
-  return boxOfficePanel("THE WEEKEND CHART","Where the money went","Domestic gross for the current weekend, ranked. Gold bars are your pictures.","<div class=\"bo-chart\">"+rows+"</div><footer class=\"bo-foot\"><span>"+mine+" of yours on the board</span><b>Leader: "+esc(chart[0].title)+" · "+fmtG(chart[0].gross||0)+"</b></footer>",chart.length+" FILMS");
+  const market=chart.reduce((sum,c)=>sum+(c.gross||0),0);
+  const studioGross=chart.reduce((sum,c)=>sum+(c.mine?(c.gross||0):0),0);
+  const leader=chart[0];
+  const share=market>0?(studioGross/market*100).toFixed(1):"0.0";
+  const summary=`<div class="bo-chart-summary"><div><span>Weekend summary · Week ${woyOf(G.week)}</span><strong>${esc(leader.title)} leads a ${fmtM(market)} frame.</strong></div><dl><div><dt>Total gross</dt><dd>${fmtM(market)}</dd></div><div><dt>Top release</dt><dd>${fmtM(leader.gross||0)}</dd></div><div><dt>Your share</dt><dd>${share}%</dd></div></dl></div>`;
+  return boxOfficePanel("WEEKEND RESULTS","Domestic box office","",summary+"<div class=\"bo-chart bo-chart-list\">"+rows+"</div><footer class=\"bo-foot\"><span>"+mine+" from your studio</span></footer>",chart.length+" FILMS");
 }
 function boxOfficeCompetitionPanel(){
   const intel=(G.intel&&G.intel.until>G.week)?`<p class="produce-note">🕵 Intel active on ${esc(G.intel.name)} — ${G.intel.until-G.week} weeks left.</p>`:"";
@@ -6015,7 +6030,7 @@ function boxOfficeWeekendModal(){
 
 function viewBoxOffice(){
   if(typeof BOXOFFICE_SUB==="undefined" || !BOXOFFICE_SECTIONS.some(s=>s[0]===BOXOFFICE_SUB)) BOXOFFICE_SUB="chart";
-  const head=boxOfficeHead()+boxOfficeTelemetry()+boxOfficeNav();
+  const head=boxOfficeHead()+boxOfficeNav()+(BOXOFFICE_SUB==="chart"?"":boxOfficeTelemetry());
   let body="";
   if(BOXOFFICE_SUB==="chains") body=boxOfficeChainsPanel();
   else if(BOXOFFICE_SUB==="plf") body=boxOfficeModulePanel("PREMIUM FORMAT","PLF mastering & the concession stand","Large-format deliverables, screen scheduling and popcorn splits — the premium margin in one desk.",(typeof ExhibitionPLF!=="undefined"&&typeof ExhibitionPLF.renderExhibitionPLFSection==="function")?ExhibitionPLF.renderExhibitionPLFSection():"","PLF");
@@ -6023,7 +6038,7 @@ function viewBoxOffice(){
   else if(BOXOFFICE_SUB==="awards") body=boxOfficeModulePanel("SEASON","The awards circuit","Bodies, festivals and the weeks they vote. A campaign here is a second release for a picture that already closed.",(typeof FilmLocationsTax!=="undefined"&&typeof FilmLocationsTax.renderAwardCircuitSection==="function")?FilmLocationsTax.renderAwardCircuitSection():"","SEASON");
   else if(BOXOFFICE_SUB==="territories") body=boxOfficeTerritoriesPanel();
   else if(BOXOFFICE_SUB==="clash") body=boxOfficeClashPanel();
-  else body=boxOfficeChartPanel()+boxOfficeCompetitionPanel()+boxOfficeCorridorPanel()+boxOfficeRunsPanel()+boxOfficeLibraryPanel();
+  else body=boxOfficeChartPanel()+boxOfficeTelemetry()+boxOfficeCompetitionPanel()+boxOfficeCorridorPanel()+boxOfficeRunsPanel()+boxOfficeLibraryPanel();
   return `<section class="command-deck command-produce command-boxoffice">${head}${body}</section>`;
 }
 
@@ -6052,7 +6067,7 @@ function ottNav(){
   const active=OTT_SECTIONS.some(s=>s[0]===OTT_SUB)?OTT_SUB:"home";
   return `<nav class="command-section-nav command-ott-nav" aria-label="OTT desk sections"><div class="command-nav-brand"><span>OTT DESK</span><small>HOME / ORIGINALS / DEALS / SPORTS / MARKET</small></div><div class="command-nav-items">${OTT_SECTIONS.map(([key,label],i)=>{
     const icon=getSubTabPixelIcon("ott",key);
-    return `<button data-ottsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+    return `<button data-ottsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${sectionEmoji("ott",key)}${label}</span></button>`;
   }).join("")}</div></nav>`;
 }
 function ottPanel(eyebrow,title,description,content,stamp,cls){
@@ -6364,7 +6379,7 @@ function viewInboxScreen(){
     <header class="command-heading"><div><span class="command-edition">OFFICE / YEAR ${yearOf(G.week)}</span><span class="command-eyebrow">INBOX / CORRESPONDENCE</span><h1>Everything the studio heard.</h1><p>Board decisions, crises, market moves and quiet notes. Nothing here is a metric you cannot act on.</p></div>${developWeekBadge()}</header>
     <div class="command-telemetry">${commandMetric("UNREAD",unread.size,unread.size?"Waiting on you":"Tray is clear")}${commandMetric("THIS WEEK",weekCount,"Recorded since Monday")}${commandMetric("ALERTS",alerts,"Overruns, crises, rivals")}${commandMetric("ARCHIVE",rows.length,"Last 100 transmissions")}</div>
     <div class="inbox-page">
-      <nav class="inbox-filters" aria-label="Inbox filters">${filters.map(([k,label,count])=>`<button class="${active===k?"on":""}" data-inboxfilter="${k}" aria-pressed="${active===k}"><span>${label}</span><b>${count}</b></button>`).join("")}</nav>
+      <nav class="inbox-filters" aria-label="Inbox filters">${filters.map(([k,label,count])=>`<button class="${active===k?"on":""}" data-inboxfilter="${k}" aria-pressed="${active===k}"><span>${sectionEmoji("notifications",k)}${label}</span><b>${count}</b></button>`).join("")}</nav>
       <div class="inbox-body" id="inboxBody">${shown.length?inboxWeekHtml(shown,unread,true):empty}</div>
       <footer class="inbox-actions"><span>${rows.length?`${unread.size} unread · ${rows.length} on file`:"Nothing recorded yet"}</span><span class="inbox-page-actions">${unread.size?`<button class="command-secondary" id="inboxMarkAll">Mark all read</button>`:""}<button class="command-secondary" id="inboxBell">Open the pop-up inbox</button></span></footer>
     </div>
@@ -6390,14 +6405,14 @@ function viewNotifications(){
   const body=shown.length?inboxWeekHtml(shown,unread,false):`<div class="inbox-empty"><b>${active==="all"?"The tray is empty.":"Nothing of that kind yet."}</b><p>${active==="all"?"Deals, crises, board decisions and market moves land here as the weeks turn.":"Switch the filter, or advance a week and the desk fills up."}</p><button class="develop-ghost" id="inboxAll">Show everything</button></div>`;
   return `<div class="inbox">
     <header class="inbox-head">
-      <div><span class="command-eyebrow">OFFICE / NOTIFICATIONS</span><h3>The week's correspondence.</h3><p>Notifications fire as the weeks turn — every decision, crisis and market move the studio recorded. Opening the inbox clears the bell.</p></div>
+      <div><span class="command-eyebrow">OFFICE / NOTIFICATIONS</span><h3><span class="dialog-emoji" aria-hidden="true" data-emoji="📬"></span>The week's correspondence.</h3><p>Notifications fire as the weeks turn — every decision, crisis and market move the studio recorded. Opening the inbox clears the bell.</p></div>
       <div class="inbox-stats">
         <div><small>UNREAD AT OPEN</small><b>${unreadN}</b></div>
         <div><small>THIS WEEK</small><b>${weekCount}</b></div>
         <div><small>ARCHIVE</small><b>${rows.length}</b></div>
       </div>
     </header>
-    <nav class="inbox-filters" aria-label="Notification filters">${filters.map(([k,label,count])=>`<button class="${active===k?"on":""}" data-nfilter="${k}" aria-pressed="${active===k}"><span>${label}</span><b>${count}</b></button>`).join("")}</nav>
+    <nav class="inbox-filters" aria-label="Notification filters">${filters.map(([k,label,count])=>`<button class="${active===k?"on":""}" data-nfilter="${k}" aria-pressed="${active===k}"><span>${sectionEmoji("notifications",k)}${label}</span><b>${count}</b></button>`).join("")}</nav>
     <div class="inbox-body">${body}</div>
     <footer class="inbox-actions"><span>${rows.length?`Most recent first · ${rows.length} entries on file`:"Nothing recorded yet"}</span><button class="develop-ghost" id="inboxClose">Close</button></footer>
   </div>`;
@@ -6469,7 +6484,7 @@ function financeHead(){
 }
 function financeNav(){
   const active=financeSub(), secs=financeSections();
-  return `<nav class="command-section-nav command-finance-nav" aria-label="Treasury desk sections"><div class="command-nav-brand"><span>TREASURY DESK</span><small>LEDGER / DEBT / FORECAST / EQUITY</small></div><div class="command-nav-items">${secs.map(([key,label],i)=>`<button data-finsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}" aria-pressed="${active===key?"true":"false"}"><small>${String(i+1).padStart(2,"0")}</small><span>${label}</span></button>`).join("")}</div></nav>`;
+  return `<nav class="command-section-nav command-finance-nav" aria-label="Treasury desk sections"><div class="command-nav-brand"><span>TREASURY DESK</span><small>LEDGER / DEBT / FORECAST / EQUITY</small></div><div class="command-nav-items">${secs.map(([key,label],i)=>`<button data-finsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}" aria-pressed="${active===key?"true":"false"}"><small>${String(i+1).padStart(2,"0")}</small><span>${sectionEmoji("finance",key)}${label}</span></button>`).join("")}</div></nav>`;
 }
 function financeTelemetry(){
   const D=fd(); if(!D) return "";
@@ -8230,7 +8245,7 @@ function libraryHead(){
 }
 function libraryNav(){
   const active=librarySub();
-  return `<nav class="command-section-nav command-library-nav" aria-label="Library desk sections"><div class="command-nav-brand"><span>LIBRARY DESK</span><small>CATALOGUE / RIGHTS / RESTORATION</small></div><div class="command-nav-items">${LIBRARY_SECTIONS.map(([key,label],i)=>`<button data-libsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}" aria-pressed="${active===key?"true":"false"}"><small>0${i+1}</small><span>${label}</span></button>`).join("")}</div></nav>`;
+  return `<nav class="command-section-nav command-library-nav" aria-label="Library desk sections"><div class="command-nav-brand"><span>LIBRARY DESK</span><small>CATALOGUE / RIGHTS / RESTORATION</small></div><div class="command-nav-items">${LIBRARY_SECTIONS.map(([key,label],i)=>`<button data-libsub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}" aria-pressed="${active===key?"true":"false"}"><small>0${i+1}</small><span>${sectionEmoji("library",key)}${label}</span></button>`).join("")}</div></nav>`;
 }
 function libraryTelemetry(){
   const cat=libraryCatalogue();
@@ -8730,7 +8745,7 @@ function gamesNav() {
   const active = gamesSub();
   return `<nav class="command-section-nav command-games-nav" aria-label="Game studio desk sections"><div class="command-nav-brand"><span>GAME STUDIO DESK</span><small>PLAN / BUILD / SHIP / CELEBRATE</small></div><div class="command-nav-items">${GAMES_SECTIONS.map(([key, label], i) => {
     const icon = getSubTabPixelIcon("games", key);
-    return `<button data-gamessub="${key}" class="${active === key ? "active" : ""}" aria-current="${active === key ? "page" : "false"}" aria-pressed="${active === key}"><small>0${i + 1}</small>${icon ? `<img class="subtab-pixel-icon" src="${icon}" alt="" />` : ""}<span>${label}</span></button>`;
+    return `<button data-gamessub="${key}" class="${active === key ? "active" : ""}" aria-current="${active === key ? "page" : "false"}" aria-pressed="${active === key}"><small>0${i + 1}</small>${icon ? `<img class="subtab-pixel-icon" src="${icon}" alt="" />` : ""}<span>${sectionEmoji("games",key)}${label}</span></button>`;
   }).join("")}</div></nav>`;
 }
 function gamesTelemetry() {
@@ -9306,7 +9321,7 @@ function empireNav(){
   const active=empireSub();
   return `<nav class="command-section-nav command-empire-nav" aria-label="Empire desk sections"><div class="command-nav-brand"><span>EMPIRE DESK</span><small>HOME / FRANCHISES / UNIVERSES / DIVISIONS / STAGE / ENDGAME</small></div><div class="command-nav-items">${EMPIRE_SECTIONS.map(([key,label],i)=>{
     const icon=getSubTabPixelIcon("empire",key);
-    return `<button data-empiresub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+    return `<button data-empiresub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${sectionEmoji("empire",key)}${label}</span></button>`;
   }).join("")}</div></nav>`;
 }
 /* ── v35.0 EMPIRE DESK shell — head, telemetry and produce-panel surfaces ── */
@@ -10034,7 +10049,7 @@ function helpModal(){
     ['growth','Franchises need room to breathe','Successful films can become franchises with sequels, merchandise, games, and other opportunities. Repeated sequels can accumulate fatigue. Resting a brand and refreshing its stories can be wiser than rushing another release.'],
     ['growth','Meet the board’s mandate','Strategy tracks quarterly directives, progress, potential rewards, and confidence. Keep reserves for debt and overhead. Loans can bridge a gap, but interest and limited credit can turn one failed release into a crisis.']
   ];
-  const h=`<section class="command-dialog field-guide"><header class="command-dialog-hero"><div><span class="command-eyebrow">THE STUDIO FIELD GUIDE / PRODUCER’S EDITION</span><h2>Great stories. Smarter decisions.</h2><p>A practical handbook for your first film—and the studio that follows.</p></div><span class="guide-edition">12 ESSENTIALS<br>ONE STUDIO</span></header><div class="guide-layout"><nav class="guide-nav" aria-label="Guide chapters"><button data-guide-chapter="all" class="active" aria-pressed="true"><small>INDEX</small><b>The whole picture</b></button>${chapters.map(([key,n,title,desc])=>`<button data-guide-chapter="${key}" aria-pressed="false"><small>CHAPTER ${n}</small><b>${title}</b><span>${desc}</span></button>`).join('')}<p>Tip: keep an eye on cash, not just worldwide gross.</p></nav><section class="guide-reading"><label class="guide-search-label" for="helpSearch">FIND AN ANSWER</label><input id="helpSearch" type="search" placeholder="Search casting, breakeven, recovery…"><div class="guide-results">${topics.map(([chapter,title,body],i)=>`<article class="guide-topic" data-guide-topic="${chapter}"><span class="guide-topic-number">${String(i+1).padStart(2,'0')}</span><div><small>${chapters.find(c=>c[0]===chapter)[2]}</small><h3>${title}</h3><p>${body}</p></div></article>`).join('')}</div><p class="guide-no-results" hidden>No matching topics. Try “cash”, “casting”, or “release”.</p></section></div><footer class="command-dialog-footer modal-actions"><span>Make your next decision with confidence.</span><button class="command-primary btn" onclick="closeModal()">Lights down, back to studio</button></footer></section>`;
+  const h=`<section class="command-dialog field-guide"><header class="command-dialog-hero"><div><span class="command-eyebrow">THE STUDIO FIELD GUIDE / PRODUCER’S EDITION</span><h2><span class="dialog-emoji" aria-hidden="true" data-emoji="📖"></span>Great stories. Smarter decisions.</h2><p>A practical handbook for your first film—and the studio that follows.</p></div><span class="guide-edition">12 ESSENTIALS<br>ONE STUDIO</span></header><div class="guide-layout"><nav class="guide-nav" aria-label="Guide chapters"><button data-guide-chapter="all" class="active" aria-pressed="true"><small>INDEX</small><b>${sectionEmoji("guide","all")}The whole picture</b></button>${chapters.map(([key,n,title,desc])=>`<button data-guide-chapter="${key}" aria-pressed="false"><small>CHAPTER ${n}</small><b>${sectionEmoji("guide",key)}${title}</b><span>${desc}</span></button>`).join('')}<p>Tip: keep an eye on cash, not just worldwide gross.</p></nav><section class="guide-reading"><label class="guide-search-label" for="helpSearch">FIND AN ANSWER</label><input id="helpSearch" type="search" placeholder="Search casting, breakeven, recovery…"><div class="guide-results">${topics.map(([chapter,title,body],i)=>`<article class="guide-topic" data-guide-topic="${chapter}"><span class="guide-topic-number">${String(i+1).padStart(2,'0')}</span><div><small>${chapters.find(c=>c[0]===chapter)[2]}</small><h3>${title}</h3><p>${body}</p></div></article>`).join('')}</div><p class="guide-no-results" hidden>No matching topics. Try “cash”, “casting”, or “release”.</p></section></div><footer class="command-dialog-footer modal-actions"><span>Make your next decision with confidence.</span><button class="command-primary btn" onclick="closeModal()">Lights down, back to studio</button></footer></section>`;
   const view=openModal(h);
   view.querySelector('.modal').classList.add('command-modal');
   const dialog=view.querySelector('[role="dialog"]');dialog.setAttribute('aria-label','Studio Field Guide');dialog.removeAttribute('aria-labelledby');
@@ -10241,7 +10256,7 @@ function prototypeDebugModal(){
 
 function achievementsModal(){
   const count = DATA.ACH.filter(a=>G.ach[a.id]).length;
-  const h = `<section class="command-dialog trophy-room"><header class="command-dialog-hero"><div><span class="command-eyebrow">STUDIO HQ / 07 / MILESTONES</span><h2>Trophy Room</h2><p>Every first. Every breakthrough. Your studio’s story, earned.</p></div><div class="trophy-total"><strong>${count}<small> / ${DATA.ACH.length}</small></strong><span>MILESTONES UNLOCKED</span></div></header><div class="trophy-progress" role="progressbar" aria-label="Achievements unlocked" aria-valuenow="${count}" aria-valuemin="0" aria-valuemax="${DATA.ACH.length}"><span style="width:${count/DATA.ACH.length*100}%"></span></div><nav class="trophy-filters" aria-label="Milestone collection"><button data-trophy-filter="all" class="active" aria-pressed="true">The collection</button><button data-trophy-filter="earned" aria-pressed="false">Earned · ${count}</button><button data-trophy-filter="locked" aria-pressed="false">Next ambitions · ${DATA.ACH.length-count}</button></nav><div class="trophy-gallery">${DATA.ACH.map((a,i)=>{const got=!!G.ach[a.id];return `<article class="trophy-plaque ${got?'earned':'locked'}" data-earned="${got}"><div class="trophy-plaque-top"><span>NO. ${String(i+1).padStart(2,'0')}</span><small>${got?'EARNED':'NOT YET EARNED'}</small></div><div class="trophy-emblem" aria-hidden="true">${a.icon}</div><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p><footer>${got?'Unlocked · '+esc(dateLabel(G.ach[a.id])):'Your next chapter awaits'}</footer></article>`}).join('')}</div><p class="trophy-no-results" hidden>No milestones in this collection yet. Your next film could change that.</p><footer class="command-dialog-footer modal-actions"><span>Built through play. Preserved with your career.</span><button class="command-primary btn" onclick="closeModal()">Return to studio</button></footer></section>`;
+  const h = `<section class="command-dialog trophy-room"><header class="command-dialog-hero"><div><span class="command-eyebrow">STUDIO HQ / 07 / MILESTONES</span><h2><span class="dialog-emoji" aria-hidden="true" data-emoji="🏆"></span>Trophy Room</h2><p>Every first. Every breakthrough. Your studio’s story, earned.</p></div><div class="trophy-total"><strong>${count}<small> / ${DATA.ACH.length}</small></strong><span>MILESTONES UNLOCKED</span></div></header><div class="trophy-progress" role="progressbar" aria-label="Achievements unlocked" aria-valuenow="${count}" aria-valuemin="0" aria-valuemax="${DATA.ACH.length}"><span style="width:${count/DATA.ACH.length*100}%"></span></div><nav class="trophy-filters" aria-label="Milestone collection"><button data-trophy-filter="all" class="active" aria-pressed="true">The collection</button><button data-trophy-filter="earned" aria-pressed="false">Earned · ${count}</button><button data-trophy-filter="locked" aria-pressed="false">Next ambitions · ${DATA.ACH.length-count}</button></nav><div class="trophy-gallery">${DATA.ACH.map((a,i)=>{const got=!!G.ach[a.id];return `<article class="trophy-plaque ${got?'earned':'locked'}" data-earned="${got}"><div class="trophy-plaque-top"><span>NO. ${String(i+1).padStart(2,'0')}</span><small>${got?'EARNED':'NOT YET EARNED'}</small></div><div class="trophy-emblem" aria-hidden="true">${a.icon}</div><h3>${esc(a.name)}</h3><p>${esc(a.desc)}</p><footer>${got?'Unlocked · '+esc(dateLabel(G.ach[a.id])):'Your next chapter awaits'}</footer></article>`}).join('')}</div><p class="trophy-no-results" hidden>No milestones in this collection yet. Your next film could change that.</p><footer class="command-dialog-footer modal-actions"><span>Built through play. Preserved with your career.</span><button class="command-primary btn" onclick="closeModal()">Return to studio</button></footer></section>`;
   const veil = openModal(h);
   veil.querySelector('.modal').classList.add('command-modal');
   veil.querySelector('[role="dialog"]').setAttribute('aria-label','Trophy Room');
@@ -10270,85 +10285,93 @@ function startNewCareerInSlot(n){
   try{ closeModal(); }catch(e){}
   location.reload();
 }
+function selectStartChoice(group, choice){
+  group.querySelectorAll('[aria-pressed]').forEach(button=>{
+    const selected=button===choice;
+    button.classList.toggle("sel", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  beep("click");
+}
 function buildStartOptions(){
   const wrap=$("#startOptions"); if(!wrap) return;
-  let h="<label class='field-label' id='fieldScenario'>"+t("start.scenario")+"</label><div class='scen-row'>";
+  let h="<fieldset class='start-option-group'><legend class='field-label' id='fieldScenario'>"+t("start.scenario")+"</legend><div class='scen-row'>";
   Object.keys(DATA.SCENARIOS).forEach(id=>{
     const s=DATA.SCENARIOS[id];
     const sp = G?.scenarioProgress?.[id] || {};
     const won = sp.won ? " [Cleared]" : "";
     const bestRep = sp.bestRep ? " (best rep: "+sp.bestRep+")" : "";
-    const cleanScenName = s.name;
-    h+="<div class='scen"+(SEL.scenario===id?" sel":"")+"' data-scen='"+id+"' role='button' tabindex='0' aria-pressed='"+(SEL.scenario===id)+"'><h4>"+cleanScenName+won+"</h4><div class='a-sub'>"+s.desc+bestRep+"</div></div>";
+    h+=`<button type="button" class="scen start-choice${SEL.scenario===id?" sel":""}" data-scen="${id}" aria-pressed="${SEL.scenario===id}">
+      <span class="start-scenario-icon" aria-hidden="true">${s.emoji}</span>
+      <span class="start-choice-copy"><strong class="start-choice-title">${esc(s.name+won)}</strong><span class="a-sub">${esc(s.desc+bestRep)}</span></span>
+    </button>`;
   });
-  h+="</div>";
+  h+="</div></fieldset>";
 
-  h+="<label class='field-label' id='fieldDifficulty'>"+t("start.difficulty")+"</label><div class='start-diff-row'>";
+  h+="<fieldset class='start-option-group'><legend class='field-label' id='fieldDifficulty'>"+t("start.difficulty")+"</legend><div class='start-diff-row'>";
   Object.keys(DATA.DIFFICULTIES).forEach(id=>{
     const d=DATA.DIFFICULTIES[id];
-    h+="<button type='button' class='btn btn-sm diff-btn"+(SEL.difficulty===id?" btn-primary sel":"")+"' data-diff='"+id+"' title='"+d.desc+"'>"+
-      "<span class='diff-name'>"+d.name+"</span>"+
-      "<span class='diff-sub'>"+(id==='easy'?'Rentals +12%':id==='hard'?'Rentals -12%':'Standard Market')+"</span>"+
+    h+="<button type='button' class='btn btn-sm diff-btn start-choice"+(SEL.difficulty===id?" sel":"")+"' data-diff='"+id+"' aria-pressed='"+(SEL.difficulty===id)+"'>"+
+      "<span aria-hidden='true'>"+d.emoji+"</span><strong class='diff-name start-choice-title'>"+d.name+"</strong>"+
+      "<span class='diff-sub'>"+esc(d.desc)+"</span>"+
       "</button>";
   });
-  h+="</div>";
+  h+="</div></fieldset>";
 
-  h+="<div class='start-sandbox-wrap'><label class='sandbox-lbl'><input type='checkbox' id='chkSandbox'"+(SEL.sandbox?" checked":"")+"> Creative Sandbox Mode (Infinite Cash, No Bankruptcy, Instant Experimentation)</label></div>";
+  h+="<div class='start-sandbox-wrap'><label class='sandbox-lbl'><input type='checkbox' id='chkSandbox'"+(SEL.sandbox?" checked":"")+"><span><strong>Creative Sandbox</strong><small>Unlimited cash, no bankruptcy, instant experimentation.</small></span></label></div>";
   try{
     const ng=NextWaveSuite.ngPlusState();
-    h+="<div class='card start-ngplus'><div class='spread'><b>🌱 New Game+ (optional)</b><span class='tag gold'>"+ng.points+" Legacy Credits</span></div><div class='tiny muted' style='margin:5px 0 8px'>Earn credits by completing a career. Choose one carry-over perk—or leave this at a fresh start.</div><label class='field-label' for='startNgPerk'>Next-career reward</label><select id='startNgPerk' class='input' style='width:100%'><option value=''>No carry-over perk</option>"+
-      ng.perks.map(p=>"<option value='"+p.id+"' "+(SEL.ngPerk===p.id?"selected ":"")+(!p.available?"disabled":"")+">"+p.label+" · "+p.desc+" ("+p.cost+" credit"+(p.cost===1?"":"s")+")</option>").join("")+"</select></div>";
+    h+="<div class='card start-ngplus'><div class='spread'><b>🌱 New Game+ (optional)</b><span class='tag gold'>"+ng.points+" Legacy Credits</span></div><div class='tiny muted' style='margin:5px 0 8px'>Earn credits by completing a career. Choose one carry-over perk—or leave this at a fresh start.</div><label class='field-label' for='startNgPerk'>Next-career reward</label><select id='startNgPerk' class='input' style='width:100%' aria-describedby='startNgDetail'><option value=''>No carry-over perk</option>"+
+      ng.perks.map(p=>"<option value='"+p.id+"' data-detail='"+esc(p.desc)+"' "+(SEL.ngPerk===p.id?"selected ":"")+(!p.available?"disabled":"")+">"+esc(p.label)+" · "+p.cost+" credit"+(p.cost===1?"":"s")+"</option>").join("")+"</select><div id='startNgDetail' class='tiny muted'></div></div>";
   }catch(e){}
 
-  h+="<label class='field-label'>"+t("start.slot")+"</label><div class='start-slot-grid' id='slotRow'>";
+  h+="<fieldset class='start-option-group'><legend class='field-label'>"+t("start.slot")+"</legend><div class='start-slot-grid' id='slotRow'>";
   for(let n=1;n<=SAVE_SLOT_COUNT;n++){
     const m=slotMeta(n);
     const isSel = (SEL.slot === n);
-    h+="<div class='start-slot-card"+(isSel?" sel":"")+"' data-slot='"+n+"' role='button' tabindex='0'>"+
-      "<div class='slot-header'>"+
-        "<span class='slot-num'>Slot "+n+"</span>"+
+    h+="<button type='button' class='start-slot-card start-choice"+(isSel?" sel":"")+"' data-slot='"+n+"' aria-pressed='"+isSel+"'>"+
+      "<span class='slot-header'>"+
+        "<strong class='slot-num start-choice-title'>Slot "+n+"</strong>"+
         "<span class='slot-status-pill "+(m?(m.corrupt?"corrupt":"occupied"):"empty")+"'>"+(m?(m.corrupt?"Needs repair":"Saved Career"):"Empty Lot")+"</span>"+
-      "</div>";
-    if(m){
-      h+="<div class='slot-studio-name'>"+esc(m.label||m.name)+"</div>"+
-        "<div class='slot-meta-row'>"+
+      "</span>";
+    if(m && !m.corrupt){
+      h+="<span class='slot-studio-name'>"+esc(m.label||m.name)+"</span>"+
+        "<span class='slot-meta-row'>"+
           "<span class='slot-date'>"+dateLabel(m.week)+"</span>"+
           "<span class='slot-cash'>"+fmtM(m.cash)+"</span>"+
           "<span class='slot-rep'>Rep "+m.rep+"</span>"+
-        "</div>"+
-        (m.savedAt?("<div class='slot-saved tiny'>saved "+relTimeShort(m.savedAt)+"</div>"):"");
-    } else {
-      h+="<div class='slot-empty-title'>Empty Lot</div>"+
-        "<div class='slot-empty-sub'>Ready for launch</div>";
+        "</span>"+
+        (m.savedAt?("<span class='slot-saved tiny'>Saved "+relTimeShort(m.savedAt)+"</span>"):"");
     }
-    h+="</div>";
+    h+="</button>";
   }
-  h+="</div>";
+  h+="</div></fieldset>";
 
   try{
     const hall=(typeof legacyHall==="function")?legacyHall():[];
     if(hall.length){
       h+="<label class='field-label'>Heirloom (Optional Legacy Bonus)</label><div class='row'>";
-      h+="<button type='button' class='btn btn-sm "+(SEL.legacy===""?"btn-primary":"")+"' data-leg=''>Fresh start</button>";
+      h+="<button type='button' class='btn btn-sm "+(SEL.legacy===""?"sel":"")+"' data-leg='' aria-pressed='"+(SEL.legacy==="")+"'>Fresh start</button>";
       hall.slice(0,4).forEach((e,i)=>{
-        h+="<button type='button' class='btn btn-sm "+(SEL.legacy==String(i)?"btn-primary":"")+"' data-leg='"+i+"' title='"+esc(e.grade)+" · "+fmtM(e.revenue)+" WW · "+e.films+" films'>Heir: "+esc(e.studio)+"</button>";
+        h+="<button type='button' class='btn btn-sm "+(SEL.legacy===String(i)?"sel":"")+"' data-leg='"+i+"' aria-pressed='"+(SEL.legacy===String(i))+"' title='"+esc(e.grade)+" · "+fmtM(e.revenue)+" WW · "+e.films+" films'>Heir: "+esc(e.studio)+"</button>";
       });
       h+="</div><div class='tiny muted'>Heir of a hall studio: +$25M, +3 rep. Optional — normal play is untouched.</div>";
     }
   }catch(e){}
   wrap.innerHTML=h;
-  $$("[data-scen]").forEach(el=>{
-    el.onclick=()=>{ SEL.scenario=el.dataset.scen; beep("click"); buildStartOptions(); };
-    el.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } };
-  });
-  $$("[data-diff]").forEach(el=>el.onclick=()=>{ SEL.difficulty=el.dataset.diff; beep("click"); buildStartOptions(); });
+  wrap.querySelectorAll("[data-scen]").forEach(el=>el.onclick=()=>{ SEL.scenario=el.dataset.scen; selectStartChoice(el.parentElement, el); });
+  wrap.querySelectorAll("[data-diff]").forEach(el=>el.onclick=()=>{ SEL.difficulty=el.dataset.diff; selectStartChoice(el.parentElement, el); });
   const chk=$("#chkSandbox"); if(chk) chk.onchange=()=>{ SEL.sandbox=chk.checked; };
-  const ngSelect=$("#startNgPerk"); if(ngSelect) ngSelect.onchange=()=>{ SEL.ngPerk=ngSelect.value; };
-  $$("[data-slot]").forEach(el=>{
-    el.onclick=()=>{ SEL.slot=+el.dataset.slot; beep("click"); buildStartOptions(); };
-    el.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } };
-  });
-  $$("[data-leg]").forEach(el=>el.onclick=()=>{ SEL.legacy=el.dataset.leg; beep("click"); buildStartOptions(); });
+  const ngSelect=$("#startNgPerk");
+  if(ngSelect){
+    ngSelect.onchange=()=>{
+      SEL.ngPerk=ngSelect.value;
+      $("#startNgDetail").textContent=ngSelect.selectedOptions[0]?.dataset.detail || "";
+    };
+    ngSelect.onchange();
+  }
+  wrap.querySelectorAll("[data-slot]").forEach(el=>el.onclick=()=>{ SEL.slot=+el.dataset.slot; selectStartChoice(el.parentElement, el); });
+  wrap.querySelectorAll("[data-leg]").forEach(el=>el.onclick=()=>{ SEL.legacy=el.dataset.leg; beep("click"); buildStartOptions(); });
 }
 
 function forecastCard(){
@@ -10439,7 +10462,7 @@ function settingsWorkspaceHTML(markup){
     while(walker.nextNode())walker.currentNode.textContent=walker.currentNode.textContent.replace(/\p{Extended_Pictographic}|[\uFE0F\u200D]/gu,'');
     groups[group].push(node.outerHTML);
   });
-  return `<section class="command-dialog preferences-workspace"><header class="command-dialog-hero"><div><span class="command-eyebrow">STUDIO SYSTEMS / PERSONALISE YOUR PLAY</span><h2>Settings</h2><p>Your studio. Your pace. Your preferences.</p></div><span class="preferences-device">ON THIS DEVICE<br>LOCAL PREFERENCES</span></header><div class="preferences-layout"><nav class="preferences-nav" aria-label="Settings categories">${Object.entries(labels).map(([key,[title]],i)=>`<button data-pref-panel="${key}" class="${SETTINGS_PANEL===key?'active':''}" aria-pressed="${SETTINGS_PANEL===key}"><small>0${i+1}</small><span>${title}</span></button>`).join('')}<p>Your career stays intact when you change preferences.</p></nav><div class="preferences-content">${Object.entries(labels).map(([key,[title,desc]])=>`<section class="preferences-panel" data-pref-content="${key}" ${SETTINGS_PANEL===key?'':'hidden'}><header><span class="command-eyebrow">PREFERENCES / ${key.toUpperCase()}</span><h3>${title}</h3><p>${desc}</p></header>${groups[key].join('')}</section>`).join('')}</div></div><footer class="preferences-footer">${footer}</footer></section>`;
+  return `<section class="command-dialog preferences-workspace"><header class="command-dialog-hero"><div><span class="command-eyebrow">STUDIO SYSTEMS / PERSONALISE YOUR PLAY</span><h2><span class="dialog-emoji" aria-hidden="true" data-emoji="⚙️"></span>Settings</h2><p>Your studio. Your pace. Your preferences.</p></div><span class="preferences-device">ON THIS DEVICE<br>LOCAL PREFERENCES</span></header><div class="preferences-layout"><nav class="preferences-nav" aria-label="Settings categories">${Object.entries(labels).map(([key,[title]],i)=>`<button data-pref-panel="${key}" class="${SETTINGS_PANEL===key?'active':''}" aria-pressed="${SETTINGS_PANEL===key}"><small>0${i+1}</small><span>${sectionEmoji("settings",key)}${title}</span></button>`).join('')}<p>Your career stays intact when you change preferences.</p></nav><div class="preferences-content">${Object.entries(labels).map(([key,[title,desc]])=>`<section class="preferences-panel" data-pref-content="${key}" ${SETTINGS_PANEL===key?'':'hidden'}><header><span class="command-eyebrow">PREFERENCES / ${key.toUpperCase()}</span><h3>${title}</h3><p>${desc}</p></header>${groups[key].join('')}</section>`).join('')}</div></div><footer class="preferences-footer">${footer}</footer></section>`;
 }
 function wireSettingsWorkspace(view){
   view.querySelector('.modal').classList.add('command-modal');
@@ -10884,7 +10907,7 @@ function commandSectionNav(tab){
     ? [["lot","Campus"],["csuite","Leadership"],["board","Strategy"],["operations","Workforce"],["crisis","Reputation"],["heritage","Legacy"],["industry","Industry"],["nextwave","Next Wave"]]
     : [["overview","Command deck"],["actions","Management desks"],["slate","Project tracker"],["macro","Industry pulse"]];
   const active = studio ? STUDIO_SUB : DASHBOARD_SUB;
-  return `<nav class="command-section-nav" aria-label="${studio?'Studio':'Dashboard'} sections"><div class="command-nav-brand"><span>${studio?'STUDIO HQ':'DIRECTOR’S OFFICE'}</span><small>${studio?'PEOPLE / PLACES / POSSIBILITIES':'PLAN / PRODUCE / PREMIERE'}</small></div><div class="command-nav-items">${sections.map(([key,label],i)=>`<button ${studio?'data-studiosub':'data-dashsub'}="${key}" class="${active===key?'active':''}" aria-current="${active===key?'page':'false'}"><small>0${i+1}</small><span>${label}</span></button>`).join('')}</div>${studio?`<div class="command-nav-tools"><button id="btnAch" aria-label="Trophy Room — view achievements"><small>07 / MILESTONES</small><span>Trophy Room</span></button><button id="btnOpenCustomSandbox" aria-label="Creative Lab — sandbox creator"><small>08 / CUSTOM WORLDS</small><span>Creative Lab</span></button></div>`:''}</nav>`;
+  return `<nav class="command-section-nav${studio?' command-studio-nav':''}" aria-label="${studio?'Studio':'Dashboard'} sections"><div class="command-nav-brand"><span>${studio?'STUDIO HQ':'DIRECTOR’S OFFICE'}</span><small>${studio?'PEOPLE / PLACES / POSSIBILITIES':'PLAN / PRODUCE / PREMIERE'}</small></div><div class="command-nav-items">${sections.map(([key,label],i)=>`<button ${studio?'data-studiosub':'data-dashsub'}="${key}" class="${active===key?'active':''}" aria-current="${active===key?'page':'false'}"><small>0${i+1}</small><span>${sectionEmoji(tab,key)}${label}</span></button>`).join('')}</div>${studio?`<div class="command-nav-tools"><button id="btnAch" aria-label="Trophy Room — view achievements"><small>07 / MILESTONES</small><span>Trophy Room</span></button><button id="btnOpenCustomSandbox" aria-label="Creative Lab — sandbox creator"><small>08 / CUSTOM WORLDS</small><span>Creative Lab</span></button></div>`:''}</nav>`;
 }
 function openIndustryCampaigns(){
   const scenarios=DATA.SCENARIOS||{};
@@ -10954,7 +10977,7 @@ function commandCampus(){
   ];
   return `<div class="command-campus"><div class="campus-road"></div>${sites.map(([art,name,tab,n,desc])=>`<button class="campus-building campus-${n}" onclick="switchTab('${tab}')"><img src="assets/studio/${art}.png" alt=""><span><small>SECTOR ${n}</small><b>${name}</b><em>${desc} ↗</em></span></button>`).join('')}<div class="campus-gate">${esc(G.studio.name)} <span>STUDIO CAMPUS / EST. YEAR 1</span></div></div>`;
 }
-function commandDashboard(){
+function commandDashboard(guide=""){
   const st=G.studio, projects=(G.projects||[]).filter(p=>p.phase!=="delivered"), live=activeFilms();
   const history=(G.txHistory||[]).slice(-8), net=history.reduce((s,t)=>s+(t.net||0),0);
   const upcoming=projects.filter(p=>p.releaseWeek>G.week).sort((a,b)=>a.releaseWeek-b.releaseWeek);
@@ -10962,18 +10985,24 @@ function commandDashboard(){
   const focus=ready.length?'Your next premiere is waiting.':!projects.length?'Every empire starts with a story.':'Keep the cameras rolling.';
   const target=ready.length?'productions':!projects.length?'develop':'productions';
   const phases=[['Development',p=>/^(pre|dev|development|script|writing)$/i.test(p.phase||'')],['In production',p=>!/^(pre|dev|development|script|writing|ready|complete)$/i.test(p.phase||'')],['Ready to release',p=>/ready|complete/i.test(p.phase||'')]];
-  return `<section class="command-deck"><header class="command-heading"><div><span class="command-edition">NEW / COMMAND DECK</span><span class="command-eyebrow">THE EXECUTIVE DESK / YEAR ${yearOf(G.week)}</span><h1>This week, make history.</h1><p>${esc(st.name)} · Your studio at a glance.</p></div><div class="command-date"><span>WEEK</span><b>${String(woyOf(G.week)).padStart(2,'0')}</b><small>${esc(DATA.seasonOf(woyOf(G.week)).month)}</small></div></header>
+  return `<section class="command-deck command-dashboard"><header class="command-heading"><div><span class="command-eyebrow">YEAR ${yearOf(G.week)} · STUDIO OVERVIEW</span><h1>${esc(st.name)}</h1></div><div class="command-date"><span>WEEK</span><b>${String(woyOf(G.week)).padStart(2,'0')}</b><small>${esc(DATA.seasonOf(woyOf(G.week)).month)}</small></div></header>
   <div class="command-telemetry">${commandMetric('AVAILABLE CAPITAL',fmtM(st.cash),'Cash on hand')}${commandMetric('NET FLOW / '+history.length+'W',(net>=0?'+':'')+fmtM(net),history.length?'Recorded weekly profit':'Awaiting your first week')}${commandMetric('STUDIO REPUTATION',Math.round(st.rep)+'/100','Your industry standing')}${commandMetric('ON THE BIG SCREEN',live.length,'Active theatrical releases')}</div>
-  <div class="command-main"><section class="command-brief"><span class="command-eyebrow">01 / YOUR NEXT MOVE</span><h2>${focus}</h2><p>${ready.length?`${ready.length} project(s) ready. Review your slate and plan the release.`:!projects.length?'Discover a script, assemble your cast, and turn a blank page into a box-office contender.':`${projects.length} project(s) in your slate. Check progress, shape the campaign, and prepare for opening night.`}</p><button class="command-primary" onclick="switchTab('${target}')">${target==='develop'?'Find a story':'Open production slate'} <span>↗</span></button><div class="command-brief-foot"><span>UP NEXT</span><b>${upcoming.length?esc(upcoming[0].title):'No premiere scheduled'}</b><small>${upcoming.length?'Week '+woyOf(upcoming[0].releaseWeek)+' · '+(upcoming[0].releaseWeek-G.week)+' weeks away':'Set a release date from Productions'}</small></div></section>
-  <section class="command-pipeline"><div class="command-section-head"><div><span class="command-eyebrow">02 / THE SLATE</span><h2>From idea to opening night</h2></div><button onclick="switchTab('productions')">All projects ↗</button></div><div class="command-lanes">${phases.map(([name,test],i)=>{const list=projects.filter(test);return `<div class="command-lane"><header><span>0${i+1} / ${name}</span><b>${list.length}</b></header>${list.slice(0,3).map(p=>`<button class="command-project" onclick="switchTab('productions')"><small>${esc(p.genre||'Feature film')}</small><b>${esc(p.title)}</b><span>${esc(p.phase||'In progress')} · ${fmtM(p.budget||0)} ↗</span></button>`).join('')||`<div class="command-empty"><span>＋</span><b>${i===0?'A story starts here':'Stage is clear'}</b><small>${i===0?'Explore scripts in Develop':'Your projects will appear here'}</small></div>`}</div>`}).join('')}</div><footer class="command-signal"><span class="command-status-dot"></span> ${live.length?live.length+' release(s) competing at the box office':'The screens are waiting for your next release.'}<button onclick="switchTab('boxoffice')">Market report ↗</button></footer></section></div>
+  <div class="command-main"><section class="command-brief"><span class="command-eyebrow">NEXT DECISION</span><h2>${focus}</h2><p>${ready.length?`${ready.length} project(s) ready. Review your slate and plan the release.`:!projects.length?'Discover a script, assemble your cast, and turn a blank page into a box-office contender.':`${projects.length} project(s) in your slate. Check progress, shape the campaign, and prepare for opening night.`}</p><button class="command-primary" onclick="switchTab('${target}')">${target==='develop'?'Find a story':'Open production slate'} <span>↗</span></button><div class="command-brief-foot"><span>UP NEXT</span><b>${upcoming.length?esc(upcoming[0].title):'No premiere scheduled'}</b><small>${upcoming.length?'Week '+woyOf(upcoming[0].releaseWeek)+' · '+(upcoming[0].releaseWeek-G.week)+' weeks away':'Set a release date from Productions'}</small></div></section>
+  ${guide}<section class="command-pipeline"><div class="command-section-head"><div><span class="command-eyebrow">ACTIVE SLATE</span><h2>From idea to opening night</h2></div><button onclick="switchTab('productions')">All projects ↗</button></div><div class="command-lanes">${phases.map(([name,test],i)=>{const list=projects.filter(test);return `<div class="command-lane"><header><span>0${i+1} / ${name}</span><b>${list.length}</b></header>${list.slice(0,3).map(p=>`<button class="command-project" onclick="switchTab('productions')"><small>${esc(p.genre||'Feature film')}</small><b>${esc(p.title)}</b><span>${esc(p.phase||'In progress')} · ${fmtM(p.budget||0)} ↗</span></button>`).join('')||`<div class="command-empty"><span>＋</span><b>${i===0?'A story starts here':'Stage is clear'}</b><small>${i===0?'Explore scripts in Develop':'Your projects will appear here'}</small></div>`}</div>`}).join('')}</div><footer class="command-signal"><span class="command-status-dot"></span> ${live.length?live.length+' release(s) competing at the box office':'The screens are waiting for your next release.'}<button onclick="switchTab('boxoffice')">Market report ↗</button></footer></section></div>
   <nav class="command-shortcuts" aria-label="Executive shortcuts"><button onclick="switchTab('studio')"><span>03 / BUILD</span><b>Your studio campus ↗</b></button><button onclick="switchTab('finance')"><span>04 / BALANCE</span><b>Finance &amp; ledger ↗</b></button><button data-dashsub="macro"><span>05 / WATCH</span><b>Industry outlook ↗</b></button><button data-dashsub="actions"><span>06 / EXPLORE</span><b>All management desks ↗</b></button></nav></section>`;
 }
 function commandStudio(backlot, csuite, stamina){
- return `<section class="command-deck command-studio"><header class="command-heading"><div><span class="command-edition">NEW / STUDIO CAMPUS</span><span class="command-eyebrow">STUDIO MANAGEMENT / CAMPUS OVERVIEW</span><h1>A home for big ideas.</h1><p>Enter a department. Build your capabilities. Make better movies.</p></div><button class="command-primary" onclick="switchTab('studiolot')">Enter live 2D lot ↗</button></header><div class="command-studio-grid"><section class="command-map"><div class="command-section-head"><span class="command-eyebrow">THE CAMPUS / SELECT A DEPARTMENT</span><span class="command-map-key">● INTERACTIVE DIRECTORY</span></div>${commandCampus()}<footer class="command-map-footer">DEVELOP → PRODUCE → POLISH → PREMIERE <span>One studio. Every part of the story.</span></footer></section><aside class="command-control"><span class="command-eyebrow">CAMPUS PULSE</span><h2>Behind the scenes</h2>${commandMetric('SOUNDSTAGES',backlot.stagesOccupied+' / '+backlot.stagesBuilt,'Occupied / built')}${commandMetric('TEAM STAMINA',Math.round(stamina)+'/100','Average staff energy')}${commandMetric('EXECUTIVE TEAM',csuite.hiredCount+' / '+csuite.total,'C-suite positions filled')}<button class="command-primary" id="btnOpenFacilities">Build &amp; upgrade ↗</button><button class="command-secondary" data-studiosub="operations">Manage operations ↗</button></aside></div><div class="command-shortcuts"><button data-studiosub="csuite"><span>PEOPLE</span><b>Executive board ↗</b></button><button data-studiosub="board"><span>STRATEGY</span><b>Board directives ↗</b></button><button id="btnOpenAmenities"><span>WORKPLACE</span><b>Decor &amp; amenities ↗</b></button><button id="btnOpenBonds"><span>EXPANSION</span><b>Capital &amp; bonds ↗</b></button></div><details class="command-services"><summary>More studio services <span>Syndication · Studio influence · Sharing</span></summary><div class="command-service-actions"><button id="btnOpenSyndication" class="btn">Syndication desk</button><button id="btnShareCard" class="btn">Share studio card</button></div>${typeof influenceCard==='function'?influenceCard():''}${typeof StudioOperationsSuite!=='undefined'&&StudioOperationsSuite.renderBacklotSection?StudioOperationsSuite.renderBacklotSection():''}</details></section>`;
+ const free=Math.max(0,backlot.stagesBuilt-backlot.stagesOccupied);
+ const summary=`<div class="portrait-studio-overview">
+   <div class="portrait-studio-metrics"><div><span>Treasury</span><strong>${fmtM(G.studio.cash)}</strong><small>${fmtM(weeklyOverhead())} weekly overhead</small></div><div><span>Soundstages</span><strong>${free} ready</strong><small>${backlot.stagesOccupied} occupied · ${backlot.stagesBuilt} built</small></div></div>
+   <article><header><h2>Studio Lot</h2><span>${free?"Operational":"At capacity"}</span></header><p>Manage your soundstages, screening room, and post-production facilities.</p><button class="command-secondary" onclick="switchTab('studiolot')">Enter Studio Lot ↗</button></article>
+   <article><header><h2>Executive Desks</h2><span>${csuite.hiredCount} / ${csuite.total} staffed</span></header><p>Hire studio leadership and review how your team is running the lot.</p><button class="command-secondary" data-studiosub="csuite">Open leadership ↗</button></article>
+ </div>`;
+ return `<section class="command-deck command-studio"><header class="command-heading"><div><span class="command-edition">NEW / STUDIO CAMPUS</span><span class="command-eyebrow">STUDIO MANAGEMENT / CAMPUS OVERVIEW</span><h1>Studio</h1><p>Enter a department. Build your capabilities. Make better movies.</p></div><button class="command-primary" onclick="switchTab('studiolot')">Enter live 2D lot ↗</button></header>${summary}<div class="command-studio-grid"><section class="command-map"><div class="command-section-head"><span class="command-eyebrow">THE CAMPUS / SELECT A DEPARTMENT</span><span class="command-map-key">● INTERACTIVE DIRECTORY</span></div>${commandCampus()}<footer class="command-map-footer">DEVELOP → PRODUCE → POLISH → PREMIERE <span>One studio. Every part of the story.</span></footer></section><aside class="command-control"><span class="command-eyebrow">CAMPUS PULSE</span><h2>Behind the scenes</h2>${commandMetric('SOUNDSTAGES',backlot.stagesOccupied+' / '+backlot.stagesBuilt,'Occupied / built')}${commandMetric('TEAM STAMINA',Math.round(stamina)+'/100','Average staff energy')}${commandMetric('EXECUTIVE TEAM',csuite.hiredCount+' / '+csuite.total,'C-suite positions filled')}<button class="command-primary" id="btnOpenFacilities">Build &amp; upgrade ↗</button><button class="command-secondary" data-studiosub="operations">Manage operations ↗</button></aside></div><div class="command-shortcuts"><button data-studiosub="csuite"><span>PEOPLE</span><b>Executive board ↗</b></button><button data-studiosub="board"><span>STRATEGY</span><b>Board directives ↗</b></button><button id="btnOpenAmenities"><span>WORKPLACE</span><b>Decor &amp; amenities ↗</b></button><button id="btnOpenBonds"><span>EXPANSION</span><b>Capital &amp; bonds ↗</b></button></div><details class="command-services"><summary>More studio services <span>Syndication · Studio influence · Sharing</span></summary><div class="command-service-actions"><button id="btnOpenSyndication" class="btn">Syndication desk</button><button id="btnShareCard" class="btn">Share studio card</button></div>${typeof influenceCard==='function'?influenceCard():''}${typeof StudioOperationsSuite!=='undefined'&&StudioOperationsSuite.renderBacklotSection?StudioOperationsSuite.renderBacklotSection():''}</details></section>`;
 }
 
-function viewDashboard(){
-  if(DASHBOARD_SUB==='overview') return commandDashboard();
+function viewDashboard(guide){
+  if(DASHBOARD_SUB==='overview') return commandDashboard(guide);
   if(DASHBOARD_SUB==='actions'){
     const desks=[['develop','Story development','Find a screenplay and assemble your next film.'],['productions','Production office','Manage your active projects and release dates.'],['boxoffice','Theatrical market','Follow openings, competition, and theatrical runs.'],['ott','Streaming division','Manage series, originals, and streaming deals.'],['live','Broadcast division','Build and operate your television network.'],['finance','Finance office','Review cash, liabilities, and funding.']];
     return commandSubpage('dashboard','Management desks','Your next decision starts here.',`<div class="command-desk-grid">${desks.map(([tab,name,desc],i)=>`<button onclick="switchTab('${tab}')"><small>0${i+1} / ENTER DEPARTMENT</small><b>${name}</b><span>${desc}</span></button>`).join('')}</div><div class="command-section-head"><h2>Specialist partners</h2></div><div class="command-desk-grid">${[['btnDashLocations','Location incentives','Scout locations and tax rebates.'],['btnDashSponsors','Brand partnerships','Negotiate product placement.'],['btnDashScout','Talent discovery','Explore new industry connections.'],['btnDashHardware','Hardware division','Manage console hardware.'],['btnDashCoPro','Co-production desk','Build production partnerships.'],['btnDashAwards','Awards office','Plan your awards circuit.']].map(([id,name,desc])=>`<button id="${id}"><small>SPECIALIST DESK</small><b>${name}</b><span>${desc}</span></button>`).join('')}</div>`);
@@ -11331,7 +11360,7 @@ function installGestures(){
   try{
     if(("ontouchstart" in window || (navigator && navigator.maxTouchPoints>0)) && !localStorage.getItem("bow_gesture_hint")){
       setTimeout(()=>{
-        if(G && !G.over){
+        if(G && !G.over && document.documentElement.dataset.layout!=="vertical"){
           toast("💡 Tip: Swipe ⇄ to switch tabs · pull down at top to advance week", "info");
           try{ localStorage.setItem("bow_gesture_hint", "1"); }catch(e){}
         }
@@ -11723,7 +11752,7 @@ function liveNav(){
   const active=liveSub();
   return `<nav class="command-section-nav command-live-nav" aria-label="Live desk sections"><div class="command-nav-brand"><span>LIVE DESK</span><small>HOME / CHANNELS / SHOWS / STREAM / EVENTS / HOSTS</small></div><div class="command-nav-items">${LIVE_SECTIONS.map(([key,label],i)=>{
     const icon=getSubTabPixelIcon("live",key);
-    return `<button data-livesub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${label}</span></button>`;
+    return `<button data-livesub="${key}" class="${active===key?"active":""}" aria-current="${active===key?"page":"false"}"><small>0${i+1}</small>${icon?`<img class="subtab-pixel-icon" src="${icon}" alt="" />`:""}<span>${sectionEmoji("live",key)}${label}</span></button>`;
   }).join("")}</div></nav>`;
 }
 function liveTelemetry(){

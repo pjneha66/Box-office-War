@@ -58,8 +58,7 @@ check("POSTER_DESKS = 2 desks in group 'The lobby' (posters-wall, posters-studio
   C.POSTER_DESKS.length === 2 &&
   C.POSTER_DESKS.map((d) => d.id).join(",") === "posters-wall,posters-studio" &&
   C.POSTER_DESKS.every((d) => d.group === "The lobby" && d.icon && d.name && typeof d.render === "function"));
-check("12 palettes keyed by exactly the 12 genre ids",
-  C.GENRES.length === 12 &&
+check("a palette for every supported genre",
   Object.keys(C.POSTER_PALETTES).sort().join(",") === C.GENRES.map((g) => g.id).sort().join(","));
 
 /* ── new game + 3 fake done films ─────────────────────────────── */

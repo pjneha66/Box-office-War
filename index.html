@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a120c" id="themeColorMeta">
-<meta name="app-version" content="47.2">
+<meta name="theme-color" content="#111019" id="themeColorMeta">
+<meta name="app-version" content="47.3">
 <meta name="description" content="Box Office War — a movie & series studio tycoon simulation. Greenlight films, survive the box office, build franchises, launch your own streamer and broadcast live TV channels.">
 <meta property="og:title" content="Box Office War — Movie & Series Studio Tycoon">
 <meta property="og:description" content="Greenlight films, survive the box office, build franchises, launch your own streamer, and broadcast 24/7 Live TV channels in this realistic Hollywood tycoon simulator.">
@@ -20,8 +20,8 @@
 <link rel="stylesheet" href="ui-v33.css?v=47.2">
 <link rel="stylesheet" href="lot-life.css?v=47.2">
 <link rel="stylesheet" href="bow-restyle.css?v=47.2">
-<link rel="stylesheet" href="lot-gameplay.css?v=47.2">
-<link rel="stylesheet" href="welcome.css?v=47.2">
+<link rel="stylesheet" href="lot-gameplay.css?v=47.3">
+<link rel="stylesheet" href="welcome.css?v=47.9">
 <link rel="stylesheet" href="command-deck.css?v=47.2">
 <link rel="stylesheet" href="pitch-board.css?v=47.2">
 <link rel="stylesheet" href="industry-expansion.css?v=47.2">
@@ -32,14 +32,14 @@
      legacy layer; legacy-map.css re-points the old palettes at these tokens. -->
 <link rel="stylesheet" href="system/tokens.css?v=47.2">
 <link rel="stylesheet" href="system/legacy-map.css?v=47.2">
-<link rel="stylesheet" href="system/components.css?v=47.2">
+<link rel="stylesheet" href="system/components.css?v=47.7">
 <!-- Game skin ("Toybox"): loaded last so it wins the cascade. Remove
      data-skin="game" from <html> to fall back to the classic graphite skin. -->
 <link rel="stylesheet" href="system/game-ui.css?v=47.2">
 <!-- Vertical shell: portrait-first chrome. Every rule inside is scoped to
      :root[data-layout="vertical"], so on desktop this contributes nothing.
      Linked last so it outranks the legacy layers without !important. -->
-<link rel="stylesheet" href="system/vertical.css?v=47.2">
+<link rel="stylesheet" href="system/vertical.css?v=47.8">
 <script>
 /* Layout flag. Set here, in <head>, so the shell is correct on the very
    first paint — no flash of landscape chrome before a deferred script runs.
@@ -70,26 +70,19 @@
 <!-- ══════════════════ START SCREEN ══════════════════ -->
 <div id="startScreen" class="start-screen">
   <div class="start-inner welcome-shell">
-    <header class="welcome-masthead"><div><span class="welcome-eyebrow">MOVIES FLOCK / STUDIO TYCOON</span><h1>BOX OFFICE <span>WAR</span></h1></div><span class="welcome-offline">LOCAL SAVES · OFFLINE PLAY</span></header>
     <div class="start-overview">
     <div class="welcome-scene">
-      <div class="welcome-scene-label"><span>YOUR STUDIO. YOUR STORIES.</span><h2>From the first script<br>to a full house.</h2></div>
-      <svg class="welcome-lot" viewBox="0 0 600 360" role="img" aria-label="Pixel-art studio campus with soundstage, writers room, post-production and cinema">
-        <path d="M45 185 300 55 555 185 300 320Z" fill="#617c58" stroke="#9aa87b" stroke-width="3"/>
-        <path d="M80 202 300 90 520 202M130 228 350 116M180 253 400 142M230 279 450 168M130 143 350 255M180 117 400 229M230 91 450 203" fill="none" stroke="#789366" stroke-width="1"/>
-        <path d="M100 185 300 285 510 180M300 285V310M210 135 400 230" fill="none" stroke="#c8b88c" stroke-width="17"/>
-        <image href="assets/studio/soundstage.png" x="257" y="40" width="170" height="145"/>
-        <image href="assets/studio/writers_bungalow.png" x="112" y="89" width="145" height="125"/>
-        <image href="assets/studio/post_suite.png" x="375" y="126" width="130" height="110"/>
-        <image href="assets/studio/cinema_theater.png" x="235" y="159" width="160" height="135"/>
-        <image href="assets/studio/studio_gate.png" x="209" y="247" width="140" height="100"/>
-      </svg>
-      <div class="welcome-scene-caption"><span>WRITE</span><span>CAST</span><span>PRODUCE</span><span>PREMIERE</span></div>
+      <img class="welcome-lot" src="assets/soundstage-welcome.webp" alt="" width="1050" height="700" fetchpriority="high">
+      <header class="welcome-masthead">
+        <span class="welcome-eyebrow">STUDIO SIMULATION</span>
+        <h1>Box Office <span>War</span></h1>
+        <p class="welcome-offline">Offline play · Local saves</p>
+      </header>
     </div>
 
     <!-- Resume active studio banner (visible when existing save detected) -->
     <div id="resumeHero" class="start-resume-card" style="display:none">
-      <div class="resume-badge">Active Studio Saved</div>
+      <div class="resume-badge">SAVED CAREER</div>
       <div class="resume-header">
         <div>
           <h3 id="resumeStudioName" class="resume-title">Studio Name</h3>
@@ -103,7 +96,7 @@
         <span id="resumeStatFranchises" class="tag purple">0 Franchises</span>
       </div>
       <button id="btnResumeHero" class="btn btn-primary itch-btn-primary btn-big" style="margin-top:12px;width:100%">
-        Resume Studio Career
+        Resume career
       </button>
       <div class="resume-divider"><span>or create a new studio</span></div>
     </div>
@@ -112,25 +105,26 @@
 
     <div class="start-card" id="startCard">
       <div class="start-card-header">
-        <span class="start-section-tag">DIRECTOR’S DESK / NEW CAREER</span>
-        <h2 class="start-card-title">Build your movie studio</h2>
+        <h2 class="start-card-title">Start a new studio</h2>
       </div>
 
-      <label class="field-label" id="fieldStudioName">Name your studio</label>
+      <label class="field-label" id="fieldStudioName" for="studioName">Name your studio</label>
       <input id="studioName" type="text" maxlength="26" placeholder="e.g. Lighthouse Pictures" autocomplete="off" aria-labelledby="fieldStudioName">
       <div class="name-suggests" id="nameSuggests"></div>
 
-      <label class="field-label" style="margin-top:16px" id="fieldOrigin">Choose your origin archetype</label>
-      <div id="archList" class="arch-list"></div>
+      <fieldset class="start-option-group">
+        <legend class="field-label" id="fieldOrigin">Choose your origin story</legend>
+        <div id="archList" class="arch-list"></div>
+      </fieldset>
 
       <!-- Scenarios, difficulty, sandbox, save slots -->
       <div id="startOptions" style="margin-top:16px"></div>
 
 
     </div>
-    <footer class="welcome-launch">      <button id="btnStart" class="btn btn-primary itch-btn-primary btn-big" ><span class="itch-icon-play" style="margin-right:8px;vertical-align:middle"></span> Launch Studio Career</button>
+    <footer class="welcome-launch">
+      <button id="btnStart" class="btn btn-primary itch-btn-primary btn-big" ><span class="itch-icon-play" style="margin-right:8px;vertical-align:middle"></span> Launch Studio Career</button>
       <button id="btnContinue" class="btn btn-ghost btn-big" style="display:none">Continue Saved Game</button>
-      <p class="start-note">Choose your origin, scenario and save slot. Your next story starts here.</p>
     </footer>
 
 
@@ -138,7 +132,7 @@
 </div>
 
 <!-- ══════════════════ MAIN APP ══════════════════ -->
-<div id="app" class="app" style="display:none">
+<div id="app" class="app" hidden style="display:none">
 
   <!-- TOP BAR -->
   <header class="topbar">
@@ -183,15 +177,15 @@
   <!-- VIEW -->
   <main id="view" class="view" aria-label="Studio view" tabindex="-1"></main>
 
-  <button id="fabWeek" class="fab-week" aria-label="Advance to next week">Next Week</button>
+  <button id="fabWeek" class="fab-week" aria-label="Advance to next week"><span>Next Week <span aria-hidden="true">→</span></span><small id="fabWeekMeta"></small></button>
 
   <!-- MOBILE BOTTOM NAV — 5 primary groups; each group exposes sub-tabs above. -->
   <nav class="bottomnav" id="bottomNav" aria-label="Studio sections">
-    <button class="btab active" data-tab="dashboard">Home</button>
-    <button class="btab" data-tab="studio">Studio</button>
-    <button class="btab" data-tab="develop">Create</button>
-    <button class="btab" data-tab="boxoffice">Market</button>
-    <button class="btab" data-tab="more" id="btabMore">More</button>
+    <button class="btab active" data-tab="dashboard"><span class="portrait-nav-icon" aria-hidden="true" data-emoji="🏠"></span><span class="portrait-nav-label">Home</span></button>
+    <button class="btab" data-tab="studio"><span class="portrait-nav-icon" aria-hidden="true" data-emoji="🏢"></span><span class="portrait-nav-label">Studio</span></button>
+    <button class="btab" data-tab="develop"><span class="portrait-nav-icon" aria-hidden="true" data-emoji="✍️"></span><span class="portrait-nav-label">Create</span></button>
+    <button class="btab" data-tab="boxoffice"><span class="portrait-nav-icon" aria-hidden="true" data-emoji="📊"></span><span class="portrait-nav-label">Market</span></button>
+    <button class="btab" data-tab="more" id="btabMore"><span class="portrait-nav-icon" aria-hidden="true" data-emoji="🗂️"></span><span class="portrait-nav-label">More</span></button>
   </nav>
 </div>
 
@@ -202,14 +196,14 @@
 <div id="srAlert" class="sr-only" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
 <script src="data.js?v=47.2"></script>
-<script src="engine.js?v=47.2"></script>
+<script src="engine.js?v=47.5"></script>
 <script src="industry-expansion-suite.js?v=47.2"></script>
 <script src="studio-nextwave-suite.js?v=47.2"></script>
 <script src="i18n.js?v=47.2"></script>
 <script src="finance-desk.js?v=47.2"></script>
 <script src="cast-catalog.js?v=47.2"></script>
-<script src="ui.js?v=47.2"></script>
-<script src="settings-studio.js?v=47.2"></script>
+<script src="ui.js?v=47.9"></script>
+<script src="settings-studio.js?v=47.8"></script>
 <script src="finance-tools.js?v=47.2"></script>
 <script src="v31-features.js?v=47.2"></script>
 <script src="challenge-leaderboard.js?v=47.2"></script>
@@ -222,7 +216,7 @@
 <script src="festival-pr.js?v=47.2"></script>
 <script src="studio-facilities.js?v=47.2"></script>
 <script src="syndication-tv.js?v=47.2"></script>
-<script src="talent-contracts.js?v=47.2"></script>
+<script src="talent-contracts.js?v=47.6"></script>
 <script src="bond-market.js?v=47.2"></script>
 <script src="clash-analytics.js?v=47.2"></script>
 <script src="bo-charts.js?v=47.2"></script>
@@ -236,7 +230,7 @@
 <script src="studio-espionage.js?v=47.2"></script>
 <script src="merch-licensing.js?v=47.2"></script>
 <script src="territory-licensing.js?v=47.2"></script>
-<script src="custom-sandbox.js?v=47.2"></script>
+<script src="custom-sandbox.js?v=47.7"></script>
 <script src="film-locations-tax.js?v=47.2"></script>
 <script src="studio-operations-suite.js?v=47.2"></script>
 <script src="gamedev-console-hardware.js?v=47.2"></script>
@@ -248,9 +242,9 @@
 <script src="marketing-blitz-engine.js?v=47.2"></script>
 <script src="studio-agent-life.js?v=47.2"></script>
 <script src="studio-lot-engine.js?v=47.2"></script>
-<script src="studio-actors.js?v=47.2"></script>
+<script src="studio-actors.js?v=47.3"></script>
 <script src="studio-departments.js?v=47.2"></script>
-<script src="studio-lot-2d.js?v=47.2"></script>
+<script src="studio-lot-2d.js?v=47.7"></script>
 <script src="lot-life.js?v=47.2"></script>
 <script src="lot-feel.js?v=47.2"></script>
 <script src="bow-motion.js?v=47.2"></script>
@@ -262,7 +256,7 @@
 <script src="sports-stadium-deals.js?v=47.2"></script>
 <script src="stage-division.js?v=47.2"></script>
 <script src="kairo-theme-suite.js?v=47.2"></script>
-<script src="box-office-collection-engine.js?v=47.2"></script>
+<script src="box-office-collection-engine.js?v=47.6"></script>
 <script>
 /* ═══ Update bar UI — shared by PWA reload and APK update checks ═══ */
 function bowShowUpdateBar(opts){

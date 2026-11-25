@@ -48,15 +48,17 @@
   overflow: hidden;
 }
 
-:root[data-layout="vertical"] #app {
+:root[data-layout="vertical"] #app:not([hidden]) {
   display: flex !important;
   flex-direction: column !important;
-  height: 100% !important;
+  height: 100dvh !important;
   min-height: 0 !important;
   overflow: hidden;
 }
 
-/* ── 2. app bar (56px) ───────────────────────────────────────────────────────
+:root[data-layout="vertical"] #app[hidden] { display: none !important; }
+
+/* ── 2. app bar ───────────────────────────────────────────────────────
    The header is a container for the app bar and (on desktop) the destination
    strip. In portrait the strip is hidden below, so the header is just the
    56px bar — but this rule still does not assume that, so a future header row
@@ -69,17 +71,18 @@
   padding-top: env(safe-area-inset-top, 0px) !important;
   background: var(--surface-1) !important;      /* beats lot-life/bow-restyle/lot-gameplay */
   border-bottom: 1px solid var(--line-1);
-  box-shadow: none;
+  border-inline: 0 !important;
+  border-top: 0 !important;
+  box-shadow: none !important;
 }
 
-/* One row, never wraps. Beats command-deck's `flex-wrap:wrap !important` +
-   `padding:14px 22px !important`, which made the header 121px on its own
-   before the sub-nav was even counted. */
+/* Keep the studio name and inbox above the career figures. */
 :root[data-layout="vertical"] #app .topbar-row {
-  display: flex !important;
-  flex-wrap: nowrap !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: var(--v-tap) minmax(0, 1fr);
   align-items: center !important;
-  gap: 8px !important;
+  gap: 0 8px !important;
   height: var(--v-bar-h) !important;
   min-height: var(--v-bar-h) !important;
   padding: 0 !important;
@@ -101,7 +104,7 @@
 :root[data-layout="vertical"] #app .command-header-identity {
   flex: 0 1 auto !important;
   min-width: 0 !important;      /* lets the studio name ellipsis, not push */
-  max-width: 40% !important;
+  max-width: 100% !important;
 }
 
 /* The name's wrapper is a flex item with the default `min-width:auto`, so it
@@ -129,13 +132,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 15px;
-  max-width: none;
+  max-width: none !important;
 }
 
 /* Ledger: every figure kept, but it scrolls inside its own track so a long
    name or a seven-figure balance never widens the page. */
 :root[data-layout="vertical"] #app .command-header-ledger {
-  flex: 1 1 auto !important;    /* overrides components.css flex-shrink:0 */
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
   min-width: 0 !important;
   display: flex;
   flex-wrap: nowrap;
@@ -157,15 +162,6 @@
   display: none;
 }
 
-/* The track is narrower than its chips at 360px, so the last one is cut off.
-   A fade on the trailing edge says "there is more, scroll" instead of looking
-   like a clipped button. Both spellings are set: the standard property is not
-   yet unconditional in Safari, where the -webkit- one still applies. */
-:root[data-layout="vertical"] #app .command-header-ledger {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
-}
-
 :root[data-layout="vertical"] #app .command-header-ledger .chip {
   flex: 0 0 auto;
   min-height: 30px !important;
@@ -183,7 +179,8 @@
    exactly what we hit, and width:100% claimed the entire row. */
 :root[data-layout="vertical"] #app .topbar-actions,
 :root[data-layout="vertical"] #app .command-header-actions {
-  flex: 0 0 auto !important;
+  grid-column: 2;
+  grid-row: 1;
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
@@ -220,30 +217,18 @@
   line-height: 1.1;
 }
 
-/* ── 3. sticky sub-nav (44px) ────────────────────────────────────────────────
-   Sits directly under the 56px app bar and stays put while the desk scrolls
-   beneath it. Only productions currently reaches renderSubTabs (the other ten
-   early-return), but this has to be right wherever a sub-nav appears.
-   The +1px compensates for the bottom border: with border-box, a bare 44px
-   min-height would leave 43px of content, and the flex children stretch to
-   that, putting every sub-tab 1px under the 44px tap minimum. */
+/* Production status filters stay above the desk's scrollable content. */
 :root[data-layout="vertical"] #app .subtabs {
-  display: flex !important;
-  flex-wrap: nowrap;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(min(84px, 100%), 1fr));
   position: sticky !important;
   top: var(--v-bar-h) !important;
   z-index: calc(var(--z-nav) - 1) !important;
   min-height: calc(var(--v-sub-h) + 1px) !important;
   gap: 6px;
-  padding: 0 var(--v-pad) !important;
-  overflow-x: auto;
-  scrollbar-width: none;
+  padding: 4px var(--v-pad) !important;
   background: var(--surface-1) !important;
   border-bottom: 1px solid var(--line-1);
-}
-
-:root[data-layout="vertical"] #app .subtabs::-webkit-scrollbar {
-  display: none;
 }
 
 :root[data-layout="vertical"] #app .subtabs:empty {
@@ -251,16 +236,15 @@
 }
 
 :root[data-layout="vertical"] #app .subtabs > * {
-  flex: 0 0 auto;
+  min-width: 0;
   min-height: var(--v-tap);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: normal;
 }
 
-/* ── 4. content track ────────────────────────────────────────────────────────
-   Bottom padding clears the action bar AND the bottom nav AND the home
-   indicator, so the last card is never trapped under chrome.
-   Beats lot-gameplay.css `#app #view:not(.view-hidden-lot){padding:18px!important}`. */
+/* The scroll track ends above the week action and destination nav. */
 :root[data-layout="vertical"] #app #view {
   position: relative !important;
   top: auto !important;
@@ -270,46 +254,34 @@
   width: 100% !important;
   max-width: none !important;
   min-height: 0 !important;
+  flex: 1 1 0;
   overflow-y: auto !important;
   padding: var(--v-gap) var(--v-pad) !important;
-  padding-bottom: calc(
-    var(--v-nav-h) + var(--v-action-h) + env(safe-area-inset-bottom, 0px) + var(--v-gap)
-  ) !important;
 }
 
-/* ── 5. pinned Next-Week action bar (64px) ───────────────────────────────────
-   The existing #fabWeek is repurposed from a floating circle into the
-   full-width action bar; no new markup. It must beat
-   command-deck.css `#app[data-active-tab="dashboard"] #fabWeek{display:none!important}`,
-   which would otherwise hide the only advance control on the default tab. */
+/* Keep the week action in the flex column, outside the scroll track. */
 :root[data-layout="vertical"] #app #fabWeek {
   display: flex !important;
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: calc(var(--v-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 0 var(--v-tap);
   width: auto !important;
-  height: var(--v-action-h) !important;
-  min-height: var(--v-action-h) !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
+  height: var(--v-tap) !important;
+  min-height: var(--v-tap) !important;
+  margin: 3px var(--v-pad) !important;
+  border-radius: 9px !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: calc(var(--z-nav) - 1) !important;
-  font-size: 15px;
+  font-size: 13px;
 }
 
-/* ── 6. bottom destination nav (64px) ────────────────────────────────────────
-   Five destinations with 44px targets and the home-indicator inset. Beats
-   bow-restyle.css `.bottomnav{background-color:initial!important}` and the
-   landscape rules that hide it. */
+/* Reserve room for the navigation and the home indicator. */
 :root[data-layout="vertical"] #app .bottomnav {
   display: flex !important;
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  min-height: var(--v-nav-h) !important;
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 0 auto;
+  min-height: calc(var(--v-nav-h) + env(safe-area-inset-bottom, 0px)) !important;
   padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   z-index: var(--z-nav) !important;
   background: var(--surface-1) !important;
@@ -328,10 +300,10 @@
    Only shown on the Studio tab, where it is a fixed full-bleed layer. In
    portrait it must sit between the app bar and the action bar instead of
    covering the whole viewport (lot-gameplay.css pins it to the full height).
-   The strip is retired above, so the header there is just the 56px app bar. */
+   The bottom inset includes the home indicator. */
 :root[data-layout="vertical"] #app #studiolotGlobalStage.lot-full {
   top: var(--v-bar-h) !important;
-  bottom: calc(var(--v-nav-h) + var(--v-action-h)) !important;
+  bottom: calc(var(--v-nav-h) + var(--v-action-h) + env(safe-area-inset-bottom, 0px)) !important;
   height: auto !important;
   min-height: 0 !important;
   z-index: 1 !important;
@@ -364,6 +336,7 @@
     var(--v-nav-h) + var(--v-action-h) + env(safe-area-inset-bottom, 0px) + 12px
   ) !important;
   right: calc(var(--v-pad) + env(safe-area-inset-right, 0px)) !important;
+  pointer-events: none;
 }
 
 :root[data-layout="vertical"] #toasts {
@@ -388,4 +361,1832 @@
   :root[data-layout="vertical"] #app #fabWeek {
     transition: none !important;
   }
+}
+
+:root[data-layout="vertical"] {
+  --v-bar-h: 76px;
+  --v-nav-h: 52px;
+  --v-action-h: 50px;
+  --v-gap: 8px;
+  --v-pad: 10px;
+}
+
+/* In portrait the desk reads top to bottom, with a wrapping control grid. */
+:root[data-layout="vertical"] #app {
+  --portrait-ink: var(--cd-tf3e8cc);
+  --portrait-line: var(--cd-t4e6355);
+}
+
+:root[data-layout="vertical"] #app #view {
+  background-image: linear-gradient(165deg, var(--cd-t20372f), transparent 340px) !important;
+  scroll-padding: var(--v-gap) 0;
+  overscroll-behavior-y: contain;
+}
+
+:root[data-layout="vertical"] #app #view .command-deck {
+  padding: clamp(10px, 3vw, 24px);
+}
+
+:root[data-layout="vertical"] #app #view .command-heading h1 {
+  font-size: clamp(27px, 7vw, 46px);
+  line-height: 1.04;
+  letter-spacing: -.035em;
+  color: var(--portrait-ink);
+}
+
+:root[data-layout="vertical"] #app #view .command-heading p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+:root[data-layout="vertical"] #app #view .command-section-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+  padding: 5px;
+  border-radius: 10px !important;
+}
+
+:root[data-layout="vertical"] #app #view .command-nav-items,
+:root[data-layout="vertical"] #app #view .command-nav-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(84px, 100%), 1fr));
+  width: 100%;
+  gap: 6px;
+  order: 0;
+}
+
+:root[data-layout="vertical"] #app #view .command-nav-brand,
+:root[data-layout="vertical"] #app #view .command-nav-tools-label,
+:root[data-layout="vertical"] #app #view .command-nav-items button > small,
+:root[data-layout="vertical"] #app #view .command-nav-tools button > small {
+  display: none;
+}
+
+:root[data-layout="vertical"] #app #view .command-section-nav button {
+  min-width: 0;
+  min-height: var(--v-tap) !important;
+  padding: 6px !important;
+  border-radius: 6px !important;
+  text-align: center;
+  justify-content: center;
+  white-space: normal;
+}
+
+:root[data-layout="vertical"] #app #view .command-section-nav button span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+:root[data-layout="vertical"] #app #view :is(.produce-panel, .develop-panel, .command-metric) {
+  border-color: var(--portrait-line);
+  border-radius: 10px;
+}
+
+:root[data-layout="vertical"] #app #view .command-telemetry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+:root[data-layout="vertical"] #app .bottomnav .btab.active {
+  box-shadow: inset 0 2px var(--cd-tedc47c);
+}
+
+:root[data-layout="vertical"] #modalRoot .modal :is(button, select, input) {
+  scroll-margin-block: 8px;
+}
+
+:root[data-layout="vertical"] #modalRoot .studio-destination-modal {
+  width: min(100% - 16px, 480px);
+  border-radius: 14px;
+}
+
+:root[data-layout="vertical"] #modalRoot .more-destinations {
+  padding: 0;
+  margin-bottom: 14px;
+  border: 0;
+  background: transparent;
+}
+
+:root[data-layout="vertical"] #modalRoot .more-destinations .grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+:root[data-layout="vertical"] #modalRoot .more-destinations button {
+  min-width: 0;
+  min-height: 68px;
+  white-space: normal;
+}
+
+/* The portrait screens share a dark editorial palette and a quiet surface hierarchy. */
+html[data-layout="vertical"][data-skin="game"] {
+  --p-neutral-0: #111019;
+  --p-neutral-1: #171520;
+  --p-neutral-2: #201d2c;
+  --p-neutral-3: #2a2539;
+  --p-neutral-4: #3a324a;
+  --p-neutral-5: #494059;
+  --p-neutral-6: #625671;
+  --p-neutral-7: #776987;
+  --p-neutral-8: #a49ab4;
+  --p-neutral-9: #c1b7ce;
+  --p-neutral-10: #e1d8eb;
+  --p-neutral-11: #fbf4f1;
+  --accent: #e5bdab;
+  --accent-strong: #ffd9be;
+  --accent-dim: #a47878;
+  --accent-ink: #241726;
+  --accent-wash: #e5bdab24;
+  --gx-green: var(--accent);
+  --gx-green-hi: var(--accent-strong);
+  --gx-green-deep: var(--accent-dim);
+  --gx-green-edge: #775363;
+  --gx-ink: var(--accent-ink);
+  --gx-edge: transparent;
+  --portrait-violet: #cbb8fc;
+  --portrait-paper: #f6e8dc;
+  color-scheme: dark;
+}
+
+:root[data-layout="vertical"] #app #view {
+  background: var(--surface-0) !important;
+}
+
+:root[data-layout="vertical"] #app #view .command-deck {
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+:root[data-layout="vertical"] #app #view .command-heading {
+  gap: 12px;
+  padding: 7px 0 9px;
+  margin: 0 0 9px;
+  border-bottom: 1px solid var(--line-1);
+}
+:root[data-layout="vertical"] #app #view .command-heading h1 {
+  font: 400 clamp(25px, 7.3vw, 41px)/.98 Georgia, serif !important;
+  letter-spacing: -.035em;
+}
+:root[data-layout="vertical"] #app #view .command-heading .command-edition {
+  display: none;
+}
+:root[data-layout="vertical"] #app #view .command-date {
+  min-width: 54px;
+  padding: 0 0 0 9px;
+}
+:root[data-layout="vertical"] #app #view .command-date b {
+  font-size: 27px;
+}
+:root[data-layout="vertical"] #app #view :is(.command-eyebrow, .command-date span) {
+  letter-spacing: .095em;
+  color: var(--portrait-violet);
+}
+:root[data-layout="vertical"] #app #view .command-section-nav {
+  background: var(--surface-1) !important;
+  border-color: var(--line-1) !important;
+  box-shadow: none;
+  position: relative;
+}
+:root[data-layout="vertical"] #app #view .command-section-nav button {
+  box-shadow: none !important;
+  border-width: 1px !important;
+}
+:root[data-layout="vertical"] #app #view .command-section-nav .command-nav-items button.active {
+  background: var(--accent-wash) !important;
+  border-color: var(--accent-dim) !important;
+  color: var(--accent-strong) !important;
+}
+
+:root[data-layout="vertical"] #app #view :is(.produce-panel, .develop-panel, .command-pipeline, .command-map, .command-control, .command-market-chart, .bo-figure) {
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  border-radius: 14px;
+  box-shadow: none;
+}
+:root[data-layout="vertical"] #app #view :is(.produce-panel-head, .develop-panel-head, .command-section-head) {
+  padding: 10px;
+  border-color: var(--line-1);
+}
+:root[data-layout="vertical"] #app #view :is(.produce-panel-head, .develop-panel-head, .command-section-head) h2 {
+  font: 400 clamp(18px, 5vw, 26px)/1.12 Georgia, serif;
+}
+:root[data-layout="vertical"] #app #view .command-telemetry {
+  border: 0;
+  background: transparent;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+:root[data-layout="vertical"] #app #view .command-telemetry .command-metric {
+  padding: 9px;
+  border: 1px solid var(--line-1);
+  background: var(--surface-2);
+}
+:root[data-layout="vertical"] #app #view .command-metric strong {
+  font: 500 20px/1.1 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+:root[data-layout="vertical"] #app #view .command-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-main {
+  display: contents;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief {
+  grid-row: 2;
+  padding: 12px;
+  min-height: 0;
+  margin-bottom: 9px;
+  border: 1px solid var(--line-2);
+  border-radius: 15px;
+  background: linear-gradient(90deg, #1e1728f2, #1e17288f), url("../assets/soundstage-welcome.webp") center 45% / cover;
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief::before {
+  display: none;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief :is(h2, p, .command-brief-foot b, .command-brief-foot small) {
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief h2 {
+  font: 400 clamp(23px, 6.5vw, 34px)/1.02 Georgia, serif !important;
+  margin: 5px 0 6px;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard :is(.command-pipeline, .command-shortcuts) {
+  margin: 0 0 14px;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-lanes {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-lane:not(:last-child) {
+  border-right: 0;
+  border-bottom: 1px solid var(--line-1);
+}
+:root[data-layout="vertical"] #app #view .command-shortcuts {
+  gap: 8px;
+}
+:root[data-layout="vertical"] #app #view .command-shortcuts button {
+  background: var(--surface-2);
+  border: 1px solid var(--line-1);
+  border-radius: 10px;
+}
+
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary {
+  background: var(--portrait-paper);
+  border: 0;
+  border-radius: 10px;
+  color: #281a2d;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary :is(strong, b, dd) {
+  color: #281a2d;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary :is(span, dt) {
+  color: #624b65;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-bar {
+  background: var(--surface-4);
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-row:not(.mine) .bo-chart-bar i {
+  background: var(--portrait-violet) !important;
+}
+
+html[data-layout="vertical"][data-skin="game"] #app .bottomnav .btab {
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 1px;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+html[data-layout="vertical"][data-skin="game"] #app .bottomnav .btab.active {
+  background: var(--accent-wash) !important;
+  border-color: var(--accent-dim) !important;
+  color: var(--accent-strong) !important;
+}
+html[data-layout="vertical"][data-skin="game"] .portrait-nav-icon {
+  display: block;
+  font: 16px/1 system-ui, sans-serif;
+}
+:root[data-layout="vertical"] #app #fabWeek {
+  box-shadow: none !important;
+  font-weight: 750;
+}
+
+:root[data-layout="vertical"] #modalRoot .modal {
+  max-height: calc(100dvh - 20px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  border-radius: 14px !important;
+}
+:root[data-layout="vertical"] #modalRoot .modal .modal-head :is(h2,h3,h4) {
+  font-family: Georgia, serif;
+  letter-spacing: -.02em;
+}
+:root[data-layout="vertical"] #modalRoot .modal .pitch-body {
+  gap: 12px;
+}
+
+:root[data-layout="vertical"] #app #view .nw-guide {
+  padding: 8px 10px;
+  gap: 8px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+:root[data-layout="vertical"] #app #view .nw-guide h2 {
+  margin: 3px 0;
+  font-size: 15px;
+}
+:root[data-layout="vertical"] #app #view .nw-guide p {
+  margin: 0;
+  color: var(--text-2);
+}
+:root[data-layout="vertical"] #app #view[data-screen]:not([data-screen="dashboard"]) > .nw-guide {
+  display: none;
+}
+
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief p {
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief-foot {
+  padding-top: 8px;
+  margin-top: 8px;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary {
+  padding: 11px;
+  gap: 8px;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-row {
+  gap: 4px 8px;
+  padding: 8px 0;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary dl {
+  gap: 4px;
+  padding-top: 6px;
+}
+:root[data-layout="vertical"] #app #view .command-develop-nav .command-nav-items,
+:root[data-layout="vertical"] #app #view .command-develop-nav .command-nav-tools {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+:root[data-layout="vertical"] #app #view .command-develop-nav .command-nav-items button:last-child {
+  grid-column: auto;
+}
+:root[data-layout="vertical"] #app #view .nw-guide p {
+  font-size: 12px;
+  line-height: 1.3;
+}
+:root[data-layout="vertical"] #app #view .nw-guide .nw-guide-actions button {
+  min-height: var(--v-tap);
+  padding-block: 5px;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-row {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-name small {
+  display: block;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+:root[data-layout="vertical"] #app #view[data-screen="dashboard"] > .command-section-nav .command-nav-items {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0;
+}
+:root[data-layout="vertical"] #app #view[data-screen="dashboard"] > .command-section-nav button {
+  font-size: 11px;
+}
+
+/* Portrait chrome and desk cards follow the Parallax Pictures mockup. */
+:root[data-layout="vertical"] {
+  --v-pad: 12px;
+  --v-bar-h: 84px;
+}
+:root[data-layout="vertical"] #app .command-header-identity {
+  grid-column: 1;
+  grid-row: 1;
+  gap: 8px;
+}
+html[data-skin="game"][data-layout="vertical"] #app .command-header-mark {
+  display: grid !important;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: var(--accent-ink);
+  font-size: 0;
+}
+:root[data-layout="vertical"] #app .command-header-mark::before {
+  content: attr(data-initial);
+  font: 700 15px/1 Georgia, serif;
+}
+html[data-skin="game"][data-layout="vertical"] #app .command-header-identity .brand {
+  font: 700 15px/1.15 system-ui, sans-serif !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #btnBell {
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #app .command-header-ledger {
+  display: grid !important;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(86px, 1fr);
+  align-items: stretch;
+}
+html[data-skin="game"][data-layout="vertical"] #app .command-header-ledger .chip {
+  border-radius: 8px !important;
+  min-width: 0;
+  gap: 2px;
+  padding: 4px 7px !important;
+}
+:root[data-layout="vertical"] #app .command-header-ledger .chip > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-skin="game"][data-layout="vertical"] #app #fabWeek {
+  justify-content: space-between !important;
+  padding-inline: 13px !important;
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent)) !important;
+}
+:root[data-layout="vertical"] #fabWeekMeta { font-size: 10px; font-weight: 650; }
+:root[data-layout="vertical"] #bottomNav .portrait-nav-icon { width: 18px; height: 18px; }
+
+:root[data-layout="vertical"] #app #view .command-heading h1 {
+  font-size: clamp(22px, 6vw, 27px) !important;
+}
+:root[data-layout="vertical"] #app #view .command-date b {
+  font: 700 22px/1.08 system-ui, sans-serif !important;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief {
+  background: radial-gradient(240px circle at 95% 0%, #cbb8fc24, transparent 65%), linear-gradient(155deg, #252034, #191623) !important;
+  padding: 13px;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief-foot { display: none; }
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief .command-primary {
+  min-height: 44px;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent)) !important;
+}
+:root[data-layout="vertical"] #app #view .nw-guide-milestones {
+  display: block;
+  grid-row: 3;
+  margin-bottom: 9px;
+  padding: 9px;
+}
+.nw-guide-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nw-guide-head > span { color: var(--text-3); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.nw-guide-head > b { color: var(--text-2); font-size: 11px; margin-left: auto; }
+.nw-checklist { display: grid; gap: 5px; }
+html[data-skin="game"] #app .nw-checklist .nw-step {
+  display: grid;
+  grid-template-columns: 19px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px !important;
+  padding: 6px 10px !important;
+  border: 1px solid var(--line-1) !important;
+  border-radius: 9px !important;
+  background: var(--surface-1) !important;
+  box-shadow: none !important;
+  text-align: left;
+}
+.nw-guide-milestones .nw-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line-3);
+  border-radius: 50%;
+}
+.nw-step.is-done .nw-check { color: var(--success); border-color: var(--success); }
+.nw-step-title { font-size: 12px; }
+:root[data-layout="vertical"] #app #view .command-studio-grid .command-control { order: -1; }
+:root[data-layout="vertical"] #app #view .command-studio-grid .command-metric strong { font-size: 18px; }
+:root[data-layout="vertical"] #app #view .develop-script {
+  padding: 12px;
+  gap: 7px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+:root[data-layout="vertical"] #app #view .develop-script h3 { font: 400 20px/1.1 Georgia, serif !important; }
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary {
+  display: block;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary strong {
+  font: 400 21px/1.13 Georgia, serif !important;
+  margin-bottom: 8px;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #624b6540;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .bo-chart-summary dl > div { display: grid; gap: 2px; }
+
+:root[data-layout="vertical"] #modalRoot .modal-veil:has(.studio-destination-modal, .command-inbox-modal) {
+  align-items: flex-end;
+  padding: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal:is(.studio-destination-modal, .command-inbox-modal) {
+  width: min(100%, 540px);
+  max-height: min(84dvh, 730px);
+  margin: 0 auto;
+  border-radius: 20px 20px 0 0 !important;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+:root[data-layout="vertical"] #app #view .bo-chart-intro { display: none; }
+html[data-skin="game"][data-layout="vertical"] #app #bottomNav .portrait-nav-label {
+  font-size: 10px;
+  transform: none;
+  filter: none;
+}
+html[data-skin="game"][data-layout="vertical"] #app #bottomNav .btab.active::before { content: none; }
+:root[data-layout="vertical"] #app #view .develop-script-market {
+  border: 0;
+  background: transparent;
+}
+:root[data-layout="vertical"] #app #view .develop-script-market .develop-panel-head { display: none; }
+:root[data-layout="vertical"] #app #view .develop-script-market .develop-scripts { padding-inline: 0; }
+html[data-skin="game"][data-layout="vertical"] #modalRoot .more-destinations button {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch !important;
+  justify-items: stretch !important;
+  align-content: center;
+  gap: 3px;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #app #view .produce-panel:has(> .bo-chart-summary) > .produce-panel-head { display: none; }
+:root[data-layout="vertical"] #app #view .produce-panel:has(> .bo-chart-summary) { padding-top: 6px; }
+
+html[data-skin="game"][data-layout="vertical"] #app #fabWeek {
+  margin: 4px var(--v-pad) 6px !important;
+  padding-inline: 16px !important;
+  border: 1px solid var(--accent-dim) !important;
+  border-radius: 12px !important;
+  background: var(--surface-2) !important;
+  color: var(--accent-strong) !important;
+  letter-spacing: .02em;
+  transform: none !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #fabWeek:hover { background: var(--surface-3) !important; }
+html[data-skin="game"][data-layout="vertical"] #app #fabWeek:active { background: var(--accent-wash) !important; }
+:root[data-layout="vertical"] #fabWeekMeta { color: var(--text-3); font-size: 11px; font-weight: 500; }
+:root[data-layout="vertical"] #app #bottomNav { padding: 4px 6px env(safe-area-inset-bottom, 0px) !important; }
+html[data-skin="game"][data-layout="vertical"] #app #bottomNav .btab {
+  min-height: 46px !important;
+  padding: 4px 2px !important;
+  margin: 2px;
+  gap: 3px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #bottomNav .portrait-nav-label { font-size: 11px; font-weight: 600; }
+:root[data-layout="vertical"] #app #view .command-dashboard :is(.command-telemetry, .command-pipeline, .command-shortcuts) {
+  display: none;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-heading { padding: 4px 0 10px; }
+:root[data-layout="vertical"] #app #view .command-dashboard .command-heading h1 { margin: 0; }
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief {
+  padding: 15px 14px;
+  background: radial-gradient(240px circle at 95% 0%, #cbb8fc24, transparent 65%), radial-gradient(220px circle at 0% 100%, #e5bdab1a, transparent 60%), linear-gradient(155deg, #252034, #191623) !important;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief h2 {
+  font-size: clamp(22px, 6vw, 26px) !important;
+  color: var(--text-1) !important;
+}
+:root[data-layout="vertical"] #app #view .command-dashboard .command-brief p {
+  color: var(--text-2) !important;
+  margin-bottom: 11px;
+}
+:root[data-layout="vertical"] #app #view .nw-guide-milestones { padding: 11px 12px; border-radius: 14px; }
+.nw-guide-milestones .nw-guide-head { margin-bottom: 8px; }
+.nw-guide-milestones .nw-guide-head > b { color: var(--portrait-violet, var(--text-2)); }
+.nw-step-body { display: grid; min-width: 0; }
+.nw-step-title { font-weight: 600; }
+.nw-step-sub { font-size: 11px; color: var(--text-3); font-weight: 400; }
+.nw-step-arrow { color: var(--text-3); }
+.nw-step.is-done .nw-step-title { text-decoration: line-through; color: var(--text-3); }
+
+:root[data-layout="vertical"] { --v-bar-h: 90px; --v-action-h: 54px; }
+:root[data-layout="vertical"] #app:not([hidden]) { background: var(--surface-0) !important; }
+:root[data-layout="vertical"] #app #view[data-screen="dashboard"] > .command-section-nav {
+  padding: 0 4px;
+  margin-bottom: 10px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #view .command-dashboard .command-brief .command-primary {
+  color: var(--accent-ink) !important;
+  box-shadow: none !important;
+  font-size: 14px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #view .command-dashboard .command-brief .command-primary span {
+  color: inherit;
+}
+:root[data-layout="vertical"] #app .nw-guide-milestones .nw-checklist { gap: 6px; }
+html[data-skin="game"][data-layout="vertical"] #app .nw-checklist .nw-step { min-height: 48px !important; }
+:root[data-layout="vertical"] #app #btnBell #bellBadge {
+  position: static;
+  width: 7px;
+  height: 7px;
+  min-width: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: transparent;
+  font-size: 0;
+}
+
+:root[data-layout="vertical"] #app #view .portrait-studio-overview {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+:root[data-layout="vertical"] #app #view .command-studio > .command-heading > button { display: none; }
+:root[data-layout="vertical"] #app #view .portrait-studio-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+:root[data-layout="vertical"] #app #view .portrait-studio-overview article,
+:root[data-layout="vertical"] #app #view .portrait-studio-metrics > div {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line-1);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+:root[data-layout="vertical"] #app #view .portrait-studio-metrics span,
+:root[data-layout="vertical"] #app #view .portrait-studio-metrics small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-2);
+}
+:root[data-layout="vertical"] #app #view .portrait-studio-metrics span {
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+:root[data-layout="vertical"] #app #view .portrait-studio-metrics strong {
+  display: block;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+  margin: 2px 0;
+}
+:root[data-layout="vertical"] .portrait-studio-metrics > div:first-child strong { color: var(--accent-strong); }
+:root[data-layout="vertical"] .portrait-studio-overview article header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 5px;
+}
+:root[data-layout="vertical"] #app .portrait-studio-overview article h2 {
+  margin: 0;
+  font: 400 18px/1.15 Georgia, serif !important;
+}
+:root[data-layout="vertical"] .portrait-studio-overview article header > span {
+  padding: 3px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  font-size: 10px;
+  color: var(--accent-strong);
+}
+:root[data-layout="vertical"] .portrait-studio-overview article p {
+  margin: 6px 0;
+  color: var(--text-2);
+  font-size: 12px;
+}
+:root[data-layout="vertical"] #app #view .develop-script > header {
+  align-items: flex-start;
+  color: var(--portrait-violet);
+}
+:root[data-layout="vertical"] #app #view .develop-script > header h3 { margin-top: 3px; }
+:root[data-layout="vertical"] #app #view .develop-script .script-score {
+  flex-shrink: 0;
+  padding: 4px 6px;
+  border: 1px solid #cbb8fc59;
+  border-radius: 999px;
+  background: #cbb8fc1f;
+  color: var(--portrait-violet);
+}
+:root[data-layout="vertical"] #app #view .develop-script footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 6px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line-1);
+}
+:root[data-layout="vertical"] #app #view .develop-script footer button {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--v-tap);
+  justify-content: center;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #app #view .develop-script .script-price {
+  display: block;
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--text-2);
+}
+:root[data-layout="vertical"] #app #view .develop-script .script-price b { color: var(--accent-strong); }
+:root[data-layout="vertical"] #app #view .develop-script-stats > div:nth-child(n+3) { display: none; }
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .produce-panel:has(> .bo-chart-list) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-summary {
+  margin: 0 0 9px;
+  border-radius: 12px;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-list {
+  padding: 4px 11px;
+  border: 1px solid var(--line-1);
+  background: var(--surface-2);
+  border-radius: 14px;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-name b {
+  font: 600 13px/1.25 system-ui, sans-serif !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-chart-name small {
+  font: 11px/1.35 system-ui, sans-serif;
+  letter-spacing: 0;
+  color: var(--text-3);
+}
+
+:root[data-layout="vertical"] #modalRoot .modal-veil:has(.studio-destination-modal) {
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal.studio-destination-modal {
+  padding: 12px 13px;
+  border-radius: 16px !important;
+  background: var(--surface-1) !important;
+}
+:root[data-layout="vertical"] #modalRoot .studio-destination-modal::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 4px;
+  margin: 0 auto 6px;
+  border-radius: 999px;
+  background: var(--line-2);
+}
+:root[data-layout="vertical"] #modalRoot .studio-destination-modal .modal-head {
+  margin: 0 0 10px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line-1);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .studio-destination-modal .modal-head h3 {
+  font: 400 20px/1.1 Georgia, serif !important;
+  color: var(--text-1);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .studio-destination-modal .modal-x { border-radius: 999px !important; }
+html[data-skin="game"][data-layout="vertical"] #modalRoot .more-destinations button {
+  min-height: 64px;
+  padding: 7px 10px !important;
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line-1) !important;
+  text-align: start !important;
+}
+:root[data-layout="vertical"] #modalRoot .more-destinations button > :is(b, small) {
+  min-width: 0;
+  margin-inline: 0;
+  text-align: start !important;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #modalRoot .more-destinations button b { font-size: 13px; }
+:root[data-layout="vertical"] #modalRoot .more-destinations button small { color: var(--text-3); font-size: 11px; }
+.more-specialists > summary { cursor: pointer; min-height: 44px; align-content: center; }
+
+:root[data-layout="vertical"] #app #view .develop-script-market .develop-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+:root[data-layout="vertical"] #app #view .develop-script-market .develop-filters button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+:root[data-layout="vertical"] #app #view .command-studio-nav .command-nav-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+:root[data-layout="vertical"] #modalRoot .studio-destination-modal .modal-head { background: transparent !important; }
+html[data-skin="game"][data-layout="vertical"] #modalRoot .studio-destination-modal .modal-head h3 { color: var(--text-1) !important; }
+
+/* Studio add-on desks use the same surfaces as the rest of the portrait app. */
+:root[data-layout="vertical"] :is(.industry-desk, .industry-campaign-modal) {
+  --id-bg: var(--surface-1);
+  --id-panel: var(--surface-2);
+  --id-line: var(--line-1);
+  --id-text: var(--text-1);
+  --id-muted: var(--text-2);
+  --id-gold: var(--accent-strong);
+  gap: 10px;
+}
+:root[data-layout="vertical"] :is(.nextwave-desk, .nw-modal) {
+  --nw-line: var(--line-1);
+  --nw-ink: var(--text-1);
+  --nw-muted: var(--text-2);
+  padding-bottom: 4px;
+}
+:root[data-layout="vertical"] #app #view :is(.industry-hero, .industry-system-group, .industry-operations, .nw-hero, .nw-section) {
+  margin: 0 0 9px;
+  padding: 11px;
+  border: 1px solid var(--line-1);
+  border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: none;
+}
+:root[data-layout="vertical"] #app #view :is(.industry-system-card, .industry-option, .industry-office-row, .industry-project, .nw-row, .nw-perk-grid > div, .nw-check-grid > .nw-check, .nw-conflicts) {
+  min-width: 0;
+  max-width: 100%;
+  border-color: var(--line-1);
+  border-radius: 9px;
+  background: var(--surface-1);
+}
+:root[data-layout="vertical"] #app #view .nw-check-grid > .nw-check {
+  width: auto;
+  height: auto;
+}
+:root[data-layout="vertical"] #view :is(.industry-system-group > header, .industry-section-head) { border-color: var(--line-1); }
+:root[data-layout="vertical"] #view .industry-system-grid { gap: 3px; }
+:root[data-layout="vertical"] #view :is(.industry-system-card h3, .industry-section-head h3, .nextwave-desk .nw-section h2) {
+  font: 400 18px/1.15 Georgia, serif !important;
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #view :is(.industry-system-card-top > span, .industry-system-group > header span, .nextwave-desk .nw-eyebrow) {
+  color: var(--portrait-violet);
+}
+:root[data-layout="vertical"] #view :is(.industry-status, .industry-status.expanded, .industry-status.new, .nw-badge, .nw-episode-list span) {
+  border-color: var(--line-2);
+  border-radius: 999px;
+  background: var(--accent-wash);
+  color: var(--accent-strong);
+}
+:root[data-layout="vertical"] #view :is(.industry-hero-stat,.nw-hero-status) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  gap: 3px 8px;
+}
+:root[data-layout="vertical"] #view :is(.industry-hero-stat, .nw-hero-status) > small {
+  font: 600 11px/1.2 system-ui, sans-serif;
+  color: var(--text-2);
+}
+:root[data-layout="vertical"] #view :is(.industry-hero-stat, .nw-hero-status) > b {
+  font: 700 20px/1.15 system-ui, sans-serif;
+  color: var(--accent-strong);
+}
+:root[data-layout="vertical"] #view :is(.industry-hero-stat > em, .nw-hero-status > span) { grid-column: 1 / -1; }
+:root[data-layout="vertical"] #app #view :is(.industry-desk, .nextwave-desk) :is(button, select) {
+  max-width: 100%;
+  min-height: var(--v-tap);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] :is(#view, #modalRoot) :is(.industry-select, .nw-field select, .nw-modal input, .nw-modal textarea) {
+  min-width: 0;
+  max-width: 100%;
+  background: var(--surface-1);
+  border-color: var(--line-2);
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #app #view :is(.industry-link, .industry-action, .nextwave-desk .nw-action) {
+  border: 1px solid var(--line-2) !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  background: var(--surface-1) !important;
+  color: var(--accent-strong) !important;
+  box-shadow: none !important;
+}
+
+/* Keep the portrait cards and controls consistent when a desk embeds a specialist module. */
+:root[data-layout="vertical"] #app #view .command-studio-nav .command-nav-brand { display: none; }
+:root[data-layout="vertical"] #app #view :is(.leadership-brief, .leadership-profile, .strategy-mandate, .strategy-agenda, .strategy-directive, .workforce-signals > article, .workforce-specialists > button, .studio-legacy-card, .studio-reputation-card, .pitch-hub-card, .develop-brief, .develop-snapshot, .bo-chain-card, .bo-weekend) {
+  min-width: 0;
+  border: 1px solid var(--line-1) !important;
+  border-radius: 12px !important;
+  background: var(--surface-2) !important;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #app #view :is(.leadership-brief, .strategy-mandate, .workforce-signals > article, .studio-reputation-card) { padding: 12px; }
+:root[data-layout="vertical"] #app #view :is(.leadership-brief, .strategy-mandate, .workforce-signals > article, .studio-reputation-card) h2,
+:root[data-layout="vertical"] #app #view :is(.leadership-person h3, .studio-legacy-card h2, .pitch-hub-card > b, .develop-brief h2) {
+  font: 400 19px/1.15 Georgia, serif !important;
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #app #view .studio-reputation-card .spread { flex-wrap: wrap; gap: 6px; }
+:root[data-layout="vertical"] #app #view .studio-reputation-card > .tiny { font-size: 12px; line-height: 1.4; }
+:root[data-layout="vertical"] #app #view .pitch-hub { gap: 2px; }
+:root[data-layout="vertical"] #app #view .pitch-hub-card { padding: 12px !important; text-align: left; }
+:root[data-layout="vertical"] #app #view .pitch-hub-icon { font-size: 19px; }
+:root[data-layout="vertical"] #app #view .pitch-hub-card :is(small,em) { color: var(--text-2); }
+:root[data-layout="vertical"] #app #view .pitch-hub-card em { color: var(--accent-strong); }
+:root[data-layout="vertical"] #app #view :is(.studio-reputation-card, .studio-legacy-card, .leadership-appointment, .strategy-mandate) button {
+  min-height: var(--v-tap) !important;
+  max-width: 100%;
+  white-space: normal;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-module :is(.card,.fold) {
+  border-color: var(--line-1) !important;
+  border-radius: 10px !important;
+  background: var(--surface-1) !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-module :is(.tag, .bo-chip) {
+  border: 1px solid var(--line-2) !important;
+  border-radius: 999px !important;
+  background: var(--accent-wash) !important;
+  color: var(--accent-strong) !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-module :is(.btn, button.bo-chip) {
+  min-height: var(--v-tap) !important;
+  max-width: 100%;
+  white-space: normal;
+}
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice .bo-module .btn {
+  border-radius: 8px !important;
+}
+:root[data-layout="vertical"] #app #view .command-studio-nav::before { content: none; }
+:root[data-layout="vertical"] #app #view .studio-reputation-card :is(.btn-alt, .btn-ghost) {
+  background: var(--surface-1) !important;
+  color: var(--accent-strong) !important;
+  border-color: var(--line-2) !important;
+}
+
+/* More uses the same two-column tiles for every destination group. */
+:root[data-layout="vertical"] #modalRoot .more-specialists {
+  border-top: 1px solid var(--line-1);
+}
+:root[data-layout="vertical"] #modalRoot .more-tool-group h4 {
+  margin: 8px 0;
+  font: 600 11px/1.3 system-ui, sans-serif;
+  color: var(--portrait-violet);
+}
+:root[data-layout="vertical"] #modalRoot .more-save-status {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+:root[data-layout="vertical"] #app #view .command-deck:is(.command-ott,.command-live,.command-fans,.command-empire,.command-library,.command-games,.command-finance) :is(.produce-panel,.command-metric,.card,.fold) {
+  min-width: 0;
+  border-color: var(--line-1) !important;
+  border-radius: 11px !important;
+  background: var(--surface-2) !important;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="productions"] .command-produce :is(.produce-brief,.produce-snapshot,.produce-card) {
+  border-color: var(--line-1) !important;
+  border-radius: 11px !important;
+  background: var(--surface-2) !important;
+  box-shadow: none !important;
+}
+
+:root[data-layout="vertical"] #modalRoot .modal-veil:has(.parallax-more-dialog) {
+  align-items: flex-end;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal-veil {
+  background: rgba(8, 8, 8, .72) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal.parallax-more-dialog {
+  width: min(100%, 540px) !important;
+  max-width: 100% !important;
+  max-height: 86dvh !important;
+  margin: 0 auto !important;
+  padding: 10px 12px 14px !important;
+  border: 1px solid var(--line-2) !important;
+  border-radius: 16px !important;
+  background: var(--surface-1) !important;
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #modalRoot .parallax-more-dialog::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 4px;
+  margin: 0 auto 6px;
+  border-radius: 999px;
+  background: var(--line-2);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .parallax-more-dialog :is(.card,.management-panel,.command-panel,.fold) {
+  min-width: 0;
+  border-color: var(--line-1) !important;
+  border-radius: 11px !important;
+  background: var(--surface-2) !important;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #modalRoot .parallax-more-dialog :is(button, select, input, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+:root[data-layout="vertical"] #modalRoot .parallax-more-dialog button {
+  min-height: var(--v-tap);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .parallax-more-dialog > .modal-head {
+  padding: 0 0 6px !important;
+  border-color: var(--line-1) !important;
+  background: transparent !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .parallax-more-dialog > .modal-head .modal-x {
+  border-radius: 999px !important;
+}
+:root[data-layout="vertical"] #modalRoot .parallax-more-dialog :is(.command-dialog-hero, .produce-modal-head, .management-hero) {
+  padding: 10px !important;
+  border-color: var(--line-1) !important;
+  background: var(--surface-2) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .parallax-more-dialog :is(.command-dialog-hero, .produce-modal-head, .management-hero) :is(h2,h3) {
+  font: 400 21px/1.1 Georgia, serif !important;
+  color: var(--text-1) !important;
+}
+
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal.studio-destination-modal > .modal-head {
+  background: var(--surface-1) !important;
+  z-index: 2;
+}
+:root[data-layout="vertical"] #modalRoot .studio-destination-modal .more-specialists { scroll-margin-top: 54px; }
+html[data-skin="game"][data-layout="vertical"] #app[data-active-tab="productions"] #subTabs .subtab-btn {
+  border-radius: 999px !important;
+  border: 1px solid var(--line-1) !important;
+  background: var(--surface-1) !important;
+  color: var(--text-2) !important;
+  box-shadow: none !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app[data-active-tab="productions"] #subTabs .subtab-btn.active {
+  border-color: var(--accent-dim) !important;
+  background: var(--accent-wash) !important;
+  color: var(--accent-strong) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #view .command-deck:is(.command-ott,.command-live,.command-fans,.command-empire,.command-library,.command-games,.command-finance) .produce-panel .btn-alt:not(.btn-primary) {
+  background: var(--surface-1) !important;
+  border-color: var(--line-2) !important;
+  color: var(--accent-strong) !important;
+  box-shadow: none !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .parallax-more-dialog .guide-reading .guide-topic :is(p,li) {
+  color: var(--text-2) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .parallax-more-dialog :is(.guide-nav,.preferences-nav) {
+  background: var(--surface-1) !important;
+  border-color: var(--line-1) !important;
+}
+
+/* Descriptive tiles use the same text edge as the More destination cards. */
+html[data-skin="game"][data-layout="vertical"] #app #view :is(.command-desk-grid, .command-shortcuts, .produce-tools, .develop-tools, .workforce-specialists) > button {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-content: stretch !important;
+  justify-items: stretch !important;
+  min-width: 0;
+  text-align: start !important;
+  overflow-wrap: anywhere;
+}
+html[data-skin="game"][data-layout="vertical"] #app #view :is(.command-desk-grid, .command-shortcuts, .produce-tools, .develop-tools, .workforce-specialists) > button > :is(b,small,span) {
+  min-width: 0;
+  margin-inline: 0;
+  text-align: start;
+}
+html[data-skin="game"][data-layout="vertical"] #app #view :is(.command-desk-grid, .produce-tools, .develop-tools) > button {
+  border: 1px solid var(--line-1) !important;
+  border-radius: 9px !important;
+  background: var(--surface-1) !important;
+  color: var(--text-1) !important;
+  box-shadow: none !important;
+}
+:root[data-layout="vertical"] #app #view :is(.produce-tools,.develop-tools) {
+  gap: 6px;
+  border: 0;
+  background: transparent;
+}
+html[data-skin="game"][data-layout="vertical"] #app #view .campus-building > span {
+  border-color: var(--line-2);
+  border-top-color: var(--accent-dim);
+  border-radius: 8px;
+  background: var(--surface-1);
+  text-align: start;
+}
+
+html[data-skin="game"][data-layout="vertical"] #app #view .btn-alt:not(.btn-primary,.active,.on,.sel,[aria-pressed="true"]),
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal .btn-alt:not(.btn-primary,.active,.on,.sel,[aria-pressed="true"]) {
+  background: var(--surface-1) !important;
+  color: var(--accent-strong) !important;
+  border-color: var(--line-2) !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal:is(.command-modal,.command-produce-modal) {
+  border-color: var(--line-2) !important;
+  background: var(--surface-1) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal:is(.command-modal,.command-produce-modal) > .modal-head {
+  border-color: var(--line-1) !important;
+  background: var(--surface-1) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal :is(.command-dialog-hero,.produce-modal-head,.management-hero) {
+  text-align: start !important;
+  background: var(--surface-2) !important;
+  border-color: var(--line-1) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal :is(.command-dialog-hero,.produce-modal-head,.management-hero) :is(h2,h3,p) {
+  text-align: start !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal :is(.preferences-nav,.guide-nav) button {
+  text-align: start !important;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.preferences-nav,.guide-nav) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(86px, 100%), 1fr));
+  gap: 4px;
+  padding: 8px;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.preferences-nav,.guide-nav) > button {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.preferences-nav,.guide-nav) > button > b {
+  font-size: 13px;
+  line-height: 1.2;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.preferences-nav,.guide-nav) > button > small {
+  display: none;
+}
+:root[data-layout="vertical"] #modalRoot .preferences-workspace .row:has(> #stName) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+:root[data-layout="vertical"] #modalRoot .preferences-workspace #stName {
+  width: 100%;
+}
+
+.lot-room-heading { display: none; }
+#lotCameraControls, #lotPlayback { display: contents; }
+
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.kairo-top-bar,.kairo-bottom-deck,#lotStatus,.lot-inspector,.palette-bar) {
+  background: var(--surface-1) !important;
+  border-color: var(--line-1) !important;
+  color: var(--text-1) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .studiolot-viewport {
+  background: radial-gradient(ellipse at 50% 55%, var(--surface-3), var(--surface-1) 75%) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage.lot-full.lot-immersive {
+  inset: 0 !important;
+  height: 100dvh !important;
+  z-index: 500 !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.kairo-top-bar,.kairo-bottom-deck) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 8px !important;
+  margin: 0;
+  border: 1px solid var(--line-1) !important;
+  border-radius: 12px !important;
+}
+html[data-skin="game"][data-layout="vertical"] .lot-room-heading {
+  display: block;
+  min-width: 0;
+  padding: 0 72px 4px 2px;
+  border-bottom: 1px solid var(--line-1);
+}
+html[data-skin="game"][data-layout="vertical"] #app .lot-room-heading h2 {
+  font: 400 clamp(20px, 5.5vw, 28px)/1.15 Georgia, serif !important;
+  color: var(--text-1);
+  margin: 2px 0;
+}
+html[data-skin="game"][data-layout="vertical"] .lot-room-kicker {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--portrait-violet);
+}
+html[data-skin="game"][data-layout="vertical"] #lotRoomContext {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--text-2);
+  margin: 0;
+  overflow: hidden;
+  min-height: 2.5em;
+}
+html[data-skin="game"][data-layout="vertical"] [data-lot-view="campus"] #lotRoomContext {
+  min-height: 1.25em;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .kairo-room-nav {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 3px;
+  padding: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .kairo-nav-tab {
+  display: flex !important;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+  padding: 4px 0 !important;
+  min-width: 0 !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .kairo-nav-tab span {
+  display: block !important;
+  font-size: clamp(8px, 2.4vw, 11px);
+  white-space: nowrap;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .kairo-top-right {
+  display: block;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage #btnLotFullscreen {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .kairo-hud-stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .55fr) minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 2px;
+  padding: 0;
+  text-align: start;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .itch-hud-stat {
+  min-width: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .itch-hud-stat :is(.lbl,.val) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: normal !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .itch-hud-stat .val {
+  font-size: 11px !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .lot-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.lot-controls,.lot-action-dock) {
+  padding: 0;
+  gap: 5px;
+  background: transparent;
+  backdrop-filter: none;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .lot-action-dock {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+  padding-bottom: 3px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .lot-action-dock button {
+  flex: none;
+  white-space: nowrap;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage #lotStatus {
+  left: 14px;
+  bottom: calc(var(--lot-deck-height, 108px) + 12px);
+  max-width: calc(100% - 28px);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(button,.lot-inspector select) {
+  background: var(--surface-2) !important;
+  border-color: var(--line-2) !important;
+  color: var(--text-1) !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage button.btn-primary {
+  background: var(--accent-strong) !important;
+  color: var(--accent-ink) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage button:is(:hover,:focus-visible,.active,[aria-pressed="true"]) {
+  background: var(--surface-3) !important;
+  border-color: var(--accent-dim) !important;
+  color: var(--accent-strong) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.lbl,.lot-inspector p) {
+  color: var(--text-2) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .val {
+  color: var(--accent-strong) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.lot-inspector strong,.lot-project-meta,.lot-project-label,.lot-inspector-kicker,.people-role) {
+  color: var(--text-1);
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.lot-project-card,.people-portrait) {
+  border-color: var(--line-2);
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .lot-project-progress { background: var(--surface-3); }
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .lot-project-progress i { background: var(--accent-strong); }
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage :is(.lot-inspector,.palette-bar) {
+  border-radius: 12px;
+  text-align: start;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage #lotPaletteRoot {
+  right: 6px;
+}
+html[data-skin="game"][data-layout="vertical"] #app #studiolotGlobalStage .palette-bar {
+  max-width: 100%;
+}
+
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal:has(:is(.lot-people,.lot-interiors,.lot-interior-picker)) {
+  width: min(540px, calc(100vw - 20px)) !important;
+  max-height: min(90dvh, calc(100dvh - 20px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))) !important;
+  background: var(--surface-1) !important;
+  border: 1px solid var(--line-2) !important;
+  border-radius: 14px !important;
+  color: var(--text-1);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal:has(.lot-people) .modal-head {
+  background: var(--surface-1) !important;
+  border-color: var(--line-1) !important;
+  color: var(--text-1);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot :is(.lot-people,.lot-interiors,.lot-interior-picker) {
+  padding: 12px 16px 16px;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot :is(.lot-people,.lot-interiors,.lot-interior-picker) :is(h2,strong) {
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot :is(.lot-people,.lot-interiors,.lot-interior-picker) :is(p,.people-role,.people-room,.people-task,.people-energy,.people-footer>span) {
+  color: var(--text-2);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .lot-people :is(.people-eyebrow,.people-locate) {
+  color: var(--portrait-violet);
+}
+html[data-skin="game"][data-layout="vertical"] :is(#modalRoot .lot-people,#app #studiolotGlobalStage) .people-portrait {
+  background-color: var(--surface-3);
+  border-color: var(--line-2);
+  border-radius: 6px;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot :is(.people-card,.interior-room-card,.lot-interiors select) {
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  color: var(--text-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot :is(.people-card,.interior-room-card):is(:hover,:focus-visible) {
+  background: var(--surface-3);
+  border-color: var(--accent-dim);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot :is(.people-footer,.interior-actions) {
+  background: var(--surface-1);
+  border-color: var(--line-1);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .lot-interiors .interior-editor-heading {
+  align-items: flex-start;
+  gap: 8px;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .lot-interiors .interior-editor-heading > div {
+  min-width: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .lot-interiors .interior-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  bottom: 0;
+  border-top: 1px solid var(--line-1);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .lot-interiors .interior-actions > button {
+  min-width: 0;
+  white-space: normal;
+  min-height: var(--v-tap);
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot #interiorApply {
+  grid-column: 1 / -1;
+}
+
+:root[data-layout="vertical"] #app #view :is(.develop-brief,.produce-brief)::before {
+  content: none;
+}
+:root[data-layout="vertical"] #app #view .command-campus {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  min-height: 0;
+  background: var(--surface-1);
+}
+:root[data-layout="vertical"] #app #view .command-campus::before { content: none; }
+:root[data-layout="vertical"] #app #view .command-campus .campus-road { display: none; }
+:root[data-layout="vertical"] #app #view .campus-building > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #app #view .campus-building img { max-width: 108px; }
+:root[data-layout="vertical"] #app #view[data-screen="boxoffice"] .command-boxoffice :is(.bo-rivals,.bo-chains) {
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+}
+:root[data-layout="vertical"] #app #view[data-screen="live"] .command-live .live-show-lab {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-layout="vertical"] #app #view[data-screen="live"] .command-live .live-field :is(input,select) {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  min-height: var(--v-tap);
+  border-color: var(--line-2);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text-1);
+}
+:root[data-layout="vertical"] #app #view[data-screen="finance"] .command-finance .btn {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #app #view .develop-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+:root[data-layout="vertical"] #app #view .command-heading:has(> .command-date) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+:root[data-layout="vertical"] #app #view .command-heading > .command-date {
+  display: grid;
+  min-width: 48px;
+  gap: 1px;
+  padding: 2px 0 2px 8px;
+  border: 0;
+  border-left: 1px solid var(--line-1);
+  text-align: center;
+  white-space: nowrap;
+}
+:root[data-layout="vertical"] #app #view:not([data-screen="dashboard"]) .command-section-nav .command-nav-items {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+:root[data-layout="vertical"] #app #view .command-section-nav .command-nav-items > button {
+  flex: 1 0 calc((100% - 12px) / 3);
+  max-width: 100%;
+  border-color: var(--line-1) !important;
+  border-radius: 8px !important;
+}
+:root[data-layout="vertical"] #app #view .command-section-nav .command-nav-items > button.active {
+  border-color: var(--accent-dim) !important;
+}
+:root[data-layout="vertical"] :is(#app #view,#modalRoot) .inbox-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(77px, 100%), 1fr));
+  gap: 5px;
+  padding: 7px;
+  background: var(--surface-1);
+}
+:root[data-layout="vertical"] :is(#app #view,#modalRoot) .inbox-filters button {
+  min-height: var(--v-tap);
+  min-width: 0;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+:root[data-layout="vertical"] :is(#app #view,#modalRoot) .inbox-filters button.on {
+  border-color: var(--accent-dim);
+  background: var(--accent-wash) !important;
+}
+:root[data-layout="vertical"] body:has(#modalRoot .modal) #saveIndicator[data-kind="success"] {
+  visibility: hidden;
+}
+:root[data-layout="vertical"] #saveIndicator {
+  max-width: calc(100% - 24px);
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line-2);
+  color: var(--text-1) !important;
+}
+
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal.boc-desk {
+  padding: 0 12px 12px !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal.boc-desk > .modal-head {
+  display: flex;
+  position: sticky;
+  inset: 0 auto auto;
+  align-items: center;
+  padding: 7px 0 !important;
+  background: var(--surface-1) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .boc-desk > .modal-head > div {
+  display: block;
+  min-width: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .boc-desk > .modal-head h2 {
+  margin: 0;
+  font: 400 22px/1.15 Georgia, serif !important;
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk > .produce-lead {
+  padding: 8px 0;
+  margin: 0 0 8px;
+  color: var(--text-2);
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk .boc-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk .boc-stats .stat {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--line-1);
+  border-radius: 8px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk .boc-stats .stat span { color: var(--text-2); }
+:root[data-layout="vertical"] #modalRoot .boc-desk :is(.boc-cards,.boc-film .produce-cards) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk .boc-tactic {
+  padding: 10px;
+  border: 1px solid var(--line-1);
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk .boc-tactic :is(header,footer) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+:root[data-layout="vertical"] #modalRoot .boc-desk .boc-tactic footer { justify-content: space-between; }
+
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal.command-location-modal {
+  overflow: auto !important;
+}
+:root[data-layout="vertical"] #modalRoot .command-location-modal .loc-desk {
+  max-height: none;
+  overflow: visible;
+}
+:root[data-layout="vertical"] #modalRoot .command-location-modal .loc-head {
+  padding: 16px 12px 12px;
+}
+:root[data-layout="vertical"] #modalRoot .command-location-modal .loc-head > div:first-child {
+  padding-inline-end: 28px;
+}
+:root[data-layout="vertical"] #modalRoot .command-location-modal .loc-head-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+:root[data-layout="vertical"] #modalRoot .command-location-modal .loc-head-stats > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #modalRoot .command-pitch-modal .pitch-head {
+  padding: 12px 52px 10px 12px;
+  gap: 8px;
+}
+:root[data-layout="vertical"] #modalRoot .command-pitch-modal .pitch-head-score {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+:root[data-layout="vertical"] #modalRoot .command-pitch-modal .pitch-head-score small { margin-inline-end: 4px; }
+:root[data-layout="vertical"] #modalRoot .command-pitch-modal .pitch-head-score b { font-size: 23px; }
+:root[data-layout="vertical"] #modalRoot .command-pitch-modal .pitch-actions {
+  padding: 8px 10px;
+  gap: 6px;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .modal :is(.command-primary,.pitch-actions button):disabled {
+  opacity: 1;
+  color: var(--text-2) !important;
+  background: var(--surface-3) !important;
+  border-color: var(--line-2) !important;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .picture-partners #btnPactDevelop:not(:disabled) {
+  color: var(--accent-ink) !important;
+  background: var(--accent-strong) !important;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace .workspace-content > .stat-hero {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  background: transparent;
+  border: 0;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .management-workspace .stat-hero > .stat {
+  padding: 8px;
+  min-width: 0;
+  border: 1px solid var(--line-1) !important;
+  border-radius: 8px;
+  background: var(--surface-1) !important;
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace .stat-hero .s-l {
+  line-height: 1.35;
+  letter-spacing: .03em;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace .stat-hero .s-v {
+  font-size: clamp(17px, 5vw, 23px);
+  line-height: 1.15;
+  overflow-wrap: break-word;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace :is(.workspace-hero,.workspace-content) {
+  padding: 12px;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace .workspace-rail {
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 8px 0;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace .workspace-rail button {
+  flex: 1 1 120px;
+  white-space: normal;
+}
+:root[data-layout="vertical"] #modalRoot .save-vault {
+  --ts-panel-0: var(--surface-1);
+  --ts-panel-1: var(--surface-2);
+  --ts-line-0: var(--line-1);
+  --ts-line-1: var(--line-2);
+  --ts-ink-0: var(--text-1);
+  --ts-ink-1: var(--text-1);
+  --ts-ink-muted-0: var(--text-2);
+  --ts-ink-muted-1: var(--text-2);
+  --ts-accent: var(--accent-strong);
+  --ts-accent-dim: var(--accent-dim);
+}
+:root[data-layout="vertical"] #modalRoot .save-vault .vault-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
+:root[data-layout="vertical"] #modalRoot .save-vault .slot-card {
+  min-width: 0;
+  border-radius: 9px;
+}
+:root[data-layout="vertical"] #modalRoot .save-vault .slot-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+:root[data-layout="vertical"] #modalRoot .trophy-room :is(.trophy-gallery,.trophy-filters) {
+  gap: 6px;
+  padding-inline: 8px;
+}
+:root[data-layout="vertical"] #modalRoot .trophy-room .trophy-filters {
+  flex-wrap: wrap;
+}
+:root[data-layout="vertical"] #modalRoot .trophy-room .trophy-plaque {
+  min-width: 0;
+  min-height: 0;
+  padding: 9px;
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+:root[data-layout="vertical"] #modalRoot .trophy-room .trophy-plaque.earned { border-color: var(--accent-dim); }
+html[data-skin="game"][data-layout="vertical"] #modalRoot .trophy-room .trophy-plaque h3 {
+  font: 400 clamp(15px, 4.1vw, 19px)/1.2 Georgia, serif !important;
+  overflow-wrap: normal;
+}
+:root[data-layout="vertical"] #modalRoot .trophy-room .trophy-emblem {
+  margin: 6px 0;
+  font-size: 25px;
+}
+
+:root[data-layout="vertical"] .section-emoji { display: inline; }
+:root[data-layout="vertical"] button:has(.section-emoji) > .subtab-pixel-icon { display: none !important; }
+:root[data-layout="vertical"] #bottomNav .portrait-nav-icon[data-emoji]::before {
+  margin: 0;
+  font-size: 15px;
+}
+:root[data-layout="vertical"] #app #view .command-nav-items > button > span:has(.section-emoji),
+:root[data-layout="vertical"] #app #studiolotGlobalStage .kairo-nav-tab > span:has(.section-emoji) {
+  display: grid !important;
+  justify-items: center;
+  gap: 1px;
+  min-width: 0;
+  text-align: center;
+}
+:root[data-layout="vertical"] #app #view .command-nav-items > button {
+  padding: 3px 5px !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="dashboard"] .command-nav-items > button {
+  padding-inline: 1px !important;
+}
+:root[data-layout="vertical"] #app #view[data-screen="dashboard"] .command-nav-items > button > span {
+  font-size: clamp(9px, 2.7vw, 11px);
+  overflow-wrap: normal;
+}
+:root[data-layout="vertical"] #app #view .command-nav-items .section-emoji::before,
+:root[data-layout="vertical"] #app #studiolotGlobalStage .kairo-nav-tab .section-emoji::before {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1;
+}
+:root[data-layout="vertical"] #modalRoot .creative-lab .lab-editor {
+  min-width: 0;
+  padding: 10px;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .creative-lab .lab-editor > .card {
+  padding: 12px !important;
+  background: var(--surface-2) !important;
+}
+:root[data-layout="vertical"] #modalRoot .creative-lab .lab-editor .grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+:root[data-layout="vertical"] #modalRoot .creative-lab .lab-editor .grid > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+html[data-skin="game"][data-layout="vertical"] #modalRoot .creative-lab .lab-editor :is(input,select) {
+  min-width: 0;
+  min-height: var(--v-tap);
+  border: 1px solid var(--line-2) !important;
+  border-radius: 8px !important;
+  background: var(--surface-1) !important;
+  color: var(--text-1) !important;
+}
+:root[data-layout="vertical"] #modalRoot .creative-lab .lab-field-note {
+  color: var(--text-2);
+  overflow-wrap: break-word;
+}
+:root[data-layout="vertical"] #modalRoot .creative-lab .lab-editor .card > b:has(.section-emoji)::before { content: none; }
+
+:root[data-layout="vertical"] #modalRoot .modal :is(h2,h3):has(> .dialog-emoji) {
+  position: relative;
+  padding-inline-start: 1.3em;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(h2,h3) > .dialog-emoji {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.guide-nav,.preferences-nav,.lab-sidebar) button > :is(b,span):has(> .section-emoji) {
+  display: flex !important;
+  align-items: baseline;
+  gap: 5px;
+  text-align: start;
+  overflow-wrap: normal;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.guide-nav,.preferences-nav,.lab-sidebar) button .section-emoji {
+  display: inline !important;
+  flex-shrink: 0;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.guide-nav,.preferences-nav,.lab-sidebar) button .section-emoji::before {
+  margin: 0;
+}
+:root[data-layout="vertical"] #modalRoot .field-guide .command-dialog-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+:root[data-layout="vertical"] #modalRoot .field-guide .command-dialog-footer button {
+  width: 100%;
+  text-align: center;
+}
+:root[data-layout="vertical"] #modalRoot .management-workspace .stat-hero .s-l {
+  overflow-wrap: normal;
+}
+:root[data-layout="vertical"] #modalRoot .modal .cast-scout-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+}
+:root[data-layout="vertical"] #modalRoot .modal .cast-scout-card :is(header,summary),
+:root[data-layout="vertical"] #modalRoot .modal .cast-scout > summary {
+  flex-wrap: wrap;
+}
+:root[data-layout="vertical"] #modalRoot .modal :is(.cast-row-id,.cast-pick-main) > :is(b,small),
+:root[data-layout="vertical"] #modalRoot .modal .cast-scout-card header b {
+  white-space: normal;
+  overflow-wrap: break-word;
 }

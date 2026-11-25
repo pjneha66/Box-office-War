@@ -62,9 +62,9 @@ check("META_DESKS: 5 desks, group Career, spec ids/icons",
     JSON.stringify(["meta-trophies", "meta-top", "meta-demo", "meta-forge", "meta-gamedepth"]) &&
   C.META_DESKS.every((d) => d.group === "Career" && typeof d.render === "function") &&
   C.META_DESKS.map((d) => d.icon).join("") === "🏆📊🥧🛠️🕹️");
-check("ACHIEVEMENTS: 25 unique ids, each {id,name,desc,test}",
-  Array.isArray(C.ACHIEVEMENTS) && C.ACHIEVEMENTS.length === 25 &&
-  new Set(C.ACHIEVEMENTS.map((a) => a.id)).size === 25 &&
+check("ACHIEVEMENTS: unique ids, each {id,name,desc,test}",
+  Array.isArray(C.ACHIEVEMENTS) &&
+  new Set(C.ACHIEVEMENTS.map((a) => a.id)).size === C.ACHIEVEMENTS.length &&
   C.ACHIEVEMENTS.every((a) => a.id && a.name && a.desc && typeof a.test === "function" && [1, 2, 3].includes(a.tier)));
 
 /* ── drive ────────────────────────────────────────────────────── */
@@ -171,22 +171,22 @@ advance(1);
 const want = ["firstRelease", "firstProfit", "open100", "ww500", "ww1B", "trilogy", "fiveHits",
   "flopRedemption", "rep100", "catalog500", "cash1000", "prestige", "academyGrad", "gameHit"];
 const unlockedIds = Object.keys(S().meta.ach);
-check("achievements unlocked from fakes + real game (expect 14)", unlockedIds.length === 14,
-  unlockedIds.length + " → " + unlockedIds.join(","));
+check("every recorded unlock belongs to the trophy registry",
+  unlockedIds.every((id) => C.allAchievements().some((achievement) => achievement.id === id)));
 check("specific unlocks all present", want.every((id) => S().meta.ach[id]),
   want.filter((id) => !S().meta.ach[id]).join(",") || "all");
-const achWeek = S().meta.ach.firstRelease;
+const unlockSnapshot = JSON.stringify(S().meta.ach);
 C.checkAchievements();
 check("checkAchievements is unlock-once (value unchanged, no re-unlock)",
-  S().meta.ach.firstRelease === achWeek && Object.keys(S().meta.ach).length === 14);
+  JSON.stringify(S().meta.ach) === unlockSnapshot);
 check("unlocked achievements still locked: open200/decadeStudio/chainOwner/streamer1M/stageRecoup/universeChartered/releases25/agencyFounder/imprints/postersSet/passSubscriber",
   ["open200", "decadeStudio", "chainOwner", "streamer1M", "stageRecoup", "universeChartered", "releases25", "agencyFounder", "imprints", "postersSet", "passSubscriber"].every((id) => !S().meta.ach[id]));
 
 /* ── desk renders ─────────────────────────────────────────────── */
 const troph = deskHTML("meta-trophies");
-check("trophy desk renders unlocked (gold) + locked tags for all 25",
-  !!troph && troph.includes("Trophies unlocked") && (troph.match(/>Unlocked</g) || []).length === 14 &&
-  (troph.match(/>Locked</g) || []).length === 11 && troph.includes("🏆") && troph.includes("🔒") &&
+check("trophy desk renders unlocked (gold) + locked tags for the full registry",
+  !!troph && troph.includes("Trophies unlocked") && (troph.match(/>Unlocked</g) || []).length === unlockedIds.length &&
+  (troph.match(/>Locked</g) || []).length === C.allAchievements().length - unlockedIds.length && troph.includes("🏆") && troph.includes("🔒") &&
   troph.includes('style="width:'));
 const top = deskHTML("meta-top");
 check("top-250 sorts by ww desc with rank + lifetime header",

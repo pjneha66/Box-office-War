@@ -21,7 +21,9 @@ var POSTER_PALETTES = {
   fantasy:   { top: "#2f7d4f", end: "#9c700d" },
   crime:     { top: "#8c2f3d", end: "#2e0912" },
   musical:   { top: "#c74fae", end: "#4d0d55" },
-  docs:      { top: "#9aa2ab", end: "#2c333a" }
+  docs:      { top: "#9aa2ab", end: "#2c333a" },
+  western:   { top: "#c68648", end: "#462719" },
+  family:    { top: "#ebad59", end: "#574a8e" }
 };
 var POSTER_SEL = { filmId: null, variant: 0 }; /* studio-desk UI state, like GL/RL in ui.js */
 

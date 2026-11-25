@@ -236,7 +236,7 @@ html[data-skin="game"] #app #tabsNav .tab.active {
 
 /* Section nav sits INSIDE the deck; stop it overlapping the deck border. */
 html[data-skin="game"] #app .command-section-nav {
-  border-radius: var(--r-full) !important;
+  border-radius: 6px !important;
   border-width: 1px !important;
 }
 html[data-skin="game"] #app .command-deck .command-section-nav,

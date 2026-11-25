@@ -267,15 +267,17 @@ async function restoreSafetyCopy(id){
   return G;
 }
 
-function showSaveIndicator(msg){
+function showSaveIndicator(msg, kind="success"){
   const el = $("#saveIndicator");
   if(!el){
     const div = document.createElement("div");
     div.id = "saveIndicator";
+    div.setAttribute("role", "status");
     div.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:1000;padding:8px 12px;background:rgba(0,0,0,.8);color:var(--gold);border-radius:8px;font-size:12px;opacity:0;transition:opacity .2s";
     document.body.appendChild(div);
   }
   const el2 = $("#saveIndicator");
+  el2.dataset.kind = kind;
   el2.textContent = msg;
   el2.style.opacity = "1";
   if(_saveIndicatorTimer) clearTimeout(_saveIndicatorTimer);
@@ -299,7 +301,7 @@ function saveGame(){
     if(!wrote){
       /* Never claim a save that did not land: the player would lose the week
          on reload with no warning. */
-      showSaveIndicator("⚠️ Storage full — save not written");
+      showSaveIndicator("⚠️ Storage full — save not written", "error");
       try{ if(typeof toast==="function") toast("Storage full — save not written. Export a save code or delete old slots.","bad"); }catch(e){}
       return;
     }

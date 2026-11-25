@@ -168,8 +168,9 @@ for (const vp of VIEWPORTS) {
 
   // schedule release
   await clickBy(page, '[data-action="rl-open"]');
-  await sleep(150);
-  await clickBy(page, '[data-action="rl-confirm"]');
+  // Use the lowest-cost campaign so a production overrun cannot block this UI flow.
+  await clickBy(page, '[data-action="rl-mkt"][data-idx="0"]');
+  await clickBy(page, '[data-action="rl-confirm"]:not(:disabled)');
   await sleep(200);
   const scheduled = await page.evaluate(() => S.projects.some((p) => p.releaseWeek));
   scheduled ? ok("release scheduled") : fail("schedule failed");

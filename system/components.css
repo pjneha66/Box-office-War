@@ -569,3 +569,13 @@
   #app[data-active-tab="dashboard"] .command-empty small { display: none !important; }
   #app[data-active-tab="dashboard"] .command-empty span { font-size: 18px !important; }
 }
+.dialog-emoji::before,
+.section-emoji::before,
+.portrait-nav-icon[data-emoji]::before {
+  content: attr(data-emoji);
+  display: inline-block;
+  margin-inline-end: .35em;
+  font-size: .85em;
+}
+.section-emoji { display: none; }
+.fans-mail-filters .section-emoji { display: inline; }

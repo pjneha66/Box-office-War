@@ -115,11 +115,11 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
     const m=document.querySelector('#modalRoot .modal'), list=document.querySelector('#castDirList');
     return {cls:m.className,rows:document.querySelectorAll('.cast-row').length,count:document.querySelector('#castDirCount').textContent,
       scrolls:list.scrollHeight>list.clientHeight,pageOverflow:document.documentElement.scrollWidth>window.innerWidth+2,
-      img:getComputedStyle(m).backgroundImage,tagShadow:(()=>{const b=document.querySelector('.develop-badge');return b?getComputedStyle(b).boxShadow:'none'})()};
+      pageSize:CAST_DIR_PAGE,img:getComputedStyle(m).backgroundImage,tagShadow:(()=>{const b=document.querySelector('.develop-badge');return b?getComputedStyle(b).boxShadow:'none'})()};
   });
   assert.match(dir.cls,/command-develop-modal/);
   assert.equal(dir.img,'none','the directory must not paint a legacy gradient');
-  assert.equal(dir.rows,60,'the directory pages rows rather than painting the whole roster');
+  assert.equal(dir.rows,dir.pageSize,'the directory pages rows rather than painting the whole roster');
   assert(dir.count.includes(rosterTotal.toLocaleString()),'the directory must report the full roster');
   assert(dir.scrolls,'the directory list must scroll, not expand the page');
   assert(!dir.pageOverflow,'the directory must not widen the page');
@@ -131,8 +131,9 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
   assert(searched.rows>=1&&searched.rows<=6,'species search must narrow the roster (got '+searched.rows+')');
   assert(/Animal actor/.test(searched.sub),'animal rows must say they are animal actors');
   await page.evaluate(()=>{document.querySelector('[data-castfilter="animal"]').click();document.querySelector('#castDirSearch').value='';CAST_DIR.q='';castDirSync(document.querySelector('#modalRoot .modal'));});
-  const animalRows=await page.evaluate(()=>document.querySelectorAll('.cast-row').length);
-  assert.equal(animalRows,60,'animal filter must be a full 72-strong roster (paged to 60)');
+  const animalRows=await page.evaluate(()=>({visible:document.querySelectorAll('.cast-row').length, expected:Math.min(CAST_DIR_PAGE,G.talent.filter(t=>t.isAnimal).length)}));
+  assert(animalRows.expected>0,'the roster includes animal performers');
+  assert.equal(animalRows.visible,animalRows.expected,'animal filter lists the first page of animal performers');
   await page.evaluate(()=>document.querySelector('[data-cast-pin^="film:"]').click());
   assert(await page.evaluate(()=>G.castPins.film.length>0),'pinning must persist on the save state');
   await page.evaluate(()=>{document.querySelector('#castDirDone').click();startFilmPitchWizard();});
@@ -161,8 +162,10 @@ const SECTIONS=['scripts','demographics','creativity','ip','talent','combos','ta
       await page.evaluate(s=>{closeModal();DEVELOP_SUB=s;_renderImpl();},section);
       const nav=await page.evaluate(()=>{
         const box=document.querySelector('.command-develop-nav').getBoundingClientRect();
-        const clipped=[...document.querySelectorAll('.command-develop-nav [data-devsub]')].filter(b=>{
-          const r=b.getBoundingClientRect();return r.left<box.left-1||r.right>box.right+1||r.width<40;}).map(b=>b.textContent.trim());
+        const rail=document.querySelector('.command-develop-nav .command-nav-items');
+        const scrolls=getComputedStyle(rail).overflowX==='auto'&&rail.scrollWidth>rail.clientWidth;
+        const clipped=[...rail.querySelectorAll('[data-devsub]')].filter(b=>{
+          const r=b.getBoundingClientRect();return (!scrolls&&(r.left<box.left-1||r.right>box.right+1))||r.width<40;}).map(b=>b.textContent.trim());
         const head=document.querySelector('.command-develop .command-heading').getBoundingClientRect();
         return {clipped,chrome:Math.round(box.height+head.height)};
       });

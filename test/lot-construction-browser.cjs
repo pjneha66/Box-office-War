@@ -6,7 +6,18 @@ const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),c
   await p.goto(process.env.GAME_URL||'http://127.0.0.1:8081',{waitUntil:'networkidle0'});await p.click('#btnStart');await p.evaluate(()=>switchTab('studiolot'));await p.waitForSelector('#studioLotCanvas');await p.click('#lotPause');
   const state=()=>p.evaluate(()=>({cash:G.studio.cash,n:StudioLotBridge.engine.buildings.length}));
   const choose=async(type)=>{await p.click('#btnTogglePalette');await p.click('[data-btype="'+type+'"]');assert.equal(await p.$eval('#lotPaletteRoot',e=>getComputedStyle(e).display),'none','palette must not block the construction site');assert.equal(await p.$eval('#btnTogglePalette',e=>e.textContent),'Cancel build');};
-  const site=async(type,valid=true)=>p.evaluate(([type,valid])=>{const e=StudioLotBridge.engine,r=document.querySelector('#studioLotCanvas').getBoundingClientRect(),sites=[];for(let x=0;x<20;x++)for(let y=0;y<20;y++){if(e.can_place(type,x,y)!==valid)continue;const q=StudioLot2D.project(x+.5,y+.5),sx=q.x+r.left,sy=q.y+r.top;if(sx>0&&sy>0&&sx<innerWidth&&sy<innerHeight&&document.elementFromPoint(sx,sy)?.id==='studioLotCanvas')sites.push({x:sx,y:sy,gridX:x,gridY:y,d:Math.hypot(sx-innerWidth/2,sy-innerHeight/2)});}return sites.sort((a,b)=>a.d-b.d)[0];},[type,valid]);
+  const site=async(type,valid=true)=>p.evaluate(async ([type,valid])=>{
+   const canvas=document.querySelector('#studioLotCanvas');
+   // The lot can resize after switching rooms. Measure the tap once projection and canvas bounds settle.
+   let last='',stable=0;
+   for(let frame=0;frame<30&&stable<3;frame++){
+    await new Promise(requestAnimationFrame);
+    const rect=canvas.getBoundingClientRect(),origin=StudioLot2D.project(0,0);
+    const current=[rect.x,rect.y,rect.width,rect.height,origin.x,origin.y].join(',');
+    stable=current===last?stable+1:0;
+    last=current;
+   }
+   const e=StudioLotBridge.engine,r=canvas.getBoundingClientRect(),sites=[];for(let x=0;x<20;x++)for(let y=0;y<20;y++){if(e.can_place(type,x,y)!==valid)continue;const q=StudioLot2D.project(x+.5,y+.5),sx=q.x+r.left,sy=q.y+r.top;if(sx>0&&sy>0&&sx<innerWidth&&sy<innerHeight&&document.elementFromPoint(sx,sy)?.id==='studioLotCanvas')sites.push({x:sx,y:sy,gridX:x,gridY:y,d:Math.hypot(sx-innerWidth/2,sy-innerHeight/2)});}return sites.sort((a,b)=>a.d-b.d)[0];},[type,valid]);
   const tap=async q=>{assert(q,'expected an uncovered site on the real canvas');if(touch)await p.touchscreen.tap(q.x,q.y);else await p.mouse.click(q.x,q.y);};
   await p.click('[data-view="executive"]');
   for(const [type,cost]of Object.entries({soundstage:15,virtual_led:25,post_suite:8,writers_bungalow:5})){

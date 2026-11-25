@@ -1,11 +1,14 @@
 // Test 2D Studio Lot Engine directly in Chrome via Chrome DevTools Protocol (CDP)
 import fs from "fs";
+import assert from "node:assert/strict";
 
 async function main() {
-  console.log("[MAC LOCAL TEST] Connecting to Chrome CDP at localhost:9222...");
-  const res = await fetch("http://localhost:9222/json");
+  const debugUrl = process.env.CHROME_DEBUG_URL || "http://localhost:9222";
+  const gameUrl = process.env.GAME_URL || "http://localhost:8085";
+  console.log("[MAC LOCAL TEST] Connecting to Chrome CDP at", debugUrl);
+  const res = await fetch(new URL("/json", debugUrl));
   const pages = await res.json();
-  const page = pages.find(p => p.url && p.url.includes("8085"));
+  const page = pages.find(target => target.type === "page" && target.url && new URL(target.url).origin === new URL(gameUrl).origin);
   if (!page) {
     throw new Error("Could not find Box Office War page in Chrome targets");
   }
@@ -63,6 +66,8 @@ async function main() {
       } else if (typeof enterApp === "function") {
         enterApp(true);
       }
+      switchTab("studiolot");
+      closeModal();
       return {
         appVisible: document.getElementById("app")?.style.display !== "none",
         tab: typeof TAB !== "undefined" ? TAB : null,
@@ -97,14 +102,17 @@ async function main() {
     returnByValue: true
   });
   console.log("[MAC LOCAL TEST] 2D Lot Canvas & HUD:", lotState.result.value);
+  assert(lotState.result.value.canvasW > 0 && lotState.result.value.canvasH > 0, "Studio Lot canvas must render");
 
   // Test In-Canvas Advance Week
   console.log("[MAC LOCAL TEST] Clicking In-Canvas Next Week (+1W)...");
   const nextRes = await send("Runtime.evaluate", {
     expression: `(function(){
       const btn = document.getElementById("btnLotNextWeek");
+      const before = G.week;
       if (btn) btn.click();
       return {
+        before,
         week: typeof G !== "undefined" && G ? G.week : null,
         cash: typeof G !== "undefined" && G && G.studio ? G.studio.cash : null
       };
@@ -112,43 +120,30 @@ async function main() {
     returnByValue: true
   });
   console.log("[MAC LOCAL TEST] Advanced Week Result:", nextRes.result.value);
+  assert.equal(nextRes.result.value.week, nextRes.result.value.before + 1);
 
   // Wait 500ms for floating texts and canvas render
   await new Promise(r => setTimeout(r, 500));
 
-  // Test selecting a building (Soundstage) by clicking canvas at exact building coordinate
-  console.log("[MAC LOCAL TEST] Selecting building on lot...");
-  const selectRes = await send("Runtime.evaluate", {
-    expression: `(function(){
-      const engine = window.StudioLotBridge ? window.StudioLotBridge.getEngine() : null;
-      if (!engine) return { error: "no engine" };
-      const lot = JSON.parse(engine.get_lot_state_json());
-      const stage = (lot.buildings || []).find(b => b.b_type === "soundstage");
-      if (stage) {
-        const canvas = document.getElementById("studioLotCanvas");
-        const rect = canvas.getBoundingClientRect();
-        // Focus set first using the built-in button
-        document.getElementById("btnFocusShoot")?.click();
-        
-        // Click center of screen where stage is now focused
-        const evt = new MouseEvent("click", {
-          clientX: rect.left + canvas.width / 2,
-          clientY: rect.top + canvas.height / 2,
-          bubbles: true
-        });
-        canvas.dispatchEvent(evt);
-        return {
-          inspectorVisible: document.getElementById("lotInspectorRoot")?.style.display !== "none",
-          inspectorContent: document.getElementById("lotInspectorRoot")?.innerText?.slice(0, 100)
-        };
-      }
-      return { error: "no soundstage found" };
+  const selection = await send("Runtime.evaluate", {
+    expression: `(() => {
+      closeModal();
+      StudioLot2D.setView("campus");
+      const canvas = document.getElementById("studioLotCanvas");
+      const rect = canvas.getBoundingClientRect();
+      const point = StudioLot2D.project(5.5, 5.5);
+      return { x: rect.left + point.x, y: rect.top + point.y };
     })()`,
     returnByValue: true
   });
-  console.log("[MAC LOCAL TEST] Building Selection:", selectRes.result.value);
-
-  await new Promise(r => setTimeout(r, 600));
+  const point = selection.result.value;
+  await send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...point });
+  await send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...point });
+  const inspector = await send("Runtime.evaluate", {
+    expression: 'Boolean(document.querySelector("#lotVisit")?.getClientRects().length)',
+    returnByValue: true
+  });
+  assert.equal(inspector.result.value, true, "Selecting a lot building opens its inspector");
 
   // Capture Screenshot of live 2D Studio Lot with Inspector open
   console.log("[MAC LOCAL TEST] Capturing live 2D Canvas screenshot with inspector...");

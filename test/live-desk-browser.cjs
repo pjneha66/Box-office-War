@@ -84,7 +84,8 @@ const OUT='/tmp/live-shots';
         const nav=document.querySelector('.bottomnav');
         const panels=[...document.querySelectorAll('.command-live .produce-panel')];
         const last=panels[panels.length-1];
-        window.scrollTo(0,999999);
+        const scroller = document.documentElement.dataset.layout === 'vertical' ? document.getElementById('view') : document.scrollingElement;
+        scroller.scrollTop = scroller.scrollHeight;
         const lr=last.getBoundingClientRect();
         const nr=nav?nav.getBoundingClientRect():{top:innerHeight};
         return {gap: Math.round(nr.top-lr.bottom), navFound: !!nav};
@@ -111,4 +112,4 @@ const OUT='/tmp/live-shots';
     assert.deepEqual(errors,[],'console/page errors: '+errors.join(' ; '));
     console.log('PASS live browser: responsive + offline (external requests blocked) + screenshots');
   }finally{ await browser.close(); }
-})().catch(e=>{console.error('FAIL',e.message);process.exitCode=1;});
+})().catch(e=>{console.error('FAIL',e.message);process.exit(1);});

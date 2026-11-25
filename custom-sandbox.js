@@ -184,24 +184,24 @@
       let h = "<header class='command-dialog-hero'><div><span class='command-eyebrow'>STUDIO HQ / 08 / CUSTOM WORLDS</span><h2>Creative Lab</h2><p>Make the people, stories, and competition that shape your industry.</p></div><span class='lab-badge'>CAREER DATABASE<br>LIVE EDITOR</span></header>";
       h += "<div class='lab-workspace'><aside class='lab-sidebar'><span class='command-eyebrow'>CHOOSE YOUR WORKBENCH</span>";
       sections.forEach(([key,number,label,desc])=>{
-        h += "<button class='lab-tab " + (activeTab===key?"active":"") + "' data-stab='"+key+"' aria-pressed='"+(activeTab===key)+"'><small>"+number+" / CREATE</small><b>"+label+"</b><span>"+desc+"</span></button>";
+        h += "<button class='lab-tab " + (activeTab===key?"active":"") + "' data-stab='"+key+"' aria-pressed='"+(activeTab===key)+"'><small>"+number+" / CREATE</small><b>"+sectionEmoji("creativeLab",key)+label+"</b><span>"+desc+"</span></button>";
       });
       h += "<p class='lab-note'>Your creations join this career immediately. Changes are saved to your current studio.</p></aside><section class='lab-editor'>";
 
       if(activeTab === "talent"){
         h += "<div class='card'>";
-        h += "<b>Casting bench / Create talent</b>";
+        h += "<b>"+sectionEmoji("creativeLab","talent")+"Casting bench / Create talent</b>";
         h += "<div class='grid g2' style='gap:8px;margin-top:8px'>";
-        h += "<div><label class='tiny muted'>Full Name</label><input type='text' id='cs_name' class='input' placeholder='e.g. Leo Sterling' style='width:100%'></div>";
-        h += "<div><label class='tiny muted'>Role</label><select id='cs_kind' class='input' style='width:100%'><option value='actor'>Actor / Star</option><option value='director'>Director</option></select></div>";
-        h += "<div><label class='tiny muted'>Star Power Rating (1 to 5 Stars)</label><select id='cs_power' class='input' style='width:100%'><option value='5'>5 Stars (Marquee Superstar)</option><option value='4' selected>4 Stars (A-List Lead)</option><option value='3'>3 Stars (Working Star)</option><option value='2'>2 Stars (Rising Talent)</option></select></div>";
-        h += "<div><label class='tiny muted'>Genre Specialty</label><select id='cs_genre' class='input' style='width:100%'><option value='action'>Action</option><option value='scifi'>Sci-Fi</option><option value='drama'>Drama</option><option value='comedy'>Comedy</option><option value='horror'>Horror</option><option value='romance'>Romance</option><option value='animation'>Animation</option></select></div>";
-        h += "<div><label class='tiny muted'>Craft Skill (40 - 99)</label><input type='number' id='cs_skill' class='input' value='80' min='40' max='99' style='width:100%'></div>";
-        h += "<div><label class='tiny muted'>Personal Trait / Quirk</label><select id='cs_quirk' class='input' style='width:100%'>";
+        h += "<div><label class='tiny muted' for='cs_name'>Full Name</label><input type='text' id='cs_name' class='input' placeholder='e.g. Leo Sterling' style='width:100%'></div>";
+        h += "<div><label class='tiny muted' for='cs_kind'>Role</label><select id='cs_kind' class='input' style='width:100%'><option value='actor'>Actor / Star</option><option value='director'>Director</option></select></div>";
+        h += "<div><label class='tiny muted' for='cs_power'>Star Power Rating (1 to 5 Stars)</label><select id='cs_power' class='input' style='width:100%'><option value='5'>5 Stars (Marquee Superstar)</option><option value='4' selected>4 Stars (A-List Lead)</option><option value='3'>3 Stars (Working Star)</option><option value='2'>2 Stars (Rising Talent)</option></select></div>";
+        h += "<div><label class='tiny muted' for='cs_genre'>Genre Specialty</label><select id='cs_genre' class='input' style='width:100%'><option value='action'>Action</option><option value='scifi'>Sci-Fi</option><option value='drama'>Drama</option><option value='comedy'>Comedy</option><option value='horror'>Horror</option><option value='romance'>Romance</option><option value='animation'>Animation</option></select></div>";
+        h += "<div><label class='tiny muted' for='cs_skill'>Craft Skill (40 - 99)</label><input type='number' id='cs_skill' class='input' value='80' min='40' max='99' style='width:100%'></div>";
+        h += "<div><label class='tiny muted' for='cs_quirk'>Personal Trait / Quirk</label><select id='cs_quirk' class='input' style='width:100%' aria-describedby='cs_quirk_detail'>";
         BOW_SANDBOX.QUIRKS.forEach(q => {
-          h += "<option value='" + q.id + "'>" + q.name + " (" + q.desc + ")</option>";
+          h += "<option value='" + q.id + "'>" + q.name + "</option>";
         });
-        h += "</select></div>";
+        h += "</select><small id='cs_quirk_detail' class='lab-field-note'></small></div>";
         h += "</div>";
         h += "<button class='btn btn-sm btn-primary' id='btnSaveTalent' style='margin-top:12px;width:100%'>Add talent to your industry</button>";
         h += "</div>";
@@ -258,6 +258,13 @@
 
       const bTalent = inner.querySelector("#btnSaveTalent");
       if(bTalent){
+        const quirkField = inner.querySelector("#cs_quirk");
+        const quirkDetail = inner.querySelector("#cs_quirk_detail");
+        const updateQuirk = () => {
+          quirkDetail.textContent = BOW_SANDBOX.QUIRKS.find(q => q.id === quirkField.value)?.desc || "";
+        };
+        quirkField.onchange = updateQuirk;
+        updateQuirk();
         bTalent.onclick = function(){
           const name = (inner.querySelector("#cs_name").value || "").trim();
           if(!name){ alert("Please enter talent name."); return; }

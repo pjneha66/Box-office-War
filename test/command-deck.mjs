@@ -12,7 +12,7 @@ const $=s=>w.document.querySelector(s);
 assert.equal(w.document.querySelectorAll('.command-metric').length,4);
 assert.equal($('.kairo-dept-banner'),null,'old dashboard banner must not precede new interface');
 assert.equal($('#view').dataset.screen,'dashboard');
-assert($('.command-edition'));
+assert.equal($('.command-heading h1').textContent,'Test <Studio>');
 assert.equal(w.document.querySelectorAll('.command-section-nav').length,1);
 assert.equal($('#subTabs').style.display,'none');
 assert.equal($('#fabLot'),null,'legacy floating 2D-lot button must be gone');

@@ -288,8 +288,8 @@
     const center = S.crisisCenter;
     const active = center.activeCrises || [];
 
-    let h = "<div class='card' style='margin-bottom:12px;border-left:4px solid " + (active.length ? "var(--red)" : "var(--green)") + "'>";
-    h += "<div class='spread'><b>Hollywood PR Crisis Center &amp; Media War Room</b><span class='tag " + (active.length ? "red" : "green") + "'>" + (active.length ? active.length + " Active Scandals" : "Clean Media Record") + "</span></div>";
+    let h = "<section class='card studio-reputation-card'>";
+    h += "<div class='spread'><h2>PR &amp; Media Response</h2><span class='tag " + (active.length ? "red" : "green") + "'>" + (active.length ? active.length + " Active Scandals" : "Clean Media Record") + "</span></div>";
     h += "<div class='tiny muted' style='margin:4px 0 10px'>Hollywood scandals, paparazzi exposés, script leaks, and copyright litigation. Deploy strategic mitigations to defend studio prestige.</div>";
 
     if(!active.length){
@@ -318,7 +318,7 @@
       "<button class='btn btn-sm " + (center.antiPiracyTechActive ? "btn-ghost" : "btn-alt") + "' id='btnAntiPiracy' " + (center.antiPiracyTechActive ? "disabled" : "") + ">" + (center.antiPiracyTechActive ? "Anti-Piracy Watermarking Active" : "Forensic Watermarking ($1.8M)") + "</button>" +
     "</div>";
 
-    h += "</div>";
+    h += "</section>";
     return h;
   }
 

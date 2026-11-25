@@ -6,7 +6,7 @@
       the same step with the picks applied,
    4. a cameo is a chosen star, not a checkbox,
    5. the greenlight flow uses the command shell, not legacy cards,
-   6. all seven Develop sections and the three tool desks are visible on top,
+   6. all eight Develop sections and the three tool desks are visible on top,
       under them, at every viewport,
    7. the sound control is a real toggle.
    Browser dependencies are optional local tools. */
@@ -240,23 +240,25 @@ const VIEWPORTS=[[1440,900,'desktop'],[1280,720,'laptop'],[1024,768,'small lapto
   assert.equal(glDone.project.title,'Cameo Test Feature','the greenlight applies the typed title');
   assert.equal(glDone.project.cameo,glCameoId,'the greenlight books the chosen cameo on the picture');
 
-  /* ── 8. Develop switcher: seven sections on top, three tools underneath ── */
+  /* ── 8. Develop switcher: eight sections on top, three tools underneath ── */
   for(const [w,h,label] of VIEWPORTS){
     await page.setViewport({width:w,height:h});
     await page.evaluate(()=>{ closeModal();switchTab('develop');DEVELOP_SUB='scripts';_renderImpl(); });
     await wait(220);
     const nav=await page.evaluate(()=>{
       const box=document.querySelector('.command-develop-nav').getBoundingClientRect();
-      const tabs=[...document.querySelectorAll('.command-nav-items [data-devsub]')].map(b=>({t:b.textContent.trim(),r:b.getBoundingClientRect()}));
+      const rail=document.querySelector('.command-develop-nav .command-nav-items');
+      const scrolls=getComputedStyle(rail).overflowX==='auto'&&rail.scrollWidth>rail.clientWidth;
+      const tabs=[...rail.querySelectorAll('[data-devsub]')].map(b=>({t:b.textContent.trim(),r:b.getBoundingClientRect()}));
       const tools=[...document.querySelectorAll('.command-nav-tools button')].map(b=>({t:b.textContent.trim(),r:b.getBoundingClientRect()}));
       const head=document.querySelector('.command-develop .command-heading').getBoundingClientRect();
       return {tabs:tabs.map(x=>({t:x.t,y:Math.round(x.r.y),right:Math.round(x.r.right)})),
         tools:tools.map(x=>({t:x.t,y:Math.round(x.r.y),right:Math.round(x.r.right)})),
-        clipped:[...tabs,...tools].filter(x=>x.r.left<box.left-1||x.r.right>box.right+1||x.r.width<30).map(x=>x.t),
+        clipped:[...(scrolls?[]:tabs),...tools].filter(x=>x.r.left<box.left-1||x.r.right>box.right+1||x.r.width<30).map(x=>x.t),
         tabBottom:Math.round(Math.max(...tabs.map(x=>x.r.bottom))),toolTop:Math.round(Math.min(...tools.map(x=>x.r.top))),
         chrome:Math.round(box.height+head.height),height:innerHeight};
     });
-    assert.equal(nav.tabs.length,7,`${label}: all seven Develop sections must exist`);
+    assert.equal(nav.tabs.length,8,`${label}: all eight Develop sections must exist`);
     assert.equal(nav.tools.length,3,`${label}: the three tool desks must exist`);
     assert.deepEqual(nav.clipped,[],`${label}: sections/tools are cut off (${nav.clipped.join(', ')})`);
     assert(nav.toolTop>=nav.tabBottom,`${label}: the tool desks must sit under the sections`);
@@ -292,6 +294,6 @@ const VIEWPORTS=[[1440,900,'desktop'],[1280,720,'laptop'],[1024,768,'small lapto
   assert(sound.restored===sound.first.pressed,'the second click restores the original state');
 
   assert.deepEqual(errors,[],'console must stay clean: '+errors.slice(0,4).join(' | '));
-  console.log('PASS pitch studio, greenlight desk and Develop switcher — animals castable in film, series and greenlight; directory returns to the same step; chosen cameo booked; seven sections and three tools visible at five viewports; sound is a toggle');
+  console.log('PASS pitch studio, greenlight desk and Develop switcher — animals castable in film, series and greenlight; directory returns to the same step; chosen cameo booked; eight sections and three tools reachable at five viewports; sound is a toggle');
  } finally { await browser.close(); }
 })().catch(e=>{ console.error('FAIL',e.message); process.exit(1); });

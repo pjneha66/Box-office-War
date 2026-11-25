@@ -22,7 +22,7 @@ assert.equal($$('#view .subnav-pills').length,0,'legacy pill strip must be gone'
 assert.equal($$('.command-boxoffice-nav .command-nav-items button').length,7,'seven market readings');
 assert.equal($('.command-boxoffice-nav .command-nav-items button.active span').textContent,'Theatrical chart');
 assert($('.command-edition').textContent.includes('BOX OFFICE DESK'));
-assert($('.command-heading h1').textContent.length>10);
+assert.equal($('.command-heading h1').textContent,'Box Office');
 assert.equal($$('.command-telemetry .command-metric').length,4);
 assert.equal($('#view').dataset.screen,'boxoffice');
 /* one rail on every viewport — the desk no longer renders a second mobile strip */
@@ -65,7 +65,9 @@ w.eval(`G.rivals[0].slate.push({title:'Rival <Tentpole>',genre:'action',opening:
 assert.equal($$('.bo-chart-row').length,1,'chart row for the rival release');
 assert.equal($$('#view > .card').length,0);
 assert($('.bo-chart-name b').textContent.includes('<Tentpole>'),'titles are escaped, never injected');
-assert($('.bo-foot').textContent.includes('Leader'));
+assert.equal($('.bo-chart-summary strong').textContent,'Rival <Tentpole> leads a $40.0M frame.');
+assert.deepEqual($$('.bo-chart-summary dd').map(node=>node.textContent),['$40.0M','$40.0M','0.0%']);
+assert.equal($('.bo-chart-bar i').style.width,'100%');
 w.eval(`BOXOFFICE_SUB='clash';render();`);
 assert($('.command-boxoffice .bo-weekends'),'clash radar keeps the forward corridor');
 assert.equal($$('.bo-weekend').length,12,'twelve weekends forecast');

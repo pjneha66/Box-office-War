@@ -60,14 +60,15 @@ const S = () => ctx.S;
 check("streamer launch", ctx.tvAction("tv-launch-streamer", elx({})) === true && !!S().tv.streamer);
 check("streamer state", S().tv.streamer.name === "TV Test Studios TV" && S().tv.streamer.subs === 0.4 && S().tv.streamer.licensed === 0);
 
-const cashBeforeRej = S().studio.cash; // $20M left after the $60M launch
+const cashAfterLaunch = S().studio.cash;
+const cashBeforeRej = S().studio.cash = 20;
 const rejHandled = ctx.tvAction("tv-exclusive", elx({})) === true;
 const rejToasts = toasts.filter((t) => /Need/.test(t.txt)).length;
 check("insufficient-cash rejection (exclusive @ $20M cash)",
   rejHandled && S().studio.cash === cashBeforeRej && S().tv.streamer.exclusives === 0 && rejToasts > 0,
   "toasts=" + rejToasts);
 
-S().studio.cash += 150; // harness stipend so all systems can run for 60 weeks
+S().studio.cash = cashAfterLaunch + 150; // harness stipend so all systems can run for 60 weeks
 
 ctx.tvAction("tv-series-genre", elx({ "data-key": "scifi" }));
 ctx.tvAction("tv-series-tier", elx({ "data-idx": "0" }));

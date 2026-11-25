@@ -13,9 +13,16 @@
   return {x:col*24,y:row*32,w:24,h:32,col,row,state};
  }
  function look(a){return Number.isInteger(a.appearance?.look)?((a.appearance.look%24)+24)%24:((a.id||7)-7+2400)%24;}
- function portrait(a){const n=look(a);return `background-position:-${n%8*64}px -${Math.floor(n/8)*64}px`;}
+ const portraitAtlas='assets/studio/people/portraits.png';
+ let portraitImage;
+ function portrait(a){
+  const n=look(a);
+  return `<img class="people-portrait" src="${portraitAtlas}" width="64" height="64" alt="" style="object-position:-${n%8*64}px -${Math.floor(n/8)*64}px">`;
+ }
  function richFrame(a,reduced=false){const old=frame(a,reduced);let row=old.row;if(a.renderSeat&&old.state!=='walk')row=8+Math.max(0,directions.indexOf(a.direction));else if(['rest','work'].includes(old.state))row=Math.max(0,directions.indexOf(a.direction));if(!a.renderSeat&&old.state==='work'&&!['writer','editor','producer'].includes(a.kind_str))row=28+Math.max(0,directions.indexOf(a.direction));const clock=old.state==='walk'?(a.walk_distance||0)*4:(a.state_time??a.anim_timer??0)*2;const col=reduced?0:Math.floor(clock)%8;return {x:col*40,y:row*64,w:40,h:64,col,row,state:old.state,look:look(a),atlas:'lpc-revised'};}
- function load(){for(let i=0;i<24;i++){if(people.has(i))continue;const img=new Image(),entry={img,loaded:false};people.set(i,entry);img.onload=()=>entry.loaded=true;img.onerror=()=>console.warn('LPC character sheet unavailable:',i);img.src='assets/studio/people/'+i+'.png';}for(const role of roles){if(cache.has(role))continue;const img=new Image();const entry={img,loaded:false,failed:false};cache.set(role,entry);img.onload=()=>{entry.loaded=true;entry.variants=[img];
+ function load(){
+  if(!portraitImage){portraitImage=new Image();portraitImage.src=portraitAtlas;}
+  for(let i=0;i<24;i++){if(people.has(i))continue;const img=new Image(),entry={img,loaded:false};people.set(i,entry);img.onload=()=>entry.loaded=true;img.onerror=()=>console.warn('LPC character sheet unavailable:',i);img.src='assets/studio/people/'+i+'.png';}for(const role of roles){if(cache.has(role))continue;const img=new Image();const entry={img,loaded:false,failed:false};cache.set(role,entry);img.onload=()=>{entry.loaded=true;entry.variants=[img];
   const colors={director:[189,121,91],cameraman:[96,150,162],star_actor:[186,156,80],producer:[130,115,165],writer:[97,144,111],editor:[102,133,174],audience:[172,134,101]};
   for(const factor of [.8,1.12,.93]){const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const c=canvas.getContext('2d',{willReadFrequently:true});c.drawImage(img,0,0);const pixels=c.getImageData(0,0,canvas.width,canvas.height),rgb=colors[role];for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i]===rgb[0]&&pixels.data[i+1]===rgb[1]&&pixels.data[i+2]===rgb[2])for(let k=0;k<3;k++)pixels.data[i+k]=Math.round(rgb[k]*factor);c.putImageData(pixels,0,0);entry.variants.push(canvas);}
  };img.onerror=()=>{entry.failed=true;console.warn('Actor sheet missing:',role);};img.src='assets/studio/'+role+'.png';}}

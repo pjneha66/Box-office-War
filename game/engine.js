@@ -1200,12 +1200,12 @@ function advanceWeek() {
     for (_ri = 0; _ri < S.rivals.length; _ri++) S.rivals[_ri].ytd = 0;
   }
   if (st.woy === 18) log("Summer season opens — marketing costs rise, openings surge.", "gold", "☀️");
+  S.weekTx = { w: st.week, in: 0, out: 0, rows: [] };
   if (st.woy === 26) { log("Midsummer festival — audiences surge, marketing discounted.", "good", "🎪"); earn(2, "Festival bonus"); }
   if (st.woy === 44) { log("Awards corridor — prestige campaigns cost less.", "good", "🏆"); }
   if (st.woy === 48) log("Holiday corridor opens — premium pricing window.", "gold", "🎄");
   if (st.woy === 50) { log("Holiday gala — premium ticket surge.", "gold", "🎄"); earn(3, "Holiday bonus"); }
   if (st.week % 10 === 0 && typeof chance === "function" && chance(0.35)) { log("Seasonal event: " + (chance(0.5) ? "festival buzz lifts the lot." : "a piracy wave trims margins."), chance(0.5) ? "good" : "bad", chance(0.5) ? "🎪" : "🏴‍☠️"); }
-  S.weekTx = { w: st.week, in: 0, out: 0, rows: [] };
   S.flash = [];
 
   /* standing costs */

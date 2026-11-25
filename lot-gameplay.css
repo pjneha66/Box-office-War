@@ -139,7 +139,7 @@ body::before,body::after { display:none!important; }
 #lotAgentTask { font-weight:700; }
 #lotAgentNeeds { font-variant-numeric:tabular-nums; }
 /* Detailed character art remains legible in both the live room and the roster. */
-.people-portrait { display:inline-block; flex:0 0 64px; width:64px; height:64px; background-image:url('assets/studio/people/portraits.png'); background-repeat:no-repeat; image-rendering:pixelated; background-color:#c8c8a8; border-bottom:3px solid #889477; box-sizing:content-box; }
+.people-portrait { display:inline-block; flex:0 0 64px; width:64px; height:64px; object-fit:none; image-rendering:pixelated; background-color:#c8c8a8; border-bottom:3px solid #889477; box-sizing:content-box; }
 .people-inspector-head { display:flex; align-items:center; gap:12px; margin-bottom:15px; }
 .people-inspector-head>div { min-width:0; }
 .people-role { display:block; color:#b5c9b5; font-size:11px; line-height:1.5; text-transform:capitalize; margin-top:3px; }

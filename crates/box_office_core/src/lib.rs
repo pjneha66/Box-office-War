@@ -602,7 +602,7 @@ impl StudioLotEngine {
     }
 
     #[wasm_bindgen]
-    pub fn trigger_box_office_surge(&mut self, film_title: &str, weekend_gross_m: f64) {
+    pub fn trigger_box_office_surge(&mut self, _film_title: &str, weekend_gross_m: f64) {
         self.box_office_buzz = (weekend_gross_m as f32 * 0.1).clamp(1.0, 10.0);
         let tickets = (weekend_gross_m * 100_000.0) as u64;
         self.total_tickets_sold += tickets;

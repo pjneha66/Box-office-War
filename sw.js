@@ -2,8 +2,15 @@
    network-first so a fresh deploy is picked up on the next visit instead of
    serving a stale page from cache; everything else stays cache-first. */
 "use strict";
-const CACHE = "bow-v113-cache";
+const CACHE = "bow-v132-cache";
 const ASSETS = [
+  "landscape-phone.css",
+  "system/tokens.css",
+  "system/legacy-map.css",
+  "system/components.css",
+  "system/game-ui.css",
+  "system/vertical.css",
+  "system/game-ui.js",
   "welcome.css",
   "command-deck.css",
   "industry-expansion.css",
@@ -127,6 +134,7 @@ const ASSETS = [
   "icon-192.png",
   "icon-512.png",
   "assets/opening-night.jpg",
+  "assets/soundstage-welcome.webp",
   "assets/itch-ui/bars/BigBar_Base.png",
   "assets/itch-ui/bars/BigBar_Fill.png",
   "assets/itch-ui/buttons/BigBlueButton_Pressed.png",

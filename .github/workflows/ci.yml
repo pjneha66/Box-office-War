@@ -225,8 +225,10 @@ jobs:
           path: rebuild-notes/ui-*.png
           if-no-files-found: ignore
 
-      - name: E2E smoke (optional)
-        continue-on-error: true
+      - name: E2E smoke
+        env:
+          CHROME_PATH: /usr/bin/chromium-browser
         run: |
-          npx playwright install chromium
-          npx playwright test test/e2e-smoke.spec.js || true
+          npm install --no-save --package-lock=false @playwright/test
+          if [ ! -x "$CHROME_PATH" ]; then export CHROME_PATH=/usr/bin/chromium; fi
+          npx --no-install playwright test --config=test/playwright.config.cjs

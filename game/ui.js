@@ -151,6 +151,7 @@ function vStart() {
   var hasSave = S && !S.over;
   var legacy = null;
   try { legacy = JSON.parse(localStorage.getItem("bow2.legacy.v1") || "null"); } catch (e) {}
+  var draftName = el("studioName")?.value || "";
   var html = '<div class="start">'
     + '<div class="marquee"><div class="eyebrow">A HOLLYWOOD STUDIO TYCOON</div>'
     + '<h1>BOX OFFICE <em>WAR</em></h1>'
@@ -167,7 +168,7 @@ function vStart() {
     html += '<button class="btn block" data-action="pwa-install" style="margin-top:12px">📲 Install as an app</button>';
   }
   html += '<label class="field-label" for="studioName">Studio name</label>'
-    + '<input id="studioName" class="text-input" maxlength="26" placeholder="e.g. Lighthouse Pictures">'
+    + '<input id="studioName" class="text-input" maxlength="26" placeholder="e.g. Lighthouse Pictures" value="' + esc(draftName) + '">'
     + '<div class="field-label" style="margin-top:16px">Origin</div>'
     + '<div class="origin">';
   ORIGINS.forEach(function (o) {

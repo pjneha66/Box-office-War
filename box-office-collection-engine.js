@@ -597,7 +597,7 @@
     var valve = valveOf(G);
     var used = valve > 0 ? Math.round(clamp2((wk.uplift || 0) / valve, 0, 1) * 100) : 0;
 
-    var h = "<h2>🎟 Collection Command</h2>";
+    var h = "<h2><span class='dialog-emoji' aria-hidden='true' data-emoji='🎟️'></span>Collection Command</h2>";
     h += "<p class='produce-lead'>Every lever is paid for from studio cash and pays back through the normal ledger. The valve is the industry's appetite for extra spend — past it, more money buys less.</p>";
     h += "<div class='produce-stats boc-stats'>" +
       "<div class='stat'><b>" + fmt(wk.generated || 0) + "</b><span>Collected this week</span></div>" +
@@ -671,6 +671,9 @@
     ensure(g);
     if (typeof global.openModal !== "function") return null;
     var root = global.openModal(html(), { className: "command-produce-modal boc-desk" });
+    var heading = root.querySelector(".boc-desk > h2");
+    var title = root.querySelector(".modal-head > div");
+    if (heading && title && document.documentElement.dataset.layout === "vertical") title.appendChild(heading);
     var veil = null;
     try { veil = document.querySelector("#modalRoot .modal-veil:last-child"); } catch (e) {}
     if (veil) bind(veil, function () { try { global.closeModal(); } catch (e) {} openDesk(); });

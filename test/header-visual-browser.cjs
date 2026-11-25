@@ -17,6 +17,8 @@ const chromium=require('@sparticuz/chromium').default;
   await page.evaluate(()=>{SEL={scenario:'standard',difficulty:'normal',sandbox:false,slot:1,legacy:''};newGame(DATA.ARCHETYPES[1].id,'Visual Test Studio',SEL);enterApp(false);closeModal();G.studio.cash=1000;G.studio.rep=60;G.week=20;switchTab('dashboard');render();});
   for(const [width,height] of [[1440,900],[844,390],[390,844],[320,900]]){
    await page.setViewport({width,height});
+   const layout=width<=600&&height>width?"vertical":"landscape";
+   await page.waitForFunction(expected=>document.documentElement.dataset.layout===expected,{},layout);
    const header=await page.evaluate(()=>{const el=document.querySelector('.topbar'),chip=document.querySelector('.command-header-ledger .chip'),btn=document.querySelector('#btnWeek');return{overflow:el.scrollWidth>el.clientWidth+2,pseudo:getComputedStyle(chip,'::before').content,shadow:getComputedStyle(btn).boxShadow};});
    assert(!header.overflow,'header overflows at '+width);assert.equal(header.pseudo,'none');assert.equal(header.shadow,'none');
    for(const screen of ['settings','guide']){

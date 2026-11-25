@@ -87,7 +87,7 @@
     if (meta) {
       const welcome = document.getElementById("startScreen");
       const onWelcome = welcome && welcome.style.display !== "none";
-      if (onWelcome) meta.setAttribute("content", "#181b1e");
+      if (onWelcome) meta.setAttribute("content", "#111019");
       else {
         const def = themeDefRef(currentThemeId());
         if (def) meta.setAttribute("content", def.chrome || "#0b0e14");

@@ -22,6 +22,7 @@
   const reducedMotion = () => global.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   let _logicalWidth = 0, _logicalHeight = 0;
   const career = () => typeof G !== "undefined" ? G : global.G;
+  const portraitLot = () => document.documentElement.matches('[data-skin="game"][data-layout="vertical"]');
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const costs = {soundstage:15,virtual_led:25,post_suite:8,writers_bungalow:5};
   function feedback(text) {
@@ -40,7 +41,7 @@
     const panel=document.getElementById('lotInspectorRoot');
     const panelRect=panel&&panel.style.display!=='none'?panel.getBoundingClientRect():null;
     const y=Math.max(12,(top?.bottom||0)-(canvasRect?.top||0)+10);
-    const bottom=Math.min(_logicalHeight-12,(deck?.top||_logicalHeight)-(canvasRect?.top||0))-72;
+    const bottom=Math.min(_logicalHeight-12,(deck?.top||_logicalHeight)-(canvasRect?.top||0))-(portraitLot()?34:72);
     const right=panelRect?Math.min(_logicalWidth-12,panelRect.left-(canvasRect?.left||0)-12):_logicalWidth-12;
     return {x:12,y,w:Math.max(180,right-12),h:Math.max(70,bottom-y)};
   }
@@ -209,11 +210,13 @@
     const viewport=document.querySelector('.studiolot-viewport');if(viewport)viewport.dataset.lotView=view;
     if(changed){_selectedAgentId=null;if(view==='campus')_selectedBuildingId=null;const panel=document.getElementById('lotInspectorRoot');if(panel)panel.style.display='none';}
     if(previousArea&&_campusCamera)_campusCamera.x+=(sceneViewport().w-previousArea.w)/2;
-    if(changed)feedback(view==='campus'?'Updated interiors: use Stage, Post & VFX, Cinema or Executive tabs above · Drag to pan':'Live department · Select staff for assignments · Campus returns to the lot');
+    if(changed)feedback(view==='campus'?'Drag to pan · Tap a facility or person':'Tap a person to see their assignment');
     const tabs = document.querySelectorAll(".kairo-nav-tab");
     tabs.forEach(tab => {
-      if (tab.dataset.view === view) tab.classList.add("active");
-      else tab.classList.remove("active");
+      const active = tab.dataset.view === view;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-pressed", String(active));
+      if (active) document.getElementById('lotRoomTitle').textContent = view === 'campus' ? 'Studio Lot' : global.StudioDepartments.titles[view];
     });
     if (_canvas && changed) {
       centerCamera();
@@ -261,7 +264,7 @@
     _ctx.clearRect(0, 0, _logicalWidth, _logicalHeight);
 
     if (_currentLotView === "campus") renderCampusView(_ctx,dt);
-    else global.StudioDepartments.draw(_ctx,engine,_currentLotView,_selectedBuildingId,_logicalWidth,_logicalHeight,_selectedAgentId,reducedMotion(),{x:camera.x-_viewBase.x,y:camera.y-_viewBase.y,zoom:camera.zoom/_viewBase.zoom,viewport:sceneViewport()});
+    else global.StudioDepartments.draw(_ctx,engine,_currentLotView,_selectedBuildingId,_logicalWidth,_logicalHeight,_selectedAgentId,reducedMotion(),{x:camera.x-_viewBase.x,y:camera.y-_viewBase.y,zoom:camera.zoom/_viewBase.zoom,viewport:sceneViewport(),portrait:portraitLot()});
 
     let debug=document.getElementById('lotSimDebug');
     if(debugMode){
@@ -320,7 +323,9 @@
   }
   function renderCampusView(ctx, dt) {
     const engine=global.StudioLotBridge.getEngine(), lot=engine;
-    ctx.fillStyle='#182c32';ctx.fillRect(0,0,_logicalWidth,_logicalHeight);
+    if (!portraitLot()) {
+      ctx.fillStyle='#182c32';ctx.fillRect(0,0,_logicalWidth,_logicalHeight);
+    }
     if(_terrainEngine!==engine||_terrainRevision!==engine.revision){
       if(!_terrain)_terrain=document.createElement('canvas');
       _terrain.width=(lot.cols+lot.rows)*32+64;_terrain.height=(lot.cols+lot.rows)*16+32;
@@ -433,6 +438,16 @@
     if (!_canvas) return;
     const parent = _canvas.parentElement;
     if (!parent) return;
+    const dock=parent.querySelector('.lot-action-dock');
+    const cameraControls=parent.querySelector('#lotCameraControls');
+    const playback=parent.querySelector('#lotPlayback');
+    if(portraitLot()&&playback.parentElement!==dock){
+      dock.prepend(cameraControls);
+      dock.append(playback);
+    }else if(!portraitLot()&&playback.parentElement===dock){
+      parent.querySelector('.lot-controls').prepend(cameraControls);
+      parent.querySelector('#btnLotFullscreen').before(playback);
+    }
     const stage=document.getElementById('studiolotGlobalStage');
     if(stage&&!stage.classList.contains('lot-backdrop')){
       const bottom=Math.ceil(Math.max(0,document.getElementById('tabsNav')?.getBoundingClientRect().bottom||0,document.querySelector('.topbar')?.getBoundingClientRect().bottom||0));
@@ -490,6 +505,16 @@
     if (elStages) {
       const activeShoots = (G.projects || []).filter(p => p.phase !== "ready").length;
       elStages.textContent = activeShoots + " active";
+    }
+    const context = document.getElementById('lotRoomContext');
+    if (context && portraitLot()) {
+      const engine = global.StudioLotBridge.getEngine();
+      const room = global.StudioDepartments.select(engine, _currentLotView, _selectedBuildingId);
+      let label = engine.buildings.length + ' facilities on campus';
+      if (_currentLotView !== 'campus') {
+        label = room ? room.name + ' · ' + global.StudioDepartments.roomStatus(engine, _currentLotView, room) : 'No facility built';
+      }
+      if (context.textContent !== label) context.textContent = context.title = label;
     }
   }
 
@@ -562,7 +587,7 @@
     cancelConstruction();
     const room=roomId!=null?rooms.find(b=>b.id===Number(roomId)):_currentLotView==='campus'?null:departments.select(engine,_currentLotView,_selectedBuildingId);
     if(!room){
-      global.openModal(`<section class="lot-interior-picker"><h2>Choose a room to customise</h2><p>Every room has its own saved interior. Changing one never changes another.</p><div class="interior-room-grid">${rooms.map(b=>`<button class="interior-room-card" data-interior-room="${b.id}"><strong>${esc(b.name)}</strong><span>${esc(departments.interiorOptions.style[departments.interiorSettings(g,b.id).style])}</span><span>Customise this room →</span></button>`).join('')}</div></section>`);
+      global.openModal(`<section class="lot-interior-picker"><h2><span class="dialog-emoji" aria-hidden="true" data-emoji="🛋️"></span>Choose a room to customise</h2><p>Every room has its own saved interior. Changing one never changes another.</p><div class="interior-room-grid">${rooms.map(b=>`<button class="interior-room-card" data-interior-room="${b.id}"><strong>${esc(b.name)}</strong><span>${esc(departments.interiorOptions.style[departments.interiorSettings(g,b.id).style])}</span><span>Customise this room →</span></button>`).join('')}</div></section>`);
       document.querySelectorAll('[data-interior-room]').forEach(button=>button.onclick=()=>openInteriors(Number(button.dataset.interiorRoom)));
     }else{
       const settings=departments.interiorSettings(g,room.id);
@@ -613,7 +638,7 @@
   function openPeople() {
     if(typeof global.openModal!=='function')return feedback('People panel is unavailable.');
     const engine=global.StudioLotBridge.getEngine(),crew=engine.agents.filter(a=>a.kind_str!=='audience');
-    global.openModal(`<section class="lot-people"><div class="people-eyebrow">STUDIO PERSONNEL / LIVE ROSTER</div><h2>Your people</h2><p class="people-intro">${crew.length} people · Persistent identities, real departments and current tasks. Select a person to find them on the lot.</p><div class="people-grid">${crew.map(a=>{const b=engine.buildings.find(b=>b.id===a.assigned_building_id);return `<button class="people-card" data-crew-agent="${a.id}"><span class="people-portrait" style="${global.StudioActors.portrait(a)}" aria-hidden="true"></span><span class="people-details"><strong>${esc(a.name)}</strong><span class="people-role">${esc(a.job_title||a.specialty||a.kind_str.replaceAll('_',' '))}</span><span class="people-room">${esc(b?.name||'On campus')}</span><span class="people-task">${esc(a.life?.task?.label||'Arriving at the studio')}</span><span class="people-energy">Energy ${Math.round(a.life?.energy||0)}%</span></span><span class="people-locate" aria-hidden="true">↗</span></button>`;}).join('')}</div><div class="people-footer"><button id="peopleTalent" class="btn btn-primary">Hire & contracts</button><button id="peopleCredits" class="btn btn-alt">Character art credits</button><span>Portraits match the people in your rooms.</span></div></section>`);
+    global.openModal(`<section class="lot-people"><div class="people-eyebrow">STUDIO PERSONNEL / LIVE ROSTER</div><h2><span class="dialog-emoji" aria-hidden="true" data-emoji="👥"></span>Your people</h2><p class="people-intro">${crew.length} people · Persistent identities, real departments and current tasks. Select a person to find them on the lot.</p><div class="people-grid">${crew.map(a=>{const b=engine.buildings.find(b=>b.id===a.assigned_building_id);return `<button class="people-card" data-crew-agent="${a.id}">${global.StudioActors.portrait(a)}<span class="people-details"><strong>${esc(a.name)}</strong><span class="people-role">${esc(a.job_title||a.specialty||a.kind_str.replaceAll('_',' '))}</span><span class="people-room">${esc(b?.name||'On campus')}</span><span class="people-task">${esc(a.life?.task?.label||'Arriving at the studio')}</span><span class="people-energy">Energy ${Math.round(a.life?.energy||0)}%</span></span><span class="people-locate" aria-hidden="true">↗</span></button>`;}).join('')}</div><div class="people-footer"><button id="peopleTalent" class="btn btn-primary">Hire & contracts</button><button id="peopleCredits" class="btn btn-alt">Character art credits</button><span>Portraits match the people in your rooms.</span></div></section>`);
     const heading=document.querySelector('.modal:has(.lot-people) .modal-head>div');if(heading)heading.textContent='STUDIO PERSONNEL';
     document.querySelectorAll('[data-crew-agent]').forEach(button=>button.onclick=()=>{
       const a=engine.agents.find(a=>a.id===Number(button.dataset.crewAgent));if(!a)return;
@@ -634,7 +659,7 @@
     root.style.display='block';
     const views={soundstage:'soundstage',virtual_led:'soundstage',post_suite:'post',writers_bungalow:'writers',cinema_theater:'cinema',executive:'executive'};
     if(a){
-      root.innerHTML=`<section class="lot-inspector"><div class="people-inspector-head"><span class="people-portrait" style="${global.StudioActors.portrait(a)}" aria-hidden="true"></span><div><strong>${esc(a.name)}</strong><span class="people-role">${esc(a.job_title||a.specialty||a.kind_str.replaceAll('_',' '))}</span></div></div><p id="lotAgentTask">${esc(a.life?.task?.label||a.life?.reason||'Choosing task')}</p><p id="lotAgentNeeds">Energy ${Math.round(a.life?.energy||0)}% · ${esc(a.life?.mood||'calm')}</p><p id="lotAgentState">${esc(a.kind_str)} · ${esc(a.state_str)}</p><p>${esc(a.economic_assignment|| (a.talent_id!=null ? "Contracted talent · available" : "Studio operations crew"))}</p><label>Assignment<select id="lotAssignment">${engine.buildings.filter(b=>b.b_type!=='studio_gate').map(b=>`<option value="${b.id}" ${b.id===a.assigned_building_id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label><button id="lotAssign">Assign destination</button><button id="lotContract">Talent & contracts</button><button id="lotClose">Close</button></section>`;
+      root.innerHTML=`<section class="lot-inspector"><div class="people-inspector-head">${global.StudioActors.portrait(a)}<div><strong>${esc(a.name)}</strong><span class="people-role">${esc(a.job_title||a.specialty||a.kind_str.replaceAll('_',' '))}</span></div></div><p id="lotAgentTask">${esc(a.life?.task?.label||a.life?.reason||'Choosing task')}</p><p id="lotAgentNeeds">Energy ${Math.round(a.life?.energy||0)}% · ${esc(a.life?.mood||'calm')}</p><p id="lotAgentState">${esc(a.kind_str)} · ${esc(a.state_str)}</p><p>${esc(a.economic_assignment|| (a.talent_id!=null ? "Contracted talent · available" : "Studio operations crew"))}</p><label>Assignment<select id="lotAssignment">${engine.buildings.filter(b=>b.b_type!=='studio_gate').map(b=>`<option value="${b.id}" ${b.id===a.assigned_building_id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label><button id="lotAssign">Assign destination</button><button id="lotContract">Talent & contracts</button><button id="lotClose">Close</button></section>`;
       root.querySelector('#lotContract').onclick=()=>{if(a.talent_id!=null&&typeof talentModal==='function')talentModal(a.talent_id);else if(typeof switchTab==='function')switchTab('develop');};
       root.querySelector('#lotAssign').onclick=()=>{const id=Number(root.querySelector('select').value);feedback(engine.assign_agent(a.id,id)?'Employee routed to facility entrance.':'No accessible route to this facility.');persistLot();renderInspector();};
     }else{
@@ -681,16 +706,19 @@
       container.innerHTML = `
         <div class="studiolot-viewport">
           
-          <!-- Top Kairosoft Control Console (Clean Single Row) -->
           <div class="kairo-top-bar">
-            <!-- Room Switcher Tabs Left -->
-            <div class="kairo-room-nav">
-              <button class="kairo-nav-tab active" data-view="campus"><img class="subtab-pixel-icon" src="assets/studio/studio_gate.png" alt="" /><span>Campus</span></button>
-              <button class="kairo-nav-tab" data-view="soundstage"><img class="subtab-pixel-icon" src="assets/studio/soundstage.png" alt="" /><span>Stage</span></button>
-              <button class="kairo-nav-tab" data-view="writers"><img class="subtab-pixel-icon" src="assets/studio/writers_bungalow.png" alt="" /><span>Writers</span></button>
-              <button class="kairo-nav-tab" data-view="post"><img class="subtab-pixel-icon" src="assets/studio/post_suite.png" alt="" /><span>Post &amp; VFX</span></button>
-              <button class="kairo-nav-tab" data-view="cinema"><img class="subtab-pixel-icon" src="assets/studio/cinema_theater.png" alt="" /><span>Cinema</span></button>
-              <button class="kairo-nav-tab" data-view="executive"><img class="subtab-pixel-icon" src="assets/studio/executive.png" alt="" /><span>Executive</span></button>
+            <div class="lot-room-heading">
+              <div class="lot-room-kicker">Studio campus</div>
+              <h2 id="lotRoomTitle">Studio Lot</h2>
+              <p id="lotRoomContext"></p>
+            </div>
+            <div class="kairo-room-nav" role="group" aria-label="Studio Lot rooms">
+              <button class="kairo-nav-tab active" data-view="campus"><img class="subtab-pixel-icon" src="assets/studio/studio_gate.png" alt="" /><span>${sectionEmoji("lot","campus")}Campus</span></button>
+              <button class="kairo-nav-tab" data-view="soundstage"><img class="subtab-pixel-icon" src="assets/studio/soundstage.png" alt="" /><span>${sectionEmoji("lot","soundstage")}Stage</span></button>
+              <button class="kairo-nav-tab" data-view="writers"><img class="subtab-pixel-icon" src="assets/studio/writers_bungalow.png" alt="" /><span>${sectionEmoji("lot","writers")}Writers</span></button>
+              <button class="kairo-nav-tab" data-view="post" aria-label="Post &amp; VFX"><img class="subtab-pixel-icon" src="assets/studio/post_suite.png" alt="" /><span>${sectionEmoji("lot","post")}Post</span></button>
+              <button class="kairo-nav-tab" data-view="cinema"><img class="subtab-pixel-icon" src="assets/studio/cinema_theater.png" alt="" /><span>${sectionEmoji("lot","cinema")}Cinema</span></button>
+              <button class="kairo-nav-tab" data-view="executive"><img class="subtab-pixel-icon" src="assets/studio/executive.png" alt="" /><span>${sectionEmoji("lot","executive")}Executive</span></button>
             </div>
 
             <!-- Studio Telemetry + Stats Toggle + Fullscreen Right -->
@@ -699,11 +727,11 @@
                 <div class="itch-hud-stat"><span class="lbl">DEBT</span><span id="lotHudDebt" class="val"></span></div>
                 <div class="itch-hud-stat"><span class="lbl">REP</span><span id="lotHudRep" class="val"></span></div>
                 <div class="itch-hud-stat">
-                  <span class="lbl">WAR CHEST</span>
+                  <span class="lbl">CAPITAL</span>
                   <span id="lotHudCash" class="val" style="color:#10b981;font-weight:700">$100.0M</span>
                 </div>
                 <div class="itch-hud-stat">
-                  <span class="lbl">CALENDAR</span>
+                  <span class="lbl">WEEK</span>
                   <span id="lotHudDate" class="val" style="color:var(--gold);font-weight:700">Y1 W1</span>
                 </div>
                 <div class="itch-hud-stat">
@@ -711,7 +739,11 @@
                   <span id="lotHudStages" class="val" style="color:#38bdf8;font-weight:700">0 Filming</span>
                 </div>
               </div>
-              <button id="lotQuality" class="btn btn-alt btn-sm" title="Cycle Auto adaptive resolution, Crisp high resolution, and Battery 30 FPS cap">Quality</button><button id="lotPause" class="btn btn-alt btn-sm">Pause</button><button id="lotSpeed" class="btn btn-alt btn-sm">1×</button>
+              <div id="lotPlayback">
+                <button id="lotQuality" class="btn btn-alt btn-sm" title="Cycle Auto adaptive resolution, Crisp high resolution, and Battery 30 FPS cap">Quality</button>
+                <button id="lotPause" class="btn btn-alt btn-sm">Pause</button>
+                <button id="lotSpeed" class="btn btn-alt btn-sm">1×</button>
+              </div>
               <button id="btnLotFullscreen" class="btn btn-alt btn-sm" title="Toggle Fullscreen 2D Lot">Expand</button>
             </div>
           </div>
@@ -719,20 +751,19 @@
           <!-- Collapsible Facilities Build Palette Top Left -->
           <div id="lotPaletteRoot" style="position:absolute;top:50px;left:12px;z-index:30;display:none"></div>
 
-          <!-- Bottom Kairosoft Command Deck -->
           <div class="kairo-bottom-deck">
-            <!-- Left: Camera Controls & Build -->
-            <div class="lot-controls">
-              <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In">+</button>
-              <button id="btnZoomOut" class="btn btn-alt btn-sm" title="Zoom Out">-</button>
-              <button id="btnResetView" class="btn btn-alt btn-sm">Center</button>
+            <div class="lot-controls" role="group" aria-label="Room actions">
+              <div id="lotCameraControls">
+                <button id="btnZoomIn" class="btn btn-alt btn-sm" title="Zoom In" aria-label="Zoom in">+</button>
+                <button id="btnZoomOut" class="btn btn-alt btn-sm" title="Zoom Out" aria-label="Zoom out">−</button>
+                <button id="btnResetView" class="btn btn-alt btn-sm">Center</button>
+              </div>
               <button id="btnFocusShoot" class="btn btn-primary btn-sm">Locate Set</button>
               <button id="btnLotInteriors" class="btn btn-alt btn-sm">Room interiors</button>
               <button id="btnTogglePalette" aria-controls="lotPaletteRoot" aria-expanded="false" class="btn btn-alt btn-sm">Build Facility</button>
             </div>
 
-            <!-- Right: Studio Management & Production Actions -->
-            <div class="lot-action-dock">
+            <div class="lot-action-dock" role="group" aria-label="Camera and studio actions">
               <button id="btnLotSlate" class="btn btn-alt btn-sm">Slate</button>
               <button id="btnLotTalent" class="btn btn-alt btn-sm" style="color:#6ee7b7;font-weight:bold" title="Find staff, inspect tasks, hire and manage contracts">People</button>
               <button id="btnLotBoxOffice" class="btn btn-alt btn-sm">Box Office</button>
@@ -746,7 +777,7 @@
           <!-- Inspector Drawer Top Right -->
           <div id="lotInspectorRoot" style="position:absolute;top:50px;right:14px;z-index:30;max-width:320px;display:none"></div>
 
-          <div id="lotStatus" role="status" aria-live="polite">Updated interiors: use Stage, Post & VFX, Cinema or Executive tabs above · Drag to pan</div>
+          <div id="lotStatus" role="status" aria-live="polite">Drag to pan · Tap a facility or person</div>
           <!-- The Full 2D Game Canvas -->
           <canvas id="studioLotCanvas" tabindex="0" role="application" aria-label="Studio lot. Drag to pan, scroll or pinch to zoom. Select a facility or staff member. Arrow keys pan, Escape cancels." style="display:block;width:100%;height:100%;cursor:grab"></canvas>
         </div>
@@ -755,7 +786,13 @@
       _canvas = document.getElementById("studioLotCanvas");
       _ctx = _canvas ? _canvas.getContext("2d") : null;
       _resizeObserver?.disconnect();
-      if (typeof ResizeObserver !== "undefined") { _resizeObserver=new ResizeObserver(resizeCanvas);_resizeObserver.observe(_canvas.parentElement);for(const el of [document.querySelector('.topbar'),document.getElementById('tabsNav')])if(el)_resizeObserver.observe(el); }
+      if (typeof ResizeObserver !== "undefined") {
+        _resizeObserver = new ResizeObserver(resizeCanvas);
+        for (const selector of ['.studiolot-viewport', '.topbar', '#tabsNav', '.kairo-top-bar', '.kairo-bottom-deck']) {
+          const element = document.querySelector(selector);
+          if (element) _resizeObserver.observe(element);
+        }
+      }
 
       resizeCanvas();
       window.removeEventListener("resize", resizeCanvas);
@@ -878,8 +915,9 @@
       // Room nav tabs
       const roomTabs = container.querySelectorAll(".kairo-nav-tab");
       roomTabs.forEach(tab => {
-        tab.setAttribute('aria-label',tab.textContent.trim());
-        tab.title=tab.textContent.trim();
+        if (!tab.hasAttribute('aria-label')) tab.setAttribute('aria-label',tab.textContent.trim());
+        tab.setAttribute('aria-pressed', String(tab.classList.contains('active')));
+        tab.title=tab.getAttribute('aria-label');
         tab.addEventListener("click", () => {
           const view = tab.dataset.view;
           setLotView(view);

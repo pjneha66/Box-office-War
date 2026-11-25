@@ -122,7 +122,10 @@
     }
 
     if(!target){
-      if(typeof toast === "function") toast("No active productions available to insure.", "bad");
+      if(typeof openModal === "function"){
+        openModal(`<div class="produce-modal-head"><h3>Completion guarantor &amp; risk insurance</h3><p>No active productions to insure. Completion cover is available during pre-production and shooting.</p></div>
+          <div class="produce-modal-body"><button class="produce-action" onclick="closeModal();switchTab('develop')">Find a script ↗</button></div>`, {className:"command-produce-modal"});
+      }
       return;
     }
 

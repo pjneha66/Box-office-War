@@ -149,28 +149,28 @@
   #app .command-section-nav .command-nav-tools button small { display: none; }
   #app .command-section-nav .command-nav-tools button span { font-size: 10.5px !important; }
 
-  /* Develop's nav is its own grid — collapse it to one scrollable row */
+  /* Keep the story tools reachable without scrolling the section row. */
   #app .command-section-nav.command-develop-nav {
-    display: flex;
-    flex-wrap: nowrap !important;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
     padding: 6px 8px;
   }
   #app .command-develop-nav .command-nav-brand { display: none; }
   #app .command-develop-nav .command-nav-items {
-    display: flex;
-    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
-    overflow-x: auto;
     padding: 0;
   }
   #app .command-develop-nav .command-nav-items button {
     min-height: 32px !important;
     padding: 5px 9px !important;
     font-size: 11px !important;
-    white-space: nowrap;
+    min-width: 0;
+    white-space: normal;
   }
-  #app .command-develop-nav .command-nav-tools { display: none; }
+  #app .command-develop-nav .command-nav-tools { display: grid; min-width: 0; }
 
   /* ── 4. Content rhythm: reclaim the height ────────────────────────────── */
   #app #view:not(.view-hidden-lot) {

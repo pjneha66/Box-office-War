@@ -208,8 +208,8 @@ function applyChromeLang(){
   document.querySelectorAll(".tab").forEach(b=>{ if(b.dataset.tab) b.textContent=chromeLabel(t("tab."+b.dataset.tab)); });
   document.querySelectorAll(".btab").forEach(b=>{
     if(!b.dataset.tab) return;
-    const ic=b.querySelector("span"); const icHtml=ic? ic.outerHTML:"";
-    b.innerHTML=icHtml+t("btab."+b.dataset.tab);
+    const label=b.querySelector(".portrait-nav-label");
+    if(label) label.textContent=chromeLabel(t("btab."+b.dataset.tab));
   });
   set("#btnWeek","btn.week"); set("#btnFast","btn.fast");
   const fl=document.querySelector("#fieldStudioName"); if(fl) fl.textContent=t("start.name");
