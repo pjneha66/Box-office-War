@@ -5,31 +5,19 @@
 > your release dates and win the weekend — with 106 live feature desks running a
 > deterministic weekly simulation.
 
-[Download Android APK (latest)](https://github.com/pjneha66/Box-office-War/releases/latest) | [License: MIT](LICENSE)
+**Android v47.3** · [Download signed APK](https://github.com/pjneha66/Box-office-War/releases/download/v47.3/BoxOfficeWar-47.3.apk) · [Release notes](https://github.com/pjneha66/Box-office-War/releases/tag/v47.3) · [MIT license](LICENSE)
 
----
+## Android v47.3 screenshots
 
-## Screenshots
+The Parallax interface ships with a redesigned start screen, portrait navigation, and updated Studio Lot and pitch dialogs. These screenshots show the web assets bundled in the signed APK at a 390 × 844 phone viewport. The Market screen uses sample titles to show the weekend chart.
 
-Captured from the v42.7 build (`node scripts/capture-readme-shots.mjs`).
+| Start screen | Home | Create |
+| --- | --- | --- |
+| ![Parallax start screen and new career controls](assets/screenshots/v47.3/start.png) | ![Parallax Home dashboard](assets/screenshots/v47.3/home.png) | ![Create desk and script market](assets/screenshots/v47.3/create.png) |
 
-| Start screen | Studio home | Cameos desk |
-|---|---|---|
-| ![Start screen](assets/screenshots/00-start.png) | ![Studio home](assets/screenshots/01-studio.png) | ![Cameos desk](assets/screenshots/05-cameo-desk.png) |
-
-| Box office | Limited series | Release sheet |
-|---|---|---|
-| ![Box office](assets/screenshots/03-box-office.png) | ![Series](assets/screenshots/02-series.png) | ![Film sheet](assets/screenshots/06-film-sheet.png) |
-
-| Feature desks (75+) | Pitch a project |
-|---|---|
-| ![Feature desks](assets/screenshots/04-desks.png) | ![Pitch sheet](assets/screenshots/95b-sheet-pitch.png) |
-
-More screens — landscape layout, every feature desk, the greenlight sheet — can be
-regenerated with `node scripts/capture-rebuild-screens.mjs` (writes 90+ shots to
-`rebuild-notes/ss/`).
-
----
+| Market | Studio Lot | Film pitch |
+| --- | --- | --- |
+| ![Market desk and weekend box office chart](assets/screenshots/v47.3/market.png) | ![Studio Lot with room tabs and production controls](assets/screenshots/v47.3/studio-lot.png) | ![Film pitch dialog and genre selection](assets/screenshots/v47.3/film-pitch.png) |
 
 ## What is new in v46.1 — the cashflow forecast tells the truth
 
@@ -247,24 +235,17 @@ state object, autosaved to local storage after every week, zero dependencies:
 
 ## Build & packaging
 
+The [Release APK workflow](.github/workflows/release-apk.yml) builds and publishes signed Android releases. It packages the portrait app from the repository root and bundles its assets for offline play.
+
+To prepare the web bundle for v47.3, check out the [release tag](https://github.com/pjneha66/Box-office-War/tree/v47.3) and run:
+
 ```bash
-# rebuild the mobile web bundle (game/ → apk/www/)
 node apk/build-www.js --rebuild
-
-# package a signed APK: swaps assets/www/ into the APK shell, patches the binary
-# AndroidManifest (versionCode / versionName) AXML-aware, then jarsigner signs it
-python3 apk/tools/patch_axml.py apk/dist/<base>.apk apk/dist/out-unsigned.apk apk/www 53 42.7
-jarsigner -keystore apk/signing/boxofficewar.keystore -storepass B0xOfficeWar2026 \
-  -keypass B0xOfficeWar2026 -signedjar apk/dist/out.apk apk/dist/out-unsigned.apk bow
 ```
-
-The game itself is plain ES5-style JavaScript with string-template UI and event
-delegation — it runs from any static file server, installs as a PWA, and the APK
-ships the same bundle (service worker stripped).
 
 ## Screenshots & development tooling
 
-- `node scripts/capture-readme-shots.mjs` — README screenshots (this file)
+- `node scripts/capture-readme-shots.mjs` — legacy README screenshot capture
 - `node scripts/capture-rebuild-screens.mjs` — full gallery: every view and all
   78 feature desks, portrait + landscape (`rebuild-notes/ss/`)
 - `node scripts/capture-store-screenshots.cjs` — legacy v41 store art
