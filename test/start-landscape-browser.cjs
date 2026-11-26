@@ -4,6 +4,16 @@ const assert=require('node:assert/strict'),puppeteer=require('puppeteer-core'),c
  const bounds=await p.evaluate(()=>{const a=document.querySelector('.start-overview').getBoundingClientRect(),c=document.querySelector('#startCard').getBoundingClientRect();return{left:{x:a.x,y:a.y,w:a.width,h:a.height},form:{x:c.x,y:c.y,w:c.width,h:c.height},overflow:document.documentElement.scrollWidth>innerWidth+1};});assert(!bounds.overflow,'no horizontal clipping');
  if(width>height){assert(bounds.left.x+bounds.left.w<=bounds.form.x+1,'overview and setup must be side by side');assert(bounds.form.h<=height);assert(bounds.form.y>=0);assert(bounds.form.y+bounds.form.h<=height+1);}
  assert(await p.$eval('#btnStart',b=>{const r=b.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Launch must be visible immediately');
+ if (width < height) {
+  const cdp = await p.createCDPSession();
+  await cdp.send('Input.dispatchTouchEvent', {type:'touchStart', touchPoints:[{x:width/2,y:height-100}]});
+  for (let delta=24; delta<=240; delta+=24) {
+   await cdp.send('Input.dispatchTouchEvent', {type:'touchMove', touchPoints:[{x:width/2,y:height-100-delta}]});
+  }
+  await cdp.send('Input.dispatchTouchEvent', {type:'touchEnd', touchPoints:[]});
+  await p.waitForFunction(()=>document.querySelector('#startScreen').scrollTop>80);
+  await p.$eval('#startScreen',e=>{e.scrollTop=0;});
+ }
  await p.screenshot({path:'screenshots/start-layout-'+width+'.png'});
  await p.$eval('#studioName',e=>e.scrollIntoView({block:'center'}));await p.focus('#studioName');await p.$eval('#studioName',e=>e.select());await p.keyboard.press('Backspace');await p.type('#studioName','Landscape Test');await p.click('#btnStart');await p.waitForSelector('#studioLotCanvas');assert.equal(await p.evaluate(()=>G.studio.name),'Landscape Test');await p.evaluate(()=>saveGame());
  await p.reload({waitUntil:'networkidle0'});await p.waitForSelector('#btnResumeHero',{visible:true});if(width>height)assert(await p.$eval('#btnResumeHero',e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Resume must be visible immediately on landscape');await p.$eval('#btnResumeHero',e=>e.scrollIntoView({block:'nearest'}));assert(await p.$eval('#btnResumeHero',e=>{const r=e.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===e;}));await p.click('#btnResumeHero');await p.waitForSelector('#studioLotCanvas');assert.equal(await p.evaluate(()=>G.studio.name),'Landscape Test');assert.deepEqual(errors,[]);

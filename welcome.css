@@ -151,9 +151,13 @@
  #startScreen.start-screen #btnStart { min-width:180px; min-height:44px; font-size:12px; }
 }
 @media(orientation:portrait),(max-width:639px) {
- #startScreen.start-screen { padding:10px 12px 0; overflow:clip; }
+ #startScreen.start-screen {
+  height:100dvh; min-height:0; display:block;
+  padding:10px 12px 0; overflow:hidden auto; overscroll-behavior-y:contain;
+ }
  #startScreen.start-screen .welcome-shell { display:flex; flex-direction:column; gap:10px; max-width:520px; }
  #startScreen.start-screen .welcome-scene { height:clamp(162px,51vw,260px); flex:none; }
+ #startScreen.start-screen :is(.start-overview,#startCard) { overflow:visible; }
  #startScreen.start-screen .welcome-launch { position:sticky; bottom:0; z-index:3; background:var(--welcome-bg); padding:8px 0 max(8px,env(safe-area-inset-bottom,0px)); }
  #startScreen.start-screen .welcome-launch #btnStart,
  #startScreen.start-screen .welcome-launch #btnContinue { flex:1 1 0; width:100%!important; min-width:0; }

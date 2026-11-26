@@ -228,11 +228,17 @@
   // Main Render Loop
   function render(time) {
     if (!_canvas || !_ctx) return;
-    if(_qualityMode==='auto'&&!document.hidden&&_qualityLast){
+    const backstage = document.getElementById('studiolotGlobalStage')?.classList.contains('lot-backdrop');
+    // The engine advances in fixed steps, so batch those steps away from the visible lot.
+    if (backstage && _lastTime && time - _lastTime < 95) {
+      _animId = requestAnimationFrame(render);
+      return;
+    }
+    if(!backstage&&_qualityMode==='auto'&&!document.hidden&&_qualityLast){
       _qualityFrames++;_qualityElapsed+=Math.min(250,time-_qualityLast);
       if(_qualityFrames>=120){if(_qualityElapsed/_qualityFrames>24&&_adaptiveDpr>1){_adaptiveDpr=1;resizeCanvas();feedback('Auto quality: pixel resolution reduced to keep the lot responsive.');}_qualityFrames=0;_qualityElapsed=0;}
     }
-    _qualityLast=time;
+    _qualityLast=backstage?0:time;
     if (_battery && time - _lastPaint < 32) { _animId=requestAnimationFrame(render); return; }
     _lastPaint=time;
     const started=performance.now();
@@ -248,6 +254,10 @@
 
     const simulated=performance.now();
     metrics.simulationMs+=simulated-started;
+    if (backstage) {
+      _animId = requestAnimationFrame(render);
+      return;
+    }
     _hudTimer += dt;
     if (_hudTimer > 0.5) { _hudTimer = 0; updateLotHud();
       const selected=engine.agents.find(a=>a.id===_selectedAgentId);
@@ -257,9 +267,6 @@
       if(needs&&selected)needs.textContent='Energy '+Math.round(selected.life?.energy||0)+'% · '+(selected.life?.mood||'calm');
     }
 
-    if(document.getElementById('studiolotGlobalStage')?.classList.contains('lot-backdrop')) {
-      _animId=requestAnimationFrame(render);return;
-    }
     // Clear Canvas
     _ctx.clearRect(0, 0, _logicalWidth, _logicalHeight);
 

@@ -58,6 +58,11 @@
 
 :root[data-layout="vertical"] #app[hidden] { display: none !important; }
 
+:root[data-layout="vertical"] body {
+  background-image: none;
+  background-attachment: scroll;
+}
+
 /* ── 2. app bar ───────────────────────────────────────────────────────
    The header is a container for the app bar and (on desktop) the destination
    strip. In portrait the strip is hidden below, so the header is just the
