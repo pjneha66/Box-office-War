@@ -137,7 +137,7 @@ echo "  SDK: $ANDROID_HOME"
 # The shipped game is the rebuilt, phone-first build in game/ (--rebuild).
 # Plain `node apk/build-www.js` packages the legacy 60-script game instead.
 node apk/build-www.js --rebuild
-if ! grep -q "mobile-shell.js" apk/www/index.html; then
+if ! grep -q "war-room.js" apk/www/index.html; then
   echo "✗ build-www.js produced the legacy bundle, not the rebuild — aborting"; exit 1
 fi
 # cap sync copies apk/www into the Android assets gradle actually packs —
