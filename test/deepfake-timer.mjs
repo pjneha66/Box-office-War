@@ -92,13 +92,18 @@ function makeApp() {
 
   /* Wrap resolveDeepfake AFTER the bundle defines it — assigning it before load
      would simply be replaced by the real engine function, making every
-     "was it resolved?" assertion vacuous. */
+     "was it resolved?" assertion vacuous. Same for toast(): ui.js declares its
+     own at file scope, overwriting the shim above during eval. */
   const realResolve = win.resolveDeepfake;
   if (typeof realResolve === "function") {
     win.resolveDeepfake = function (correct, opts) {
       state.resolved.push({ correct, opts });
       return realResolve.apply(this, arguments);
     };
+  }
+  const realToast = win.toast;
+  if (typeof realToast === "function") {
+    win.toast = function (m) { state.toasts.push(String(m)); return realToast.apply(this, arguments); };
   }
 
   return { win, intervals, state };
@@ -181,9 +186,7 @@ for (const route of ROUTES) {
 }
 
 /* Control: an untouched dialog must keep its clock armed and still be able to
-   submit. This proves onClose did not disarm the timer on the normal path.
-   (The countdown's own expiry branch is separately broken in pre-existing code
-   — see the note printed below — so it is deliberately not asserted here.) */
+   submit. This proves onClose did not disarm the timer on the normal path. */
 console.log("── control: an untouched dialog keeps its clock ──────────");
 {
   const { win, intervals, state } = makeApp();
@@ -219,18 +222,51 @@ console.log("── control: an untouched dialog keeps its clock ─────
   }
 }
 
-/* Known pre-existing defect discovered while writing this test (NOT fixed —
-   out of scope). The interval's expiry branch sets finished=true and then calls
-   submit(), whose first statement is `if (finished) return;`, so the branch can
-   never run. The engine's 2-week fallback still resolves the event, but the
-   dialog's own "clock running out counts as a miss" never fires. */
+/* v48 fix — expiry counts as a miss. The interval branch used to set
+   finished=true before calling submit(), whose first statement is
+   `if (finished) return;`, so the timeout resolution was a dead branch and the
+   modal hung with a stopped timer until the engine's 2-week fallback fired.
+   The fix lets submit() own the finish flags. This test fires the countdown
+   past zero on an untouched dialog and asserts the miss path actually runs:
+   resolveDeepfake(false), the pending event cleared, the interval cleared,
+   the dialog closed, and the "out of time" toast shown. */
+console.log("── expiry: clock running out resolves as a miss ──────────");
 {
-  const src = fs.readFileSync(path.join(ROOT, "ui.js"), "utf8");
-  const dead = /if\(left<=0 && !finished\)\{\s*finished=true;\s*clearInterval\(tick\);\s*submit\(false, true\);\s*\}/.test(src) &&
-               /function submit\(correct, timedOut\)\{\s*if\(finished\) return;/.test(src);
-  console.log((dead
-    ? "ℹ️  pre-existing: the countdown expiry branch never resolves (finished set before submit's guard) — reported, not fixed."
-    : "ℹ️  the countdown expiry branch is intact (no pre-existing defect detected)."));
+  const { win, intervals, state } = makeApp();
+  const DF = win.__DF;
+  DF.newGame("major", "DF Lab", { scenario: "standard", difficulty: "normal" });
+  DF.G._noSave = true;
+  DF.G.pendingDeepfake = { talentId: "t3", week: DF.G.week, tier: 0 };
+
+  const before = new Set(intervals.keys());
+  DF.deepfakeModal();
+  const drillTimers = Array.from(intervals.keys()).filter(id => !before.has(id));
+
+  /* totalTime = max(16, cfg.time*2) — tier 0 is 14s → 28 ticks. Fire well past
+     it, one second per tick, so a correct fix breaks out on the 29th. */
+  for (let i = 0; i < 32; i++) {
+    const live = drillTimers.filter(id => intervals.has(id));
+    if (!live.length) break;
+    live.forEach(id => { try { intervals.get(id).fn(); } catch (e) {} });
+  }
+
+  const timedOut = state.resolved.find(r => r && r.opts && r.opts.timedOut);
+  check("expiry resolves the event exactly once", state.resolved.length === 1,
+    state.resolved.length + " resolution(s)");
+  check("expiry records a miss (resolveDeepfake(false))",
+    !!state.resolved.length && state.resolved[0].correct === false,
+    "correct=" + (state.resolved[0] && state.resolved[0].correct));
+  check("expiry resolves with the drill's tier",
+    !!state.resolved.length && state.resolved[0].opts && state.resolved[0].opts.tier === 0,
+    JSON.stringify(state.resolved[0] && state.resolved[0].opts));
+  check("expiry clears the pending event", !DF.G.pendingDeepfake,
+    DF.G.pendingDeepfake ? "pendingDeepfake still set" : "cleared");
+  check("expiry stops the countdown", drillTimers.every(id => !intervals.has(id)),
+    drillTimers.filter(id => intervals.has(id)).length + " still armed");
+  check("expiry closes the dialog", !win.document.querySelector("#modalRoot .modal-veil"));
+  check("expiry explains itself with a toast",
+    state.toasts.some(m => typeof m === "string" && /Out of time/.test(m)),
+    JSON.stringify(state.toasts.filter(m => typeof m === "string")).slice(0, 120));
 }
 
 if (failures) { console.error("❌ deepfake-timer: " + failures + "/" + checks + " checks failed"); process.exit(1); }

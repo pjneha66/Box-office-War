@@ -1732,7 +1732,7 @@ function econDrift(){
   if(notes.length) log("🏭 Industry shifts: "+notes.join(", ")+" — see the Industry Report.","");
   else log("🏭 Industry steady: costs, crowds and streamers near baseline.","");
 }
-function recMarketing(p){ return Math.round(p.budget*DATA.SCALES[p.scale].mktRate * (p.imax||p.premium?(techDone("premium")?1.04:1.08):1) * (G.infl||1) * econM("adcost")); }
+function recMarketing(p){ return Math.round(p.budget*(DATA.SCALES[p.scale]||DATA.SCALES.mid).mktRate * (p.imax||p.premium?(techDone("premium")?1.04:1.08):1) * (G.infl||1) * econM("adcost")); }
 /* ── living industry: timeline + state derived from real history ──
    No new simulation, no new state — every row below already happened. */
 function industryTimeline(){
@@ -2294,7 +2294,11 @@ function tickGameSales(){
 
 function expectedOpening(p, weekAbs){
   if(weekAbs == null) weekAbs = (p && p.releaseWeek) || (G && G.week) || 1;
-  const S=DATA.SCALES[p.scale], g=DATA.GENRES[p.genre];
+  /* v48: guard the lookups like legsOf() does below. Custom/legacy films can
+     carry a genre (or scale) whose DATA row was deleted — sandbox genres are
+     dynamically removed by clearCustomGenres — and an unguarded g.mass threw
+     mid-tick instead of falling back to the neutral drama profile. */
+  const S=DATA.SCALES[p.scale]||DATA.SCALES.mid, g=DATA.GENRES[p.genre]||DATA.GENRES.drama||{mass:1,openBoost:1};
   let base = S.openBase * g.mass * (g.openBoost||1) * (G.infl||1);
   if(G.studio && G.studio.hypeSurge){ base*=1.10; } // v27: influence-bought hype surge (consumed at release)
   if(p.scale==="tentpole"&&repPerk("blockbuster")) base*=1.03; // blockbuster houses open big
@@ -2412,7 +2416,8 @@ function legsOf(film){
   // v5: review embargo — anticipation helps when critics would have been kind; cover-ups get punished
   if(film.embargoActive) legs += (film.quality.critic>=55? 0.05 : -0.10);
   legs += projectAbilities(film).legs;   // v28: Legs Engine & friends stretch the tail
-  if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.legsBonus) legs += BoxOfficeCollection.legsBonus(film);  // v43: collection levers extend the tail
+    if(typeof BoxOfficeCollection!=="undefined" && BoxOfficeCollection.legsBonus) legs += BoxOfficeCollection.legsBonus(film);  // v43: collection levers extend the tail
+  if(typeof WarRoom!=="undefined" && WarRoom.legsBoostFor) legs += WarRoom.legsBoostFor(film);   // v48: war-room night-show push stretches the tail
   return clamp(legs, 1.45, 4.4);
 }
 
@@ -2878,6 +2883,10 @@ function beginReshoot(pid){
 /* ═══════════ theatrical release ═══════════ */
 function releaseFilm(p){
   firePendingDrops(p);   // v13: drops that never got their week fire compressed at release
+  /* v48: Opening Night War Room — resolve rival counters BEFORE the opening is
+     priced, so the plan's post-counter values are the single source the
+     openingMultiplier seam reads (no second payer anywhere). */
+  if(typeof WarRoom!=="undefined" && WarRoom.beforeRelease){ try{ WarRoom.beforeRelease(G, p); }catch(e){} }
   let expected = expectedOpening(p, G.week);
   const abOpen = abilityOpenMult(p);   // v28: Opening Draw, Movie Star Incarnate, great combos
   if(abOpen>1) expected *= abOpen;
@@ -2923,7 +2932,9 @@ function releaseFilm(p){
   const q = p.quality;
   /* v5 global markets: the China import-quota roll happens on release day */
   let chinaDenied = false;
-  const chShare0 = DATA.GENRES[p.genre].china||0;
+  /* v48: guard like legsOf() — cleared sandbox genres must fall back, not throw */
+  const gRow = DATA.GENRES[p.genre] || DATA.GENRES.drama || { china: 0 };
+  const chShare0 = gRow.china||0;
   if(chShare0>0 && DATA.GLOBAL && DATA.GLOBAL.china && !p.presales){
     const CG=DATA.GLOBAL.china;
     let pass = CG.basePass + G.studio.rep*CG.repPerSlot;
@@ -4075,6 +4086,7 @@ function endTheatrical(f){
   const pvodMult = win? win.pvod : (win2? win2.pvod : 1);
   const pvod = Math.round(f.ww*0.055*clamp(f.quality.overall/70,0.7,1.4)*pvodMult);
   f.pvod = pvod; earn("pvod", pvod);
+  f.physicalEligible = true;   // v49: physical press run becomes available after PVOD
   f.pay1At = G.week+6;
   if(!f.streamingOriginal && !f.onOwn && !f.onOwnPlatform){ f.pay1Rate=0.06; }
   if(f.dayAndDate && G.streamer){ G.streamer.subs = Math.round((G.streamer.subs + 0.2 + (f.quality.overall/100))*100)/100; }
@@ -4591,6 +4603,12 @@ function tickRivals(){
           const share = Math.pow(f.weight,0.8)/(Math.pow(f.weight,0.8)+myW);
           opening *= clamp(Math.pow(share,0.55)*1.08, 0.15, 1.08);
         }
+        /* v48: war-room suppression — committed opening-day counter-programming
+           bleeds rival openings for the plan's week only (clamped in the module). */
+        if(typeof WarRoom!=="undefined" && WarRoom.weekSuppression){
+          const ws = WarRoom.weekSuppression(G, G.week);
+          if(ws>0) opening *= (1 - ws);
+        }
         if(G.theaterCap>0) opening*=0.55;
         f.opening = clamp(opening, 0.5, 320); f.dom=opening; f.live=true; f.weeksOut=1; f.decay=0;
       }else if(f.live){
@@ -4942,11 +4960,87 @@ function tickFinance(){
   try { if(typeof BOW_AGENCY !== "undefined") { if(typeof BOW_AGENCY.tickWeekly === "function") BOW_AGENCY.tickWeekly(G); if(typeof BOW_AGENCY.tickWeeklyCommissions === "function") BOW_AGENCY.tickWeeklyCommissions(G); } } catch(e){}
   try { if(typeof BOW_RESTORATION !== "undefined" && typeof BOW_RESTORATION.tickWeekly === "function") BOW_RESTORATION.tickWeekly(G); } catch(e){}
   try { if(typeof BOW_FESTIVAL_PR !== "undefined" && typeof BOW_FESTIVAL_PR.tickWeeklyCrisis === "function") BOW_FESTIVAL_PR.tickWeeklyCrisis(G); } catch(e){}
+  try { if(typeof EventCinema !== "undefined" && typeof EventCinema.tickWeekly === "function") EventCinema.tickWeekly(G); } catch(e){}   // v49: one-night theater events resolve
+  try { if(typeof FormatRights !== "undefined" && typeof FormatRights.tickWeekly === "function") FormatRights.tickWeekly(G); } catch(e){}   // v49: format remake royalties
+  try { if(typeof PhysicalMedia !== "undefined" && typeof PhysicalMedia.tickWeekly === "function") PhysicalMedia.tickWeekly(G); } catch(e){}   // v49: physical sell-through
   if(st.cash<0){ st.debt += -st.cash; st.cash=0; }
   if(G.sandbox) { G.weeksInDebt=0; return; }
   const netDebt = st.debt - Math.max(st.cash,0);
-  if(netDebt > maxDebt()*1.15){ G.weeksInDebt++; if(G.weeksInDebt>=3) gameOver("Bankruptcy","Net debt ("+fmtM(netDebt)+") stayed beyond your credit line ("+fmtM(maxDebt())+") for 3 straight weeks. The bank seized the lot."); }
-  else G.weeksInDebt=0;
+  const overLimit = netDebt > maxDebt()*1.15;
+  if(overLimit){
+    G.weeksInDebt++;
+    const R = G.restructure = G.restructure || { offeredWeek:0, deferUntil:0, choice:null, pending:false };
+    if(G.weeksInDebt>=3){
+      if(!R.choice && !R.pending){
+        R.pending = true; R.offeredWeek = G.week;
+        addNotification("🏦 The bank is calling in your studio — you have until next week to restructure.","bad");
+      }
+      const choiceMade = !!R.choice;
+      const deferWeek = R.choice ? R.deferUntil : R.offeredWeek + 4;
+      if((choiceMade && G.week >= deferWeek) || (!choiceMade && G.week >= deferWeek)){
+        gameOver("Bankruptcy","Net debt ("+fmtM(netDebt)+") stayed beyond your credit line ("+fmtM(maxDebt())+") past the restructuring window. The bank seized the lot.");
+      }
+    }
+	  } else {
+    G.weeksInDebt=0;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   v49: Bankruptcy Restructuring — when the studio crosses its credit line for
+   3 straight weeks the bank offers a deal instead of instant game over:
+   bailout (cash injection / distressed secondary, rep hit, 4-week deferral),
+   firesale (sell 40% of catalog at a 30% discount, reset franchise fatigue,
+   6-week deferral), or accept insolvency (game over). Every path is survivable
+   except accepting.
+   ═════════════════════════════════════════════════════════════════════════ */
+function applyBailout(){
+  const st=G.studio;
+  const R=G.restructure = G.restructure || {};
+  let cash=0;
+  if(G.public){
+    const P=G.public;
+    const shares=Math.max(1,Math.round(P.shares*0.2));
+    const price=Math.max(0.6,P.price);
+    cash=Math.round(price*shares*0.9); // distressed secondary at 10% haircut
+    P.shares = Math.max(1, P.shares - shares);
+    R.choice="bailout";
+    R.deferUntil=G.week+4;
+    G.studio.rep=clamp(G.studio.rep-6,5,99);
+    addNotification("💸 Emergency secondary raised $"+fmtM(cash)+" — dilution stings, but the lot stays yours.","gold");
+  } else {
+    cash=40;
+    st.debt+=50; // usurious mezzanine
+    G.mezz=(G.mezz||0)+50;
+    R.choice="bailout";
+    R.deferUntil=G.week+4;
+    G.studio.rep=clamp(G.studio.rep-6,5,99);
+    addNotification("💸 Emergency cash injection $40M at usurious terms — the board is not pleased.","gold");
+  }
+  earn("financing", cash);
+  R.pending=false; R.deferUntil=G.week+4;
+  G.weeksInDebt=0;
+  saveGame();
+  return { ok:true, cash };
+}
+function applyFiresale(){
+  const st=G.studio;
+  const R=G.restructure = G.restructure || {};
+  const cv=catalogValue();
+  const cash=Math.round(cv*0.4*0.7); // 40% of catalog at a 30% discount
+  earn("financing", cash);
+  (G.franchises||[]).forEach(fr=>{ fr.fatigue=0; });
+  R.choice="firesale";
+  R.deferUntil=G.week+6;
+  R.pending=false;
+  G.weeksInDebt=0;
+  addNotification("🔥 Firesale raised $"+fmtM(cash)+" — the library is smaller, but the bank is paid.","gold");
+  saveGame();
+  return { ok:true, cash };
+}
+function acceptInsolvency(){
+  const netDebt=G.studio.debt - Math.max(G.studio.cash,0);
+  gameOver("Bankruptcy","You accepted insolvency — net debt ("+fmtM(netDebt)+") exceeded your credit line ("+fmtM(maxDebt())+"). The bank seized the lot.");
 }
 
 function buyUpgrade(id){
@@ -6170,6 +6264,8 @@ function advanceWeek(){
   if(typeof FilmLocationsTax !== "undefined" && typeof FilmLocationsTax.tickWeekly === "function") FilmLocationsTax.tickWeekly();
   if(typeof StudioOperationsSuite !== "undefined" && typeof StudioOperationsSuite.tickWeekly === "function") StudioOperationsSuite.tickWeekly();
   if(typeof GameDevHardware !== "undefined" && typeof GameDevHardware.tickWeekly === "function") GameDevHardware.tickWeekly();
+  if(typeof WarRoom !== "undefined" && typeof WarRoom.tickWeekly === "function") WarRoom.tickWeekly(G);        // v48: war-plan lapse refunds + armed-expiry sweep
+  if(typeof ShareMarket !== "undefined" && typeof ShareMarket.tickWeekly === "function") ShareMarket.tickWeekly(G);  // v48: buybacks, dividends, takeover arc
   if(typeof LiveOpsCoPro !== "undefined" && typeof LiveOpsCoPro.tickWeekly === "function") LiveOpsCoPro.tickWeekly();
   G.offers=G.offers.filter(o=>o.expires>=G.week || o.type==="renewal");
   if(typeof refreshIdeas==="function") refreshIdeas();

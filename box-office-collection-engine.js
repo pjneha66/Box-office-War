@@ -349,6 +349,12 @@
       }
       if (s.corridor.active) m *= 1 + CONFIG.corridor.bump;
       if (s.bump.priceMode === "relief") m *= 1.03;
+      /* v48: Opening Night War Room — committed opening-day moves ride this
+         same single-payer opening seam; the 1.32 clamp below still governs
+         the total stack. */
+      if (typeof WarRoom !== "undefined" && WarRoom.openingBoostFor) {
+        m *= 1 + WarRoom.openingBoostFor(p, G);
+      }
       return clamp2(m, 1, 1.32);
     } catch (e) { return 1; }
   }

@@ -909,10 +909,12 @@ if(typeof NextWaveSuite!=="undefined"){
   console.log("v41.0 · Next Wave ok (episodes, calendar/weather, rights, ESG/incidents, rivals, awards, campaign/challenge/mod pack, backup recovery, NG+ and guide)");
 }
 
-// ── game-over path: insolvent studio is seized after 3 weeks ──
+// ── game-over path: insolvent studio gets a restructuring offer; accepting
+//   seizes the studio ──
 if(!G.over){
   G.sandbox=false; G.studio.cash=0; G.studio.debt=maxDebt()*2; G.weeksInDebt=2;
-  advanceWeek();
+  advanceWeek();                          // restructuring offer fires
+  acceptInsolvency();                     // accept → seizure
 }
 if(!G.over || !/bankrupt/i.test(G.over.title)) throw new Error("insolvency did not end the game");
 console.log("v5 · game over ok ("+G.over.title+")");

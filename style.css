@@ -3474,3 +3474,38 @@ body.rm-motion .ch-bar,body.rm-motion .ch-slice{animation:none!important;opacity
   }
 }
 
+
+/* ═════════ v48 — Opening Night War Room ═════════ */
+.warroom-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:linear-gradient(100deg,rgba(245,185,66,.14),rgba(255,93,108,.10));border:1px solid var(--gold,#f5b942);border-radius:14px;padding:10px 12px;margin:10px 0;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.warroom-banner-label{font-weight:800;font-size:12px;letter-spacing:1.2px;color:var(--gold,#f5b942);white-space:nowrap;animation:wrPulse 1.6s ease-in-out infinite}
+@keyframes wrPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.warroom-banner-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:rgba(10,14,22,.72);border:1px solid rgba(245,185,66,.4);border-radius:10px;padding:8px 12px;cursor:pointer;color:var(--text,#eef1f8);font:inherit;text-align:left;min-width:150px;flex:1}
+.warroom-banner-item b{font-size:13px}
+.warroom-banner-item span{font-size:10.5px;opacity:.75}
+.warroom-banner-item em{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.8px;color:#7ee2a8}
+.warroom-banner-item em.wr-hot{color:var(--gold,#f5b942);animation:wrPulse 1.6s ease-in-out infinite}
+.warroom-blocks{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.warroom-block{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:10px}
+.warroom-block-head{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.warroom-block-head b{font-size:13px}
+.warroom-block-head small{font-size:10.5px;opacity:.7}
+.warroom-moves{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.warroom-move{display:flex;flex-direction:column;align-items:flex-start;gap:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:9px 10px;cursor:pointer;color:var(--text,#eef1f8);font:inherit;text-align:left}
+.warroom-move b{font-size:12.5px}
+.warroom-move small{font-size:10.5px;opacity:.75;line-height:1.35}
+.warroom-move .wr-eff{display:flex;gap:6px;flex-wrap:wrap}
+.warroom-move .wr-eff i{font-style:normal;font-size:10px;font-weight:700}
+.wr-up{color:#7ee2a8}
+.wr-down{color:#ff5d6c}
+.warroom-move em{font-style:normal;font-size:11px;font-weight:700;opacity:.85;margin-top:auto}
+.warroom-move.wr-picked{border-color:var(--gold,#f5b942);background:rgba(245,185,66,.14);box-shadow:0 0 0 1px var(--gold,#f5b942)}
+.warroom-move.wr-hold{opacity:.8}
+.wr-comp{display:inline-block;background:rgba(255,93,108,.14);border:1px solid rgba(255,93,108,.35);border-radius:999px;padding:2px 9px;font-size:10.5px;margin:2px 4px 2px 0}
+.wr-comp i{font-style:normal;opacity:.7;font-size:9px;letter-spacing:.5px;text-transform:uppercase}
+.wr-plan-note{background:rgba(126,226,168,.10);border:1px solid rgba(126,226,168,.35);border-radius:10px;padding:9px 11px;font-size:12px;margin:8px 0}
+.wr-commit{display:flex;align-items:center;gap:10px;justify-content:space-between;border-top:1px solid rgba(255,255,255,.10);padding-top:10px;margin-top:4px;flex-wrap:wrap}
+.wr-commit em{font-style:normal;font-size:11.5px;font-weight:700}
+.wr-recap{display:flex;flex-direction:column;gap:4px;margin:8px 0}
+.wr-recap-row{display:flex;align-items:center;gap:8px;font-size:12px;border-bottom:1px dashed rgba(255,255,255,.08);padding:5px 0}
+.wr-recap-row b{margin-left:auto;font-size:10.5px;letter-spacing:.6px}
+.wr-recap-total{display:flex;justify-content:space-between;font-size:12px;font-weight:600;padding:4px 0}

@@ -855,6 +855,7 @@ function enterApp(fresh){
   else if(G.pendingSale) saleModal();
   else if(G.pendingSports) sportsModal();
   else if(G.pendingReport) reportModal();
+  else if(G.restructure && G.restructure.pending) restructuringModal();
   else if(G.over) gameOverModal();
 }
 /* The five groups of the bottom nav. Everything not carried by its own button
@@ -1204,6 +1205,7 @@ function afterTick(){
   else if(G.pendingSale) saleModal();
   else if(G.pendingSports) sportsModal();
   else if(G.pendingReport) reportModal();
+  else if(G.restructure && G.restructure.pending) restructuringModal();
   else if(G.over) gameOverModal();
   else weekSummaryModal();   // v8: pop the week's report when nothing else needs you
 }
@@ -4816,7 +4818,7 @@ function viewProductions(){
   else if(PROD_FILTER==="ready") readyFiltered=readyAll.filter(p=>!p.releaseWeek);
   else if(["pre","shoot","post","reshoot"].includes(PROD_FILTER)) readyFiltered=[];
 
-  let h=`<section class="command-deck command-produce">${produceHead()}${produceTelemetry()}${produceBrief()}${produceTools()}`;
+  let h=`<section class="command-deck command-produce">${produceHead()}${produceTelemetry()}${produceBrief()}${produceTools()}${(typeof WarRoom!=="undefined"&&WarRoom.bannerHTML)?WarRoom.bannerHTML(G):""}`;
   // Pipeline overview (gantt + backlot + lifecycle) as one panel
   h+=producePanel("PIPELINE","On the lot right now","How every active picture moves through the three phases — and who is actually on set today.",`<div class="produce-gantt">${produceGantt(allProd).replace(/^<div class='produce-gantt'>/,"").replace(/<\/div>$/,"")}</div>${produceBacklot(allProd)}<div class="produce-pipeline"><span>${allProd.length} IN MOTION</span> Pre ${allProd.filter(p=>p.phase==="pre").length} · Shoot ${allProd.filter(p=>p.phase==="shoot").length} · Post ${allProd.filter(p=>p.phase==="post").length}${allProd.filter(p=>p.phase==="reshoot").length?" · Reshoot "+allProd.filter(p=>p.phase==="reshoot").length:""} · Ready ${readyAll.length} <b>Concept → Script → Cast → <b>Production</b> → Post → Test → Marketing → Release</b></div>`);
   // Acquired media vault (if any) lives inside the same deck, not as legacy cards
@@ -5739,7 +5741,10 @@ const BOXOFFICE_SECTIONS = [
   ["blitz","Marketing blitz"],
   ["territories","Territory deals"],
   ["awards","Awards circuit"],
-  ["clash","Clash radar"]
+  ["clash","Clash radar"],
+  ["events","Event cinema"],
+  ["formats","Format rights"],
+  ["physical","Physical media"]
 ];
 const BOXOFFICE_COPY = {
   chart: ["03 / THE WEEKEND","What the town is paying to see","Every screen reports on Monday morning. This is who won the weekend, who is still earning, and where your own runs stand against the town."],
@@ -5748,7 +5753,10 @@ const BOXOFFICE_COPY = {
   blitz: ["03 / CAMPAIGN","Marketing is a spend curve, not a switch","Outdoor, digital, radio and premieres each buy a different kind of attention. Pace the blitz against the corridor you actually dated."],
   territories: ["03 / TERRITORIES","Where the money crosses borders","Regional splits, local audience scores and city-level grosses. A strong domestic run still only tells half of the story."],
   awards: ["03 / SEASON","Awards are a second release","Bodies and festivals run on their own calendar. A campaign that lands in the right week reopens a picture that already closed."],
-  clash: ["03 / COLLISION","Read the corridor before you date","Twelve weekends of seasonality, holidays and rival slates. Two tentpoles on one date costs both of them screens."]
+  clash: ["03 / COLLISION","Read the corridor before you date","Twelve weekends of seasonality, holidays and rival slates. Two tentpoles on one date costs both of them screens."],
+  events: ["03 / EVENT CINEMA","One-night shows in your chains","Concerts, opera, live sports and comedy screened theatrically. License fee up front, you set the ticket price — weather and chain taste decide the house."],
+  formats: ["03 / FORMAT RIGHTS","Package hits as remakes","Sell closed library hits as script-bible formats to foreign studios. Upfront fee, plus backend royalties when a remake beats the original."],
+  physical: ["03 / PHYSICAL MEDIA","Press runs after theaters","DVD/Blu-ray and Collector's Editions with sell-through tails — press run up front, revenue trickles in weekly."]
 };
 function boxOfficeHead(){
   const w=woyOf(G.week), m=DATA.seasonOf(w);
@@ -5844,6 +5852,108 @@ function boxOfficeTerritoriesPanel(){
 function boxOfficeClashPanel(){
   return boxOfficePanel("CLASH RADAR","Where the next collision sits","Dated pictures on both sides of the aisle, plus the seasonality behind each weekend.",boxOfficeCorridorGrid()+"<div class=\"produce-cards bo-rivals\">"+(G.rivals||[]).map(rivalProfile).join("")+"</div>",`${(G.rivals||[]).length} RIVALS`);
 }
+function boxOfficeEventsPanel(){
+  const ec = typeof EventCinema !== "undefined" ? EventCinema : null;
+  const g = typeof G !== "undefined" ? G : null;
+  if(!ec) return boxOfficePanel("EVENT CINEMA","One-night shows in your chains","The Event Cinema module did not load — event-cinema.js is missing from this build.","<div class='bo-empty'><b>Module missing.</b><p>Restore event-cinema.js to the script list in index.html.</p></div>","MODULE MISSING");
+  ec.ensure(g);
+  const week = g.week||1;
+  const cat = ec.catalog(g);
+  const booked = (g.eventCinema.booked||[]).filter(b => b.week === week && !b.resolved);
+
+  let body = "<div class='ec-panel'>";
+  /* catalog cards — chain/tier picked via data attributes, booked via EventCinema.book */
+  body += "<div class='ec-head'><b>THIS WEEK'S EVENTS</b><small>license fee up front · you set the ticket price · resolves after this week's tick</small></div>";
+  body += "<div class='ec-catalog'>";
+  for(const ev of cat){
+    body += "<div class='ec-card' data-ec-event='"+ev.id+"'>";
+    body += "<div class='ec-card-head'><b>"+esc(ev.name)+"</b><span class='ec-cost'>license "+fmtM(ev.cost)+"</span></div>";
+    body += "<div class='ec-card-body'>";
+    body += "<div class='ec-draw'>est. draw "+fmtG(ev.draw/1000)+"K · taste: "+esc(ev.taste)+"</div>";
+    body += "<div class='ec-chains'>";
+    for(const chain of ec.chains()){
+      const taste = (chain.taste && chain.taste[ev.taste]) || 1;
+      body += "<button class='ec-chain-btn"+((chain.rel||50)>=50?"":" ec-chain-cold")+"' data-ec-chain='"+chain.id+"'>"+
+        esc(chain.name)+" <span class='ec-screens'>"+Math.round(chain.screens*100)+"% screens</span>"+
+        "<span class='ec-taste'>"+(taste>1?"+"+Math.round((taste-1)*100)+"%":"")+"</span>"+
+      "</button>";
+    }
+    body += "</div>";
+    body += "<div class='ec-tiers'>";
+    for(const t of ev.tiers){
+      body += "<button class='ec-tier-btn"+(t.id==="standard"?" ec-selected":"")+"' data-ec-tier='"+t.id+"'>"+t.id.charAt(0).toUpperCase()+t.id.slice(1)+" $"+t.price+"</button>";
+    }
+    body += "</div>";
+    body += "<div class='ec-actions'><button class='ec-book-btn' data-ec-book='"+ev.id+"'>Book</button></div>";
+    body += "</div></div>";
+  }
+  body += "</div>";
+
+  if(booked.length){
+    body += "<div class='ec-booked'><div class='ec-head'><b>BOOKED THIS WEEKEND</b><small>resolves on the weekly tick</small></div>";
+    for(const b of booked){
+      const ev = ec.EVENTS[b.eventId];
+      body += "<div class='ec-booked-row'>"+esc(ev.name)+" · $"+b.price+" ticket · resolves after this week's tick</div>";
+    }
+    body += "</div>";
+  }
+
+  const recent = (g.eventCinema.history||[]).slice(-4);
+  if(recent.length){
+    body += "<div class='ec-history'><div class='ec-head'><b>RECENT EVENTS</b><small>last 4 resolutions</small></div>";
+    for(const b of recent){
+      body += "<div class='ec-hist-row'>"+esc(ec.EVENTS[b.eventId].name)+" · "+
+        (b.profit>=0?"+"+fmtM(b.profit):fmtM(b.profit))+" · "+b.attendance.toLocaleString()+" tickets</div>";
+    }
+    body += "</div>";
+  }
+  body += "</div>";
+
+  return boxOfficePanel("EVENT CINEMA","One-night shows in your chains","Concerts, opera, live sports and comedy screened theatrically. License fee up front, you set the ticket price — weather and chain taste decide the house.",body,`${cat.length} EVENTS`);
+}
+function boxOfficeFormatsPanel(){
+  const fr = typeof FormatRights !== "undefined" ? FormatRights : null;
+  const g = typeof G !== "undefined" ? G : null;
+  if(!fr) return boxOfficePanel("FORMAT RIGHTS","Package hits as remakes","The Format Rights module did not load — format-rights.js is missing from this build.","<div class='bo-empty'><b>Module missing.</b><p>Restore format-rights.js to the script list in index.html.</p></div>","MODULE MISSING");
+  fr.ensure(g);
+  const eligible = fr.eligibleFilms(g);
+  const sold = g.formatRights.sold || {};
+
+  let body = "<div class='fr-panel'>";
+  body += "<div class='fr-head'><b>LIBRARY — PACKAGE AS FORMAT</b><small>closed runs · audience ≥65 · WW ≥ $20M · upfront fee + remake royalties</small></div>";
+  body += "<div class='fr-list'>";
+  if(eligible.length){
+    for(const f of eligible){
+      const fee = fr.feeFor(f);
+      const frn = fr._franchiseOf(f);
+      const tierTxt = frn ? " · tier "+frn.tier : "";
+      body += "<div class='fr-card' data-fr-film='"+f.id+"'>";
+      body += "<div class='fr-card-head'><b>"+esc(f.title)+"</b><span class='fr-fee'>"+fmtM(fee)+" upfront</span></div>";
+      body += "<div class='fr-card-body'>";
+      body += "<div class='fr-meta'>WW "+fmtG(f.ww||0)+" · aud "+Math.round(fr._audience(f))+tierTxt+" · genre "+esc((DATA.GENRES&&DATA.GENRES[f.genre])?DATA.GENRES[f.genre].name:f.genre)+"</div>";
+      body += "<div class='fr-actions'><button class='fr-sell-btn' data-fr-sell='"+f.id+"'>Package as format</button></div>";
+      body += "</div></div>";
+    }
+  } else {
+    body += "<div class='fr-empty'><p>No closed hits qualify yet. A film needs a $20M+ worldwide gross and audience ≥65 after its theatrical run ends.</p></div>";
+  }
+  body += "</div>";
+
+  const soldIds = Object.keys(sold);
+  if(soldIds.length){
+    body += "<div class='fr-section'><div class='fr-head'><b>SOLD FORMATS</b><small>upfront paid · royalties when remakes hit</small></div>";
+    body += "<div class='fr-sold'>";
+    for(const id of soldIds){
+      const e = sold[id];
+      const markets = (e.remakeMarkets||[]).join(", ");
+      body += "<div class='fr-sold-row'>"+esc(e.title)+" · "+fmtM(e.fee)+" paid · "+esc(markets||"—")+"</div>";
+    }
+    body += "</div></div>";
+  }
+  body += "</div>";
+
+  return boxOfficePanel("FORMAT RIGHTS","Package hits as remakes","Sell closed library hits as script-bible formats to foreign studios. Upfront fee, plus backend royalties when a remake beats the original.",body,`${soldIds.length} SOLD`);
+}
 
 /* Weekly curve for a run: screen reports first, then the raw weekly ledger.
    Labels carry the real week number so a run read mid-flight still lines up. */
@@ -5872,6 +5982,63 @@ function boWeekRows(f){
     return "<div class='bo-weeks-row'><span>Wk "+wk+"</span><span>"+fmtG(r.gross||0)+"</span><span>"+Number(r.screens||0).toLocaleString("en-US")+"</span><span>"+psa+"</span><span>"+(r.occ||0)+"%</span><span>"+wow+"</span></div>";
   }).join("");
   return "<div class='bo-weeks'><div class='bo-weeks-head'><span>WEEK</span><span>GROSS</span><span>SCREENS</span><span>PER SCREEN</span><span>FULL</span><span>WOW</span></div>"+body+"</div>";
+}
+function boxOfficePhysicalPanel(){
+  const pm = typeof PhysicalMedia !== "undefined" ? PhysicalMedia : null;
+  const g = typeof G !== "undefined" ? G : null;
+  if(!pm) return boxOfficePanel("PHYSICAL MEDIA","Press runs after theaters","The Physical Media module did not load — physical-media.js is missing from this build.","<div class='bo-empty'><b>Module missing.</b><p>Restore physical-media.js to the script list in index.html.</p></div>","MODULE MISSING");
+  pm.ensure(g);
+  const eligible = pm.eligibleFilms(g);
+  const releases = g.physicalMedia.releases || [];
+
+  let body = "<div class='pm-panel'>";
+  body += "<div class='pm-head'><b>AFTER THEATER — PHYSICAL PRESS RUN</b><small>closed runs · WW ≥ $30M · press run up front · sell-through tail</small></div>";
+  body += "<div class='pm-list'>";
+  if(eligible.length){
+    for(const f of eligible){
+      body += "<div class='pm-card' data-pm-film='"+f.id+"'>";
+      body += "<div class='pm-card-head'><b>"+esc(f.title)+"</b><span class='pm-ww'>WW "+fmtG(f.ww||0)+"</span></div>";
+      body += "<div class='pm-card-body'>";
+      body += "<div class='pm-meta'>aud "+Math.round(pm._audience(f))+" · genre "+esc((DATA.GENRES&&DATA.GENRES[f.genre])?DATA.GENRES[f.genre].name:f.genre)+"</div>";
+      body += "<div class='pm-editions'>";
+      for(const key of ["standard","collector"]){
+        const ED = pm.EDITIONS[key];
+        let disabled = "";
+        if(key==="collector" && pm._audience(f) < pm.MIN_QUALITY) disabled=" pm-edition-disabled";
+        body += "<button class='pm-edition-btn"+disabled+"' data-pm-edition='"+key+"'>"+ED.name+" · "+fmtM(ED.cost)+" press</button>";
+      }
+      body += "</div>";
+      body += "<div class='pm-actions'><button class='pm-plan-btn' data-pm-plan='"+f.id+"'>Plan Release</button></div>";
+      body += "</div></div>";
+    }
+  } else {
+    body += "<div class='pm-empty'><p>No closed hits qualify yet. A film needs a $30M+ worldwide gross after its theatrical run ends.</p></div>";
+  }
+  body += "</div>";
+
+  const active = (g.physicalMedia.releases||[]).filter(r => !r.soldOut && r.weeksLeft > 0);
+  if(active.length){
+    body += "<div class='pm-section'><div class='pm-head'><b>ON SHELVES NOW</b><small>sell-through tail · resolves each weekly tick</small></div>";
+    body += "<div class='pm-active'>";
+    for(const r of active){
+      const pct = Math.round((r.unitsLeft / r.units) * 100);
+      body += "<div class='pm-active-row'>"+esc(r.title)+" · "+r.name+": "+r.unitsLeft+"/"+r.units+" units ("+pct+"%) · "+fmtM(r.rev)+" earned</div>";
+    }
+    body += "</div></div>";
+  }
+
+  const done = (g.physicalMedia.releases||[]).filter(r => r.soldOut).slice(-4);
+  if(done.length){
+    body += "<div class='pm-section'><div class='pm-head'><b>SOLD OUT</b><small>last 4 press runs</small></div>";
+    body += "<div class='pm-done'>";
+    for(const r of done){
+      body += "<div class='pm-done-row'>"+esc(r.title)+" · "+r.name+" · "+fmtM(r.rev)+" total</div>";
+    }
+    body += "</div></div>";
+  }
+  body += "</div>";
+
+  return boxOfficePanel("PHYSICAL MEDIA","Press runs after theaters","DVD/Blu-ray and Collector's Editions with sell-through tails — press run up front, revenue trickles in weekly.",body,`${active.length} ACTIVE`);
 }
 function boxOfficeRuns(){
   let h="";
@@ -6030,7 +6197,7 @@ function boxOfficeWeekendModal(){
 
 function viewBoxOffice(){
   if(typeof BOXOFFICE_SUB==="undefined" || !BOXOFFICE_SECTIONS.some(s=>s[0]===BOXOFFICE_SUB)) BOXOFFICE_SUB="chart";
-  const head=boxOfficeHead()+boxOfficeNav()+(BOXOFFICE_SUB==="chart"?"":boxOfficeTelemetry());
+  const head=boxOfficeHead()+boxOfficeNav()+((typeof WarRoom!=="undefined"&&WarRoom.bannerHTML)?WarRoom.bannerHTML(G):"")+(BOXOFFICE_SUB==="chart"?"":boxOfficeTelemetry());
   let body="";
   if(BOXOFFICE_SUB==="chains") body=boxOfficeChainsPanel();
   else if(BOXOFFICE_SUB==="plf") body=boxOfficeModulePanel("PREMIUM FORMAT","PLF mastering & the concession stand","Large-format deliverables, screen scheduling and popcorn splits — the premium margin in one desk.",(typeof ExhibitionPLF!=="undefined"&&typeof ExhibitionPLF.renderExhibitionPLFSection==="function")?ExhibitionPLF.renderExhibitionPLFSection():"","PLF");
@@ -6038,6 +6205,9 @@ function viewBoxOffice(){
   else if(BOXOFFICE_SUB==="awards") body=boxOfficeModulePanel("SEASON","The awards circuit","Bodies, festivals and the weeks they vote. A campaign here is a second release for a picture that already closed.",(typeof FilmLocationsTax!=="undefined"&&typeof FilmLocationsTax.renderAwardCircuitSection==="function")?FilmLocationsTax.renderAwardCircuitSection():"","SEASON");
   else if(BOXOFFICE_SUB==="territories") body=boxOfficeTerritoriesPanel();
   else if(BOXOFFICE_SUB==="clash") body=boxOfficeClashPanel();
+  else if(BOXOFFICE_SUB==="events") body=boxOfficeEventsPanel();
+  else if(BOXOFFICE_SUB==="formats") body=boxOfficeFormatsPanel();
+  else if(BOXOFFICE_SUB==="physical") body=boxOfficePhysicalPanel();
   else body=boxOfficeChartPanel()+boxOfficeTelemetry()+boxOfficeCompetitionPanel()+boxOfficeCorridorPanel()+boxOfficeRunsPanel()+boxOfficeLibraryPanel();
   return `<section class="command-deck command-produce command-boxoffice">${head}${body}</section>`;
 }
@@ -6745,9 +6915,14 @@ function financeEquityPanel(){
         : `<div class="fin-locked">🔒 Needs reputation 60+ — you are at ${Math.round(st.rep)}, so ${need} more. Flops, weak quarters and crises all cost reputation.</div><div class="finance-filter-row"><button class="btn btn-ghost" id="fnIpo" disabled>Go public (locked)</button></div>`);
   }
 
+  /* v48: share market completion — buybacks, dividends, ownership stake and
+     the hostile-takeover arc render as their own panel right under the IPO
+     card. The module owns its markup and its [data-sm-*] bindings. */
+  const smHTML=(typeof ShareMarket!=="undefined" && ShareMarket.marketPanelHTML)? ShareMarket.marketPanelHTML(G) : "";
+  if(smHTML) body += financePanel("MARKET","Ownership & raiders","Buy back shares, set a dividend policy and defend your control. Raiders circle an undervalued studio — threat builds when the cap falls below book.", smHTML);
+
   /* career P&L */
-  const S=G.stats||{};
-  body += financePanel("CAREER","All-time record",
+  const S=G.stats||{};  body += financePanel("CAREER","All-time record",
     "Lifetime figures the engine keeps on the career, not a trailing window.",
     `${finLine("🎬 Films released", 0, {text:String(S.films||0)})}
       ${finLine("📺 Seasons delivered", 0, {text:String(S.seriesSeasons||0)})}
@@ -7046,6 +7221,9 @@ function bindFinanceDesk(){
   const D=fd(); if(!D) return;
   const st=G.studio;
   const c=D.ledgerCommit(G);
+
+  /* v48: share market panel owns its [data-sm-*] bindings */
+  if(typeof ShareMarket!=="undefined" && ShareMarket.bindFinanceDesk){ try{ ShareMarket.bindFinanceDesk(document.getElementById("app")); }catch(e){} }
 
   /* lane switching — one navigation, persisted on G.finState */
   $$("[data-finsub]").forEach(b=>b.onclick=()=>{ beep("click"); financeSet({ sub:b.dataset.finsub }); });
@@ -7666,9 +7844,13 @@ function bindView(){
   /* v37: the Game Studio desk owns one persisted nav (data-gamessub) bound in
      bindGameStudioDesk(). The old data-gamestab handlers were duplicated — one
      real, one a no-op that clobbered it — and are removed. */
-  if(TAB==="library") bindLibraryDesk();   // v36.0 LIBRARY DESK
-  if(TAB==="games") bindGameStudioDesk();  // v37.0 GAME STUDIO DESK
-  if(TAB==="finance") bindFinanceDesk();   // v38.0 TREASURY DESK
+  if(TAB==="library") bindLibraryDesk();   // v36.0 LIBRARY desk
+  if(TAB==="games") bindGameStudioDesk();  // v37.0 GAME STUDIO desk
+  if(TAB==="finance") bindFinanceDesk();   // v38.0 TREASURY desk
+  /* v48: Opening Night War Room — the clash banner renders inside
+     viewProductions()/viewBoxOffice(); bind its [data-war-open] buttons here so
+     any tab it appears on stays wired after every render. */
+  if(typeof WarRoom!=="undefined" && WarRoom.bindBanner){ try{ WarRoom.bindBanner(document.getElementById("app")); }catch(e){} }
   const btnDLoc = $("#btnDashLocations"); if(btnDLoc) btnDLoc.onclick=()=>{ beep("click"); LOC_DESK.focus=null; openLocationDesk(); };
   const btnDSpo = $("#btnDashSponsors"); if(btnDSpo) btnDSpo.onclick=()=>{ beep("click"); if(typeof StudioOperationsSuite!=="undefined" && typeof StudioOperationsSuite.renderProductPlacementModal === "function") StudioOperationsSuite.renderProductPlacementModal(); };
   const btnDScout = $("#btnDashScout"); if(btnDScout) btnDScout.onclick=()=>{ beep("click"); if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.renderBlindBoxModal === "function") LiveOpsCoPro.renderBlindBoxModal(); };
@@ -7681,6 +7863,11 @@ function bindView(){
   if(typeof FilmLocationsTax!=="undefined" && typeof FilmLocationsTax.bindEvents === "function") FilmLocationsTax.bindEvents();
   if(typeof GameDevHardware!=="undefined" && typeof GameDevHardware.bindEvents === "function") GameDevHardware.bindEvents();
   if(typeof LiveOpsCoPro!=="undefined" && typeof LiveOpsCoPro.bindEvents === "function") LiveOpsCoPro.bindEvents();
+  /* v49: Event Cinema desk — wire chain/tier picks and the Book buttons on the
+     currently rendered Box Office events panel. */
+  if(typeof EventCinema!=="undefined" && EventCinema.bindDesk){ try{ EventCinema.bindDesk(document.getElementById("app")); }catch(e){} }
+  if(typeof FormatRights!=="undefined" && FormatRights.bindDesk){ try{ FormatRights.bindDesk(document.getElementById("app")); }catch(e){} }
+  if(typeof PhysicalMedia!=="undefined" && PhysicalMedia.bindDesk){ try{ PhysicalMedia.bindDesk(document.getElementById("app")); }catch(e){} }
 
   const mab=$("#btnMaBrowse"); if(mab) mab.onclick=()=>{ beep("click"); maVaultBrowser(); };
   $$("[data-macounter]").forEach(b=>b.onclick=(e)=>{
@@ -9878,6 +10065,53 @@ function reportModal(){
   beep("drums");
   if(mine.length) confetti({count:200});
 }
+
+function restructuringModal(){
+  const R=G.restructure; if(!R || !R.pending) return;
+  const st=G.studio;
+  const netDebt=st.debt - Math.max(st.cash,0);
+  const limit=maxDebt()*1.15;
+  const kpi=(label,value,note,tone)=>'<div class="bo-kpi'+(tone?" "+tone:"")+'"><small>'+label+'</small><b>'+value+'</b><span>'+note+'</span></div>';
+
+  const bailoutCash = G.public ? Math.round(Math.max(0.6,G.public.price)*Math.max(1,Math.round(G.public.shares*0.2))*0.9) : 40;
+
+  const head='<div class="produce-modal-head"><span class="command-eyebrow">RESTRUCTURING / DISTRESS</span>'+
+    '<h3>The bank is calling in your studio</h3>'+
+    '<p>Net debt <b>'+fmtM(netDebt)+'</b> exceeds your credit line <b>'+fmtM(Math.round(limit*10)/10)+'</b>. Choose how to buy time — or accept insolvency.</p></div>';
+
+  let body='<div class="produce-modal-body">';
+  body+='<div class="bo-kpis">'+
+    kpi("NET DEBT",fmtM(netDebt),"vs credit line "+fmtM(Math.round(maxDebt()*10)/10),"bad")+
+    kpi("WEEKS OVER",String(G.weeksInDebt),"3 triggers seizure","bad")+
+    kpi("CASH ON HAND",fmtM(st.cash),"","")+
+    kpi("REPUTATION",String(Math.round(st.rep)),"every quarter is judged","")+
+  '</div>';
+
+  body+='<div class="produce-modal-card"><div class="bo-figure-head"><b>YOUR OPTIONS</b><span>one choice only</span></div>'+
+    '<div class="bo-track-rows">'+
+    '<div class="bo-track-row"><span class="bo-track-label">🏦 Emergency bailout</span>'+
+    '<span class="bo-track-val">+$'+fmtM(bailoutCash)+' · −6 rep</span></div>'+
+    '<div class="bo-track-row"><span class="bo-track-label">🔥 Asset firesale</span>'+
+    '<span class="bo-track-val">+$'+fmtM(Math.round(catalogValue()*0.28))+' · catalog −40%</span></div>'+
+    '<div class="bo-track-row"><span class="bo-track-label">⚰ Accept insolvency</span>'+
+    '<span class="bo-track-val">studio lost</span></div>'+
+    '</div>'+
+    '<p class="bo-figure-cap">The bailout defers seizure 4 weeks (listed studios issue a distressed secondary; unlisted studios take usurious mezzanine, −6 rep). The firesale defers 6 weeks but sells 40% of your catalog at a 30% discount and resets franchise fatigue. Accepting ends the run.</p></div>';
+
+  body+='</div>';
+
+  const foot='<div class="produce-modal-actions"><div class="row" style="margin:0;gap:8px">'+
+    '<button class="produce-action" id="rstrBailout">Emergency Bailout</button>'+
+    '<button class="produce-action btn-alt" id="rstrFiresale">Asset Firesale</button>'+
+    '<button class="produce-action btn-ghost" id="rstrAccept">Accept Insolvency</button>'+
+    '</div></div>';
+
+  const v=openModal(head+body+foot,{noX:true,className:"command-produce-modal"});
+  const bail=v.querySelector("#rstrBailout"); if(bail) bail.onclick=()=>{ applyBailout(); closeModal(); render(); };
+  const fire=v.querySelector("#rstrFiresale"); if(fire) fire.onclick=()=>{ applyFiresale(); closeModal(); render(); };
+  const acc=v.querySelector("#rstrAccept"); if(acc) acc.onclick=()=>{ acceptInsolvency(); };
+  beep("bad");
+}
 function documentaryRetrospective(o){
   const hits = o.stats.hits || 0;
   const flops = o.stats.flops || 0;
@@ -10650,7 +10884,7 @@ function startSpinoff(fr){
 function autoWeekTick(){
   if(!G){toggleAuto(false);return;}
   if(document.hidden || (typeof StudioLotBridge!=='undefined'&&StudioLotBridge.clock.paused))return;
-  if(G.pendingChoice||G.pendingReport||G.pendingEarnings||G.pendingAuction||G.pendingDeepfake||G.pendingSports||G.over)return;
+  if(G.pendingChoice||G.pendingReport||G.pendingEarnings||G.pendingAuction||G.pendingDeepfake||G.pendingSports||G.over||(G.restructure&&G.restructure.pending))return;
   if(document.querySelector('#modalRoot .modal'))return;
   doWeek(1);
 }
@@ -12636,7 +12870,10 @@ function deepfakeModal(){
   tick=setInterval(function(){
     left--;
     if(timerEl) timerEl.textContent="Time Remaining: "+left+"s";
-    if(left<=0 && !finished){ finished=true; clearInterval(tick); submit(false, true); }
+    /* v48: submit() owns the finish flags — it opens with `if(finished) return;`,
+       so pre-setting finished here made the timeout branch a dead no-op and the
+       modal hung with a dead timer until the engine's 2-week fallback fired. */
+    if(left<=0 && !finished){ submit(false, true); }
   }, 1000);
   try{ if(tick && tick.unref) tick.unref(); }catch(e){}
   function submit(correct, timedOut){

@@ -43,14 +43,14 @@ const FILES = [
   "finance-desk.js", "finance-tools.js", "v31-features.js", "bo-charts.js", "gamestudio-desk.js",
   "challenge-leaderboard.js", "theater-chains.js", "dynamic-soundtrack.js", "dynasty-legacy.js",
   "bow-shorts.js", "talent-agency.js", "film-restoration.js", "festival-pr.js",
-  "studio-facilities.js", "syndication-tv.js", "talent-contracts.js", "bond-market.js",
+  "studio-facilities.js", "syndication-tv.js", "talent-contracts.js", "bond-market.js", "share-market.js",
   "clash-analytics.js", "cinematic-universe.js", "location-scouting.js", "production-insurance.js",
   "awards-campaign.js", "board-targets.js", "fan-conventions.js", "test-screenings.js",
   "studio-espionage.js", "merch-licensing.js", "territory-licensing.js", "custom-sandbox.js",
   "film-locations-tax.js", "studio-operations-suite.js", "gamedev-console-hardware.js", "live-ops-coproduction.js",
   "hollywood-crises-pr.js", "demographics-audiences.js", "production-creativity-suite.js", "exhibition-plf-concessions.js", "marketing-blitz-engine.js",
   "studio-agent-life.js", "studio-lot-engine.js", "studio-actors.js", "studio-departments.js", "studio-lot-2d.js", "lot-life.js", "lot-feel.js", "bow-motion.js",
-  "box-office-sim-2-cast.js", "gamestudio-gdd-engine.js", "social-viral-network.js", "sports-stadium-deals.js", "stage-division.js", "kairo-theme-suite.js", "box-office-collection-engine.js",
+  "box-office-sim-2-cast.js", "gamestudio-gdd-engine.js", "social-viral-network.js", "sports-stadium-deals.js", "stage-division.js", "kairo-theme-suite.js", "box-office-collection-engine.js", "war-room.js", "event-cinema.js", "format-rights.js", "physical-media.js",
   "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.webmanifest",
 ];
 
